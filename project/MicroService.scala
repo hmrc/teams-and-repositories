@@ -31,7 +31,6 @@ trait MicroService {
       targetJvm := "jvm-1.8",
       retrieveManaged := true
     )
-    .settings(SbtBuildInfo(): _*)
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
     .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
 }
