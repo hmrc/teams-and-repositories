@@ -22,7 +22,7 @@ class FakeSpec extends FlatSpec with Matchers{
 
   "test" should "pass" in  {
 
-    
+
   }
 
 }
