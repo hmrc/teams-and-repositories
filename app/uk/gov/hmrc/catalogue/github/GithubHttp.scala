@@ -20,7 +20,8 @@ import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import com.ning.http.client.AsyncHttpClientConfig.Builder
-import play.api.libs.json.{JsValue, Reads}
+import org.joda.time.DateTime
+import play.api.libs.json.{Json, JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
 
@@ -30,27 +31,40 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 
-class Logger{
-  def info(st:String) = println("[INFO] " + st)
-  def debug(st:String) = Unit
+class Logger {
+  def info(st: String) = println("[INFO] " + st)
+
+  def debug(st: String) = Unit
 }
 
-object GithubHttp {
-  val githubHttpFromCreds = {
-    val enterpriseGithub = "github.tools.tax.service.gov.uk"
 
-    val githubCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
-      .flatMap { c => CredentialsFinder.findGithubCredsInFile(c.toPath) }
-      .find(_.host == enterpriseGithub).getOrElse(throw new IllegalAccessException(s"didn't find credentials for $enterpriseGithub"))
+case class GhOrganization(login: String)
 
-    println(s"githubCredentials = $githubCredentials")
+case class GhRepository(name: String, id: Long, html_url: String)
 
-    new GithubHttp(githubCredentials)
-  }
+
+case class GhTeam(name: String, id: Long)
+
+object GhTeam {
+  implicit val formats = Json.format[GhTeam]
 }
 
-class GithubHttp(cred:ServiceCredentials){
+
+object GhOrganization {
+  implicit val formats = Json.format[GhOrganization]
+}
+
+object GhRepository {
+  implicit val formats = Json.format[GhRepository]
+}
+
+trait GithubHttp extends CredentialsFinder {
+
   val log = new Logger()
+
+  def cred: ServiceCredentials
+
+  lazy val host = cred.host
 
   private val asyncBuilder: Builder = new Builder()
   private val tp: ExecutorService = Executors.newCachedThreadPool()
@@ -64,14 +78,13 @@ class GithubHttp(cred:ServiceCredentials){
 
   val ws = new NingWSClient(builder.build())
 
-  val host = cred.host
 
-  def close(): Unit ={
+  def close(): Unit = {
     ws.close()
     tp.shutdown()
   }
 
-  def buildCall(method:String, url:String, body:Option[JsValue] = None):WSRequestHolder={
+  def buildCall(method: String, url: String, body: Option[JsValue] = None): WSRequestHolder = {
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
     log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
 
@@ -86,7 +99,7 @@ class GithubHttp(cred:ServiceCredentials){
     }.getOrElse(req)
   }
 
-  def callAndWait(req:WSRequestHolder): WSResponse = {
+  def callAndWait(req: WSRequestHolder): WSResponse = {
 
     log.info(s"${req.method} with ${req.url}")
 
@@ -97,19 +110,30 @@ class GithubHttp(cred:ServiceCredentials){
     result
   }
 
-  def get[A](url:String)(implicit r: Reads[A]): Future[A] = {
+  def get[A](url: String)(implicit r: Reads[A]): Future[A] = {
     buildCall("GET", url).execute().flatMap { result =>
       result.status match {
         case s if s >= 200 && s < 300 => {
-          Try { result.json.as[A] } match {
+          Try {
+            result.json.as[A]
+          } match {
             case Success(a) => Future.successful(a)
             case Failure(e) => println(e.getMessage + "failed body was: " + result.body); Future.failed(e)
           }
         }
-        case _ @ e =>
-            Future.failed(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: url: ${url} ${result.body}"))
+        case _@e =>
+          Future.failed(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: url: ${url} ${result.body}"))
       }
     }
   }
+}
+
+object GithubHttp extends GithubHttp {
+
+  val enterpriseGithub = "github.tools.tax.service.gov.uk"
+
+  val cred: ServiceCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
+    .flatMap { c => findGithubCredsInFile(c.toPath) }
+    .find(_.host == enterpriseGithub).getOrElse(throw new IllegalAccessException(s"didn't find credentials for $enterpriseGithub"))
 
 }

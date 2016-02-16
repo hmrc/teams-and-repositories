@@ -23,7 +23,7 @@ import scala.io.Source
 case class ServiceCredentials(host:String, user:String, pass:String)
 
 
-object CredentialsFinder {
+trait CredentialsFinder {
 
   def findGithubCredsInFile(file:Path):Option[ServiceCredentials] = {
     val conf = new ConfigFile(file)

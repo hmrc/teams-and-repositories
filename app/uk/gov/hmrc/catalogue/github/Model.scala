@@ -16,40 +16,23 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import play.api.libs.json.{JsPath, Json, Reads}
+import play.api.libs.json.Json
 
 object Model {
 
-  case class GhCommit(date: DateTime)
+  case class Team(teamName: String, repositories: List[Repository])
 
-  case class GhOrganization(login: String)
+  case class Repository(name: String, url: String)
 
-  case class GhRepository(id: Long, name: String, ssh_url: String)
-
-  case class GhCollaborator(login: String)
-
-  case class GhTeam(name: String, id: Long)
-
-  implicit val commitReads: Reads[GhCommit] = (JsPath \ "commit" \ "committer" \ "date").read[String].map { s =>
-    GhCommit(DateTime.parse(s, ISODateTimeFormat.dateTimeParser()))
+  object Repository {
+    implicit val formats = Json.format[Repository]
   }
 
-  object GhTeam {
-    implicit val formats = Json.format[GhTeam]
+  object Team {
+    implicit val formats = Json.format[Team]
   }
 
-  object GhCollaborator {
-    implicit val formats = Json.format[GhCollaborator]
-  }
 
-  object GhOrganization {
-    implicit val formats = Json.format[GhOrganization]
-  }
 
-  object GhRepository {
-    implicit val formats = Json.format[GhRepository]
-  }
 
 }
