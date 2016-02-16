@@ -20,20 +20,15 @@ import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.time.{Seconds, Millis, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.catalogue.github.Model.{Repository, Team}
 
 import scala.concurrent.Future
 
-trait DefaultPatienceConfig {
-  self : ScalaFutures =>
+class GithubOpenSpec extends WordSpec with MockitoSugar with Matchers with ScalaFutures {
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(1, Seconds), interval = Span(5, Millis))
-}
-
-class GithubEnterpriseSpec extends WordSpec with MockitoSugar with Matchers with ScalaFutures with DefaultPatienceConfig{
-
-
 
   val githubHttp: GithubHttp = mock[GithubHttp]
   val gitHub = new GithubEnterprise {

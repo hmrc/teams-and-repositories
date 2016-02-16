@@ -67,9 +67,6 @@ trait GithubEnterprise extends CatalogueDataSource {
     }.map(_.flatten)
   }
 
-  def collaboratorsUrl(org: String, repo: String): String = {
-    s"https://${gh.host}/api/v3/repos/$org/$repo/collaborators"
-  }
 
   def teamsUrl(org: String): String = {
     s"https://${gh.host}/api/v3/orgs/$org/teams?per_page=100"
@@ -79,16 +76,9 @@ trait GithubEnterprise extends CatalogueDataSource {
     s"https://${gh.host}/api/v3/teams/$teamId/repos?per_page=100"
   }
 
-  def commitsUrl(org: String, repo: String): String = {
-    s"https://${gh.host}/api/v3/repos/$org/$repo/commits"
-  }
 
   def orgUrl: String = {
     s"https://${gh.host}/api/v3/user/orgs"
-  }
-
-  def reposUrl(org: GhOrganization): String = {
-    s"https://${gh.host}/api/v3/orgs/${org.login}/repos?per_page=100"
   }
 
 }

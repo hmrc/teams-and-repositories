@@ -36,7 +36,9 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion
+    "uk.gov.hmrc" %% "domain" % domainVersion,
+    "org.apache.httpcomponents" % "httpcore" % "4.3.2",
+    "org.apache.httpcomponents" % "httpclient" % "4.3.5"
   )
 
   trait TestDependencies {
@@ -50,7 +52,8 @@ private object AppDependencies {
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % "2.2.2" % scope,
         "org.pegdown" % "pegdown" % "1.4.2" % scope,        
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "com.github.tomakehurst" % "wiremock" % "1.52" % scope
       )
     }.test
   }
