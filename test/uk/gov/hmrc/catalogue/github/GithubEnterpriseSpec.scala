@@ -20,12 +20,15 @@ import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.time.{Seconds, Millis, Span}
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.catalogue.github.Model.{Repository, Team}
 
 import scala.concurrent.Future
 
 class GithubEnterpriseSpec extends WordSpec with MockitoSugar with Matchers with ScalaFutures {
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   val githubHttp: GithubHttp = mock[GithubHttp]
   val gitHub = new GithubEnterprise {
@@ -56,7 +59,8 @@ class GithubEnterpriseSpec extends WordSpec with MockitoSugar with Matchers with
       when(githubHttp.get[List[GhRepository]](eqTo(s"https://myHost/api/v3/teams/2/repos?per_page=100"))(any())).thenReturn(Future.successful(List(GhRepository("B_r", 5, "url_B"))))
       when(githubHttp.get[List[GhRepository]](eqTo("https://myHost/api/v3/teams/3/repos?per_page=100"))(any())).thenReturn(Future.successful(List(GhRepository("C_r", 6, "url_C"))))
 
-      gitHub.getTeamRepoMapping.futureValue shouldBe List(
+      val result: Future[List[Team]] = gitHub.getTeamRepoMapping
+      result.futureValue shouldBe List(
         Team("A", List(Repository("A_r", "url_A"))),
         Team("B", List(Repository("B_r", "url_B"))),
         Team("C", List(Repository("C_r", "url_C")))
