@@ -18,16 +18,19 @@ package uk.gov.hmrc.catalogue.github
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.Matchers
-import uk.gov.hmrc.catalogue.github.Model.{Repository, Team}
+import uk.gov.hmrc.catalogue.DefaultPatienceConfig
+import uk.gov.hmrc.catalogue.teams.ViewModels
+import ViewModels.{Repository, Team}
+import uk.gov.hmrc.catalogue.teamsrepository.GithubV3TeamsRepositoryDataSource
 
 class GithubEnterpriseDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 
-  val githubHttp = new GithubHttp with GithubEnterpriseApiEndpoints {
+  val githubHttp = new GithubV3ApiClient with GithubEnterpriseApiEndpoints {
     override def rootUrl: String = s"http://$testHost:$port"
     override val cred : ServiceCredentials = ServiceCredentials(rootUrl, "", "")
   }
 
-  val dataSource = new GithubEnterpriseDataSource {
+  val dataSource = new GithubV3TeamsRepositoryDataSource {
     def gh = githubHttp
   }
 

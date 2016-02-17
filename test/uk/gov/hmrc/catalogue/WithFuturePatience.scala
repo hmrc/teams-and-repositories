@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.catalogue
 
-
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 
-trait WithFuturePatience {
+trait DefaultPatienceConfig {
   self : ScalaFutures =>
   implicit override val patienceConfig = PatienceConfig(timeout = Span(1, Seconds), interval = Span(5, Millis))
 }
