@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.github
+package uk.gov.hmrc.catalogue.teams
 
 import play.api.libs.json.Json
 
-object Model {
+object ViewModels {
 
   case class Team(teamName: String, repositories: List[Repository])
 

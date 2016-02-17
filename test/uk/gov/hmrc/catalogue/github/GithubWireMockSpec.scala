@@ -10,7 +10,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
   val testHost = "localhost"
   val port = 7654
 
-  def githubHttp: GithubHttp with GithubEndpoints
+  def githubHttp: GithubV3ApiClient with GithubEndpoints
 
   val wireMockServer = new WireMockServer(port)
 

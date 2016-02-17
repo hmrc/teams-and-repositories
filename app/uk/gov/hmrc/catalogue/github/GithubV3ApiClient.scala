@@ -16,46 +16,30 @@
 
 package uk.gov.hmrc.catalogue.github
 
+import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import com.ning.http.client.AsyncHttpClientConfig.Builder
-import play.api.libs.json.{JsValue, Json, Reads}
+import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
-
 class Logger {
-
   def info(st: String) = println("[INFO] " + st)
-
   def debug(st: String) = Unit
-
 }
 
-case class GhOrganization(login: String, id: Int = 0)
-
-case class GhRepository(name: String, id: Long, html_url: String)
-
-case class GhTeam(name: String, id: Long)
-
-object GhTeam {
-  implicit val formats = Json.format[GhTeam]
+trait GithubCredentials extends CredentialsFinder {
+  val cred: ServiceCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
+    .flatMap { c => findGithubCredsInFile(c.toPath) }.head
 }
 
-object GhOrganization {
-  implicit val formats = Json.format[GhOrganization]
-}
-
-object GhRepository {
-  implicit val formats = Json.format[GhRepository]
-}
-
-trait GithubHttp {
+trait GithubV3ApiClient {
   self : GithubEndpoints =>
 
   def cred: ServiceCredentials

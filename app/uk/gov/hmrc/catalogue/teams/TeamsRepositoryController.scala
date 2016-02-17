@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.controllers
+package uk.gov.hmrc.catalogue.teams
 
 import play.api.libs.json.Json
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.github.{CatalogueDataSource, GithubEnterpriseDataSource}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.catalogue.github.Model._
 
-object TeamRepositoryCatalogueController extends TeamRepositoryCatalogueController {
-  override def dataSource: CatalogueDataSource = GithubEnterpriseDataSource
+import uk.gov.hmrc.catalogue.teamsrepository.{GithubEnterpriseTeamsRepositoryDataSource, TeamsRepositoryDataSource}
+import uk.gov.hmrc.play.microservice.controller.BaseController
+
+object TeamsRepositoryController extends TeamsRepositoryController {
+  override def dataSource: TeamsRepositoryDataSource = GithubEnterpriseTeamsRepositoryDataSource
 }
 
-trait TeamRepositoryCatalogueController extends BaseController {
-
-  def dataSource: CatalogueDataSource
+trait TeamsRepositoryController extends BaseController {
+  def dataSource: TeamsRepositoryDataSource
 
   def teamRepository() = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map(x => Ok(Json.toJson(x)))
