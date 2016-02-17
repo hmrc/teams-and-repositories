@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.catalogue.teams
 
-import play.api.libs.json.Json
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.Json
 import play.api.mvc._
-
-import uk.gov.hmrc.catalogue.teamsrepository.{GithubEnterpriseTeamsRepositoryDataSource, TeamsRepositoryDataSource}
+import uk.gov.hmrc.catalogue.teamsrepository.TeamsRepositoryDataSource
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-object TeamsRepositoryController extends TeamsRepositoryController {
-  override def dataSource: TeamsRepositoryDataSource = GithubEnterpriseTeamsRepositoryDataSource
+object TeamsRepositoryController extends TeamsRepositoryController with GithubEnterpriseDataSource {
+  val dataSource = enterpriseDataSource
 }
 
 trait TeamsRepositoryController extends BaseController {

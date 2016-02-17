@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import com.ning.http.client.AsyncHttpClientConfig.Builder
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
 
-import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
@@ -34,15 +33,8 @@ class Logger {
   def debug(st: String) = Unit
 }
 
-trait GithubCredentials extends CredentialsFinder {
-  val cred: ServiceCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
-    .flatMap { c => findGithubCredsInFile(c.toPath) }.head
-}
-
 trait GithubV3ApiClient {
-  self : GithubEndpoints =>
-
-  def cred: ServiceCredentials
+  self : GithubEndpoints with GithubCredentials  =>
 
   val log = new Logger()
 

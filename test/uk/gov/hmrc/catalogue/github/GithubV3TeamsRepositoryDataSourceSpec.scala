@@ -23,16 +23,10 @@ import uk.gov.hmrc.catalogue.teams.ViewModels
 import ViewModels.{Repository, Team}
 import uk.gov.hmrc.catalogue.teamsrepository.GithubV3TeamsRepositoryDataSource
 
-class GithubEnterpriseDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
+class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 
-  val githubHttp = new GithubV3ApiClient with GithubEnterpriseApiEndpoints {
-    override def rootUrl: String = s"http://$testHost:$port"
-    override val cred : ServiceCredentials = ServiceCredentials(rootUrl, "", "")
-  }
-
-  val dataSource = new GithubV3TeamsRepositoryDataSource {
-    def gh = githubHttp
-  }
+  val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
+  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient)
 
   "Github Enterprise Data Source" should {
 
@@ -48,8 +42,7 @@ class GithubEnterpriseDataSourceSpec extends GithubWireMockSpec with ScalaFuture
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         Team("A", List(Repository("A_r", "url_A"))),
         Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C")))
-      )
+        Team("C", List(Repository("C_r", "url_C"))))
 
     }
   }
