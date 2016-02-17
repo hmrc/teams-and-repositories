@@ -18,13 +18,13 @@ package uk.gov.hmrc.catalogue.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.github.{CatalogueDataSource, GithubEnterprise}
+import uk.gov.hmrc.catalogue.github.{CatalogueDataSource, GithubEnterpriseDataSource}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.catalogue.github.Model._
 
 object TeamRepositoryCatalogueController extends TeamRepositoryCatalogueController {
-  override def dataSource: CatalogueDataSource = GithubEnterprise
+  override def dataSource: CatalogueDataSource = GithubEnterpriseDataSource
 }
 
 trait TeamRepositoryCatalogueController extends BaseController {

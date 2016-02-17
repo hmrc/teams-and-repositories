@@ -32,7 +32,4 @@ object Model {
     implicit val formats = Json.format[Team]
   }
 
-
-
-
 }

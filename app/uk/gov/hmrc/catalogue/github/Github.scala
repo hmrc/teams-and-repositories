@@ -16,69 +16,63 @@
 
 package uk.gov.hmrc.catalogue.github
 
+import java.io.File
+
 import uk.gov.hmrc.catalogue.github.Model.{Repository, Team}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object CompositeDataSource extends CatalogueDataSource {
-  val dataSource = List(GithubEnterprise, GithubOpen)
+  val dataSource = List(GithubEnterpriseDataSource, GithubOpenDataSource)
 
   override def getTeamRepoMapping: Future[List[Team]] = ???
 }
-
 
 trait CatalogueDataSource {
   def getTeamRepoMapping: Future[List[Team]]
 }
 
-object GithubOpen extends CatalogueDataSource {
+object GithubOpenDataSource extends CatalogueDataSource {
   override def getTeamRepoMapping: Future[List[Team]] = ???
 }
 
-object GithubEnterprise extends GithubEnterprise {
-  val gh: GithubHttp = GithubHttp
+object GithubEnterpriseDataSource extends GithubEnterpriseDataSource {
+  val gh: GithubHttp = new GithubHttp with GithubEnterpriseApiEndpoints with GithubCredentials
 }
 
-trait GithubEnterprise extends CatalogueDataSource {
+trait GithubCredentials extends CredentialsFinder {
+  val cred: ServiceCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
+    .flatMap { c => findGithubCredsInFile(c.toPath) }.head
+}
+
+trait GithubEnterpriseDataSource extends CatalogueDataSource {
   def gh: GithubHttp
 
   val teamsToIgnore: Set[String] = Set.empty
   val repoPhrasesToIgnore: Set[String] = Set.empty
 
   def getTeamRepoMapping: Future[List[Team]] = {
-    val orgs = gh.get[List[GhOrganization]](orgUrl)
+    val orgs = gh.getOrganisations
     val teams = getOrgTeams(orgs)
 
-    teams.flatMap { teams =>
-      Future.sequence {
-        teams.par.map { t => gh.get[List[GhRepository]](teamReposUrl(t.id)).map(repos => Team(t.name, repos.map(y => Repository(y.name, y.html_url)))) }.toList
+    teams.flatMap {
+      teams => Future.sequence {
+        teams.par.map {
+          t => gh.getReposForTeam(t).map(
+            repos => Team(t.name, repos.map(
+              y => Repository(y.name, y.html_url))))
+        }.toList
       }
     }
   }
 
   private def getOrgTeams(orgsF: Future[List[GhOrganization]]): Future[List[GhTeam]] = {
-    orgsF.flatMap { orgs =>
-      Future.sequence {
-        orgs.par.map { x =>
-          gh.get[List[GhTeam]](teamsUrl(x.login))
-        }.toList
+    orgsF.flatMap {
+      orgs => Future.sequence {
+        orgs.par.map { gh.getTeamsForOrganisation }.toList
       }
     }.map(_.flatten)
-  }
-
-
-  def teamsUrl(org: String): String = {
-    s"https://${gh.host}/api/v3/orgs/$org/teams?per_page=100"
-  }
-
-  def teamReposUrl(teamId: Long): String = {
-    s"https://${gh.host}/api/v3/teams/$teamId/repos?per_page=100"
-  }
-
-
-  def orgUrl: String = {
-    s"https://${gh.host}/api/v3/user/orgs"
   }
 
 }

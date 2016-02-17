@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
 import com.ning.http.client.AsyncHttpClientConfig.Builder
-import org.joda.time.DateTime
-import play.api.libs.json.{Json, JsValue, Reads}
+import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
 
@@ -32,23 +30,22 @@ import scala.util.{Failure, Success, Try}
 
 
 class Logger {
+
   def info(st: String) = println("[INFO] " + st)
 
   def debug(st: String) = Unit
+
 }
 
-
-case class GhOrganization(login: String)
+case class GhOrganization(login: String, id: Int = 0)
 
 case class GhRepository(name: String, id: Long, html_url: String)
-
 
 case class GhTeam(name: String, id: Long)
 
 object GhTeam {
   implicit val formats = Json.format[GhTeam]
 }
-
 
 object GhOrganization {
   implicit val formats = Json.format[GhOrganization]
@@ -58,13 +55,14 @@ object GhRepository {
   implicit val formats = Json.format[GhRepository]
 }
 
-trait GithubHttp extends CredentialsFinder {
-
-  val log = new Logger()
+trait GithubHttp {
+  self : GithubEndpoints =>
 
   def cred: ServiceCredentials
 
-  lazy val host = cred.host
+  val log = new Logger()
+
+  private lazy val host = cred.host
 
   private val asyncBuilder: Builder = new Builder()
   private val tp: ExecutorService = Executors.newCachedThreadPool()
@@ -75,16 +73,15 @@ trait GithubHttp extends CredentialsFinder {
       config = new DefaultWSClientConfig(/*connectionTimeout = Some(120 * 1000)*/),
       builder = asyncBuilder)
 
+  private val ws = new NingWSClient(builder.build())
 
-  val ws = new NingWSClient(builder.build())
+  def getOrganisations = get[List[GhOrganization]](s"$rootUrl$organisationsEndpoint")
 
+  def getTeamsForOrganisation(x: GhOrganization) = get[List[GhTeam]](s"$rootUrl${teamsForOrganisationEndpoint(x.login)}")
 
-  def close(): Unit = {
-    ws.close()
-    tp.shutdown()
-  }
+  def getReposForTeam(t: GhTeam) = get[List[GhRepository]](s"$rootUrl${reposForTeamEndpoint(t.id)}")
 
-  def buildCall(method: String, url: String, body: Option[JsValue] = None): WSRequestHolder = {
+  private def buildCall(method: String, url: String, body: Option[JsValue] = None): WSRequestHolder = {
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
     log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
 
@@ -99,18 +96,14 @@ trait GithubHttp extends CredentialsFinder {
     }.getOrElse(req)
   }
 
-  def callAndWait(req: WSRequestHolder): WSResponse = {
-
+  private def callAndWait(req: WSRequestHolder): WSResponse = {
     log.info(s"${req.method} with ${req.url}")
-
     val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
-
     log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
-
     result
   }
 
-  def get[A](url: String)(implicit r: Reads[A]): Future[A] = {
+  private def get[A](url: String)(implicit r: Reads[A]): Future[A] = {
     buildCall("GET", url).execute().flatMap { result =>
       result.status match {
         case s if s >= 200 && s < 300 => {
@@ -128,12 +121,3 @@ trait GithubHttp extends CredentialsFinder {
   }
 }
 
-object GithubHttp extends GithubHttp {
-
-  val enterpriseGithub = "github.tools.tax.service.gov.uk"
-
-  val cred: ServiceCredentials = new File(System.getProperty("user.home"), ".github").listFiles()
-    .flatMap { c => findGithubCredsInFile(c.toPath) }
-    .find(_.host == enterpriseGithub).getOrElse(throw new IllegalAccessException(s"didn't find credentials for $enterpriseGithub"))
-
-}

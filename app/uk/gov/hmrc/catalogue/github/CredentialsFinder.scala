@@ -22,7 +22,6 @@ import scala.io.Source
 
 case class ServiceCredentials(host:String, user:String, pass:String)
 
-
 trait CredentialsFinder {
 
   def findGithubCredsInFile(file:Path):Option[ServiceCredentials] = {
