@@ -1,4 +1,3 @@
 # microservice specific routes
 
-GET        /                       uk.gov.hmrc.catalogue.controllers.MicroserviceHelloWorld.hello
-GET        /teams                  uk.gov.hmrc.catalogue.controllers.TeamRepositoryCatalogueController.teamRepository
+GET        /teams                  uk.gov.hmrc.catalogue.teams.TeamsRepositoryController.teamRepository
