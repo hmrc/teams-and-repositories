@@ -14,18 +14,20 @@ object ConfigProvider extends ConfigProvider with CredentialsFinder with RunMode
   val githubOpenConfigKey = s"${RunMode.env}.github.open.api"
   val githubEnterpriseConfigKey = s"${RunMode.env}.github.enterprise.api"
 
-  val githubOpen = GithubCredentials(
+  val githubOpen = fallBackToFileSystem(".credentials", GithubCredentials(
     config(s"$githubOpenConfigKey.host"),
     config(s"$githubOpenConfigKey.user"),
-    config(s"$githubOpenConfigKey.key"))
+    config(s"$githubOpenConfigKey.key")))
 
-  val githubEnterprise = GithubCredentials(
+  val githubEnterprise = fallBackToFileSystem(".githubenterprise", GithubCredentials(
     config(s"$githubOpenConfigKey.host"),
     config(s"$githubEnterpriseConfigKey.user"),
-    config(s"$githubEnterpriseConfigKey.key"))
+    config(s"$githubEnterpriseConfigKey.key")))
 
   private def fallBackToFileSystem(filename: String, credentials: GithubCredentials) = {
-    if (credentials.user == "") {
+    def isNullOrEmpty(s: String) = s != null && s.isEmpty
+
+    if (isNullOrEmpty(credentials.host) || isNullOrEmpty(credentials.user)) {
       new File(System.getProperty("user.home"), filename).listFiles()
         .flatMap { c => findGithubCredsInFile(c.toPath) }.head
     }
