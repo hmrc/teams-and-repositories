@@ -19,9 +19,8 @@ package uk.gov.hmrc.catalogue.github
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.Matchers
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
-import uk.gov.hmrc.catalogue.teams.ViewModels
+import uk.gov.hmrc.catalogue.teams.{GithubV3TeamsRepositoryDataSource, ViewModels}
 import ViewModels.{Repository, Team}
-import uk.gov.hmrc.catalogue.teamsrepository.GithubV3TeamsRepositoryDataSource
 
 class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 

@@ -23,6 +23,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
+import uk.gov.hmrc.catalogue.config.GithubCredentialsProvider
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -34,7 +35,7 @@ class Logger {
 }
 
 trait GithubV3ApiClient {
-  self : GithubEndpoints with GithubCredentials  =>
+  self : GithubEndpoints with GithubCredentialsProvider  =>
 
   val log = new Logger()
 
@@ -59,12 +60,12 @@ trait GithubV3ApiClient {
 
   private def buildCall(method: String, url: String, body: Option[JsValue] = None): WSRequestHolder = {
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
-    log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
+    log.debug(s"github client_secret ${cred.key.takeRight(5)}")
 
     val req = ws.url(url)
       .withMethod(method)
-      .withAuth(cred.user, cred.pass, WSAuthScheme.BASIC)
-      .withQueryString("client_id" -> cred.user, "client_secret" -> cred.pass)
+      .withAuth(cred.user, cred.key, WSAuthScheme.BASIC)
+      .withQueryString("client_id" -> cred.user, "client_secret" -> cred.key)
       .withHeaders("content-type" -> "application/json")
 
     body.map { b =>
