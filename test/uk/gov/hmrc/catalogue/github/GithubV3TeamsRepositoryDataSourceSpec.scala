@@ -27,22 +27,23 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
   val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
   val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient)
 
-  "Github Enterprise Data Source" should {
+  "Github v3 Data Source" should {
 
-    "Return a list of teams and repositories" in {
+    "Return a list of teams and repositories, filtering out forks" in {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
-          GhTeam("A", 1) -> List(GhRepository("A_r", 1, "url_A")), 
+          GhTeam("A", 1) -> List(GhRepository("A_r", 1, "url_A"), GhRepository("A_r2", 5, "url_A2", fork = true)),
           GhTeam("B", 2) -> List(GhRepository("B_r", 2, "url_B"))),
         GhOrganization("DDCN") -> Map(
-          GhTeam("C", 3) -> List(GhRepository("C_r", 3, "url_C")))))
+          GhTeam("C", 3) -> List(GhRepository("C_r", 3, "url_C")),
+          GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D", fork = true)))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         Team("A", List(Repository("A_r", "url_A"))),
         Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C"))))
-
+        Team("C", List(Repository("C_r", "url_C"))),
+        Team("D", List()))
     }
   }
 }

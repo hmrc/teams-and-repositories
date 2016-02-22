@@ -58,7 +58,6 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
       result should contain (teamsList2.head)
       result should contain (teamsList2(1))
       result should contain (teamsList2(2))
-
     }
 
     "combine teams that have the same names in both sources"  in {
