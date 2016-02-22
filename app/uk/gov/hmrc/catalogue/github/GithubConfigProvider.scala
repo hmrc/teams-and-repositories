@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.config
+package uk.gov.hmrc.catalogue.github
 
 import java.io.File
+import java.nio.file.Path
 
 import play.api.Play
+import uk.gov.hmrc.catalogue.config.ConfigFile
 
 trait GithubConfigProvider {
   def githubOpen: GithubCredentials
   def githubEnterprise: GithubCredentials
 }
 
-object GithubConfigProvider extends GithubConfigProvider with CredentialsFinder {
+object GithubConfigProvider extends GithubConfigProvider {
   val githubOpenConfigKey = s"github.open.api"
   val githubEnterpriseConfigKey = s"github.enterprise.api"
 
@@ -47,6 +49,15 @@ object GithubConfigProvider extends GithubConfigProvider with CredentialsFinder 
         .filter { f => f.getName == filename  }
         .flatMap { c => findGithubCredsInFile(c.toPath) }.head
     else credentials
+  }
+
+  private def findGithubCredsInFile(file:Path):Option[GithubCredentials] = {
+    val conf = new ConfigFile(file)
+
+    for( user <- conf.get("user");
+         token <- conf.get("token");
+         host <- conf.get("host")
+    ) yield GithubCredentials(host, user, token)
   }
 
   private def config(path: String) = Play.current.configuration.getString(s"$path").getOrElse("")
