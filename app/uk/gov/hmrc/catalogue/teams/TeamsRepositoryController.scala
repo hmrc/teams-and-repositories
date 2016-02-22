@@ -22,7 +22,7 @@ import play.api.mvc._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 object TeamsRepositoryController extends TeamsRepositoryController with GithubEnterpriseDataSource with GithubOpenDataSource {
-  val dataSource = new CompositeTeamsRepositoryDataSource(List(openDataSource))
+  val dataSource = new CompositeTeamsRepositoryDataSource(List(enterpriseDataSource, openDataSource))
 }
 
 trait TeamsRepositoryController extends BaseController {
