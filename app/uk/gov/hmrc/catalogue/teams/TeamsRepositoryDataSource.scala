@@ -37,17 +37,18 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
 
   private def getOrgTeams(orgs: List[GhOrganization]) =
     Future.sequence {
-      orgs.par.map { gh.getTeamsForOrganisation }.toList
+      orgs.map { gh.getTeamsForOrganisation }
     }.map(_.flatten)
 
-  def getTeamRepos(teams: List[GhTeam]) = {
+  private def getTeamRepos(teams: List[GhTeam]) =
     Future.sequence {
-      teams.map { t =>
-        gh.getReposForTeam(t).map(repos =>
-          Team(t.name, repos.map(r => Repository(r.name, r.html_url))))
+      teams.map { team =>
+        for (repos <- gh.getReposForTeam(team)) yield Team(team.name, mapRepositories(repos))
       }
     }
-  }
+
+  private def mapRepositories(repos: List[GhRepository]) =
+    for (repo <- repos; if !repo.fork) yield Repository(repo.name, repo.html_url)
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {

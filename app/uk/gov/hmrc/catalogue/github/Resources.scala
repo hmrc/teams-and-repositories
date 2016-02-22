@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 
 case class GhOrganization(login: String, id: Int = 0)
 
-case class GhRepository(name: String, id: Long, html_url: String)
+case class GhRepository(name: String, id: Long, html_url: String, fork: Boolean = false)
 
 case class GhTeam(name: String, id: Long)
 

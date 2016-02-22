@@ -90,7 +90,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
    |   "private": false,
    |   "html_url": "${repo.html_url}",
   |   "description": "${repo.name}",
-|   "fork": false,
+|   "fork": ${repo.fork},
 |   "url": "${githubApiClient.rootUrl}/api/v3/repos/${organisation.login}/${repo.name}",
    |   "forks_url": "${githubApiClient.rootUrl}/api/v3/repos/${organisation.login}/${repo.name}/forks",
 |   "keys_url": "${githubApiClient.rootUrl}/api/v3/repos/${organisation.login}/${repo.name}/keys{/key_id}",
