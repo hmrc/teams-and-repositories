@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teamsrepository
+package uk.gov.hmrc.catalogue.teams
 
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.catalogue.github._

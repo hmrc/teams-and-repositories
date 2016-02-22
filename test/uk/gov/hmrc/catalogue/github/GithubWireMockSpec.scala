@@ -4,13 +4,14 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.{WordSpec, BeforeAndAfterEach}
+import uk.gov.hmrc.catalogue.config.{GithubCredentials, GithubCredentialsProvider}
 
 trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
 
   val testHost = "localhost"
   val port = 7654
 
-  def githubApiClient: GithubV3ApiClient with GithubEndpoints with GithubCredentials
+  def githubApiClient: GithubV3ApiClient with GithubEndpoints with GithubCredentialsProvider
 
   trait TestEndpoints extends GithubEndpoints {
     override def rootUrl: String = s"http://$testHost:$port"
@@ -19,8 +20,8 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
     override def organisationsEndpoint: String = "/orgs"
   }
 
-  trait TestCredentials extends GithubCredentials {
-    val cred = ServiceCredentials(s"http://$testHost:$port", "", "")
+  trait TestCredentials extends GithubCredentialsProvider {
+    val cred = GithubCredentials(s"http://$testHost:$port", "", "")
   }
 
   val wireMockServer = new WireMockServer(port)

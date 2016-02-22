@@ -14,29 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.github
+package uk.gov.hmrc.catalogue.config
 
 import java.nio.file.Path
 
 import scala.io.Source
 
-case class ServiceCredentials(host:String, user:String, pass:String)
-
 trait CredentialsFinder {
 
-  def findGithubCredsInFile(file:Path):Option[ServiceCredentials] = {
+  def findGithubCredsInFile(file:Path):Option[GithubCredentials] = {
     val conf = new ConfigFile(file)
 
     for( user <- conf.get("user");
           token <- conf.get("token");
           host <- conf.get("host")
-    ) yield ServiceCredentials(host, user, token)
+    ) yield GithubCredentials(host, user, token)
   }
 }
 
 class ConfigFile(file: Path) {
-
-  val logger = new Logger
 
   private val kvMap: Map[String, String] = {
     try {
@@ -46,7 +42,6 @@ class ConfigFile(file: Path) {
         .map { case Array(key, value) => key.trim -> value.trim}.toMap
     } catch {
       case e: Exception => {
-        logger.info(s"error parsing $file ${e.getMessage}")
         Map.empty
       }
     }
