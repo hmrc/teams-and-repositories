@@ -23,7 +23,6 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
-import uk.gov.hmrc.catalogue.config.GithubCredentialsProvider
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}

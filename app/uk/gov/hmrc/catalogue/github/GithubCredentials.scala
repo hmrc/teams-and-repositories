@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.catalogue.github
 
-import uk.gov.hmrc.catalogue.github._
+case class GithubCredentials(host: String, user: String, key: String)
 
-trait GithubEnterpriseDataSource {
-  private val httpClient = new GithubV3ApiClient with GithubEnterpriseApiEndpoints with GithubEnterpriseCredentialsProvider
-  val enterpriseDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(httpClient)
+trait GithubCredentialsProvider {
+  def cred: GithubCredentials
 }
 
-trait GithubOpenDataSource {
-  private val httpClient = new GithubV3ApiClient with GithubOpenApiEndpoints  with GithubOpenCredentialsProvider
-  val openDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(httpClient)
+trait GithubEnterpriseCredentialsProvider extends GithubCredentialsProvider {
+  def cred = GithubConfigProvider.githubEnterprise
+}
+
+trait GithubOpenCredentialsProvider extends GithubCredentialsProvider {
+  def cred = GithubConfigProvider.githubOpen
 }

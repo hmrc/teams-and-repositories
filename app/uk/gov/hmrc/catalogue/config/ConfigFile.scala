@@ -16,16 +16,24 @@
 
 package uk.gov.hmrc.catalogue.config
 
-case class GithubCredentials(host: String, user: String, key: String)
+import java.nio.file.Path
 
-trait GithubCredentialsProvider {
-  def cred: GithubCredentials
-}
+import scala.io.Source
 
-trait GithubEnterpriseCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfigProvider.githubEnterprise
-}
+class ConfigFile(file: Path) {
 
-trait GithubOpenCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfigProvider.githubOpen
-}
+   private val kvMap: Map[String, String] = {
+     try {
+       Source.fromFile(file.toFile)
+         .getLines().toSeq
+         .map(_.split("="))
+         .map { case Array(key, value) => key.trim -> value.trim}.toMap
+     } catch {
+       case e: Exception => {
+         Map.empty
+       }
+     }
+   }
+
+   def get(path: String) = kvMap.get(path)
+ }
