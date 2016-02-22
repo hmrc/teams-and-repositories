@@ -27,8 +27,6 @@ class CompositeTeamsRepositoryDataSource extends WordSpec with MockitoSugar  wit
       val dataSource1 = mock[TeamsRepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
 
-
-
       val compositeDataSource = new CompositeTeamsRepositoryDataSource()
 
     }
