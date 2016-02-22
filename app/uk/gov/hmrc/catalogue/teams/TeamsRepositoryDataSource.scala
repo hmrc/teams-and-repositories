@@ -28,29 +28,34 @@ trait TeamsRepositoryDataSource {
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
   def getTeamRepoMapping: Future[List[Team]] = {
-    val orgs = gh.getOrganisations
-    val teams = getOrgTeams(orgs)
-
-    teams.flatMap {
-      teams => Future.sequence {
-        teams.par.map {
-          t => gh.getReposForTeam(t).map(
-            repos => Team(t.name, repos.map(
-              y => Repository(y.name, y.html_url))))
-        }.toList
-      }
-    }
+    for {
+      orgs <- gh.getOrganisations
+      teams <- getOrgTeams(orgs)
+      repos <- getTeamRepos(teams)
+    } yield repos
   }
 
-  private def getOrgTeams(orgsF: Future[List[GhOrganization]]): Future[List[GhTeam]] = {
-    orgsF.flatMap {
-      orgs => Future.sequence {
-        orgs.par.map { gh.getTeamsForOrganisation }.toList
-      }
+  private def getOrgTeams(orgs: List[GhOrganization]) =
+    Future.sequence {
+      orgs.par.map { gh.getTeamsForOrganisation }.toList
     }.map(_.flatten)
+
+  def getTeamRepos(teams: List[GhTeam]) = {
+    Future.sequence {
+      teams.map { t =>
+        gh.getReposForTeam(t).map(repos =>
+          Team(t.name, repos.map(r => Repository(r.name, r.html_url))))
+      }
+    }
   }
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
-  override def getTeamRepoMapping: Future[List[Team]] = ???
-}
+  override def getTeamRepoMapping =
+    Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
+      results.flatten.groupBy(_.teamName).map { group =>
+        Team(group._1, group._2.flatMap(t => t.repositories))
+      }.toList
+    }
+  }
+
