@@ -19,10 +19,11 @@ package uk.gov.hmrc.catalogue.teams
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-object TeamsRepositoryController extends TeamsRepositoryController with GithubEnterpriseDataSource with GithubOpenDataSource {
-  val dataSource = new CompositeTeamsRepositoryDataSource(List(enterpriseDataSource, openDataSource))
+object TeamsRepositoryController extends TeamsRepositoryController {
+  val dataSource: TeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource with CompositeTeamsRepositoryDataSourceProvider with CacheConfigProvider
 }
 
 trait TeamsRepositoryController extends BaseController {

@@ -16,14 +16,23 @@
 
 package uk.gov.hmrc.catalogue.teams
 
+import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.Play.current
+
+import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.catalogue.github._
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 trait TeamsRepositoryDataSource {
   def getTeamRepoMapping: Future[List[Team]]
+}
+
+trait TeamsRepositoryDataSourceProvider {
+  def dataSource: TeamsRepositoryDataSource
 }
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
@@ -60,3 +69,14 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
     }
   }
 
+class CachingTeamsRepositoryDataSource extends TeamsRepositoryDataSource {
+  self: TeamsRepositoryDataSourceProvider with CacheConfigProvider  =>
+
+  var data: Option[Future[List[Team]]] = None
+
+  override def getTeamRepoMapping: Future[List[Team]] = data.getOrElse(Future.successful(List()))
+
+  Akka.system.scheduler.schedule(1 millis, cacheConfig.teamsCacheDuration) {
+    data = Some(dataSource.getTeamRepoMapping)
+  }
+}

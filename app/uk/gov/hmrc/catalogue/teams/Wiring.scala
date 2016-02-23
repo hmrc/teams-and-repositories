@@ -18,6 +18,10 @@ package uk.gov.hmrc.catalogue.teams
 
 import uk.gov.hmrc.catalogue.github._
 
+trait CompositeTeamsRepositoryDataSourceProvider extends TeamsRepositoryDataSourceProvider with GithubEnterpriseDataSource with GithubOpenDataSource {
+  val dataSource: TeamsRepositoryDataSource = new CompositeTeamsRepositoryDataSource(List(enterpriseDataSource, openDataSource))
+}
+
 trait GithubEnterpriseDataSource {
   private val httpClient = new GithubV3ApiClient with GithubEnterpriseApiEndpoints with GithubEnterpriseCredentialsProvider
   val enterpriseDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(httpClient)
