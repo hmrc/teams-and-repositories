@@ -22,8 +22,12 @@ import play.api.mvc._
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-object TeamsRepositoryController extends TeamsRepositoryController {
-  val dataSource: TeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource with CompositeTeamsRepositoryDataSourceProvider with CacheConfigProvider
+object TeamsRepositoryController extends TeamsRepositoryController
+  with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
+{
+  val dataSource: TeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
+    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
+  ) with CacheConfigProvider
 }
 
 trait TeamsRepositoryController extends BaseController {
