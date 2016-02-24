@@ -35,6 +35,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
   val team2 = Team("test2", List(Repository("test_repo", "test_repo_url")))
 
   val cacheTimeout = 10 millis
+  val longCacheTimeout = 1 minute
 
   val dataSource = new TeamsRepositoryDataSource {
     override def getTeamRepoMapping: Future[List[Team]] = Future.successful(List(cacheSource))
@@ -44,14 +45,29 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
 
-      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with DummyCacheConfigProvider
+      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with ShortCacheConfigProvider
 
       cacheSource = team1
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
 
       cacheSource = team2
       verifyCachedCopyIsStill(cachingDataSource, team1)
-      verifyCacheIsRefreshedAfterConfiguredTimeoutWith(cachingDataSource, team2)
+      verifyCacheIsRefreshed(cachingDataSource, team2)
+
+    }
+
+    "reload the cache from the data source when cleared" in new WithApplication {
+
+      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with LongCacheConfigProvider
+
+      cacheSource = team1
+      verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
+
+      cacheSource = team2
+      verifyCachedCopyIsStill(cachingDataSource, team1)
+
+      cachingDataSource.reload()
+      verifyCacheIsRefreshed(cachingDataSource, team2)
 
     }
 
@@ -61,12 +77,18 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     def verifyCachedCopyIsStill(cache: CachingTeamsRepositoryDataSource, team: Team) =
       cache.getTeamRepoMapping.futureValue should contain (team)
 
-    def verifyCacheIsRefreshedAfterConfiguredTimeoutWith(cache: CachingTeamsRepositoryDataSource, team: Team) =
+    def verifyCacheIsRefreshed(cache: CachingTeamsRepositoryDataSource, team: Team) =
       eventually { cache.getTeamRepoMapping.futureValue should contain (team) }
 
-    trait DummyCacheConfigProvider extends CacheConfigProvider {
+    trait ShortCacheConfigProvider extends CacheConfigProvider {
       override def cacheConfig: CacheConfig = new CacheConfig {
         override def teamsCacheDuration: FiniteDuration = cacheTimeout
+      }
+    }
+
+    trait LongCacheConfigProvider extends CacheConfigProvider {
+      override def cacheConfig: CacheConfig = new CacheConfig {
+        override def teamsCacheDuration: FiniteDuration = longCacheTimeout
       }
     }
   }

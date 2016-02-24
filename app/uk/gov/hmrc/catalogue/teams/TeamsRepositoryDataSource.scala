@@ -73,12 +73,13 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
 
 class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource) extends TeamsRepositoryDataSource {
   self: CacheConfigProvider  =>
-
-  var data: Option[Future[List[Team]]] = None
+  private var data: Option[Future[List[Team]]] = None
 
   override def getTeamRepoMapping: Future[List[Team]] = {
     data.getOrElse(Future.successful(List()))
   }
+
+  def reload() = data = Some(dataSource.getTeamRepoMapping)
 
   Akka.system.scheduler.schedule(0 seconds, cacheConfig.teamsCacheDuration) {
     data = Some(dataSource.getTeamRepoMapping)
