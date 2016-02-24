@@ -36,6 +36,8 @@ trait TeamsRepositoryDataSourceProvider {
 }
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
+  self: GithubConfigProvider =>
+
   def getTeamRepoMapping: Future[List[Team]] = {
     for {
       orgs <- gh.getOrganisations
@@ -57,7 +59,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
     }
 
   private def mapRepositories(repos: List[GhRepository]) =
-    for (repo <- repos; if !repo.fork) yield Repository(repo.name, repo.html_url)
+    for (repo <- repos; if !repo.fork && !githubConfig.repositoryBlacklist.contains(repo.name)) yield Repository(repo.name, repo.html_url)
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {

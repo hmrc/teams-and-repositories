@@ -25,7 +25,9 @@ import ViewModels.{Repository, Team}
 class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 
   val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
-  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient)
+  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with TestConfigProvider
+
+  val blacklist = List("blacklisted_repo1", "blacklisted_repo2")
 
   "Github v3 Data Source" should {
 
@@ -44,6 +46,28 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
         Team("B", List(Repository("B_r", "url_B"))),
         Team("C", List(Repository("C_r", "url_C"))),
         Team("D", List()))
+    }
+
+    "Filter out repositories according to the blacklist provided" in {
+
+      githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
+        GhOrganization("HMRC") -> Map(
+          GhTeam("A", 1) -> List(GhRepository("blacklisted_repo1", 1, "url_A"), GhRepository("A_r2", 5, "url_A2"))),
+        GhOrganization("DDCN") -> Map(
+          GhTeam("C", 3) -> List(GhRepository("blacklisted_repo2", 3, "url_C")),
+          GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
+
+      dataSource.getTeamRepoMapping.futureValue shouldBe List(
+        Team("A", List(Repository("A_r2", "url_A2"))),
+        Team("C", List()),
+        Team("D", List(Repository("D_r", "url_D"))))
+
+    }
+  }
+
+  trait TestConfigProvider extends GithubConfigProvider {
+    override def githubConfig: GithubConfig = new GithubConfig {
+      override def repositoryBlacklist: List[String] = blacklist
     }
   }
 }

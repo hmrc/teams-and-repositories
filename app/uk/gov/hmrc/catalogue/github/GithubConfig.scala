@@ -23,13 +23,17 @@ import play.api.Play
 import uk.gov.hmrc.catalogue.config.ConfigFile
 
 trait GithubConfigProvider {
-  def githubOpen: GithubCredentials
-  def githubEnterprise: GithubCredentials
+  def githubConfig: GithubConfig = GithubConfig
 }
 
-object GithubConfigProvider extends GithubConfigProvider {
-  val githubOpenConfigKey = s"github.open.api"
-  val githubEnterpriseConfigKey = s"github.enterprise.api"
+trait GithubConfig {
+  def repositoryBlacklist: List[String]
+}
+
+object GithubConfig extends GithubConfig {
+  val githubOpenConfigKey = "github.open.api"
+  val githubEnterpriseConfigKey = "github.enterprise.api"
+  val githubRepositoryBlacklistConfigKey = "github.repositoryBlacklist"
 
   def githubOpen = fallBackToFileSystem(".credentials", GithubCredentials(
     config(s"$githubOpenConfigKey.host"),
@@ -40,6 +44,8 @@ object GithubConfigProvider extends GithubConfigProvider {
     config(s"$githubEnterpriseConfigKey.host"),
     config(s"$githubEnterpriseConfigKey.user"),
     config(s"$githubEnterpriseConfigKey.key")))
+
+  def repositoryBlacklist = config(githubRepositoryBlacklistConfigKey).split(",").toList
 
   private def fallBackToFileSystem(filename: String, credentials: GithubCredentials) = {
     def isNullOrEmpty(s: String) = s != null && s.isEmpty
