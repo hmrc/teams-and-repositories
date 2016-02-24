@@ -25,15 +25,20 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 object TeamsRepositoryController extends TeamsRepositoryController
   with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
 {
-  val dataSource: TeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
+  val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
     new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
   ) with CacheConfigProvider
 }
 
 trait TeamsRepositoryController extends BaseController {
-  def dataSource: TeamsRepositoryDataSource
+  def dataSource: CachingTeamsRepositoryDataSource
 
   def teamRepository() = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map(x => Ok(Json.toJson(x)))
+  }
+
+  def reloadCache() = Action { implicit request =>
+    dataSource.reload()
+    Ok("Cache reload triggered successfully")
   }
 }
