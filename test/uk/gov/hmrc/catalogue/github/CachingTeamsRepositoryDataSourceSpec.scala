@@ -45,9 +45,9 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
 
+      cacheSource = team1
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with ShortCacheConfigProvider
 
-      cacheSource = team1
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
 
       cacheSource = team2
@@ -58,9 +58,9 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "reload the cache from the data source when cleared" in new WithApplication {
 
+      cacheSource = team1
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with LongCacheConfigProvider
 
-      cacheSource = team1
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
 
       cacheSource = team2

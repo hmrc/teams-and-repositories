@@ -16,22 +16,17 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
+import java.util.concurrent.{ExecutorService, Executors}
 
 import com.ning.http.client.AsyncHttpClientConfig.Builder
+import play.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder, WSResponse}
+import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-
-class Logger {
-  def info(st: String) = println("[INFO] " + st)
-  def debug(st: String) = Unit
-}
 
 trait GithubV3ApiClient {
   self : GithubEndpoints with GithubCredentialsProvider  =>
@@ -51,16 +46,34 @@ trait GithubV3ApiClient {
 
   private val ws = new NingWSClient(builder.build())
 
-  def getOrganisations = get[List[GhOrganization]](s"$rootUrl$organisationsEndpoint")
+  def getOrganisations = {
+    val url = s"$rootUrl$organisationsEndpoint"
 
-  def getTeamsForOrganisation(x: GhOrganization) = get[List[GhTeam]](s"$rootUrl${teamsForOrganisationEndpoint(x.login)}")
+    get[List[GhOrganization]](url).map(result => {
+      Logger.info(s"Got ${result.length} organisations from $url")
+      result
+    })
+  }
 
-  def getReposForTeam(t: GhTeam) = get[List[GhRepository]](s"$rootUrl${reposForTeamEndpoint(t.id)}")
+  def getTeamsForOrganisation(o: GhOrganization) = {
+    val url = s"$rootUrl${teamsForOrganisationEndpoint(o.login)}"
+
+    get[List[GhTeam]](url).map(result => {
+      Logger.info(s"Got ${result.length} teams for ${o.login} from $url")
+      result
+    })
+  }
+
+  def getReposForTeam(t: GhTeam) = {
+    val url = s"$rootUrl${reposForTeamEndpoint(t.id)}"
+
+    get[List[GhRepository]](url).map(result => {
+      Logger.info(s"Got ${result.length} repositories for ${t.name} from $url")
+      result
+    })
+  }
 
   private def buildCall(method: String, url: String, body: Option[JsValue] = None): WSRequestHolder = {
-    log.debug(s"github client_id ${cred.user.takeRight(5)}")
-    log.debug(s"github client_secret ${cred.key.takeRight(5)}")
-
     val req = ws.url(url)
       .withMethod(method)
       .withAuth(cred.user, cred.key, WSAuthScheme.BASIC)
@@ -72,13 +85,6 @@ trait GithubV3ApiClient {
     }.getOrElse(req)
   }
 
-  private def callAndWait(req: WSRequestHolder): WSResponse = {
-    log.info(s"${req.method} with ${req.url}")
-    val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
-    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
-    result
-  }
-
   private def get[A](url: String)(implicit r: Reads[A]): Future[A] = {
     buildCall("GET", url).execute().flatMap { result =>
       result.status match {
@@ -87,7 +93,7 @@ trait GithubV3ApiClient {
             result.json.as[A]
           } match {
             case Success(a) => Future.successful(a)
-            case Failure(e) => println(e.getMessage + "failed body was: " + result.body); Future.failed(e)
+            case Failure(e) => Logger.error(e.getMessage + "failed body was: " + result.body); Future.failed(e)
           }
         }
         case _@e =>

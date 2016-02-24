@@ -16,16 +16,15 @@
 
 package uk.gov.hmrc.catalogue.teams
 
+import play.Logger
+import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.Play.current
-
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.catalogue.github._
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 trait TeamsRepositoryDataSource {
   def getTeamRepoMapping: Future[List[Team]]
@@ -65,7 +64,10 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
   override def getTeamRepoMapping =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
-      results.flatten.groupBy(_.teamName).map { case (name, teams) =>
+      val flattened = results.flatten
+
+      Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
+      flattened.groupBy(_.teamName).map { case (name, teams) =>
         Team(name, teams.flatMap(t => t.repositories))
       }.toList
     }
@@ -73,15 +75,18 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
 
 class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource) extends TeamsRepositoryDataSource {
   self: CacheConfigProvider  =>
-  private var data: Option[Future[List[Team]]] = None
+  private var data: Future[List[Team]] = dataSource.getTeamRepoMapping
 
-  override def getTeamRepoMapping: Future[List[Team]] = {
-    data.getOrElse(Future.successful(List()))
+  override def getTeamRepoMapping: Future[List[Team]] = data
+
+  def reload() = {
+    Logger.info(s"Manual teams repository cache reload triggered")
+    data = dataSource.getTeamRepoMapping
   }
 
-  def reload() = data = Some(dataSource.getTeamRepoMapping)
-
-  Akka.system.scheduler.schedule(0 seconds, cacheConfig.teamsCacheDuration) {
-    data = Some(dataSource.getTeamRepoMapping)
+  Logger.info(s"Initialising cache reload every ${cacheConfig.teamsCacheDuration}")
+  Akka.system.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
+    Logger.info("Scheduled teams repository cache reload triggered")
+    data = dataSource.getTeamRepoMapping
   }
 }

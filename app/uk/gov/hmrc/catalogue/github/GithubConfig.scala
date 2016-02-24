@@ -19,6 +19,7 @@ package uk.gov.hmrc.catalogue.github
 import java.io.File
 import java.nio.file.Path
 
+import play.Logger
 import play.api.Play
 import uk.gov.hmrc.catalogue.config.ConfigFile
 
@@ -50,10 +51,13 @@ object GithubConfig extends GithubConfig {
   private def fallBackToFileSystem(filename: String, credentials: GithubCredentials) = {
     def isNullOrEmpty(s: String) = s != null && s.isEmpty
 
-    if (isNullOrEmpty(credentials.host) || isNullOrEmpty(credentials.user))
+    if (isNullOrEmpty(credentials.host) || isNullOrEmpty(credentials.user)) {
+      Logger.info(s"Credentials not found in config, falling back to $filename")
+
       new File(System.getProperty("user.home"), ".github").listFiles()
         .filter { f => f.getName == filename  }
         .flatMap { c => findGithubCredsInFile(c.toPath) }.head
+    }
     else credentials
   }
 
