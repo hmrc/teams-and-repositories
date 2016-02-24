@@ -23,9 +23,9 @@ trait GithubCredentialsProvider {
 }
 
 trait GithubEnterpriseCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfigProvider.githubEnterprise
+  def cred = GithubConfig.githubEnterprise
 }
 
 trait GithubOpenCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfigProvider.githubOpen
+  def cred = GithubConfig.githubOpen
 }
