@@ -63,20 +63,22 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
   override def getTeamRepoMapping =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
-      results.flatten.groupBy(_.teamName).map { group =>
-        Team(group._1, group._2.flatMap(t => t.repositories))
+      results.flatten.groupBy(_.teamName).map { case (name, teams) =>
+        Team(name, teams.flatMap(t => t.repositories))
       }.toList
     }
   }
 
-class CachingTeamsRepositoryDataSource extends TeamsRepositoryDataSource {
-  self: TeamsRepositoryDataSourceProvider with CacheConfigProvider  =>
+class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource) extends TeamsRepositoryDataSource {
+  self: CacheConfigProvider  =>
 
   var data: Option[Future[List[Team]]] = None
 
-  override def getTeamRepoMapping: Future[List[Team]] = data.getOrElse(Future.successful(List()))
+  override def getTeamRepoMapping: Future[List[Team]] = {
+    data.getOrElse(Future.successful(List()))
+  }
 
-  Akka.system.scheduler.schedule(1 millis, cacheConfig.teamsCacheDuration) {
+  Akka.system.scheduler.schedule(0 seconds, cacheConfig.teamsCacheDuration) {
     data = Some(dataSource.getTeamRepoMapping)
   }
 }

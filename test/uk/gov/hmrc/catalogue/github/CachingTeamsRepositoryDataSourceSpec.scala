@@ -16,18 +16,16 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.WithApplication
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.config.{CacheConfig, CacheConfigProvider}
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
-import uk.gov.hmrc.catalogue.teams.{CachingTeamsRepositoryDataSource, TeamsRepositoryDataSource, TeamsRepositoryDataSourceProvider}
+import uk.gov.hmrc.catalogue.teams.{CachingTeamsRepositoryDataSource, TeamsRepositoryDataSource}
 
 import scala.concurrent.Future
-import org.scalatest.concurrent.Eventually
-
 import scala.concurrent.duration._
 
 class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
@@ -38,11 +36,15 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
   val cacheTimeout = 10 millis
 
+  val dataSource = new TeamsRepositoryDataSource {
+    override def getTeamRepoMapping: Future[List[Team]] = Future.successful(List(cacheSource))
+  }
+
   "Caching teams repository data source" should {
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
 
-      val cachingDataSource = new CachingTeamsRepositoryDataSource with TestDataSourceProvider with DummyCacheConfigProvider
+      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with DummyCacheConfigProvider
 
       cacheSource = team1
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
@@ -61,12 +63,6 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     def verifyCacheIsRefreshedAfterConfiguredTimeoutWith(cache: CachingTeamsRepositoryDataSource, team: Team) =
       eventually { cache.getTeamRepoMapping.futureValue should contain (team) }
-
-    trait TestDataSourceProvider extends TeamsRepositoryDataSourceProvider {
-      override def dataSource: TeamsRepositoryDataSource = new TeamsRepositoryDataSource {
-        override def getTeamRepoMapping: Future[List[Team]] = Future.successful(List(cacheSource))
-      }
-    }
 
     trait DummyCacheConfigProvider extends CacheConfigProvider {
       override def cacheConfig: CacheConfig = new CacheConfig {
