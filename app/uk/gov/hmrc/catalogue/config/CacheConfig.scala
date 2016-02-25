@@ -30,7 +30,7 @@ trait CacheConfig {
 
 object CacheConfig extends CacheConfig {
   val teamsCacheDurationConfigPath = "cache.teams.duration"
-  val defaultTimeout = 1 days
+  val defaultTimeout = 1 hour
 
   def teamsCacheDuration: FiniteDuration = {
     Play.current.configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
