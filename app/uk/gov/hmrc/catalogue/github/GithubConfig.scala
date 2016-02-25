@@ -29,12 +29,14 @@ trait GithubConfigProvider {
 
 trait GithubConfig {
   def repositoryBlacklist: List[String]
+  def teamBlacklist: List[String]
 }
 
 object GithubConfig extends GithubConfig {
   val githubOpenConfigKey = "github.open.api"
   val githubEnterpriseConfigKey = "github.enterprise.api"
   val githubRepositoryBlacklistConfigKey = "github.repositoryBlacklist"
+  val githubTeamBlacklistConfigKey = "github.teamBlacklist"
 
   def githubOpen = fallBackToFileSystem(".credentials", GithubCredentials(
     config(s"$githubOpenConfigKey.host"),
@@ -47,6 +49,8 @@ object GithubConfig extends GithubConfig {
     config(s"$githubEnterpriseConfigKey.key")))
 
   def repositoryBlacklist = config(githubRepositoryBlacklistConfigKey).split(",").toList
+
+  def teamBlacklist = config(githubTeamBlacklistConfigKey).split(",").toList
 
   private def fallBackToFileSystem(filename: String, credentials: GithubCredentials) = {
     def isNullOrEmpty(s: String) = s != null && s.isEmpty
