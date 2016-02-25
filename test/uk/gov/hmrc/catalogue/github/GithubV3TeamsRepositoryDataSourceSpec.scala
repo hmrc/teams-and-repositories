@@ -27,8 +27,8 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
   val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
   val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with TestConfigProvider
 
-  val testRepositoryBlacklist = List("blacklisted_repo1", "blacklisted_repo2")
-  val testTeamBlacklist = List("blacklisted_team1", "blacklisted_team2")
+  val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
+  val testHiddenTeams = List("hidden_team1", "hidden_team2")
 
   "Github v3 Data Source" should {
 
@@ -49,13 +49,13 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
         Team("D", List()))
     }
 
-    "Filter out repositories according to the blacklist provided" in {
+    "Filter out repositories according to the hidden config" in {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
-          GhTeam("A", 1) -> List(GhRepository("blacklisted_repo1", 1, "url_A"), GhRepository("A_r2", 5, "url_A2"))),
+          GhTeam("A", 1) -> List(GhRepository("hidden_repo1", 1, "url_A"), GhRepository("A_r2", 5, "url_A2"))),
         GhOrganization("DDCN") -> Map(
-          GhTeam("C", 3) -> List(GhRepository("blacklisted_repo2", 3, "url_C")),
+          GhTeam("C", 3) -> List(GhRepository("hidden_repo2", 3, "url_C")),
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
@@ -65,13 +65,13 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
     }
 
-    "Filter out teams according to the blacklist provided" in {
+    "Filter out teams according to the hidden config" in {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
-          GhTeam("blacklisted_team1", 1) -> List(GhRepository("A_r", 1, "url_A"))),
+          GhTeam("hidden_team1", 1) -> List(GhRepository("A_r", 1, "url_A"))),
         GhOrganization("DDCN") -> Map(
-          GhTeam("blacklisted_team2", 3) -> List(GhRepository("C_r", 3, "url_C")),
+          GhTeam("hidden_team2", 3) -> List(GhRepository("C_r", 3, "url_C")),
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
@@ -82,8 +82,8 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
   trait TestConfigProvider extends GithubConfigProvider {
     override def githubConfig: GithubConfig = new GithubConfig {
-      override def repositoryBlacklist: List[String] = testRepositoryBlacklist
-      override def teamBlacklist: List[String] = testTeamBlacklist
+      override def hiddenRepositories: List[String] = testHiddenRepositories
+      override def hiddenTeams: List[String] = testHiddenTeams
     }
   }
 }
