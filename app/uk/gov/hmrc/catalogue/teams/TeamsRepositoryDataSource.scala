@@ -49,7 +49,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
     Future.sequence { orgs.map(gh.getTeamsForOrganisation) }.map { teamLists =>
       for {
         teams <- teamLists
-        team <- teams; if !githubConfig.teamBlacklist.contains(team.name)
+        team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
       } yield team
     }
 
@@ -61,7 +61,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
     }
 
   private def mapRepositories(repos: List[GhRepository]) =
-    for (repo <- repos; if !repo.fork && !githubConfig.repositoryBlacklist.contains(repo.name))
+    for (repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name))
       yield Repository(repo.name, repo.html_url)
 }
 
