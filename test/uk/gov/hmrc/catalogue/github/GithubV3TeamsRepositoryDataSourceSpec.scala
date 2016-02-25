@@ -16,23 +16,24 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.Matchers
+import org.scalatest.concurrent.ScalaFutures
+import play.api.test.{FakeApplication, WithApplication}
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
-import uk.gov.hmrc.catalogue.teams.{GithubV3TeamsRepositoryDataSource, ViewModels}
-import ViewModels.{Repository, Team}
+import uk.gov.hmrc.catalogue.teams.GithubV3TeamsRepositoryDataSource
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
 
 class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 
   val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
-  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with TestConfigProvider
+  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with GithubConfigProvider
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
 
   "Github v3 Data Source" should {
 
-    "Return a list of teams and repositories, filtering out forks" in {
+    "Return a list of teams and repositories, filtering out forks" in new WithApplication {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
@@ -49,7 +50,8 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
         Team("D", List()))
     }
 
-    "Filter out repositories according to the hidden config" in {
+    "Filter out repositories according to the hidden config" in new WithApplication(
+      FakeApplication(additionalConfiguration = Map("github.hidden.repositories" -> testHiddenRepositories.mkString(",")))) {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
@@ -65,7 +67,8 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
     }
 
-    "Filter out teams according to the hidden config" in {
+    "Filter out teams according to the hidden config" in new WithApplication(
+      FakeApplication(additionalConfiguration = Map("github.hidden.teams" -> testHiddenTeams.mkString(",")))) {
 
       githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
         GhOrganization("HMRC") -> Map(
@@ -77,13 +80,6 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         Team("D", List(Repository("D_r", "url_D"))))
 
-    }
-  }
-
-  trait TestConfigProvider extends GithubConfigProvider {
-    override def githubConfig: GithubConfig = new GithubConfig {
-      override def hiddenRepositories: List[String] = testHiddenRepositories
-      override def hiddenTeams: List[String] = testHiddenTeams
     }
   }
 }
