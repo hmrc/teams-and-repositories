@@ -37,32 +37,30 @@ trait TeamsRepositoryDataSourceProvider {
 class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
   self: GithubConfigProvider =>
 
-  def getTeamRepoMapping: Future[List[Team]] = {
-    for {
-      orgs <- gh.getOrganisations
-      teams <- getOrgTeams(orgs)
-      repos <- getTeamRepos(teams)
-    } yield repos
-  }
-
-  private def getOrgTeams(orgs: List[GhOrganization]) =
-    Future.sequence { orgs.map(gh.getTeamsForOrganisation) }.map { teamLists =>
-      for {
-        teams <- teamLists
-        team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
-      } yield team
+  def getTeamRepoMapping: Future[List[Team]] =
+    gh.getOrganisations.flatMap { orgs =>
+      Future.sequence(orgs.map(mapOrganisation)).map { _.flatten }
     }
 
-  private def getTeamRepos(teams: List[GhTeam]) =
-    Future.sequence {
-      teams.map { team =>
-        for (repos <- gh.getReposForTeam(team)) yield Team(team.name, mapRepositories(repos))
+  def mapOrganisation(organisation: GhOrganisation): Future[List[Team]] =
+    gh.getTeamsForOrganisation(organisation).flatMap { teams =>
+      Future.sequence(for {
+        team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
+      } yield mapTeam(organisation, team))
+    }
+
+  def mapTeam(organisation: GhOrganisation, team: GhTeam) =
+    gh.getReposForTeam(team).flatMap { repos =>
+      Future.sequence(for {
+        repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
+      } yield mapRepository(organisation, repo)).map { repos =>
+        Team(team.name, repositories = repos )
       }
     }
 
-  private def mapRepositories(repos: List[GhRepository]) =
-    for (repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name))
-      yield Repository(repo.name, repo.html_url)
+  private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
+    gh.containsAppFolder(organisation, repo).map {
+      case (r, isMicroservice) => Repository(r.name, r.html_url, isMicroservice) }
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {

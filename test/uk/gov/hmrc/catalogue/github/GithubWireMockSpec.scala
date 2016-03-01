@@ -33,6 +33,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
     override def reposForTeamEndpoint(teamId: Long): String = s"/$teamId/repos"
     override def teamsForOrganisationEndpoint(organisation: String): String = s"/$organisation/teams"
     override def organisationsEndpoint: String = "/orgs"
+    override def repoContentsEndPoint(orgName: String, repositoryName: String): String = s"/$orgName/$repositoryName/contents"
   }
 
   trait TestCredentials extends GithubCredentialsProvider {
@@ -50,7 +51,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
     wireMockServer.stop()
   }
 
-  def githubReturns(organisations: Map[GhOrganization, Map[GhTeam, List[GhRepository]]]): Unit = {
+  def githubReturns(organisations: Map[GhOrganisation, Map[GhTeam, List[GhRepository]]]): Unit = {
     stubOrganisations(organisations.keys.toList)
 
     organisations.foreach { case (org, teams) =>
@@ -61,7 +62,16 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
     }
   }
 
-  def stubReposFor(organisation: GhOrganization, team: GhTeam, repos: List[GhRepository]) {
+  def repositoryContainsAppFolder(orgName: String, repositoryName: String) = {
+
+    stubFor(head(urlPathEqualTo(s"${githubApiClient.repoContentsEndPoint(orgName, repositoryName)}/app")).willReturn(
+        aResponse()
+          .withStatus(200)))
+
+  }
+
+
+  def stubReposFor(organisation: GhOrganisation, team: GhTeam, repos: List[GhRepository]) {
 
     val reposJson = repos.map { repo =>
     s"""{
@@ -165,7 +175,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
           .withBody(s"[ $reposJson ]")))
   }
 
-  def stubTeamsFor(organisation: GhOrganization, teams: List[GhTeam]) {
+  def stubTeamsFor(organisation: GhOrganisation, teams: List[GhTeam]) {
 
     val teamsJson = teams.map { team =>
       s"""{
@@ -190,7 +200,7 @@ trait GithubWireMockSpec extends WordSpec with BeforeAndAfterEach {
           .withBody(s"[ $teamsJson ]")))
   }
 
-  def stubOrganisations(entries: List[GhOrganization]) {
+  def stubOrganisations(entries: List[GhOrganisation]) {
 
     val organisationsJson = entries.map { entry =>
       s"""{

@@ -24,6 +24,8 @@ trait GithubEndpoints {
   def teamsForOrganisationEndpoint(organisation: String): String
 
   def organisationsEndpoint: String
+
+  def repoContentsEndPoint(orgName: String, repositoryName: String): String
 }
 
 trait GithubEnterpriseApiEndpoints extends GithubEndpoints {
@@ -34,6 +36,8 @@ trait GithubEnterpriseApiEndpoints extends GithubEndpoints {
   def teamsForOrganisationEndpoint(organisation: String) = s"/api/v3/orgs/$organisation/teams?per_page=100"
 
   def organisationsEndpoint = "/api/v3/user/orgs"
+
+  def repoContentsEndPoint(orgName: String, repositoryName: String) = s"/api/v3/repos/$orgName/$repositoryName/contents"
 }
 
 trait GithubOpenApiEndpoints extends GithubEndpoints {
@@ -44,4 +48,6 @@ trait GithubOpenApiEndpoints extends GithubEndpoints {
   def teamsForOrganisationEndpoint(organisation: String) = s"/orgs/$organisation/teams?per_page=100"
 
   def organisationsEndpoint = "/user/orgs"
+
+  def repoContentsEndPoint(orgName: String, repositoryName: String) = s"/repos/$orgName/$repositoryName/contents"
 }

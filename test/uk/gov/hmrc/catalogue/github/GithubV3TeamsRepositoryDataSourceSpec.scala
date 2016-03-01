@@ -35,11 +35,11 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
     "Return a list of teams and repositories, filtering out forks" in new WithApplication {
 
-      githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
-        GhOrganization("HMRC") -> Map(
+      githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
+        GhOrganisation("HMRC") -> Map(
           GhTeam("A", 1) -> List(GhRepository("A_r", 1, "url_A"), GhRepository("A_r2", 5, "url_A2", fork = true)),
           GhTeam("B", 2) -> List(GhRepository("B_r", 2, "url_B"))),
-        GhOrganization("DDCN") -> Map(
+        GhOrganisation("DDCN") -> Map(
           GhTeam("C", 3) -> List(GhRepository("C_r", 3, "url_C")),
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D", fork = true)))))
 
@@ -53,10 +53,10 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
     "Filter out repositories according to the hidden config" in new WithApplication(
       FakeApplication(additionalConfiguration = Map("github.hidden.repositories" -> testHiddenRepositories.mkString(",")))) {
 
-      githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
-        GhOrganization("HMRC") -> Map(
+      githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
+        GhOrganisation("HMRC") -> Map(
           GhTeam("A", 1) -> List(GhRepository("hidden_repo1", 1, "url_A"), GhRepository("A_r2", 5, "url_A2"))),
-        GhOrganization("DDCN") -> Map(
+        GhOrganisation("DDCN") -> Map(
           GhTeam("C", 3) -> List(GhRepository("hidden_repo2", 3, "url_C")),
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
@@ -70,14 +70,35 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
     "Filter out teams according to the hidden config" in new WithApplication(
       FakeApplication(additionalConfiguration = Map("github.hidden.teams" -> testHiddenTeams.mkString(",")))) {
 
-      githubReturns(Map[GhOrganization, Map[GhTeam, List[GhRepository]]] (
-        GhOrganization("HMRC") -> Map(
+      githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
+        GhOrganisation("HMRC") -> Map(
           GhTeam("hidden_team1", 1) -> List(GhRepository("A_r", 1, "url_A"))),
-        GhOrganization("DDCN") -> Map(
+        GhOrganisation("DDCN") -> Map(
           GhTeam("hidden_team2", 3) -> List(GhRepository("C_r", 3, "url_C")),
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
+        Team("D", List(Repository("D_r", "url_D"))))
+
+    }
+
+    "Set microservice=true if the repository contains an app folder" in new WithApplication {
+
+      githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
+        GhOrganisation("HMRC") -> Map(
+          GhTeam("A", 1) -> List(GhRepository("A_r", 1, "url_A")),
+          GhTeam("B", 2) -> List(GhRepository("B_r", 2, "url_B"))),
+        GhOrganisation("DDCN") -> Map(
+          GhTeam("C", 3) -> List(GhRepository("C_r", 3, "url_C")),
+          GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
+
+      repositoryContainsAppFolder("HMRC", "A_r")
+      repositoryContainsAppFolder("DDCN", "C_r")
+
+      dataSource.getTeamRepoMapping.futureValue shouldBe List(
+        Team("A", List(Repository("A_r", "url_A", isMicroservice = true))),
+        Team("B", List(Repository("B_r", "url_B"))),
+        Team("C", List(Repository("C_r", "url_C", isMicroservice = true))),
         Team("D", List(Repository("D_r", "url_D"))))
 
     }
