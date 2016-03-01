@@ -49,13 +49,13 @@ trait GithubV3ApiClient {
   def getOrganisations = {
     val url = s"$rootUrl$organisationsEndpoint"
 
-    get[List[GhOrganization]](url).map(result => {
+    get[List[GhOrganisation]](url).map(result => {
       Logger.info(s"Got ${result.length} organisations from $url")
       result
     })
   }
 
-  def getTeamsForOrganisation(o: GhOrganization) = {
+  def getTeamsForOrganisation(o: GhOrganisation) = {
     val url = s"$rootUrl${teamsForOrganisationEndpoint(o.login)}"
 
     get[List[GhTeam]](url).map(result => {
@@ -70,6 +70,16 @@ trait GithubV3ApiClient {
     get[List[GhRepository]](url).map(result => {
       Logger.info(s"Got ${result.length} repositories for ${t.name} from $url")
       result
+    })
+  }
+
+  def containsAppFolder(o: GhOrganisation, r: GhRepository) = {
+    val organisation = o.login
+    val url = s"$rootUrl${repoContentsEndPoint(organisation, r.name)}/app"
+
+    head(url).map(result => {
+      Logger.info(s"Got $result when checking for app folder in $organisation/${r.name} from $url")
+      (r, result == 200)
     })
   }
 
@@ -101,5 +111,8 @@ trait GithubV3ApiClient {
       }
     }
   }
+
+  private def head(url: String): Future[Int] =
+    buildCall("HEAD", url).execute().map{ result => result.status }
 }
 

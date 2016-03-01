@@ -18,18 +18,18 @@ package uk.gov.hmrc.catalogue.github
 
 import play.api.libs.json.Json
 
-case class GhOrganization(login: String, id: Int = 0)
-
-case class GhRepository(name: String, id: Long, html_url: String, fork: Boolean = false)
+case class GhOrganisation(login: String, id: Int = 0)
 
 case class GhTeam(name: String, id: Long)
+
+case class GhRepository(name: String, id: Long, html_url: String, fork: Boolean = false)
 
 object GhTeam {
   implicit val formats = Json.format[GhTeam]
 }
 
-object GhOrganization {
-  implicit val formats = Json.format[GhOrganization]
+object GhOrganisation {
+  implicit val formats = Json.format[GhOrganisation]
 }
 
 object GhRepository {

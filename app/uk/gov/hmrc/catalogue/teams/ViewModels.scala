@@ -22,7 +22,7 @@ object ViewModels {
 
   case class Team(teamName: String, repositories: List[Repository])
 
-  case class Repository(name: String, url: String)
+  case class Repository(name: String, url: String, isMicroservice: Boolean = false)
 
   object Repository {
     implicit val formats = Json.format[Repository]
