@@ -21,15 +21,20 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.test.{FakeApplication, WithApplication}
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.teams.GithubV3TeamsRepositoryDataSource
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 
 class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with ScalaFutures with Matchers with DefaultPatienceConfig  {
 
-  val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
-  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with GithubConfigProvider
-
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
+  val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
+  val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with GithubConfigProvider {
+    override def githubConfig: GithubConfig = new GithubConfig {
+      override def hiddenRepositories: List[String] = testHiddenRepositories
+
+      override def hiddenTeams: List[String] = testHiddenTeams
+    }
+  }
 
   "Github v3 Data Source" should {
 
@@ -44,10 +49,10 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D", fork = true)))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        Team("A", List(Repository("A_r", "url_A"))),
-        Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C"))),
-        Team("D", List()))
+        TeamRepositories("A", List(Repository("A_r", "url_A"))),
+        TeamRepositories("B", List(Repository("B_r", "url_B"))),
+        TeamRepositories("C", List(Repository("C_r", "url_C"))),
+        TeamRepositories("D", List()))
     }
 
     "Filter out repositories according to the hidden config" in new WithApplication(
@@ -61,14 +66,13 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        Team("A", List(Repository("A_r2", "url_A2"))),
-        Team("C", List()),
-        Team("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("A", List(Repository("A_r2", "url_A2"))),
+        TeamRepositories("C", List()),
+        TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
     }
 
-    "Filter out teams according to the hidden config" in new WithApplication(
-      FakeApplication(additionalConfiguration = Map("github.hidden.teams" -> testHiddenTeams.mkString(",")))) {
+    "Filter out teams according to the hidden config" in {
 
       githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
         GhOrganisation("HMRC") -> Map(
@@ -78,11 +82,11 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        Team("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
     }
 
-    "Set microservice=true if the repository contains an app folder" in new WithApplication {
+    "Set microservice=true if the repository contains an app folder" in {
 
       githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
         GhOrganisation("HMRC") -> Map(
@@ -96,10 +100,10 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
       repositoryContainsAppFolder("DDCN", "C_r")
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        Team("A", List(Repository("A_r", "url_A", isMicroservice = true))),
-        Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C", isMicroservice = true))),
-        Team("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("A", List(Repository("A_r", "url_A", isMicroservice = true))),
+        TeamRepositories("B", List(Repository("B_r", "url_B"))),
+        TeamRepositories("C", List(Repository("C_r", "url_C", isMicroservice = true))),
+        TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
     }
   }
