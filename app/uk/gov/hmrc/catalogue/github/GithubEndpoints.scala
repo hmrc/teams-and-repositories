@@ -29,7 +29,7 @@ trait GithubEndpoints {
 }
 
 trait GithubEnterpriseApiEndpoints extends GithubEndpoints {
-  override def rootUrl: String = "http://example.com"
+  override val rootUrl: String = GithubConfig.githubEnterpriseCredentials.host
 
   def reposForTeamEndpoint(teamId: Long) = s"/api/v3/teams/$teamId/repos?per_page=100"
 
@@ -41,7 +41,7 @@ trait GithubEnterpriseApiEndpoints extends GithubEndpoints {
 }
 
 trait GithubOpenApiEndpoints extends GithubEndpoints {
-  override def rootUrl: String = "https://api.github.com"
+  override val rootUrl: String = GithubConfig.githubOpenCredentials.host
 
   def reposForTeamEndpoint(teamId: Long) = s"/teams/$teamId/repos?per_page=100"
 

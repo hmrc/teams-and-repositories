@@ -22,7 +22,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{WordSpec, Matchers}
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.teams.{CompositeTeamsRepositoryDataSource, TeamsRepositoryDataSource}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Team, Repository}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{TeamRepositories, Repository}
 
 import scala.concurrent.Future
 
@@ -33,14 +33,14 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
     "return the combination of all input sources"  in {
 
       val teamsList1 = List(
-        Team("A", List(Repository("A_r", "url_A"))),
-        Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C"))))
+        TeamRepositories("A", List(Repository("A_r", "url_A"))),
+        TeamRepositories("B", List(Repository("B_r", "url_B"))),
+        TeamRepositories("C", List(Repository("C_r", "url_C"))))
 
       val teamsList2 = List(
-        Team("D", List(Repository("D_r", "url_D"))),
-        Team("E", List(Repository("E_r", "url_E"))),
-        Team("F", List(Repository("F_r", "url_F"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D"))),
+        TeamRepositories("E", List(Repository("E_r", "url_E"))),
+        TeamRepositories("F", List(Repository("F_r", "url_F"))))
 
       val dataSource1 = mock[TeamsRepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
@@ -63,13 +63,13 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
     "combine teams that have the same names in both sources"  in {
 
       val teamsList1 = List(
-        Team("A", List(Repository("A_r", "url_A"))),
-        Team("B", List(Repository("B_r", "url_B"))),
-        Team("C", List(Repository("C_r", "url_C"))))
+        TeamRepositories("A", List(Repository("A_r", "url_A"))),
+        TeamRepositories("B", List(Repository("B_r", "url_B"))),
+        TeamRepositories("C", List(Repository("C_r", "url_C"))))
 
       val teamsList2 = List(
-        Team("A", List(Repository("A_r2", "url_A2"))),
-        Team("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("A", List(Repository("A_r2", "url_A2"))),
+        TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
       val dataSource1 = mock[TeamsRepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
@@ -81,7 +81,7 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 4
-      result should contain (Team(teamsList1.head.teamName, teamsList1.head.repositories ++ teamsList2.head.repositories))
+      result should contain (TeamRepositories(teamsList1.head.teamName, teamsList1.head.repositories ++ teamsList2.head.repositories))
       result should contain (teamsList1(1))
       result should contain (teamsList1(2))
       result should contain (teamsList2(1))

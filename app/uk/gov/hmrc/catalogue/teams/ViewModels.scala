@@ -16,20 +16,76 @@
 
 package uk.gov.hmrc.catalogue.teams
 
+import play.api.Configuration
 import play.api.libs.json.Json
+import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates}
 
 object ViewModels {
 
-  case class Team(teamName: String, repositories: List[Repository])
+  case class TeamRepositories(teamName: String, repositories: List[Repository])
+
+  case class TeamServices(teamName: String, Services: List[Service])
 
   case class Repository(name: String, url: String, isMicroservice: Boolean = false)
+
+  case class Link(name: String, url: String)
+
+  case class Environment(name: String, subEnvironments: Set[SubEnvironment])
+
+  case class SubEnvironment(name: String)
+
+  case class Service(
+                      name: String,
+                      githubUrl: Link,
+                      ci: List[Link])
+
+  case class DecoratedTeam(name: String, repositories: List[Repository])
+
+
+  object Link {
+    implicit val formats = Json.format[Link]
+  }
+
+  object Service {
+
+    implicit val formats = Json.format[Service]
+
+    def fromRepository(repository: Repository)(implicit urlTemplates: UrlTemplates): Option[Service] = {
+      if (!repository.isMicroservice) None
+      else Some(
+        Service(
+          repository.name,
+          Link("github", repository.url),
+          buildCiUrls(repository.url, urlTemplates)
+        )
+      )
+    }
+
+    private def buildCiUrls(repositoryUrl: String, urlTemplates: UrlTemplates): List[Link] = {
+
+      val serviceName = repositoryUrl.split('/').last
+
+      def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(serviceName))).toList
+
+      repositoryUrl.startsWith("https://github.com/") match {
+        case true => buildUrls(urlTemplates.ciOpen)
+        case false => buildUrls(urlTemplates.ciClosed)
+      }
+
+    }
+  }
+
 
   object Repository {
     implicit val formats = Json.format[Repository]
   }
 
-  object Team {
-    implicit val formats = Json.format[Team]
+  object TeamServices {
+    implicit val formats = Json.format[TeamServices]
+  }
+
+  object TeamRepositories {
+    implicit val formats = Json.format[TeamRepositories]
   }
 
 }
