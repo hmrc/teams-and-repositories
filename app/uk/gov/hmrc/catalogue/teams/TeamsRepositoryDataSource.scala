@@ -32,7 +32,7 @@ trait TeamsRepositoryDataSource {
 }
 
 
-class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
+class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
   self: GithubConfigProvider =>
 
   def getTeamRepoMapping: Future[List[TeamRepositories]] =
@@ -60,7 +60,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
     gh.containsAppFolder(organisation, repo).map {
-      case (r, isMicroservice) => Repository(r.name, r.html_url, isInternal = gh.isInternal, isMicroservice)
+      case (r, isMicroservice) => Repository(r.name, r.html_url, isInternal = this.isInternal, isMicroservice)
     }
 }
 
