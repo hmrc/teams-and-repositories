@@ -27,7 +27,7 @@ object TeamsRepositoryController extends TeamsRepositoryController
 with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
 {
   val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
-    new CompositeTeamsRepositoryDataSource(List(/*enterpriseTeamsRepositoryDataSource,*/ openTeamsRepositoryDataSource))
+    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
   ) with CacheConfigProvider
 }
 
