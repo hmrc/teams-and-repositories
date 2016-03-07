@@ -18,14 +18,25 @@ package uk.gov.hmrc.catalogue.github
 
 case class GithubCredentials(host: String, user: String, key: String)
 
-trait GithubCredentialsProvider {
-  def cred: GithubCredentials
+object GithubCredentials {
+
+  def option(config: String => Option[String]): Option[GithubCredentials] =
+    for {
+      host <- config("host")
+      user <- config("user")
+      key <- config("key")
+    } yield GithubCredentials(host, user, key)
+
 }
 
-trait GithubEnterpriseCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfig.githubEnterprise
-}
+  trait GithubCredentialsProvider {
+    def cred: GithubCredentials
+  }
 
-trait GithubOpenCredentialsProvider extends GithubCredentialsProvider {
-  def cred = GithubConfig.githubOpen
-}
+  trait GithubEnterpriseCredentialsProvider extends GithubCredentialsProvider {
+    def cred = GithubConfig.githubEnterpriseCredentials
+  }
+
+  trait GithubOpenCredentialsProvider extends GithubCredentialsProvider {
+    def cred = GithubConfig.githubOpenCredentials
+  }

@@ -22,27 +22,27 @@ import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.catalogue.github._
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 
+
 trait TeamsRepositoryDataSource {
-  def getTeamRepoMapping: Future[List[Team]]
+  def getTeamRepoMapping: Future[List[TeamRepositories]]
 }
 
-trait TeamsRepositoryDataSourceProvider {
-  def dataSource: TeamsRepositoryDataSource
-}
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends TeamsRepositoryDataSource {
   self: GithubConfigProvider =>
 
-  def getTeamRepoMapping: Future[List[Team]] =
+  def getTeamRepoMapping: Future[List[TeamRepositories]] =
     gh.getOrganisations.flatMap { orgs =>
-      Future.sequence(orgs.map(mapOrganisation)).map { _.flatten }
+      Future.sequence(orgs.map(mapOrganisation)).map {
+        _.flatten
+      }
     }
 
-  def mapOrganisation(organisation: GhOrganisation): Future[List[Team]] =
+  def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
     gh.getTeamsForOrganisation(organisation).flatMap { teams =>
       Future.sequence(for {
         team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
@@ -54,13 +54,14 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient) extends Teams
       Future.sequence(for {
         repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
       } yield mapRepository(organisation, repo)).map { repos =>
-        Team(team.name, repositories = repos )
+        TeamRepositories(team.name, repositories = repos)
       }
     }
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
     gh.containsAppFolder(organisation, repo).map {
-      case (r, isMicroservice) => Repository(r.name, r.html_url, isMicroservice) }
+      case (r, isMicroservice) => Repository(r.name, r.html_url, isInternal = gh.isInternal, isMicroservice)
+    }
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
@@ -70,16 +71,16 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
 
       Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
       flattened.groupBy(_.teamName).map { case (name, teams) =>
-        Team(name, teams.flatMap(t => t.repositories))
+        TeamRepositories(name, teams.flatMap(t => t.repositories))
       }.toList
     }
-  }
+}
 
 class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource) extends TeamsRepositoryDataSource {
-  self: CacheConfigProvider  =>
-  private var data: Future[List[Team]] = dataSource.getTeamRepoMapping
+  self: CacheConfigProvider =>
+  private var data: Future[List[TeamRepositories]] = dataSource.getTeamRepoMapping
 
-  override def getTeamRepoMapping: Future[List[Team]] = data
+  override def getTeamRepoMapping: Future[List[TeamRepositories]] = data
 
   def reload() = {
     Logger.info(s"Manual teams repository cache reload triggered")

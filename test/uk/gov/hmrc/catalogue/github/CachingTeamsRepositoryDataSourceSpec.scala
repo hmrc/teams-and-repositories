@@ -22,7 +22,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.test.WithApplication
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.config.{CacheConfig, CacheConfigProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, Team}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{TeamRepositories, Repository, TeamRepositories$}
 import uk.gov.hmrc.catalogue.teams.{CachingTeamsRepositoryDataSource, TeamsRepositoryDataSource}
 
 import scala.concurrent.Future
@@ -30,15 +30,15 @@ import scala.concurrent.duration._
 
 class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
 
-  var cacheSource: Team = null
-  val team1 = Team("test", List(Repository("test_repo", "test_repo_url")))
-  val team2 = Team("test2", List(Repository("test_repo", "test_repo_url")))
+  var cacheSource: TeamRepositories = null
+  val team1 = TeamRepositories("test", List(Repository("test_repo", "test_repo_url")))
+  val team2 = TeamRepositories("test2", List(Repository("test_repo", "test_repo_url")))
 
   val cacheTimeout = 10 millis
   val longCacheTimeout = 1 minute
 
   val dataSource = new TeamsRepositoryDataSource {
-    override def getTeamRepoMapping: Future[List[Team]] = Future.successful(List(cacheSource))
+    override def getTeamRepoMapping: Future[List[TeamRepositories]] = Future.successful(List(cacheSource))
   }
 
   "Caching teams repository data source" should {
@@ -71,13 +71,13 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     }
 
-    def verifyCacheHasBeenPopulatedWith(cache: CachingTeamsRepositoryDataSource, team: Team) =
+    def verifyCacheHasBeenPopulatedWith(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       eventually { cache.getTeamRepoMapping.futureValue should contain(team) }
 
-    def verifyCachedCopyIsStill(cache: CachingTeamsRepositoryDataSource, team: Team) =
+    def verifyCachedCopyIsStill(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       cache.getTeamRepoMapping.futureValue should contain (team)
 
-    def verifyCacheIsRefreshed(cache: CachingTeamsRepositoryDataSource, team: Team) =
+    def verifyCacheIsRefreshed(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       eventually { cache.getTeamRepoMapping.futureValue should contain (team) }
 
     trait ShortCacheConfigProvider extends CacheConfigProvider {
