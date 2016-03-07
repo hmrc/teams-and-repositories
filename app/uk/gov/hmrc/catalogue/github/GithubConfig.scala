@@ -57,17 +57,18 @@ object GithubConfig extends GithubConfig {
 
     val credentialFile: Option[File] = new File(System.getProperty("user.home"), ".github").listFiles().find { f => f.getName == filename }
 
-    credentialFile.flatMap(x =>findGithubCredsInFile(x.toPath)).getOrElse(throw new RuntimeException(s"credential file : $filename not found"))
+    credentialFile.flatMap(x => findGithubCredsInFile(x.toPath)).getOrElse(throw new RuntimeException(s"credential file : $filename not found"))
 
   }
 
   private def findGithubCredsInFile(file: Path): Option[GithubCredentials] = {
     val conf = new ConfigFile(file)
 
-    for (user <- conf.get("user");
-         token <- conf.get("token");
-         host <- conf.get("host")
-    ) yield GithubCredentials(host, user, token)
+    for {
+      user <- conf.get("user")
+      token <- conf.get("token")
+      host <- conf.get("host")
+    } yield GithubCredentials(host, user, token)
   }
 
   private def config(path: String) = Play.current.configuration.getString(s"$path")

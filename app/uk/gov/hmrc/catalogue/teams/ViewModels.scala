@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.catalogue.teams
 
-import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates}
 
@@ -26,7 +25,7 @@ object ViewModels {
 
   case class TeamServices(teamName: String, Services: List[Service])
 
-  case class Repository(name: String, url: String, isMicroservice: Boolean = false)
+  case class Repository(name: String, url: String, isInternal: Boolean = false, isMicroservice: Boolean = false)
 
   case class Link(name: String, url: String)
 
@@ -56,20 +55,18 @@ object ViewModels {
         Service(
           repository.name,
           Link("github", repository.url),
-          buildCiUrls(repository.url, urlTemplates)
+          buildCiUrls(repository, urlTemplates)
         )
       )
     }
 
-    private def buildCiUrls(repositoryUrl: String, urlTemplates: UrlTemplates): List[Link] = {
+    private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] = {
 
-      val serviceName = repositoryUrl.split('/').last
+      def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(repository.name))).toList
 
-      def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(serviceName))).toList
-
-      repositoryUrl.startsWith("https://github.com/") match {
-        case true => buildUrls(urlTemplates.ciOpen)
-        case false => buildUrls(urlTemplates.ciClosed)
+      repository.isInternal match {
+        case true => buildUrls(urlTemplates.ciClosed)
+        case false => buildUrls(urlTemplates.ciOpen)
       }
 
     }

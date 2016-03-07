@@ -27,7 +27,9 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
-  val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials
+  val githubApiClient = new GithubV3ApiClient with TestEndpoints with TestCredentials {
+    override def isInternal: Boolean = true
+  }
   val dataSource = new GithubV3TeamsRepositoryDataSource(githubApiClient) with GithubConfigProvider {
     override def githubConfig: GithubConfig = new GithubConfig {
       override def hiddenRepositories: List[String] = testHiddenRepositories
@@ -38,7 +40,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
 
   "Github v3 Data Source" should {
 
-    "Return a list of teams and repositories, filtering out forks" in new WithApplication {
+    "Return a list of teams and repositories, filtering out forks" in {
 
       githubReturns(Map[GhOrganisation, Map[GhTeam, List[GhRepository]]] (
         GhOrganisation("HMRC") -> Map(
@@ -49,9 +51,9 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D", fork = true)))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "url_A"))),
-        TeamRepositories("B", List(Repository("B_r", "url_B"))),
-        TeamRepositories("C", List(Repository("C_r", "url_C"))),
+        TeamRepositories("A", List(Repository("A_r", "url_A", isInternal = true))),
+        TeamRepositories("B", List(Repository("B_r", "url_B", isInternal = true))),
+        TeamRepositories("C", List(Repository("C_r", "url_C", isInternal = true))),
         TeamRepositories("D", List()))
     }
 
@@ -66,9 +68,9 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r2", "url_A2"))),
+        TeamRepositories("A", List(Repository("A_r2", "url_A2", isInternal = true))),
         TeamRepositories("C", List()),
-        TeamRepositories("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D", isInternal = true))))
 
     }
 
@@ -82,7 +84,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
           GhTeam("D", 4) -> List(GhRepository("D_r", 4, "url_D")))))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D", isInternal = true))))
 
     }
 
@@ -100,10 +102,10 @@ class GithubV3TeamsRepositoryDataSourceSpec extends GithubWireMockSpec with Scal
       repositoryContainsAppFolder("DDCN", "C_r")
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "url_A", isMicroservice = true))),
-        TeamRepositories("B", List(Repository("B_r", "url_B"))),
-        TeamRepositories("C", List(Repository("C_r", "url_C", isMicroservice = true))),
-        TeamRepositories("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("A", List(Repository("A_r", "url_A", isInternal = true , isMicroservice = true))),
+        TeamRepositories("B", List(Repository("B_r", "url_B", isInternal = true))),
+        TeamRepositories("C", List(Repository("C_r", "url_C", isInternal = true , isMicroservice = true))),
+        TeamRepositories("D", List(Repository("D_r", "url_D", isInternal = true))))
 
     }
   }

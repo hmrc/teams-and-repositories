@@ -31,6 +31,8 @@ import scala.util.{Failure, Success, Try}
 trait GithubV3ApiClient {
   self : GithubEndpoints with GithubCredentialsProvider  =>
 
+  def isInternal : Boolean
+
   val log = new Logger()
 
   private lazy val host = cred.host

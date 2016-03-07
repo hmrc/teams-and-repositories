@@ -17,9 +17,6 @@
 package uk.gov.hmrc.catalogue.config
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.catalogue.teams.ViewModels.Link
-
-import scala.collection.JavaConversions._
 
 case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate])
 
@@ -55,7 +52,7 @@ trait CatalogueConfig {
 
 
   private def getTemplatesForConfig(path: String) = {
-    val configs = urlTemplates.getConfigSeq("ci-open")
+    val configs = urlTemplates.getConfigSeq(path)
     require(configs.exists(!_.isEmpty), s"no $path config found")
 
     configs.get.flatMap { config =>
