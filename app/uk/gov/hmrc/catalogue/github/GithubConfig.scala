@@ -43,9 +43,9 @@ object GithubConfig extends GithubConfig {
   private val gitEnterpriseConfig = (key: String) => config(s"$githubEnterpriseConfigKey.$key")
 
 
-  lazy val githubOpenCredentials = credentials(gitOpenConfig).fold(fromFileSystem(".credentials"))(identity)
+  lazy val githubOpenCredentials = credentials(gitOpenConfig).getOrElse(fromFileSystem(".credentials"))
 
-  lazy val githubEnterpriseCredentials = credentials(gitEnterpriseConfig).fold(fromFileSystem(".githubenterprise"))(identity)
+  lazy val githubEnterpriseCredentials = credentials(gitEnterpriseConfig).getOrElse(fromFileSystem(".githubenterprise"))
 
   lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 

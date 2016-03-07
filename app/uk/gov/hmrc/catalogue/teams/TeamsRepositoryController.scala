@@ -27,7 +27,7 @@ object TeamsRepositoryController extends TeamsRepositoryController
 with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
 {
   val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
-    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
+    new CompositeTeamsRepositoryDataSource(List(/*enterpriseTeamsRepositoryDataSource,*/ openTeamsRepositoryDataSource))
   ) with CacheConfigProvider
 }
 
@@ -44,8 +44,7 @@ trait TeamsRepositoryController extends BaseController with CatalogueConfig {
   def services(teamName:String) = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map { teams =>
       teams.find(_.teamName == teamName).map { team =>
-        val services = TeamServices(team.teamName, team.repositories.flatMap(Service.fromRepository(_)))
-        Ok(Json.toJson(services))
+        Ok(Json.toJson(team.repositories.flatMap(Service.fromRepository(_))))
       }.getOrElse(NotFound)
 
     }
