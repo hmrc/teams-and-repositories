@@ -20,7 +20,7 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, OptionValues, WordSpec}
 import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates}
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Link, Service, Repository}
 
-class TeamServicesSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues {
+class ServiceSpec extends WordSpec with Matchers with OptionValues {
 
   implicit val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
@@ -39,6 +39,7 @@ class TeamServicesSpec extends WordSpec with Matchers with BeforeAndAfterEach wi
       val repo = Repository(
         "a-frontend",
         "https://not-open-github/org/a-frontend",
+        isInternal = true,
         isMicroservice = true)
 
       Service.fromRepository(repo).value shouldBe Service(
