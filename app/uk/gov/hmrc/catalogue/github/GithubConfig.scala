@@ -29,6 +29,7 @@ trait GithubConfigProvider {
 
 trait GithubConfig {
   def hiddenRepositories: List[String]
+
   def hiddenTeams: List[String]
 }
 
@@ -38,42 +39,40 @@ object GithubConfig extends GithubConfig {
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
   val githubHiddenTeamsConfigKey = "github.hidden.teams"
 
-  def githubOpen = fallBackToFileSystem(".credentials", GithubCredentials(
-    config(s"$githubOpenConfigKey.host"),
-    config(s"$githubOpenConfigKey.user"),
-    config(s"$githubOpenConfigKey.key")))
+  private val gitOpenConfig = (key: String) => config(s"$githubOpenConfigKey.$key")
+  private val gitEnterpriseConfig = (key: String) => config(s"$githubEnterpriseConfigKey.$key")
 
-  def githubEnterprise = fallBackToFileSystem(".githubenterprise", GithubCredentials(
-    config(s"$githubEnterpriseConfigKey.host"),
-    config(s"$githubEnterpriseConfigKey.user"),
-    config(s"$githubEnterpriseConfigKey.key")))
 
-  def hiddenRepositories = config(githubHiddenRepositoriesConfigKey).split(",").toList
+  lazy val githubOpenCredentials = credentials(gitOpenConfig).fold(fromFileSystem(".credentials"))(identity)
 
-  def hiddenTeams = config(githubHiddenTeamsConfigKey).split(",").toList
+  lazy val githubEnterpriseCredentials = credentials(gitEnterpriseConfig).fold(fromFileSystem(".githubenterprise"))(identity)
 
-  private def fallBackToFileSystem(filename: String, credentials: GithubCredentials) = {
-    def isNullOrEmpty(s: String) = s != null && s.isEmpty
+  lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-    if (isNullOrEmpty(credentials.host) || isNullOrEmpty(credentials.user)) {
-      Logger.info(s"Credentials not found in config, falling back to $filename")
+  lazy val hiddenTeams = config(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-      new File(System.getProperty("user.home"), ".github").listFiles()
-        .filter { f => f.getName == filename  }
-        .flatMap { c => findGithubCredsInFile(c.toPath) }.head
-    }
-    else credentials
+  private def fromFileSystem(filename: String): GithubCredentials = {
+
+    Logger.info(s"Credentials not found in config, falling back to $filename")
+
+    val credentialFile: Option[File] = new File(System.getProperty("user.home"), ".github").listFiles().find { f => f.getName == filename }
+
+    credentialFile.flatMap(x => findGithubCredsInFile(x.toPath)).getOrElse(throw new RuntimeException(s"credential file : $filename not found"))
+
   }
 
-  private def findGithubCredsInFile(file:Path):Option[GithubCredentials] = {
+  private def findGithubCredsInFile(file: Path): Option[GithubCredentials] = {
     val conf = new ConfigFile(file)
 
-    for( user <- conf.get("user");
-         token <- conf.get("token");
-         host <- conf.get("host")
-    ) yield GithubCredentials(host, user, token)
+    for {
+      user <- conf.get("user")
+      token <- conf.get("token")
+      host <- conf.get("host")
+    } yield GithubCredentials(host, user, token)
   }
 
-  private def config(path: String) = Play.current.configuration.getString(s"$path").getOrElse("")
+  private def config(path: String) = Play.current.configuration.getString(s"$path")
+
+  private def credentials(config: String => Option[String]): Option[GithubCredentials] = GithubCredentials.option(config)
 
 }

@@ -19,22 +19,36 @@ package uk.gov.hmrc.catalogue.teams
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.config.CacheConfigProvider
+import uk.gov.hmrc.catalogue.config.{CatalogueConfig, CacheConfigProvider}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Service, TeamServices}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 object TeamsRepositoryController extends TeamsRepositoryController
-  with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
+with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
 {
   val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
     new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
   ) with CacheConfigProvider
 }
 
-trait TeamsRepositoryController extends BaseController {
+
+trait TeamsRepositoryController extends BaseController with CatalogueConfig {
   def dataSource: CachingTeamsRepositoryDataSource
 
   def teamRepository() = Action.async { implicit request =>
-    dataSource.getTeamRepoMapping.map(x => Ok(Json.toJson(x)))
+    dataSource.getTeamRepoMapping.map {
+      teams => Ok(Json.toJson(teams))
+    }
+  }
+
+  def services(teamName:String) = Action.async { implicit request =>
+    dataSource.getTeamRepoMapping.map { teams =>
+      teams.find(_.teamName == teamName).map { team =>
+        val services = TeamServices(team.teamName, team.repositories.flatMap(Service.fromRepository(_)))
+        Ok(Json.toJson(services))
+      }.getOrElse(NotFound)
+
+    }
   }
 
   def reloadCache() = Action { implicit request =>
