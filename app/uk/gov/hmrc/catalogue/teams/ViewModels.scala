@@ -38,8 +38,6 @@ object ViewModels {
                       githubUrl: Link,
                       ci: List[Link])
 
-  case class DecoratedTeam(name: String, repositories: List[Repository])
-
 
   object Link {
     implicit val formats = Json.format[Link]
