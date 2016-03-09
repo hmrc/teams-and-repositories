@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.catalogue.teams
 
+import java.net.URLDecoder
+
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -43,7 +45,7 @@ trait TeamsRepositoryController extends BaseController with CatalogueConfig {
 
   def services(teamName:String) = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map { teams =>
-      teams.find(_.teamName == teamName).map { team =>
+      teams.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
         Ok(Json.toJson(team.repositories.flatMap(Service.fromRepository(_))))
       }.getOrElse(NotFound)
 
