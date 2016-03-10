@@ -1,4 +1,4 @@
 catalogue
 =============
 
-API for retrieving repostiries belonging to teams
+API for retrieving repositories belonging to teams
