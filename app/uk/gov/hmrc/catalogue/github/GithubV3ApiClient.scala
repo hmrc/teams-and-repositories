@@ -23,17 +23,16 @@ import play.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsValue, Reads}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSRequestHolder}
+import play.api.libs.ws.{WSResponse, DefaultWSClientConfig, WSAuthScheme, WSRequestHolder}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
+
 trait GithubV3ApiClient {
-  self : GithubEndpoints with GithubCredentialsProvider  =>
+  self: GithubEndpoints with GithubCredentialsProvider =>
 
   val log = new Logger()
-
-  private lazy val host = cred.host
 
   private val asyncBuilder: Builder = new Builder()
   private val tp: ExecutorService = Executors.newCachedThreadPool()
@@ -95,24 +94,29 @@ trait GithubV3ApiClient {
     }.getOrElse(req)
   }
 
-  private def get[A](url: String)(implicit r: Reads[A]): Future[A] = {
-    buildCall("GET", url).execute().flatMap { result =>
-      result.status match {
-        case s if s >= 200 && s < 300 => {
-          Try {
-            result.json.as[A]
-          } match {
-            case Success(a) => Future.successful(a)
-            case Failure(e) => Logger.error(e.getMessage + "failed body was: " + result.body); Future.failed(e)
-          }
-        }
-        case _@e =>
-          Future.failed(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: url: ${url} ${result.body}"))
+  private def get[T](url: String)(implicit r: Reads[T]): Future[T] = withErrorHandling("GET", url) {
+    case _@s if s.status >= 200 && s.status < 300 =>
+      Try {
+        s.json.as[T]
+      } match {
+        case Success(a) => a
+        case Failure(e) =>
+          Logger.error(s"Error paring response failed body was: ${s.body} root url : $rootUrl")
+          throw e
       }
-    }
+    case res =>
+      throw new RuntimeException(s"Unexpected response status : ${res.status}  calling url : $url response body : ${res.body}")
   }
 
-  private def head(url: String): Future[Int] =
-    buildCall("HEAD", url).execute().map{ result => result.status }
+
+  private def withErrorHandling[T](method: String, url: String)(f: WSResponse => T): Future[T] = {
+    buildCall(method, url).execute().transform(
+      f,
+      _ => throw new RuntimeException(s"Error connecting  $url")
+    )
+  }
+
+  private def head(url: String): Future[Int] = withErrorHandling("HEAD", url)(_.status)
+
 }
 
