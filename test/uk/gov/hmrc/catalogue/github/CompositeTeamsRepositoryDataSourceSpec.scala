@@ -60,15 +60,19 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
       result should contain (teamsList2(2))
     }
 
-    "combine teams that have the same names in both sources"  in {
+    "combine teams that have the same names in both sources and sort repositories alphabetically"  in {
+
+      val repoAA = Repository("A_A", "url_A_A")
+      val repoAB = Repository("A_B", "url_A_B")
+      val repoAC = Repository("A_C", "url_A_C")
 
       val teamsList1 = List(
-        TeamRepositories("A", List(Repository("A_r", "url_A"))),
+        TeamRepositories("A", List(repoAC, repoAB)),
         TeamRepositories("B", List(Repository("B_r", "url_B"))),
         TeamRepositories("C", List(Repository("C_r", "url_C"))))
 
       val teamsList2 = List(
-        TeamRepositories("A", List(Repository("A_r2", "url_A2"))),
+        TeamRepositories("A", List(repoAA)),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
       val dataSource1 = mock[TeamsRepositoryDataSource]
@@ -81,7 +85,9 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 4
-      result should contain (TeamRepositories(teamsList1.head.teamName, teamsList1.head.repositories ++ teamsList2.head.repositories))
+      result.find(_.teamName == "A").get.repositories should contain inOrderOnly (
+        repoAA, repoAB, repoAC)
+
       result should contain (teamsList1(1))
       result should contain (teamsList1(2))
       result should contain (teamsList2(1))
