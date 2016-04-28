@@ -71,7 +71,7 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
 
       Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
       flattened.groupBy(_.teamName).map { case (name, teams) =>
-        TeamRepositories(name, teams.flatMap(t => t.repositories))
+        TeamRepositories(name, teams.flatMap(t => t.repositories).sortBy(_.name))
       }.toList
     }
 }
