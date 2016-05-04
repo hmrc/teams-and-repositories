@@ -16,12 +16,9 @@
 
 package uk.gov.hmrc.catalogue.github
 
-import java.io.File
-import java.nio.file.Path
-
-import play.Logger
 import play.api.Play
-import uk.gov.hmrc.catalogue.config.ConfigFile
+import uk.gov.hmrc.githubclient.GitApiConfig
+
 
 trait GithubConfigProvider {
   def githubConfig: GithubConfig = GithubConfig
@@ -43,36 +40,25 @@ object GithubConfig extends GithubConfig {
   private val gitEnterpriseConfig = (key: String) => config(s"$githubEnterpriseConfigKey.$key")
 
 
-  lazy val githubOpenCredentials = credentials(gitOpenConfig).getOrElse(fromFileSystem(".credentials"))
+  lazy val githubApiOpenConfig = option(gitOpenConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.credentials"))
 
-  lazy val githubEnterpriseCredentials = credentials(gitEnterpriseConfig).getOrElse(fromFileSystem(".githubenterprise"))
+
+  lazy val githubApiEnterpriseConfig = option(gitEnterpriseConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.githubenterprise"))
 
   lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
   lazy val hiddenTeams = config(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-  private def fromFileSystem(filename: String): GithubCredentials = {
-
-    Logger.info(s"Credentials not found in config, falling back to $filename")
-
-    val credentialFile: Option[File] = new File(System.getProperty("user.home"), ".github").listFiles().find { f => f.getName == filename }
-
-    credentialFile.flatMap(x => findGithubCredsInFile(x.toPath)).getOrElse(throw new RuntimeException(s"credential file : $filename not found"))
-
-  }
-
-  private def findGithubCredsInFile(file: Path): Option[GithubCredentials] = {
-    val conf = new ConfigFile(file)
-
-    for {
-      user <- conf.get("user")
-      token <- conf.get("token")
-      host <- conf.get("host")
-    } yield GithubCredentials(host, user, token)
-  }
 
   private def config(path: String) = Play.current.configuration.getString(s"$path")
 
-  private def credentials(config: String => Option[String]): Option[GithubCredentials] = GithubCredentials.option(config)
+
+  private def option(config: String => Option[String]): Option[GitApiConfig] =
+    for {
+      host <- config("host")
+      user <- config("user")
+      key <- config("key")
+    } yield GitApiConfig(user, key, host)
+
 
 }
