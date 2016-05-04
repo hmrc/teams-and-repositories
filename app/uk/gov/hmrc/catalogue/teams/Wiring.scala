@@ -17,13 +17,16 @@
 package uk.gov.hmrc.catalogue.teams
 
 import uk.gov.hmrc.catalogue.github._
+import uk.gov.hmrc.githubclient.GithubApiClient
 
 trait GithubEnterpriseTeamsRepositoryDataSourceProvider {
-  private val httpClient = new GithubV3ApiClient with GithubEnterpriseApiEndpoints with GithubEnterpriseCredentialsProvider
-  val enterpriseTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(httpClient, isInternal = true) with GithubConfigProvider
+  private val gitApiEnterpriseClient = new GithubApiClient(GithubConfig.githubApiEnterpriseConfig)
+
+  val enterpriseTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(gitApiEnterpriseClient, isInternal = true)  with GithubConfigProvider
 }
 
 trait GithubOpenTeamsRepositoryDataSourceProvider {
-  private val httpClient = new GithubV3ApiClient with GithubOpenApiEndpoints with GithubOpenCredentialsProvider
-  val openTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(httpClient, isInternal = false) with GithubConfigProvider
+  private val gitOpenClient = new GithubApiClient(GithubConfig.githubApiOpenConfig)
+
+  val openTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 }
