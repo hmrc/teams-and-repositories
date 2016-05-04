@@ -22,7 +22,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.test.WithApplication
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.config.{CacheConfig, CacheConfigProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{TeamRepositories, Repository, TeamRepositories$}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.catalogue.teams.{CachingTeamsRepositoryDataSource, TeamsRepositoryDataSource}
 
 import scala.concurrent.Future

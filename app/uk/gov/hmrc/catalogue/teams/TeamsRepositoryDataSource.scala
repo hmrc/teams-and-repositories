@@ -21,8 +21,10 @@ import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
-import uk.gov.hmrc.catalogue.github._
+import uk.gov.hmrc.catalogue.github.{GithubConfigProvider, GithubConfig}
+
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
+import uk.gov.hmrc.githubclient.{GhRepository, GhTeam, GhOrganisation, GithubApiClient}
 
 import scala.concurrent.Future
 
@@ -32,8 +34,8 @@ trait TeamsRepositoryDataSource {
 }
 
 
-class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
-  self: GithubConfigProvider =>
+class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
+  self : GithubConfigProvider =>
 
   def getTeamRepoMapping: Future[List[TeamRepositories]] =
     gh.getOrganisations.flatMap { orgs =>
@@ -43,14 +45,14 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient, val isInterna
     }
 
   def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
-    gh.getTeamsForOrganisation(organisation).flatMap { teams =>
+    gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
       Future.sequence(for {
         team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
       } yield mapTeam(organisation, team))
     }
 
   def mapTeam(organisation: GhOrganisation, team: GhTeam) =
-    gh.getReposForTeam(team).flatMap { repos =>
+    gh.getReposForTeam(team.id).flatMap { repos =>
       Future.sequence(for {
         repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
       } yield mapRepository(organisation, repo)).map { repos =>
@@ -59,9 +61,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubV3ApiClient, val isInterna
     }
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
-    gh.containsAppFolder(organisation, repo).map {
-      case (r, isMicroservice) => Repository(r.name, r.html_url, isInternal = this.isInternal, isMicroservice)
-    }
+    gh.repoContainsFolder("app",repo.name, organisation.login).map(Repository(repo.name, repo.html_url, isInternal = this.isInternal, _))
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
