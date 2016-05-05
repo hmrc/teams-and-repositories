@@ -18,37 +18,41 @@ package uk.gov.hmrc.catalogue.teams
 
 import java.net.URLDecoder
 
+import org.joda.time.DateTime
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsPath, Json, Writes}
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.config.{CatalogueConfig, CacheConfigProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Service, TeamServices}
+import uk.gov.hmrc.catalogue.CachedList
+import uk.gov.hmrc.catalogue.config.{CacheConfigProvider, CatalogueConfig, UrlTemplatesProvider}
+import uk.gov.hmrc.catalogue.teams.ViewModels.Service
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 object TeamsRepositoryController extends TeamsRepositoryController
-with GithubEnterpriseTeamsRepositoryDataSourceProvider with GithubOpenTeamsRepositoryDataSourceProvider
+  with CatalogueConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
+  with GithubOpenTeamsRepositoryDataSourceProvider
 {
   val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
-    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource))
+    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
+    DateTime.now
   ) with CacheConfigProvider
 }
 
+trait TeamsRepositoryController extends BaseController {
+  this: UrlTemplatesProvider =>
 
-trait TeamsRepositoryController extends BaseController with CatalogueConfig {
-  def dataSource: CachingTeamsRepositoryDataSource
+  protected def dataSource: CachingTeamsRepositoryDataSource
 
   def teamRepository() = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams))
+      teams => Ok(Json.toJson(teams)(CachedList.cachedListFormats))
     }
   }
 
   def services(teamName:String) = Action.async { implicit request =>
     dataSource.getTeamRepoMapping.map { teams =>
       teams.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
-        Ok(Json.toJson(team.repositories.flatMap(Service.fromRepository(_))))
+        Ok(Json.toJson(team.repositories.flatMap(Service.fromRepository(_, ciUrlTemplates))))
       }.getOrElse(NotFound)
-
     }
   }
 

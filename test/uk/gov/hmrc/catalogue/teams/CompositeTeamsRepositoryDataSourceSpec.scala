@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.github
+package uk.gov.hmrc.catalogue.teams
 
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{WordSpec, Matchers}
+import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
-import uk.gov.hmrc.catalogue.teams.{CompositeTeamsRepositoryDataSource, TeamsRepositoryDataSource}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{TeamRepositories, Repository}
+import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 
