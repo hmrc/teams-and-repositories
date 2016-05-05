@@ -33,21 +33,16 @@ object ViewModels {
 
   case class SubEnvironment(name: String)
 
-  case class Service(
-                      name: String,
-                      githubUrl: Link,
-                      ci: List[Link])
-
+  case class Service(name: String, githubUrl: Link, ci: List[Link])
 
   object Link {
     implicit val formats = Json.format[Link]
   }
 
   object Service {
-
     implicit val formats = Json.format[Service]
 
-    def fromRepository(repository: Repository)(implicit urlTemplates: UrlTemplates): Option[Service] = {
+    def fromRepository(repository: Repository, urlTemplates: UrlTemplates): Option[Service] = {
       if (!repository.isMicroservice) None
       else Some(
         Service(
@@ -69,7 +64,6 @@ object ViewModels {
 
     }
   }
-
 
   object Repository {
     implicit val formats = Json.format[Repository]

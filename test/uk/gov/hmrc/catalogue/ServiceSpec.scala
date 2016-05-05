@@ -22,7 +22,7 @@ import uk.gov.hmrc.catalogue.teams.ViewModels.{Link, Service, Repository}
 
 class ServiceSpec extends WordSpec with Matchers with OptionValues {
 
-  implicit val urlTemplates = UrlTemplates(
+  val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
       name = "open",
       template = "http://open/$name"
@@ -34,6 +34,7 @@ class ServiceSpec extends WordSpec with Matchers with OptionValues {
   )
 
   "Services" should {
+
     "create links for a closed service" in {
 
       val repo = Repository(
@@ -42,14 +43,13 @@ class ServiceSpec extends WordSpec with Matchers with OptionValues {
         isInternal = true,
         isMicroservice = true)
 
-      Service.fromRepository(repo).value shouldBe Service(
+      Service.fromRepository(repo, urlTemplates).value shouldBe Service(
         "a-frontend",
         Link("github", "https://not-open-github/org/a-frontend"),
-        List(
-          Link("closed", "http://closed/a-frontend")
-        )
+        List(Link("closed", "http://closed/a-frontend"))
       )
     }
+
     "create links for a open service" in {
 
       val repo = Repository(
@@ -57,12 +57,10 @@ class ServiceSpec extends WordSpec with Matchers with OptionValues {
         "https://github.com/org/a-frontend",
         isMicroservice = true)
 
-      Service.fromRepository(repo).value shouldBe Service(
+      Service.fromRepository(repo, urlTemplates).value shouldBe Service(
         "a-frontend",
         Link("github", "https://github.com/org/a-frontend"),
-        List(
-          Link("open", "http://open/a-frontend")
-        )
+        List(Link("open", "http://open/a-frontend"))
       )
     }
   }

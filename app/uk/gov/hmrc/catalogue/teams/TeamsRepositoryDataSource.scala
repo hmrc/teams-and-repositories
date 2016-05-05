@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.catalogue.teams
 
+import org.joda.time.DateTime
 import play.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
+import uk.gov.hmrc.catalogue.CachedList
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
 import uk.gov.hmrc.catalogue.github.{GithubConfigProvider, GithubConfig}
 
@@ -28,16 +30,14 @@ import uk.gov.hmrc.githubclient.{GhRepository, GhTeam, GhOrganisation, GithubApi
 
 import scala.concurrent.Future
 
-
 trait TeamsRepositoryDataSource {
-  def getTeamRepoMapping: Future[List[TeamRepositories]]
+  def getTeamRepoMapping: Future[Seq[TeamRepositories]]
 }
-
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
   self : GithubConfigProvider =>
 
-  def getTeamRepoMapping: Future[List[TeamRepositories]] =
+  def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     gh.getOrganisations.flatMap { orgs =>
       Future.sequence(orgs.map(mapOrganisation)).map {
         _.flatten
@@ -65,7 +65,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal:
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
-  override def getTeamRepoMapping =
+  override def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened = results.flatten
 
@@ -76,20 +76,28 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
     }
 }
 
-class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource) extends TeamsRepositoryDataSource {
+class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource, timeStamp: () => DateTime) extends TeamsRepositoryDataSource {
   self: CacheConfigProvider =>
-  private var data: Future[List[TeamRepositories]] = dataSource.getTeamRepoMapping
+  private var data: Future[CachedList[TeamRepositories]] = fromSource
 
-  override def getTeamRepoMapping: Future[List[TeamRepositories]] = data
+  private def fromSource = {
+    dataSource.getTeamRepoMapping.map { d => {
+      val stamp = timeStamp()
+      Logger.debug(s"Cache reloaded at $stamp")
+      new CachedList(d, stamp) }
+    }
+  }
+
+  override def getTeamRepoMapping: Future[CachedList[TeamRepositories]] = data
 
   def reload() = {
     Logger.info(s"Manual teams repository cache reload triggered")
-    data = dataSource.getTeamRepoMapping
+    data = fromSource
   }
 
   Logger.info(s"Initialising cache reload every ${cacheConfig.teamsCacheDuration}")
   Akka.system.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
     Logger.info("Scheduled teams repository cache reload triggered")
-    data = dataSource.getTeamRepoMapping
+    data = fromSource
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.github
+package uk.gov.hmrc.catalogue.teams
 
 import org.mockito.Matchers._
 import org.mockito.Mockito.when
@@ -23,7 +23,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
-import uk.gov.hmrc.catalogue.teams.GithubV3TeamsRepositoryDataSource
+import uk.gov.hmrc.catalogue.github.{GithubConfig, GithubConfigProvider}
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient

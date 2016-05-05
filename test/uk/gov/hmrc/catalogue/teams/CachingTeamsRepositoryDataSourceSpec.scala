@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.github
+package uk.gov.hmrc.catalogue.teams
 
+import org.joda.time.DateTime
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
@@ -23,8 +24,8 @@ import play.api.test.WithApplication
 import uk.gov.hmrc.catalogue.DefaultPatienceConfig
 import uk.gov.hmrc.catalogue.config.{CacheConfig, CacheConfigProvider}
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
-import uk.gov.hmrc.catalogue.teams.{CachingTeamsRepositoryDataSource, TeamsRepositoryDataSource}
 
+import scala.collection.mutable.Stack
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -38,41 +39,51 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
   val longCacheTimeout = 1 minute
 
   val dataSource = new TeamsRepositoryDataSource {
-    override def getTeamRepoMapping: Future[List[TeamRepositories]] = Future.successful(List(cacheSource))
+    override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
   }
 
   "Caching teams repository data source" should {
+    val firstTime = new DateTime(2016, 4, 5, 12, 57)
+    val secondTime = new DateTime(2016, 4, 6, 21, 0)
+
+    val cacheTime = Stack(firstTime, secondTime)
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
-
       cacheSource = team1
-      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with ShortCacheConfigProvider
+      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with ShortCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
+      verifyCacheTime(cachingDataSource, firstTime)
 
       cacheSource = team2
       verifyCachedCopyIsStill(cachingDataSource, team1)
-      verifyCacheIsRefreshed(cachingDataSource, team2)
+      verifyCacheTime(cachingDataSource, firstTime)
 
+      verifyCacheIsRefreshed(cachingDataSource, team2)
+      verifyCacheTime(cachingDataSource, secondTime)
     }
 
     "reload the cache from the data source when cleared" in new WithApplication {
-
       cacheSource = team1
-      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource) with LongCacheConfigProvider
+      val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with LongCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
+      verifyCacheTime(cachingDataSource, firstTime)
 
       cacheSource = team2
       verifyCachedCopyIsStill(cachingDataSource, team1)
+      verifyCacheTime(cachingDataSource, firstTime)
 
       cachingDataSource.reload()
       verifyCacheIsRefreshed(cachingDataSource, team2)
-
+      verifyCacheTime(cachingDataSource, secondTime)
     }
 
     def verifyCacheHasBeenPopulatedWith(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       eventually { cache.getTeamRepoMapping.futureValue should contain(team) }
+
+    def verifyCacheTime(cache: CachingTeamsRepositoryDataSource, dateTime: DateTime) =
+      cache.getTeamRepoMapping.futureValue.time should be (dateTime)
 
     def verifyCachedCopyIsStill(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       cache.getTeamRepoMapping.futureValue should contain (team)

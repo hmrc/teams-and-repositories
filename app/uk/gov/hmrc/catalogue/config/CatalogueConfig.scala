@@ -21,17 +21,18 @@ import play.api.libs.json.Json
 case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate])
 
 case class UrlTemplate(name: String, template: String) {
-
   def url(serviceName : String) = template.replace("$name", serviceName)
 }
 
 object UrlTemplate {
   implicit val formats = Json.format[UrlTemplate]
-
 }
 
-trait CatalogueConfig {
+trait UrlTemplatesProvider {
+  def ciUrlTemplates: UrlTemplates
+}
 
+trait CatalogueConfig extends UrlTemplatesProvider {
 
   implicit val ciUrlTemplates: UrlTemplates = {
 
@@ -45,24 +46,20 @@ trait CatalogueConfig {
 
   }
 
-
   private def urlTemplates = {
     play.api.Play.current.configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
   }
 
-
   private def getTemplatesForConfig(path: String) = {
     val configs = urlTemplates.getConfigSeq(path)
-    require(configs.exists(!_.isEmpty), s"no $path config found")
+    require(configs.exists(_.nonEmpty), s"no $path config found")
 
     configs.get.flatMap { config =>
       for {
         name <- config.getString("name")
         url <- config.getString("url")
       } yield UrlTemplate(name, url)
-    }.toSet.toSeq
+    }.distinct
 
   }
-
-
 }
