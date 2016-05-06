@@ -46,10 +46,9 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     val firstTime = new DateTime(2016, 4, 5, 12, 57)
     val secondTime = new DateTime(2016, 4, 6, 21, 0)
 
-    val cacheTime = Stack(firstTime, secondTime)
-
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
       cacheSource = team1
+      val cacheTime = Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with ShortCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
@@ -65,6 +64,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "reload the cache from the data source when cleared" in new WithApplication {
       cacheSource = team1
+      val cacheTime = Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with LongCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
@@ -80,7 +80,9 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     }
 
     def verifyCacheHasBeenPopulatedWith(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
-      eventually { cache.getTeamRepoMapping.futureValue should contain(team) }
+      eventually {
+        cache.getTeamRepoMapping.futureValue should contain(team)
+      }
 
     def verifyCacheTime(cache: CachingTeamsRepositoryDataSource, dateTime: DateTime) =
       cache.getTeamRepoMapping.futureValue.time should be (dateTime)
