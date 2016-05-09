@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.config
+package uk.gov.hmrc.teamsandservices.config
 
-import play.api.Play
+import java.nio.file.Path
 
-import scala.concurrent.duration._
+import scala.io.Source
 
-trait CacheConfigProvider {
-  def cacheConfig: CacheConfig = CacheConfig
-}
+class ConfigFile(file: Path) {
 
-trait CacheConfig {
-  def teamsCacheDuration: FiniteDuration
-}
+   private val kvMap: Map[String, String] = {
+     try {
+       Source.fromFile(file.toFile)
+         .getLines().toSeq
+         .map(_.split("="))
+         .map { case Array(key, value) => key.trim -> value.trim}.toMap
+     } catch {
+       case e: Exception => {
+         Map.empty
+       }
+     }
+   }
 
-object CacheConfig extends CacheConfig {
-  val teamsCacheDurationConfigPath = "cache.teams.duration"
-  val defaultTimeout = 1 hour
-
-  def teamsCacheDuration: FiniteDuration = {
-    Play.current.configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
-  }
-}
+   def get(path: String) = kvMap.get(path)
+ }

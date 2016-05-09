@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue
+package uk.gov.hmrc.teamsandservices
 
 import org.joda.time.DateTime
 import play.api.libs.json._

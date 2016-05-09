@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
-import uk.gov.hmrc.catalogue.github._
+import uk.gov.hmrc.teamsandservices.github._
 import uk.gov.hmrc.githubclient.GithubApiClient
 
 trait GithubEnterpriseTeamsRepositoryDataSourceProvider {

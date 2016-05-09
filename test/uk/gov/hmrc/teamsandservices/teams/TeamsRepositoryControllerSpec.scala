@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
 import org.joda.time.DateTime
 import org.mockito.Mockito._
@@ -24,9 +24,9 @@ import play.api.libs.json.JsArray
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.catalogue.CachedResult
-import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
+import uk.gov.hmrc.teamsandservices.CachedResult
+import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 object ViewModels {
 

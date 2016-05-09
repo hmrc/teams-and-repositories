@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
 import org.joda.time.DateTime
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.WithApplication
-import uk.gov.hmrc.catalogue.DefaultPatienceConfig
-import uk.gov.hmrc.catalogue.config.{CacheConfig, CacheConfigProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
+import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
+import uk.gov.hmrc.teamsandservices.config.{CacheConfig, CacheConfigProvider}
+import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.collection.mutable.Stack
 import scala.concurrent.Future
