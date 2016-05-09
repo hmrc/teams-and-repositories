@@ -39,15 +39,15 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
   val cacheTimeout = 10 millis
   val longCacheTimeout = 1 minute
 
-  val dataSource = new TeamsRepositoryDataSource {
-    override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
-  }
-
   "Caching teams repository data source" should {
     val firstTime = new DateTime(2016, 4, 5, 12, 57)
     val secondTime = new DateTime(2016, 4, 6, 21, 0)
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
+      val dataSource = new TeamsRepositoryDataSource {
+        override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
+      }
+
       cacheSource = team1
       val cacheTime = mutable.Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with ShortCacheConfigProvider
@@ -64,6 +64,10 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     }
 
     "reload the cache from the data source when cleared" in new WithApplication {
+      val dataSource = new TeamsRepositoryDataSource {
+        override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
+      }
+
       cacheSource = team1
       val cacheTime = mutable.Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with LongCacheConfigProvider
