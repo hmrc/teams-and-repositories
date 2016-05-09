@@ -32,11 +32,10 @@ import scala.concurrent.duration._
 
 class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
 
-  var cacheSource: TeamRepositories = null
   val team1 = TeamRepositories("test", List(Repository("test_repo", "test_repo_url")))
   val team2 = TeamRepositories("test2", List(Repository("test_repo", "test_repo_url")))
 
-  val cacheTimeout = 10 millis
+  val cacheTimeout = 100 millis
   val longCacheTimeout = 1 minute
 
   "Caching teams repository data source" should {
@@ -44,6 +43,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     val secondTime = new DateTime(2016, 4, 6, 21, 0)
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
+      var cacheSource: TeamRepositories = null
       val dataSource = new TeamsRepositoryDataSource {
         override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
       }
@@ -64,6 +64,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
     }
 
     "reload the cache from the data source when cleared" in new WithApplication {
+      var cacheSource: TeamRepositories = null
       val dataSource = new TeamsRepositoryDataSource {
         override def getTeamRepoMapping: Future[Seq[TeamRepositories]] = Future.successful(List(cacheSource))
       }
