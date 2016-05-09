@@ -20,9 +20,8 @@ import java.net.URLDecoder
 
 import org.joda.time.DateTime
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.{JsPath, Json, Writes}
+import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.CachedList
 import uk.gov.hmrc.catalogue.config.{CacheConfigProvider, CatalogueConfig, UrlTemplatesProvider}
 import uk.gov.hmrc.catalogue.teams.ViewModels.Service
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -43,15 +42,15 @@ trait TeamsRepositoryController extends BaseController {
   protected def dataSource: CachingTeamsRepositoryDataSource
 
   def teamRepository() = Action.async { implicit request =>
-    dataSource.getTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams)(CachedList.cachedListFormats))
+    dataSource.getCachedTeamRepoMapping.map {
+      teams => Ok(Json.toJson(teams))
     }
   }
 
   def services(teamName:String) = Action.async { implicit request =>
-    dataSource.getTeamRepoMapping.map { teams =>
-      teams.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
-        Ok(Json.toJson(team.repositories.flatMap(Service.fromRepository(_, ciUrlTemplates))))
+    dataSource.getCachedTeamRepoMapping.map { teams =>
+      teams.data.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
+        Ok(Json.toJson(teams.map { _ => team.repositories.flatMap(Service.fromRepository(_, ciUrlTemplates)) } ))
       }.getOrElse(NotFound)
     }
   }
