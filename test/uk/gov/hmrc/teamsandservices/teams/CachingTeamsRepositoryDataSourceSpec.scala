@@ -25,6 +25,7 @@ import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
 import uk.gov.hmrc.teamsandservices.config.{CacheConfig, CacheConfigProvider}
 import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
+import scala.collection.mutable
 import scala.collection.mutable.Stack
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -48,7 +49,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
       cacheSource = team1
-      val cacheTime = Stack(firstTime, secondTime)
+      val cacheTime = mutable.Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with ShortCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
@@ -64,7 +65,7 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     "reload the cache from the data source when cleared" in new WithApplication {
       cacheSource = team1
-      val cacheTime = Stack(firstTime, secondTime)
+      val cacheTime = mutable.Stack(firstTime, secondTime)
       val cachingDataSource = new CachingTeamsRepositoryDataSource(dataSource, () => cacheTime.pop) with LongCacheConfigProvider
 
       verifyCacheHasBeenPopulatedWith(cachingDataSource, team1)
