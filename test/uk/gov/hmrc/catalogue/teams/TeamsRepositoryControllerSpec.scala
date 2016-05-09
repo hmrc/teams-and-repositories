@@ -24,7 +24,7 @@ import play.api.libs.json.JsArray
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.catalogue.CachedList
+import uk.gov.hmrc.catalogue.CachedResult
 import uk.gov.hmrc.catalogue.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
 
@@ -39,20 +39,20 @@ class TeamsRepositoryControllerSpec extends PlaySpec with MockitoSugar with Resu
   }
 
   val timestamp = new DateTime(2016, 4, 5, 12, 57)
-  val data = new CachedList[TeamRepositories](
-    Seq(new TeamRepositories("test-team", List(Repository("repo-name", "repo-url")))),
+  val data = new CachedResult[Seq[TeamRepositories]](
+    Seq(new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", isMicroservice = true)))),
     timestamp)
+
+  val fakeDataSource = mock[CachingTeamsRepositoryDataSource]
+  when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
+
+  val controller = new TeamsRepositoryController with FakeConfig {
+    override def dataSource: CachingTeamsRepositoryDataSource = fakeDataSource
+  }
 
   "Retrieving a list of teams and repositories" should {
 
     "Return a json representation of the data, including the cache timestamp" in {
-
-      val fakeDataSource = mock[CachingTeamsRepositoryDataSource]
-      when(fakeDataSource.getTeamRepoMapping).thenReturn(Future.successful(data))
-
-      val controller = new TeamsRepositoryController with FakeConfig {
-        override def dataSource: CachingTeamsRepositoryDataSource = fakeDataSource
-      }
 
       val result = controller.teamRepository().apply(FakeRequest())
 
@@ -65,8 +65,26 @@ class TeamsRepositoryControllerSpec extends PlaySpec with MockitoSugar with Resu
       (repository \ "name").as[String] mustBe "repo-name"
       (repository \ "url").as[String] mustBe "repo-url"
       (repository \ "isInternal").as[Boolean] mustBe false
-      (repository \ "isMicroservice").as[Boolean] mustBe false
+      (repository \ "isMicroservice").as[Boolean] mustBe true
 
     }
+  }
+
+  "Retrieving a list of services for a team" should {
+
+    "Return a json representation of the data, including the cache timestamp" in {
+
+      val result = controller.services("test-team").apply(FakeRequest())
+
+      val json = contentAsJson(result)
+      val service = (json \ "data").as[JsArray].value.head
+      (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
+
+      (service \ "name").as[String] mustBe "repo-name"
+      (service \ "githubUrl" \ "name").as[String] mustBe "github"
+      (service \ "githubUrl" \ "url").as[String] mustBe "repo-url"
+
+    }
+
   }
 }

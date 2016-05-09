@@ -81,17 +81,17 @@ class CachingTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar wi
 
     def verifyCacheHasBeenPopulatedWith(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
       eventually {
-        cache.getTeamRepoMapping.futureValue should contain(team)
+        cache.getCachedTeamRepoMapping.futureValue.data should contain(team)
       }
 
     def verifyCacheTime(cache: CachingTeamsRepositoryDataSource, dateTime: DateTime) =
-      cache.getTeamRepoMapping.futureValue.time should be (dateTime)
+      cache.getCachedTeamRepoMapping.futureValue.time should be (dateTime)
 
     def verifyCachedCopyIsStill(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
-      cache.getTeamRepoMapping.futureValue should contain (team)
+      cache.getCachedTeamRepoMapping.futureValue.data should contain (team)
 
     def verifyCacheIsRefreshed(cache: CachingTeamsRepositoryDataSource, team: TeamRepositories) =
-      eventually { cache.getTeamRepoMapping.futureValue should contain (team) }
+      eventually { cache.getCachedTeamRepoMapping.futureValue.data should contain (team) }
 
     trait ShortCacheConfigProvider extends CacheConfigProvider {
       override def cacheConfig: CacheConfig = new CacheConfig {

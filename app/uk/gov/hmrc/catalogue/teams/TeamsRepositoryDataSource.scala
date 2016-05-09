@@ -21,12 +21,11 @@ import play.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
-import uk.gov.hmrc.catalogue.CachedList
+import uk.gov.hmrc.catalogue.CachedResult
 import uk.gov.hmrc.catalogue.config.CacheConfigProvider
-import uk.gov.hmrc.catalogue.github.{GithubConfigProvider, GithubConfig}
-
+import uk.gov.hmrc.catalogue.github.GithubConfigProvider
 import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
-import uk.gov.hmrc.githubclient.{GhRepository, GhTeam, GhOrganisation, GithubApiClient}
+import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 
 import scala.concurrent.Future
 
@@ -76,19 +75,19 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
     }
 }
 
-class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource, timeStamp: () => DateTime) extends TeamsRepositoryDataSource {
+class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource, timeStamp: () => DateTime)  {
   self: CacheConfigProvider =>
-  private var data: Future[CachedList[TeamRepositories]] = fromSource
+  private var data: Future[CachedResult[Seq[TeamRepositories]]] = fromSource
 
   private def fromSource = {
     dataSource.getTeamRepoMapping.map { d => {
       val stamp = timeStamp()
       Logger.debug(s"Cache reloaded at $stamp")
-      new CachedList(d, stamp) }
+      new CachedResult(d, stamp) }
     }
   }
 
-  override def getTeamRepoMapping: Future[CachedList[TeamRepositories]] = data
+  def getCachedTeamRepoMapping: Future[CachedResult[Seq[TeamRepositories]]] = data
 
   def reload() = {
     Logger.info(s"Manual teams repository cache reload triggered")
