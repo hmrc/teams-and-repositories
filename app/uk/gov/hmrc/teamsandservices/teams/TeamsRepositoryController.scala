@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
 import java.net.URLDecoder
 
@@ -22,12 +22,12 @@ import org.joda.time.DateTime
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.catalogue.config.{CacheConfigProvider, CatalogueConfig, UrlTemplatesProvider}
-import uk.gov.hmrc.catalogue.teams.ViewModels.Service
+import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, TeamsAndServicesConfig, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandservices.teams.ViewModels.Service
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 object TeamsRepositoryController extends TeamsRepositoryController
-  with CatalogueConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
+  with TeamsAndServicesConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
   with GithubOpenTeamsRepositoryDataSourceProvider
 {
   val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(

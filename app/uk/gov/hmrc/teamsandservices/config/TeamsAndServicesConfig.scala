@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.config
+package uk.gov.hmrc.teamsandservices.config
 
 import play.api.libs.json.Json
 
@@ -32,7 +32,7 @@ trait UrlTemplatesProvider {
   def ciUrlTemplates: UrlTemplates
 }
 
-trait CatalogueConfig extends UrlTemplatesProvider {
+trait TeamsAndServicesConfig extends UrlTemplatesProvider {
 
   implicit val ciUrlTemplates: UrlTemplates = {
 

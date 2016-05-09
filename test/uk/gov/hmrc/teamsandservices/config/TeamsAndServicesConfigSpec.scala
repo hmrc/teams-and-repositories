@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.config
+package uk.gov.hmrc.teamsandservices.config
 
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -22,8 +22,7 @@ import play.api.{Configuration, GlobalSettings}
 import play.api.test.{FakeApplication, WithApplication}
 
 
-class CatalogueConfigSpec extends WordSpec with Matchers {
-
+class TeamsAndServicesConfigSpec extends WordSpec with Matchers {
 
   trait Setup extends WithApplication {
 
@@ -58,10 +57,9 @@ class CatalogueConfigSpec extends WordSpec with Matchers {
     override val app = FakeApplication(withGlobal = Some(globalSettings))
   }
 
-
   "ciUrlTemplates" should {
     "return all the url templates" in new Setup {
-      val conf = new CatalogueConfig {}
+      val conf = new TeamsAndServicesConfig {}
       val templates: UrlTemplates = conf.ciUrlTemplates
       templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "http://closed1/$name"), UrlTemplate("ci-closed2", "http://closed2/$name"))
       templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "http://open1/$name"), UrlTemplate("ci-open2", "http://open2/$name"))

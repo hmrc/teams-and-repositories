@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.teams
+package uk.gov.hmrc.teamsandservices.teams
 
 import org.joda.time.DateTime
 import play.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
-import uk.gov.hmrc.catalogue.CachedResult
-import uk.gov.hmrc.catalogue.config.CacheConfigProvider
-import uk.gov.hmrc.catalogue.github.GithubConfigProvider
-import uk.gov.hmrc.catalogue.teams.ViewModels.{Repository, TeamRepositories}
+import uk.gov.hmrc.teamsandservices.CachedResult
+import uk.gov.hmrc.teamsandservices.config.CacheConfigProvider
+import uk.gov.hmrc.teamsandservices.github.GithubConfigProvider
+import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 
 import scala.concurrent.Future

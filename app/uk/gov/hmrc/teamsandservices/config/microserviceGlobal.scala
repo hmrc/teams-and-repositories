@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.catalogue.config
+package uk.gov.hmrc.teamsandservices.config
 
 import com.kenshoo.play.metrics.MetricsFilter
 import com.typesafe.config.Config
