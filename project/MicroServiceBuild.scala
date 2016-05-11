@@ -26,12 +26,13 @@ private object AppDependencies {
   private val playConfigVersion = "2.0.1"
   private val domainVersion = "3.3.0"
   private val hmrcTestVersion = "1.4.0"
+  private val githubClientVersion = "1.0.1"
 
   val compile = Seq(
 
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
-    "uk.gov.hmrc" %% "github-client" % "0.3.0",
+    "uk.gov.hmrc" %% "github-client" % githubClientVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,

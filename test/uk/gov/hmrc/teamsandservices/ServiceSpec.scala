@@ -41,7 +41,7 @@ class ServiceSpec extends WordSpec with Matchers with OptionValues {
         "a-frontend",
         "https://not-open-github/org/a-frontend",
         isInternal = true,
-        isMicroservice = true)
+        deployable = true)
 
       Service.fromRepository(repo, urlTemplates).value shouldBe Service(
         "a-frontend",
@@ -55,7 +55,7 @@ class ServiceSpec extends WordSpec with Matchers with OptionValues {
       val repo = Repository(
         "a-frontend",
         "https://github.com/org/a-frontend",
-        isMicroservice = true)
+        deployable = true)
 
       Service.fromRepository(repo, urlTemplates).value shouldBe Service(
         "a-frontend",

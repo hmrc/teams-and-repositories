@@ -25,7 +25,7 @@ object ViewModels {
 
   case class TeamServices(teamName: String, Services: List[Service])
 
-  case class Repository(name: String, url: String, isInternal: Boolean = false, isMicroservice: Boolean = false)
+  case class Repository(name: String, url: String, isInternal: Boolean = false, deployable: Boolean = false)
 
   case class Link(name: String, url: String)
 
@@ -43,7 +43,7 @@ object ViewModels {
     implicit val formats = Json.format[Service]
 
     def fromRepository(repository: Repository, urlTemplates: UrlTemplates): Option[Service] = {
-      if (!repository.isMicroservice) None
+      if (!repository.deployable) None
       else Some(
         Service(
           repository.name,

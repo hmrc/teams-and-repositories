@@ -40,7 +40,7 @@ class TeamsRepositoryControllerSpec extends PlaySpec with MockitoSugar with Resu
 
   val timestamp = new DateTime(2016, 4, 5, 12, 57)
   val data = new CachedResult[Seq[TeamRepositories]](
-    Seq(new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", isMicroservice = true)))),
+    Seq(new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true)))),
     timestamp)
 
   val fakeDataSource = mock[CachingTeamsRepositoryDataSource]
@@ -65,7 +65,7 @@ class TeamsRepositoryControllerSpec extends PlaySpec with MockitoSugar with Resu
       (repository \ "name").as[String] mustBe "repo-name"
       (repository \ "url").as[String] mustBe "repo-url"
       (repository \ "isInternal").as[Boolean] mustBe false
-      (repository \ "isMicroservice").as[Boolean] mustBe true
+      (repository \ "deployable").as[Boolean] mustBe true
 
     }
   }

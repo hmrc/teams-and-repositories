@@ -60,7 +60,11 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal:
     }
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
-    gh.repoContainsFolder("app",repo.name, organisation.login).map(Repository(repo.name, repo.html_url, isInternal = this.isInternal, _))
+    for {
+      hasAppFolder <- gh.repoContainsContent("app",repo.name, organisation.login)
+      hasProcfile <- gh.repoContainsContent("Procfile",repo.name, organisation.login)
+    }
+    yield Repository(repo.name, repo.html_url, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
 }
 
 class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
