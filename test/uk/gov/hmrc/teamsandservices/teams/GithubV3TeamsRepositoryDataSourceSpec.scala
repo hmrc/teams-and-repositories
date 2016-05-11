@@ -40,6 +40,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     val dataSource = createDataSource(githubClient)
 
     "Return a list of teams and repositories, filtering out forks" in {
+
       when(githubClient.getOrganisations).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1),githubclient.GhTeam("B", 2))))
       when(githubClient.getTeamsForOrganisation("DDCN")).thenReturn(Future.successful(List(githubclient.GhTeam("C", 3),githubclient.GhTeam("D", 4))))
@@ -57,6 +58,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
 
     "Set internal = true if the DataSource is marked as internal" in {
+
       val internalDataSource = new GithubV3TeamsRepositoryDataSource(githubClient, isInternal = true) with GithubConfigProvider {
         override def githubConfig: GithubConfig = new GithubConfig {
           override def hiddenRepositories: List[String] = testHiddenRepositories
@@ -81,6 +83,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
 
     "Filter out repositories according to the hidden config" in  {
+
       when(githubClient.getOrganisations).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getTeamsForOrganisation("DDCN")).thenReturn(Future.successful(List(githubclient.GhTeam("C", 3),githubclient.GhTeam("D", 4))))
@@ -96,6 +99,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
 
     "Filter out teams according to the hidden config" in {
+
      when(githubClient.getOrganisations).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")).thenReturn(Future.successful(List(githubclient.GhTeam("hidden_team1", 1))))
       when(githubClient.getTeamsForOrganisation("DDCN")).thenReturn(Future.successful(List(githubclient.GhTeam("hidden_team2", 3), githubclient.GhTeam("D", 4))))
@@ -109,6 +113,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
 
     "Set deployable=true if the repository contains an app folder" in {
+
       when(githubClient.getOrganisations).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getTeamsForOrganisation("DDCN")).thenReturn(Future.successful(List(githubclient.GhTeam("D", 4))))
@@ -125,6 +130,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
 
     "Set deployable=true if the repository contains a Procfile" in {
+
       when(githubClient.getOrganisations).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getTeamsForOrganisation("DDCN")).thenReturn(Future.successful(List(githubclient.GhTeam("D", 4))))
@@ -138,6 +144,47 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
+    }
+
+    "Retry up to 5 times in the event of a failed api call" in {
+
+      when(githubClient.getOrganisations)
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
+
+      when(githubClient.getTeamsForOrganisation("HMRC"))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
+
+      when(githubClient.getReposForTeam(1))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.successful(List(githubclient.GhRepository("A_r", 1, "url_A"))))
+
+      when(githubClient.repoContainsContent("app","A_r","HMRC"))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent("Procfile","A_r","HMRC"))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.failed(new RuntimeException("something went wrong")))
+        .thenReturn(Future.successful(false))
+
+      dataSource.getTeamRepoMapping.futureValue shouldBe List(
+        TeamRepositories("A", List(Repository("A_r", "url_A"))))
     }
   }
 
