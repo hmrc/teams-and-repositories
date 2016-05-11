@@ -26,7 +26,7 @@ import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, TeamsAndService
 import uk.gov.hmrc.teamsandservices.teams.ViewModels.Service
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
-object TeamsRepositoryController extends TeamsRepositoryController
+object TeamsController extends TeamsController
   with TeamsAndServicesConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
   with GithubOpenTeamsRepositoryDataSourceProvider
 {
@@ -36,18 +36,18 @@ object TeamsRepositoryController extends TeamsRepositoryController
   ) with CacheConfigProvider
 }
 
-trait TeamsRepositoryController extends BaseController {
+trait TeamsController extends BaseController {
   this: UrlTemplatesProvider =>
 
   protected def dataSource: CachingTeamsRepositoryDataSource
 
-  def teamRepository() = Action.async { implicit request =>
+  def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map {
       teams => Ok(Json.toJson(teams))
     }
   }
 
-  def services(teamName:String) = Action.async { implicit request =>
+  def teamServices(teamName:String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
       teams.data.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
         Ok(Json.toJson(teams.map { _ => team.repositories.flatMap(Service.fromRepository(_, ciUrlTemplates)) } ))
