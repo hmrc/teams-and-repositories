@@ -22,6 +22,7 @@ import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.teamsandservices.CachedResult
+import uk.gov.hmrc.teamsandservices.FutureUtils._
 import uk.gov.hmrc.teamsandservices.config.CacheConfigProvider
 import uk.gov.hmrc.teamsandservices.github.GithubConfigProvider
 import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
@@ -34,35 +35,50 @@ trait TeamsRepositoryDataSource {
 }
 
 class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
-  self : GithubConfigProvider =>
+  self: GithubConfigProvider =>
+
+  val retries: Int = 5
+  val initialDuration: Double = 10
 
   def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
-    gh.getOrganisations.flatMap { orgs =>
-      Future.sequence(orgs.map(mapOrganisation)).map {
-        _.flatten
+    exponentialRetry(retries, initialDuration) {
+      gh.getOrganisations.flatMap { orgs =>
+
+        Future.sequence(orgs.map(mapOrganisation)).map {
+          _.flatten
+        }
       }
     }
 
   def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
-    gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
-      Future.sequence(for {
-        team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
-      } yield mapTeam(organisation, team))
+    exponentialRetry(retries, initialDuration) {
+      gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
+        Future.sequence(for {
+          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
+        } yield mapTeam(organisation, team))
+      }
     }
 
+
   def mapTeam(organisation: GhOrganisation, team: GhTeam) =
-    gh.getReposForTeam(team.id).flatMap { repos =>
-      Future.sequence(for {
-        repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
-      } yield mapRepository(organisation, repo)).map { repos =>
-        TeamRepositories(team.name, repositories = repos)
+    exponentialRetry(retries, initialDuration) {
+      gh.getReposForTeam(team.id).flatMap { repos =>
+        Future.sequence(for {
+          repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
+        } yield mapRepository(organisation, repo)).map { repos =>
+          TeamRepositories(team.name, repositories = repos)
+        }
       }
     }
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
     for {
-      hasAppFolder <- gh.repoContainsContent("app",repo.name, organisation.login)
-      hasProcfile <- gh.repoContainsContent("Procfile",repo.name, organisation.login)
+      hasAppFolder <- exponentialRetry(retries, initialDuration) {
+        gh.repoContainsContent("app",repo.name, organisation.login)
+      }
+      hasProcfile <- exponentialRetry(retries, initialDuration) {
+        gh.repoContainsContent("Procfile",repo.name, organisation.login)
+      }
     }
     yield Repository(repo.name, repo.html_url, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
 }
