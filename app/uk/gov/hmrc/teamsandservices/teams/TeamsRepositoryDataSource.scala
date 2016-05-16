@@ -23,8 +23,7 @@ import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.teamsandservices.CachedResult
 import uk.gov.hmrc.teamsandservices.FutureUtils._
-import uk.gov.hmrc.teamsandservices.config.CacheConfigProvider
-import uk.gov.hmrc.teamsandservices.github.GithubConfigProvider
+import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, GithubConfigProvider}
 import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 

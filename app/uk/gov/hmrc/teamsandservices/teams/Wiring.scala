@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.teamsandservices.teams
 
-import uk.gov.hmrc.teamsandservices.github._
 import uk.gov.hmrc.githubclient.GithubApiClient
+import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
 
 trait GithubEnterpriseTeamsRepositoryDataSourceProvider {
   private val gitApiEnterpriseClient = new GithubApiClient(GithubConfig.githubApiEnterpriseConfig)

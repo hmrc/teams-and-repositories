@@ -22,11 +22,11 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.concurrent.Execution.Implicits._
-import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
-import uk.gov.hmrc.teamsandservices.github.{GithubConfig, GithubConfigProvider}
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
+import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
+import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
+import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.{ExecutionContext, Future}
 
