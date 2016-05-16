@@ -22,8 +22,8 @@ import play.Logger
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-object FutureUtils {
-  def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
+object RetryStrategy {
+  private def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     new Timer().schedule(new TimerTask {
       override def run() = promise.completeWith(eventualT)

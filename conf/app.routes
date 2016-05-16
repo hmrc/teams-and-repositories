@@ -1,5 +1,6 @@
 # microservice specific routes
 
-GET         /api/teams                  uk.gov.hmrc.teamsandservices.teams.TeamsController.teams
-GET         /api/teams/:team/services   uk.gov.hmrc.teamsandservices.teams.TeamsController.teamServices(team)
-GET         /api/teams/reload           uk.gov.hmrc.teamsandservices.teams.TeamsController.reloadCache
+GET         /api/teams                      uk.gov.hmrc.teamsandservices.TeamsServicesController.teams
+GET         /api/teams/:team/services       uk.gov.hmrc.teamsandservices.TeamsServicesController.teamServices(team)
+GET         /api/cache/reload               uk.gov.hmrc.teamsandservices.TeamsServicesController.reloadCache
+GET         /api/services                   uk.gov.hmrc.teamsandservices.TeamsServicesController.services

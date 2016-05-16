@@ -14,32 +14,35 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import java.net.URLDecoder
 
 import org.joda.time.DateTime
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
-import play.api.mvc._
-import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, TeamsAndServicesConfig, UrlTemplatesProvider}
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.Service
+import play.api.mvc.Action
+import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.teamsandservices.ViewModels.Service
+import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, TeamsAndServicesConfig, UrlTemplatesProvider}
 
-object TeamsController extends TeamsController
-  with TeamsAndServicesConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
-  with GithubOpenTeamsRepositoryDataSourceProvider
-{
-  val dataSource: CachingTeamsRepositoryDataSource = new CachingTeamsRepositoryDataSource(
-    new CompositeTeamsRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
-    DateTime.now
-  ) with CacheConfigProvider
-}
 
-trait TeamsController extends BaseController {
+trait TeamsServicesController extends BaseController {
   this: UrlTemplatesProvider =>
 
-  protected def dataSource: CachingTeamsRepositoryDataSource
+  protected def dataSource: CachingRepositoryDataSource
+
+  def services() = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map {
+      teams => Ok(Json.toJson(teams.map { data =>
+        for {
+          team <- data
+          repo <- team.repositories
+        }
+        yield Service.fromRepository(repo, ciUrlTemplates)
+      }))
+    }
+  }
 
   def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map {
@@ -59,4 +62,14 @@ trait TeamsController extends BaseController {
     dataSource.reload()
     Ok("Cache reload triggered successfully")
   }
+}
+
+object TeamsServicesController extends TeamsServicesController
+  with TeamsAndServicesConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
+  with GithubOpenTeamsRepositoryDataSourceProvider
+{
+  val dataSource: CachingRepositoryDataSource = new CachingRepositoryDataSource(
+    new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
+    DateTime.now
+  ) with CacheConfigProvider
 }

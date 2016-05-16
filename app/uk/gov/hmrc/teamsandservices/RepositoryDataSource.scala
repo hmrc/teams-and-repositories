@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import org.joda.time.DateTime
 import play.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
-import uk.gov.hmrc.teamsandservices.CachedResult
-import uk.gov.hmrc.teamsandservices.FutureUtils._
-import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, GithubConfigProvider}
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
+import uk.gov.hmrc.teamsandservices.RetryStrategy._
+import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, GithubConfigProvider}
+import ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 
-trait TeamsRepositoryDataSource {
+trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
 }
 
-class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends TeamsRepositoryDataSource {
+class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends RepositoryDataSource {
   self: GithubConfigProvider =>
 
   val retries: Int = 5
@@ -82,7 +81,7 @@ class GithubV3TeamsRepositoryDataSource(val gh: GithubApiClient, val isInternal:
     yield Repository(repo.name, repo.html_url, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
 }
 
-class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDataSource]) extends TeamsRepositoryDataSource {
+class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource]) extends RepositoryDataSource {
   override def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened = results.flatten
@@ -94,7 +93,7 @@ class CompositeTeamsRepositoryDataSource(val dataSources: List[TeamsRepositoryDa
     }
 }
 
-class CachingTeamsRepositoryDataSource(dataSource: TeamsRepositoryDataSource, timeStamp: () => DateTime)  {
+class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => DateTime)  {
   self: CacheConfigProvider =>
   private var data: Future[CachedResult[Seq[TeamRepositories]]] = fromSource
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
@@ -22,11 +22,11 @@ import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
 trait GithubEnterpriseTeamsRepositoryDataSourceProvider {
   private val gitApiEnterpriseClient = new GithubApiClient(GithubConfig.githubApiEnterpriseConfig)
 
-  val enterpriseTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(gitApiEnterpriseClient, isInternal = true)  with GithubConfigProvider
+  val enterpriseTeamsRepositoryDataSource: RepositoryDataSource = new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true)  with GithubConfigProvider
 }
 
 trait GithubOpenTeamsRepositoryDataSourceProvider {
   private val gitOpenClient = new GithubApiClient(GithubConfig.githubApiOpenConfig)
 
-  val openTeamsRepositoryDataSource: TeamsRepositoryDataSource = new GithubV3TeamsRepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
+  val openTeamsRepositoryDataSource: RepositoryDataSource = new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 }

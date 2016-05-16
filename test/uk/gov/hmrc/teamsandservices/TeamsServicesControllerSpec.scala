@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import org.joda.time.DateTime
 import org.mockito.Mockito._
@@ -24,13 +24,12 @@ import play.api.libs.json.JsArray
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandservices.CachedResult
+import uk.gov.hmrc.teamsandservices.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 
-class TeamsControllerSpec extends PlaySpec with MockitoSugar with Results {
+class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results {
 
   trait FakeConfig extends UrlTemplatesProvider {
     val ciUrlTemplates  = new UrlTemplates(
@@ -40,24 +39,31 @@ class TeamsControllerSpec extends PlaySpec with MockitoSugar with Results {
 
   val timestamp = new DateTime(2016, 4, 5, 12, 57)
   val data = new CachedResult[Seq[TeamRepositories]](
-    Seq(new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true)))),
+    Seq(
+      new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
+      new TeamRepositories("another-team", List(Repository("another-repo", "another-url", deployable = true)))
+    ),
     timestamp)
 
-  val fakeDataSource = mock[CachingTeamsRepositoryDataSource]
+  val fakeDataSource = mock[CachingRepositoryDataSource]
   when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
-  val controller = new TeamsController with FakeConfig {
-    override def dataSource: CachingTeamsRepositoryDataSource = fakeDataSource
+  val controller = new TeamsServicesController with FakeConfig {
+    override def dataSource: CachingRepositoryDataSource = fakeDataSource
   }
 
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandservices.teams.routes.TeamsController.teams().url mustBe "/api/teams"
+      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.teams().url mustBe "/api/teams"
     }
 
     "have the correct url set up for a team's services" in {
-      uk.gov.hmrc.teamsandservices.teams.routes.TeamsController.teamServices("test-team").url mustBe "/api/teams/test-team/services"
+      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.teamServices("test-team").url mustBe "/api/teams/test-team/services"
+    }
+
+    "have the correct url set up for the list of all services" in {
+      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.services().url mustBe "/api/services"
     }
 
   }
@@ -89,7 +95,11 @@ class TeamsControllerSpec extends PlaySpec with MockitoSugar with Results {
       val result = controller.teamServices("test-team").apply(FakeRequest())
 
       val json = contentAsJson(result)
-      val service = (json \ "data").as[JsArray].value.head
+      val data = (json \ "data").as[JsArray].value
+
+      data.length mustBe 1
+
+      val service = data.head
       (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
 
       (service \ "name").as[String] mustBe "repo-name"
@@ -97,6 +107,27 @@ class TeamsControllerSpec extends PlaySpec with MockitoSugar with Results {
       (service \ "githubUrl" \ "url").as[String] mustBe "repo-url"
 
     }
+  }
 
+  "Retrieving a list of all services" should {
+
+    "Return a json representation of the data, including the cache timestamp" in {
+
+      val result = controller.services().apply(FakeRequest())
+
+      val json = contentAsJson(result)
+      (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
+
+      val first = (json \ "data").as[JsArray].value.head
+      (first \ "name").as[String] mustBe "repo-name"
+      (first \ "githubUrl" \ "name").as[String] mustBe "github"
+      (first \ "githubUrl" \ "url").as[String] mustBe "repo-url"
+
+      val second = (json \ "data").as[JsArray].value(1)
+      (second \ "name").as[String] mustBe "another-repo"
+      (second \ "githubUrl" \ "name").as[String] mustBe "github"
+      (second \ "githubUrl" \ "url").as[String] mustBe "another-url"
+
+    }
   }
 }
