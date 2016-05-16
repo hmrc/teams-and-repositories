@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import org.mockito.Matchers._
 import org.mockito.Mockito.when
@@ -24,13 +24,12 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
+import uk.gov.hmrc.teamsandservices.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures with Matchers with DefaultPatienceConfig with MockitoSugar with BeforeAndAfterEach {
+class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with Matchers with DefaultPatienceConfig with MockitoSugar with BeforeAndAfterEach {
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
@@ -59,7 +58,7 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
 
     "Set internal = true if the DataSource is marked as internal" in {
 
-      val internalDataSource = new GithubV3TeamsRepositoryDataSource(githubClient, isInternal = true) with GithubConfigProvider {
+      val internalDataSource = new GithubV3RepositoryDataSource(githubClient, isInternal = true) with GithubConfigProvider {
         override def githubConfig: GithubConfig = new GithubConfig {
           override def hiddenRepositories: List[String] = testHiddenRepositories
           override def hiddenTeams: List[String] = testHiddenTeams
@@ -188,8 +187,8 @@ class GithubV3TeamsRepositoryDataSourceSpec extends WordSpec with ScalaFutures w
     }
   }
 
-  private def createDataSource(githubClient: GithubApiClient): GithubV3TeamsRepositoryDataSource with GithubConfigProvider {def githubConfig: GithubConfig} = {
-    new GithubV3TeamsRepositoryDataSource(githubClient, isInternal = false) with GithubConfigProvider {
+  private def createDataSource(githubClient: GithubApiClient): GithubV3RepositoryDataSource with GithubConfigProvider {def githubConfig: GithubConfig} = {
+    new GithubV3RepositoryDataSource(githubClient, isInternal = false) with GithubConfigProvider {
       override def githubConfig: GithubConfig = new GithubConfig {
         override def hiddenRepositories: List[String] = testHiddenRepositories
 

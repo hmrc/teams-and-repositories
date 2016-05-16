@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.teams
+package uk.gov.hmrc.teamsandservices
 
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.teamsandservices.DefaultPatienceConfig
-import uk.gov.hmrc.teamsandservices.teams.ViewModels.{Repository, TeamRepositories}
+import uk.gov.hmrc.teamsandservices.ViewModels.{Repository, TeamRepositories}
 
 import scala.concurrent.Future
 
-class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
+class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
 
   "Retrieving team repo mappings" should {
 
@@ -41,13 +40,13 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
         TeamRepositories("E", List(Repository("E_r", "url_E"))),
         TeamRepositories("F", List(Repository("F_r", "url_F"))))
 
-      val dataSource1 = mock[TeamsRepositoryDataSource]
+      val dataSource1 = mock[RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
 
-      val dataSource2 = mock[TeamsRepositoryDataSource]
+      val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeTeamsRepositoryDataSource(List(dataSource1, dataSource2))
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 6
@@ -74,13 +73,13 @@ class CompositeTeamsRepositoryDataSourceSpec extends WordSpec with MockitoSugar 
         TeamRepositories("A", List(repoAA)),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
 
-      val dataSource1 = mock[TeamsRepositoryDataSource]
+      val dataSource1 = mock[RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
 
-      val dataSource2 = mock[TeamsRepositoryDataSource]
+      val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeTeamsRepositoryDataSource(List(dataSource1, dataSource2))
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 4
