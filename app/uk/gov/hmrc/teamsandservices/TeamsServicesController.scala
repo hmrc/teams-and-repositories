@@ -28,7 +28,7 @@ import uk.gov.hmrc.teamsandservices.config._
 
 case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
-case class Service(name: String, teamNames: Seq[String], githubUrl: Link, ci: List[Link])
+case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: List[Link])
 
 object TeamsServicesController extends TeamsServicesController
   with UrlTemplatesProvider

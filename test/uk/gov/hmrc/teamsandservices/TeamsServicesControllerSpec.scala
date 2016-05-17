@@ -98,10 +98,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val service = data.head
       (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
-
       (service \ "name").as[String] mustBe "repo-name"
-      (service \ "githubUrl" \ "name").as[String] mustBe "github"
-      (service \ "githubUrl" \ "url").as[String] mustBe "repo-url"
+
+      val githubLinks = (service \ "githubUrls").as[JsArray].value
+      (githubLinks(0) \ "name").as[String] mustBe "github-open"
+      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
 
     }
 
@@ -134,23 +135,25 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
 
       val first = (json \ "data").as[JsArray].value.head
+      val firstGithubLinks = (first \ "githubUrls").as[JsArray].value
       (first \ "name").as[String] mustBe "another-repo"
       (first \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
-      (first \ "githubUrl" \ "name").as[String] mustBe "github"
-      (first \ "githubUrl" \ "url").as[String] mustBe "another-url"
+      (firstGithubLinks(0) \ "name").as[String] mustBe "github-open"
+      (firstGithubLinks(0) \ "url").as[String] mustBe "another-url"
 
       val second = (json \ "data").as[JsArray].value(1)
+      val secondGithubLinks = (second \ "githubUrls").as[JsArray].value
       (second \ "name").as[String] mustBe "middle-repo"
       (second \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
-      (second \ "githubUrl" \ "name").as[String] mustBe "github"
-      (second \ "githubUrl" \ "url").as[String] mustBe "middle-url"
+      (secondGithubLinks(0) \ "name").as[String] mustBe "github-open"
+      (secondGithubLinks(0) \ "url").as[String] mustBe "middle-url"
 
       val third = (json \ "data").as[JsArray].value(2)
+      val thirdGithubLinks = (third \ "githubUrls").as[JsArray].value
       (third \ "name").as[String] mustBe "repo-name"
       (third \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
-      (third \ "githubUrl" \ "name").as[String] mustBe "github"
-      (third \ "githubUrl" \ "url").as[String] mustBe "repo-url"
-
+      (thirdGithubLinks(0) \ "name").as[String] mustBe "github-open"
+      (thirdGithubLinks(0) \ "url").as[String] mustBe "repo-url"
     }
 
     "Flatten team info if a service belongs to multiple teams" in {
@@ -171,12 +174,42 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val first = (json \ "data").as[JsArray].value.head
       (first \ "name").as[String] mustBe "repo-name"
       (first \ "teamNames").as[Seq[String]] mustBe Seq("test-team", "another-team")
-      (first \ "githubUrl" \ "name").as[String] mustBe "github"
-      (first \ "githubUrl" \ "url").as[String] mustBe "repo-url"
 
+      val githubLinks = (first \ "githubUrls").as[JsArray].value
+      (githubLinks(0) \ "name").as[String] mustBe "github-open"
+      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
     }
 
+    "Treat as one service if an internal and an open repo exist" in {
+
+      val data = new CachedResult[Seq[TeamRepositories]](
+        Seq(
+          new TeamRepositories("test-team", List(
+            Repository("repo-name", "repo-url", deployable = true, isInternal = true),
+            Repository("repo-name", "repo-open-url", deployable = true, isInternal = false)))),
+        timestamp)
+
+      val controller = controllerWithData(data)
+      val result = controller.services().apply(FakeRequest())
+
+      val json = contentAsJson(result)
+      (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
+
+      val jsonData = (json \ "data").as[JsArray].value
+      jsonData.length mustBe 1
+
+      val first = jsonData.head
+      (first \ "name").as[String] mustBe "repo-name"
+      (first \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
+
+      val githubLinks = (first \ "githubUrls").as[JsArray].value
+
+      (githubLinks(0) \ "name").as[String] mustBe "github"
+      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
+
+      (githubLinks(1) \ "name").as[String] mustBe "github-open"
+      (githubLinks(1) \ "url").as[String] mustBe "repo-open-url"
+
+    }
   }
-
-
 }

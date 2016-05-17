@@ -21,7 +21,7 @@ import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 object DataSourceToApiContractMappings {
 
-  implicit def RepositoryWrapper(repository: Repository): RepositoryWrapper = new RepositoryWrapper(repository)
+  implicit def RepositorySeqWrapper(repositories: Seq[Repository]): RepositorySeqWrapper = new RepositorySeqWrapper(repositories)
   implicit def CachedRepositoryDataWrapper(
     cachedResult: CachedResult[Seq[TeamRepositories]]): CachedTeamRepositoryWrapper
       = new CachedTeamRepositoryWrapper(cachedResult)
@@ -33,8 +33,8 @@ object DataSourceToApiContractMappings {
     def asServicesList(ciUrlTemplates: UrlTemplates) =
       cachedTeamRepositories.map { data =>
         repositoryTeams(data)
-          .groupBy(_.repo)
-          .flatMap { case (repo, t) => repo.asService(t.map(_.teamName), ciUrlTemplates) }
+          .groupBy(_.repositories)
+          .flatMap { case (repositories, t) => repositories.asService(t.map(_.teamName), ciUrlTemplates) }
           .toSeq
           .sortBy(_.name) }
 
@@ -42,25 +42,29 @@ object DataSourceToApiContractMappings {
       asServicesList(ciUrlTemplates).map { services =>
         services.filter(_.teamNames.contains(URLDecoder.decode(teamName, "UTF-8"))) }
 
-    private case class RepositoryTeam(repo: Repository, teamName: String)
+    private case class RepositoryTeam(repositories: Seq[Repository], teamName: String)
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoryTeam] =
       for {
         team <- data
-        repo <- team.repositories
-      } yield RepositoryTeam(repo, team.teamName)
+        repositories <- team.repositories.groupBy(_.name).values
+      } yield RepositoryTeam(repositories, team.teamName)
   }
 
-  class RepositoryWrapper(repository: Repository) {
+  class RepositorySeqWrapper(repositories: Seq[Repository]) {
+    val primaryRepository = repositories.sortBy(_.isInternal).head
+
     def asService(teamNames: Seq[String], ciUrlTemplates: UrlTemplates): Option[Service] =
-      if (!repository.deployable) None
+      if (!primaryRepository.deployable) None
       else Some(
         Service(
-          repository.name,
+          primaryRepository.name,
           teamNames,
-          Link("github", repository.url),
-          buildCiUrls(repository, ciUrlTemplates)))
+          repositories.map { repo =>
+            Link(if (repo.isInternal) "github" else "github-open", repo.url)
+          },
+          buildCiUrls(primaryRepository, ciUrlTemplates)))
 
-    private def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(repository.name))).toList
+    private def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(primaryRepository.name))).toList
 
     private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
       repository.isInternal match {
