@@ -19,14 +19,12 @@ package uk.gov.hmrc.teamsandservices.config
 import play.api.Play
 import uk.gov.hmrc.githubclient.GitApiConfig
 
-
 trait GithubConfigProvider {
   def githubConfig: GithubConfig = GithubConfig
 }
 
 trait GithubConfig {
   def hiddenRepositories: List[String]
-
   def hiddenTeams: List[String]
 }
 
@@ -39,26 +37,16 @@ object GithubConfig extends GithubConfig {
   private val gitOpenConfig = (key: String) => config(s"$githubOpenConfigKey.$key")
   private val gitEnterpriseConfig = (key: String) => config(s"$githubEnterpriseConfigKey.$key")
 
-
   lazy val githubApiOpenConfig = option(gitOpenConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.credentials"))
-
-
   lazy val githubApiEnterpriseConfig = option(gitEnterpriseConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.githubenterprise"))
-
   lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
-
   lazy val hiddenTeams = config(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-
   private def config(path: String) = Play.current.configuration.getString(s"$path")
-
-
   private def option(config: String => Option[String]): Option[GitApiConfig] =
     for {
       host <- config("host")
       user <- config("user")
       key <- config("key")
     } yield GitApiConfig(user, key, host)
-
-
 }

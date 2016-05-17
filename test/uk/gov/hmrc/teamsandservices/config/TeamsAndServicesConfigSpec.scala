@@ -59,7 +59,7 @@ class TeamsAndServicesConfigSpec extends WordSpec with Matchers {
 
   "ciUrlTemplates" should {
     "return all the url templates" in new Setup {
-      val conf = new TeamsAndServicesConfig {}
+      val conf = new UrlTemplatesProvider() {}
       val templates: UrlTemplates = conf.ciUrlTemplates
       templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "http://closed1/$name"), UrlTemplate("ci-closed2", "http://closed2/$name"))
       templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "http://open1/$name"), UrlTemplate("ci-open2", "http://open2/$name"))

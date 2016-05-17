@@ -24,7 +24,6 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandservices.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
 
 import scala.concurrent.{ExecutionContext, Future}

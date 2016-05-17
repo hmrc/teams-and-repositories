@@ -24,32 +24,30 @@ import play.api.libs.json.JsArray
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandservices.ViewModels.{Repository, TeamRepositories}
 import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
 import scala.concurrent.Future
 
 class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results {
 
-  trait FakeConfig extends UrlTemplatesProvider {
-    val ciUrlTemplates  = new UrlTemplates(
-      Seq(new UrlTemplate("open","$name")),
-      Seq(new UrlTemplate("closed","$name")))
-  }
-
   val timestamp = new DateTime(2016, 4, 5, 12, 57)
   val data = new CachedResult[Seq[TeamRepositories]](
     Seq(
       new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
-      new TeamRepositories("another-team", List(Repository("another-repo", "another-url", deployable = true)))
+      new TeamRepositories("another-team", List(
+        Repository("another-repo", "another-url", deployable = true),
+        Repository("middle-repo", "middle-url", deployable = true)))
     ),
     timestamp)
 
   val fakeDataSource = mock[CachingRepositoryDataSource]
   when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
-  val controller = new TeamsServicesController with FakeConfig {
+  val controller = new TeamsServicesController {
     override def dataSource: CachingRepositoryDataSource = fakeDataSource
+    override def ciUrlTemplates  = new UrlTemplates(
+      Seq(new UrlTemplate("open","$name")),
+      Seq(new UrlTemplate("closed","$name")))
   }
 
   "Teams controller" should {
@@ -68,7 +66,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   }
 
-  "Retrieving a list of teams and repositories" should {
+  "Retrieving a list of teams" should {
 
     "Return a json representation of the data, including the cache timestamp" in {
 
@@ -76,15 +74,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val json = contentAsJson(result)
       val team = (json \ "data").as[JsArray].value.head
-      val repository = (team \ "repositories").as[JsArray].value.head
 
       (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
-      (team \ "teamName").as[String] mustBe "test-team"
-      (repository \ "name").as[String] mustBe "repo-name"
-      (repository \ "url").as[String] mustBe "repo-url"
-      (repository \ "isInternal").as[Boolean] mustBe false
-      (repository \ "deployable").as[Boolean] mustBe true
-
+      team.as[String] mustBe "test-team"
     }
   }
 
@@ -111,7 +103,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   "Retrieving a list of all services" should {
 
-    "Return a json representation of the data, including the cache timestamp" in {
+    "Return a json representation of the data sorted alphabetically, including the cache timestamp" in {
 
       val result = controller.services().apply(FakeRequest())
 
@@ -119,14 +111,22 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
 
       val first = (json \ "data").as[JsArray].value.head
-      (first \ "name").as[String] mustBe "repo-name"
+      (first \ "name").as[String] mustBe "another-repo"
+      (first \ "teamName").as[String] mustBe "another-team"
       (first \ "githubUrl" \ "name").as[String] mustBe "github"
-      (first \ "githubUrl" \ "url").as[String] mustBe "repo-url"
+      (first \ "githubUrl" \ "url").as[String] mustBe "another-url"
 
       val second = (json \ "data").as[JsArray].value(1)
-      (second \ "name").as[String] mustBe "another-repo"
+      (second \ "name").as[String] mustBe "middle-repo"
+      (second \ "teamName").as[String] mustBe "another-team"
       (second \ "githubUrl" \ "name").as[String] mustBe "github"
-      (second \ "githubUrl" \ "url").as[String] mustBe "another-url"
+      (second \ "githubUrl" \ "url").as[String] mustBe "middle-url"
+
+      val third = (json \ "data").as[JsArray].value(2)
+      (third \ "name").as[String] mustBe "repo-name"
+      (third \ "teamName").as[String] mustBe "test-team"
+      (third \ "githubUrl" \ "name").as[String] mustBe "github"
+      (third \ "githubUrl" \ "url").as[String] mustBe "repo-url"
 
     }
   }
