@@ -16,44 +16,61 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import java.net.URLDecoder
-
 import org.joda.time.DateTime
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import play.api.libs.concurrent.Execution.Implicits._
+import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandservices.ViewModels.Service
-import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, TeamsAndServicesConfig, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
+import uk.gov.hmrc.teamsandservices.config._
 
+
+case class Link(name: String, url: String)
+case class TeamServices(teamName: String, Services: List[Service])
+case class Service(name: String, teamName: String, githubUrl: Link, ci: List[Link])
+
+object TeamsServicesController extends TeamsServicesController
+  with UrlTemplatesProvider
+{
+  private val gitApiEnterpriseClient = new GithubApiClient(GithubConfig.githubApiEnterpriseConfig)
+  private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
+    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true) with GithubConfigProvider
+
+  private val gitOpenClient = new GithubApiClient(GithubConfig.githubApiOpenConfig)
+  private val openTeamsRepositoryDataSource: RepositoryDataSource =
+    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
+
+  protected val dataSource: CachingRepositoryDataSource = new CachingRepositoryDataSource(
+    new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
+    DateTime.now
+  ) with CacheConfigProvider
+}
 
 trait TeamsServicesController extends BaseController {
-  this: UrlTemplatesProvider =>
-
+  protected def ciUrlTemplates: UrlTemplates
   protected def dataSource: CachingRepositoryDataSource
+
+  implicit val linkFormats = Json.format[Link]
+  implicit val serviceFormats = Json.format[Service]
+  implicit val teamFormats = Json.format[TeamServices]
 
   def services() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams.map { data =>
-        for {
-          team <- data
-          repo <- team.repositories
-        }
-        yield Service.fromRepository(repo, ciUrlTemplates)
-      }))
+      teams => Ok(Json.toJson(teams.asServicesList(ciUrlTemplates)))
     }
   }
 
   def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams))
+      teams => Ok(Json.toJson(teams.asTeamsList))
     }
   }
 
   def teamServices(teamName:String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
-      teams.data.find(_.teamName == URLDecoder.decode(teamName, "UTF-8")).map { team =>
-        Ok(Json.toJson(teams.map { _ => team.repositories.flatMap(Service.fromRepository(_, ciUrlTemplates)) } ))
+      teams.asSingleTeam(teamName, ciUrlTemplates) { team =>
+        Ok(Json.toJson(team))
       }.getOrElse(NotFound)
     }
   }
@@ -62,14 +79,4 @@ trait TeamsServicesController extends BaseController {
     dataSource.reload()
     Ok("Cache reload triggered successfully")
   }
-}
-
-object TeamsServicesController extends TeamsServicesController
-  with TeamsAndServicesConfig with GithubEnterpriseTeamsRepositoryDataSourceProvider
-  with GithubOpenTeamsRepositoryDataSourceProvider
-{
-  val dataSource: CachingRepositoryDataSource = new CachingRepositoryDataSource(
-    new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
-    DateTime.now
-  ) with CacheConfigProvider
 }

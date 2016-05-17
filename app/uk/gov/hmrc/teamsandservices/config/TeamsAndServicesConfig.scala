@@ -29,13 +29,8 @@ object UrlTemplate {
 }
 
 trait UrlTemplatesProvider {
-  def ciUrlTemplates: UrlTemplates
-}
 
-trait TeamsAndServicesConfig extends UrlTemplatesProvider {
-
-  implicit val ciUrlTemplates: UrlTemplates = {
-
+  val ciUrlTemplates: UrlTemplates = {
     play.api.Play.current.configuration.getConfig("url-templates").map {
       config =>
         val openConfigs = getTemplatesForConfig("ci-open")
@@ -43,7 +38,6 @@ trait TeamsAndServicesConfig extends UrlTemplatesProvider {
 
         UrlTemplates(ciOpen = openConfigs, ciClosed = closedConfigs)
     }.getOrElse(throw new RuntimeException("no url-templates config found"))
-
   }
 
   private def urlTemplates = {

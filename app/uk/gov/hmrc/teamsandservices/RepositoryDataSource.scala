@@ -24,9 +24,13 @@ import play.api.libs.concurrent.Execution.Implicits._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.teamsandservices.RetryStrategy._
 import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, GithubConfigProvider}
-import ViewModels.{Repository, TeamRepositories}
+import play.api.libs.json.Json
 
 import scala.concurrent.Future
+
+
+case class TeamRepositories(teamName: String, repositories: List[Repository])
+case class Repository(name: String, url: String, isInternal: Boolean = false, deployable: Boolean = false)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -34,6 +38,9 @@ trait RepositoryDataSource {
 
 class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends RepositoryDataSource {
   self: GithubConfigProvider =>
+
+  implicit val repositoryFormats = Json.format[Repository]
+  implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
   val retries: Int = 5
   val initialDuration: Double = 10
