@@ -28,7 +28,7 @@ import uk.gov.hmrc.teamsandservices.config._
 
 case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
-case class Service(name: String, teamName: String, githubUrl: Link, ci: List[Link])
+case class Service(name: String, teamNames: Seq[String], githubUrl: Link, ci: List[Link])
 
 object TeamsServicesController extends TeamsServicesController
   with UrlTemplatesProvider
@@ -69,9 +69,11 @@ trait TeamsServicesController extends BaseController {
 
   def teamServices(teamName:String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
-      teams.asSingleTeam(teamName, ciUrlTemplates) { team =>
-        Ok(Json.toJson(team))
-      }.getOrElse(NotFound)
+      val cached = teams.asTeamServices(teamName, ciUrlTemplates)
+      cached.data match {
+        case Nil => NotFound
+        case _ => Ok(Json.toJson(cached))
+      }
     }
   }
 

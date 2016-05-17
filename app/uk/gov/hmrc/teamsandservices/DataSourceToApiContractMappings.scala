@@ -27,53 +27,44 @@ object DataSourceToApiContractMappings {
       = new CachedTeamRepositoryWrapper(cachedResult)
 
   class CachedTeamRepositoryWrapper(cachedTeamRepositories: CachedResult[Seq[TeamRepositories]]) {
-    def asTeamsList = {
-      cachedTeamRepositories.map { teams =>
-        teams.map(_.teamName)
-      }
-    }
 
-    def asServicesList(ciUrlTemplates: UrlTemplates) = {
-      cachedTeamRepositories.map { data => (
-          for {
-            team <- data
-            repo <- team.repositories
-          } yield repo.asService(team.teamName, ciUrlTemplates)
-        ).flatten.sortBy(_.name)
-      }
-    }
+    def asTeamsList = cachedTeamRepositories.map { teams => teams.map(_.teamName) }
 
-    def asSingleTeam[T](teamName: String, ciUrlTemplates: UrlTemplates)(transform: CachedResult[List[Service]] => T): Option[T] = {
-      cachedTeamRepositories.data.find(
-        _.teamName == URLDecoder.decode(teamName, "UTF-8")
-      ) map { team =>
-        transform(cachedTeamRepositories map { _ =>
-          team.repositories.flatMap(repository => repository.asService(team.teamName, ciUrlTemplates))
-        })
-      }
-    }
+    def asServicesList(ciUrlTemplates: UrlTemplates) =
+      cachedTeamRepositories.map { data =>
+        repositoryTeams(data)
+          .groupBy(_.repo)
+          .flatMap { case (repo, t) => repo.asService(t.map(_.teamName), ciUrlTemplates) }
+          .toSeq
+          .sortBy(_.name) }
+
+    def asTeamServices(teamName: String, ciUrlTemplates: UrlTemplates) =
+      asServicesList(ciUrlTemplates).map { services =>
+        services.filter(_.teamNames.contains(URLDecoder.decode(teamName, "UTF-8"))) }
+
+    private case class RepositoryTeam(repo: Repository, teamName: String)
+    private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoryTeam] =
+      for {
+        team <- data
+        repo <- team.repositories
+      } yield RepositoryTeam(repo, team.teamName)
   }
 
   class RepositoryWrapper(repository: Repository) {
-    def asService(teamName: String, ciUrlTemplates: UrlTemplates): Option[Service] = {
+    def asService(teamNames: Seq[String], ciUrlTemplates: UrlTemplates): Option[Service] =
       if (!repository.deployable) None
       else Some(
         Service(
           repository.name,
-          teamName,
+          teamNames,
           Link("github", repository.url),
-          buildCiUrls(repository, ciUrlTemplates)
-        )
-      )
-    }
+          buildCiUrls(repository, ciUrlTemplates)))
 
-    private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] = {
-      def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(repository.name))).toList
+    private def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(repository.name))).toList
 
+    private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
       repository.isInternal match {
         case true => buildUrls(urlTemplates.ciClosed)
-        case false => buildUrls(urlTemplates.ciOpen)
-      }
-    }
+        case false => buildUrls(urlTemplates.ciOpen) }
   }
 }
