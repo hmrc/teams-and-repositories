@@ -31,7 +31,20 @@ import scala.concurrent.Future
 class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results {
 
   val timestamp = new DateTime(2016, 4, 5, 12, 57)
-  val data = new CachedResult[Seq[TeamRepositories]](
+
+  def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
+    val fakeDataSource = mock[CachingRepositoryDataSource]
+    when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
+
+    new TeamsServicesController {
+      override def dataSource: CachingRepositoryDataSource = fakeDataSource
+      override def ciUrlTemplates  = new UrlTemplates(
+        Seq(new UrlTemplate("open","$name")),
+        Seq(new UrlTemplate("closed","$name")))
+    }
+  }
+
+  val defaultData = new CachedResult[Seq[TeamRepositories]](
     Seq(
       new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
       new TeamRepositories("another-team", List(
@@ -40,15 +53,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     ),
     timestamp)
 
-  val fakeDataSource = mock[CachingRepositoryDataSource]
-  when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
-  val controller = new TeamsServicesController {
-    override def dataSource: CachingRepositoryDataSource = fakeDataSource
-    override def ciUrlTemplates  = new UrlTemplates(
-      Seq(new UrlTemplate("open","$name")),
-      Seq(new UrlTemplate("closed","$name")))
-  }
 
   "Teams controller" should {
 
@@ -69,7 +74,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   "Retrieving a list of teams" should {
 
     "Return a json representation of the data, including the cache timestamp" in {
-
+      val controller = controllerWithData(defaultData)
       val result = controller.teams().apply(FakeRequest())
 
       val json = contentAsJson(result)
@@ -83,7 +88,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   "Retrieving a list of services for a team" should {
 
     "Return a json representation of the data, including the cache timestamp" in {
-
+      val controller = controllerWithData(defaultData)
       val result = controller.teamServices("test-team").apply(FakeRequest())
 
       val json = contentAsJson(result)
@@ -99,12 +104,30 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       (service \ "githubUrl" \ "url").as[String] mustBe "repo-url"
 
     }
+
+    "Return information about all the teams that have access to a repo" in {
+      val sourceData = new CachedResult[Seq[TeamRepositories]](
+        Seq(
+          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", deployable = true)))
+        ),
+        timestamp)
+
+      val controller = controllerWithData(sourceData)
+      val result = controller.teamServices("another-team").apply(FakeRequest())
+
+      val json = contentAsJson(result)
+      val data = (json \ "data").as[JsArray].value
+
+      val service = data.head
+      (service \ "teamNames").as[Seq[String]] mustBe Seq("test-team", "another-team")
+    }
   }
 
   "Retrieving a list of all services" should {
 
     "Return a json representation of the data sorted alphabetically, including the cache timestamp" in {
-
+      val controller = controllerWithData(defaultData)
       val result = controller.services().apply(FakeRequest())
 
       val json = contentAsJson(result)
@@ -112,22 +135,48 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val first = (json \ "data").as[JsArray].value.head
       (first \ "name").as[String] mustBe "another-repo"
-      (first \ "teamName").as[String] mustBe "another-team"
+      (first \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
       (first \ "githubUrl" \ "name").as[String] mustBe "github"
       (first \ "githubUrl" \ "url").as[String] mustBe "another-url"
 
       val second = (json \ "data").as[JsArray].value(1)
       (second \ "name").as[String] mustBe "middle-repo"
-      (second \ "teamName").as[String] mustBe "another-team"
+      (second \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
       (second \ "githubUrl" \ "name").as[String] mustBe "github"
       (second \ "githubUrl" \ "url").as[String] mustBe "middle-url"
 
       val third = (json \ "data").as[JsArray].value(2)
       (third \ "name").as[String] mustBe "repo-name"
-      (third \ "teamName").as[String] mustBe "test-team"
+      (third \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
       (third \ "githubUrl" \ "name").as[String] mustBe "github"
       (third \ "githubUrl" \ "url").as[String] mustBe "repo-url"
 
     }
+
+    "Flatten team info if a service belongs to multiple teams" in {
+
+      val data = new CachedResult[Seq[TeamRepositories]](
+        Seq(
+          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", deployable = true)))
+        ),
+        timestamp)
+
+      val controller = controllerWithData(data)
+      val result = controller.services().apply(FakeRequest())
+
+      val json = contentAsJson(result)
+      (json \ "cacheTimestamp").as[DateTime] mustBe timestamp
+
+      val first = (json \ "data").as[JsArray].value.head
+      (first \ "name").as[String] mustBe "repo-name"
+      (first \ "teamNames").as[Seq[String]] mustBe Seq("test-team", "another-team")
+      (first \ "githubUrl" \ "name").as[String] mustBe "github"
+      (first \ "githubUrl" \ "url").as[String] mustBe "repo-url"
+
+    }
+
   }
+
+
 }
