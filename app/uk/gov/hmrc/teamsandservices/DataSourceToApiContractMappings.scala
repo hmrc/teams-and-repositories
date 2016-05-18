@@ -36,7 +36,7 @@ object DataSourceToApiContractMappings {
           .groupBy(_.repositories)
           .flatMap { case (repositories, t) => repositories.asService(t.map(_.teamName), ciUrlTemplates) }
           .toSeq
-          .sortBy(_.name) }
+          .sortBy(_.name.toUpperCase) }
 
     def asTeamServices(teamName: String, ciUrlTemplates: UrlTemplates) =
       asServicesList(ciUrlTemplates).map { services =>
