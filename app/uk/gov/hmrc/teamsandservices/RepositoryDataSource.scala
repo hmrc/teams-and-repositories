@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import org.joda.time.DateTime
+import java.time.LocalDateTime
 import play.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
@@ -100,7 +100,7 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
     }
 }
 
-class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => DateTime)  {
+class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => LocalDateTime)  {
   self: CacheConfigProvider =>
   private var data: Future[CachedResult[Seq[TeamRepositories]]] = fromSource
 
