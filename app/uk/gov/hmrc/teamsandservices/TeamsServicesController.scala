@@ -20,8 +20,8 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
@@ -32,11 +32,6 @@ case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
 case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: List[Link])
 
-object HttpHeaderTimestamp{
-  def apply(dateTime: LocalDateTime):String = {
-    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
-  }
-}
 
 object TeamsServicesController extends TeamsServicesController
   with UrlTemplatesProvider
@@ -56,6 +51,9 @@ object TeamsServicesController extends TeamsServicesController
 }
 
 trait TeamsServicesController extends BaseController {
+
+  import Results._
+
   protected def ciUrlTemplates: UrlTemplates
   protected def dataSource: CachingRepositoryDataSource
 
@@ -63,21 +61,15 @@ trait TeamsServicesController extends BaseController {
   implicit val serviceFormats = Json.format[Service]
   implicit val teamFormats = Json.format[TeamServices]
 
-  val CacheTimestampHeaderName = "X-Cache-Timestamp"
-
   def services() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
-        val servicesList = teams.asServicesList(ciUrlTemplates)
-        Ok(Json.toJson(servicesList.data))
-            .withHeaders(CacheTimestampHeaderName -> HttpHeaderTimestamp(servicesList.time))
+      OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))
     }
   }
 
   def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
-      val teamsList = teams.asTeamsList
-      Ok(Json.toJson(teamsList.data))
-        .withHeaders(CacheTimestampHeaderName -> HttpHeaderTimestamp(teamsList.time))
+      OkWithCachedTimestamp(teams.asTeamsList)
     }
   }
 
@@ -86,12 +78,10 @@ trait TeamsServicesController extends BaseController {
       val cached = teams.asTeamServices(teamName, ciUrlTemplates)
       cached.data match {
         case Nil => NotFound
-        case _ => Ok(Json.toJson(cached.data))
-          .withHeaders(CacheTimestampHeaderName -> HttpHeaderTimestamp(cached.time))
+        case _ => OkWithCachedTimestamp(cached)
       }
     }
   }
-
   def reloadCache() = Action { implicit request =>
     dataSource.reload()
     Ok("Cache reload triggered successfully")
