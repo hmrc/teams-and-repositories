@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import org.joda.time.DateTime
+import java.time.LocalDateTime
+
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
@@ -36,8 +37,8 @@ class CachingRepositoryDataSourceSpec extends WordSpec with MockitoSugar with Sc
   val longCacheTimeout = 1 minute
 
   "Caching teams repository data source" should {
-    val firstTime = new DateTime(2016, 4, 5, 12, 57)
-    val secondTime = new DateTime(2016, 4, 6, 21, 0)
+    val firstTime = LocalDateTime.of(2016, 4, 5, 12, 57)
+    val secondTime = LocalDateTime.of(2016, 4, 6, 21, 0)
 
     "populate the cache from the data source and retain it until the configured expiry time" in new WithApplication {
       var cacheSource: TeamRepositories = null
@@ -87,7 +88,7 @@ class CachingRepositoryDataSourceSpec extends WordSpec with MockitoSugar with Sc
         cache.getCachedTeamRepoMapping.futureValue.data should contain(team)
       }
 
-    def verifyCacheTime(cache: CachingRepositoryDataSource, dateTime: DateTime) =
+    def verifyCacheTime(cache: CachingRepositoryDataSource, dateTime: LocalDateTime) =
       cache.getCachedTeamRepoMapping.futureValue.time should be (dateTime)
 
     def verifyCachedCopyIsStill(cache: CachingRepositoryDataSource, team: TeamRepositories) =

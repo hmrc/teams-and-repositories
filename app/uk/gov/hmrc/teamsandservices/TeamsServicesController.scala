@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import org.joda.time.DateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
@@ -29,6 +31,7 @@ import uk.gov.hmrc.teamsandservices.config._
 case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
 case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: List[Link])
+
 
 object TeamsServicesController extends TeamsServicesController
   with UrlTemplatesProvider
@@ -43,11 +46,14 @@ object TeamsServicesController extends TeamsServicesController
 
   protected val dataSource: CachingRepositoryDataSource = new CachingRepositoryDataSource(
     new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
-    DateTime.now
+    LocalDateTime.now
   ) with CacheConfigProvider
 }
 
 trait TeamsServicesController extends BaseController {
+
+  import Results._
+
   protected def ciUrlTemplates: UrlTemplates
   protected def dataSource: CachingRepositoryDataSource
 
@@ -56,14 +62,14 @@ trait TeamsServicesController extends BaseController {
   implicit val teamFormats = Json.format[TeamServices]
 
   def services() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams.asServicesList(ciUrlTemplates)))
+    dataSource.getCachedTeamRepoMapping.map { teams =>
+      OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))
     }
   }
 
   def teams() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map {
-      teams => Ok(Json.toJson(teams.asTeamsList))
+    dataSource.getCachedTeamRepoMapping.map { teams =>
+      OkWithCachedTimestamp(teams.asTeamsList)
     }
   }
 
@@ -72,11 +78,10 @@ trait TeamsServicesController extends BaseController {
       val cached = teams.asTeamServices(teamName, ciUrlTemplates)
       cached.data match {
         case Nil => NotFound
-        case _ => Ok(Json.toJson(cached))
+        case _ => OkWithCachedTimestamp(cached)
       }
     }
   }
-
   def reloadCache() = Action { implicit request =>
     dataSource.reload()
     Ok("Cache reload triggered successfully")

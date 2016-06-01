@@ -16,8 +16,23 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
-class CachedResult[T](val data: T, val time: LocalDateTime) {
-  def map[B](f: T => B) = new CachedResult[B](f(this.data), this.time)
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc.Result
+
+object Results {
+
+  val CacheTimestampHeaderName = "X-Cache-Timestamp"
+
+  def OkWithCachedTimestamp[T](cachedList:CachedResult[T])(implicit jsonWrites : Writes[T]): Result ={
+
+    def format(dateTime: LocalDateTime):String = {
+      DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
+    }
+
+    play.api.mvc.Results.Ok(Json.toJson(cachedList.data))
+      .withHeaders(CacheTimestampHeaderName -> format(cachedList.time))
+  }
 }
