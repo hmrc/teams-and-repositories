@@ -79,8 +79,8 @@ trait TeamsServicesController extends BaseController {
     dataSource.getCachedTeamRepoMapping.map { teams =>
       val cached = teams.asTeamServices(teamName, ciUrlTemplates)
       cached.data match {
-        case Nil => NotFound
-        case _ => OkWithCachedTimestamp(cached)
+        case None => NotFound
+        case Some(x) => OkWithCachedTimestamp(x)
       }
     }
   }
