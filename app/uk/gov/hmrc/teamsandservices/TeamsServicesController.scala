@@ -34,13 +34,14 @@ case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], 
 
 
 object TeamsServicesController extends TeamsServicesController
-  with UrlTemplatesProvider
-{
-  private val gitApiEnterpriseClient = new GithubApiClient(GithubConfig.githubApiEnterpriseConfig)
+with UrlTemplatesProvider {
+
+  private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
+
   private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
     new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true) with GithubConfigProvider
 
-  private val gitOpenClient = new GithubApiClient(GithubConfig.githubApiOpenConfig)
+  private val gitOpenClient = GithubApiClient(GithubConfig.githubApiOpenConfig.apiUrl, GithubConfig.githubApiOpenConfig.key)
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
     new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 
@@ -55,6 +56,7 @@ trait TeamsServicesController extends BaseController {
   import Results._
 
   protected def ciUrlTemplates: UrlTemplates
+
   protected def dataSource: CachingRepositoryDataSource
 
   implicit val linkFormats = Json.format[Link]
@@ -73,7 +75,7 @@ trait TeamsServicesController extends BaseController {
     }
   }
 
-  def teamServices(teamName:String) = Action.async { implicit request =>
+  def teamServices(teamName: String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
       val cached = teams.asTeamServices(teamName, ciUrlTemplates)
       cached.data match {
@@ -82,6 +84,7 @@ trait TeamsServicesController extends BaseController {
       }
     }
   }
+
   def reloadCache() = Action { implicit request =>
     dataSource.reload()
     Ok("Cache reload triggered successfully")
