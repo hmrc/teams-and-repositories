@@ -235,5 +235,48 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       (githubLinks(1) \ "url").as[String] mustBe "repo-open-url"
 
     }
+
+    "Return an empty list if a team has no services" in {
+
+      val data = new CachedResult[Seq[TeamRepositories]](
+        Seq(
+          new TeamRepositories("test-team", List(
+            Repository("repo-name", "repo-url", deployable = false, isInternal = true),
+            Repository("repo-open-name", "repo-open-url", deployable = false, isInternal = false)))),
+        timestamp)
+
+      val controller = controllerWithData(data)
+      val result = controller.teamServices("test-team").apply(FakeRequest())
+
+      val json = contentAsJson(result)
+
+      val jsonData = json.as[JsArray].value
+      jsonData.length mustBe 0
+
+    }
+
+    "Return an empty list if a team has no repositories" in {
+
+      val data = new CachedResult[Seq[TeamRepositories]](Seq(new TeamRepositories("test-team", List())), timestamp)
+
+      val controller = controllerWithData(data)
+      val result = controller.teamServices("test-team").apply(FakeRequest())
+
+      val json = contentAsJson(result)
+
+      val jsonData = json.as[JsArray].value
+      jsonData.length mustBe 0
+
+    }
+
+    "Return a 404 if a team does not exist at all" in {
+
+      val data = new CachedResult[Seq[TeamRepositories]](Seq(), timestamp)
+
+      val controller = controllerWithData(data)
+      val result = controller.teamServices("test-team").apply(FakeRequest())
+
+      await(result).header.status mustBe 404
+    }
   }
 }

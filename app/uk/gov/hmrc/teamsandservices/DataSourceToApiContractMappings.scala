@@ -36,11 +36,17 @@ object DataSourceToApiContractMappings {
           .groupBy(_.repositories)
           .flatMap { case (repositories, t) => repositories.asService(t.map(_.teamName), ciUrlTemplates) }
           .toSeq
-          .sortBy(_.name.toUpperCase) }
+          .sortBy(_.name.toUpperCase)
+        }
 
-    def asTeamServices(teamName: String, ciUrlTemplates: UrlTemplates) =
-      asServicesList(ciUrlTemplates).map { services =>
-        services.filter(_.teamNames.contains(URLDecoder.decode(teamName, "UTF-8"))) }
+    def asTeamServices(teamName: String, ciUrlTemplates: UrlTemplates) = {
+      val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
+      cachedTeamRepositories.map { data =>
+        data.find(_.teamName == decodedTeamName).map { t =>
+            asServicesList(ciUrlTemplates).map { services =>
+              services.filter(_.teamNames.contains(t.teamName)) }}
+      }
+    }
 
     private case class RepositoryTeam(repositories: Seq[Repository], teamName: String)
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoryTeam] =
