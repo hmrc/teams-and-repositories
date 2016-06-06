@@ -79,13 +79,18 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Bool
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
     for {
       hasAppFolder <- exponentialRetry(retries, initialDuration) {
-        gh.repoContainsContent("app",repo.name, organisation.login)
+        hasPath(organisation, repo, "app")
       }
       hasProcfile <- exponentialRetry(retries, initialDuration) {
-        gh.repoContainsContent("Procfile",repo.name, organisation.login)
+        hasPath(organisation, repo, "Procfile")
       }
+    } yield {
+      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
     }
-    yield Repository(repo.name, repo.html_url, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
+
+  def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String): Future[Boolean] = {
+    gh.repoContainsContent(path, repo.name, organisation.login)
+  }
 }
 
 class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource]) extends RepositoryDataSource {
@@ -100,7 +105,7 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
     }
 }
 
-class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => LocalDateTime)  {
+class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => LocalDateTime) {
   self: CacheConfigProvider =>
   private var data: Future[CachedResult[Seq[TeamRepositories]]] = fromSource
 
@@ -108,7 +113,8 @@ class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: (
     dataSource.getTeamRepoMapping.map { d => {
       val stamp = timeStamp()
       Logger.debug(s"Cache reloaded at $stamp")
-      new CachedResult(d, stamp) }
+      new CachedResult(d, stamp)
+    }
     }
   }
 
