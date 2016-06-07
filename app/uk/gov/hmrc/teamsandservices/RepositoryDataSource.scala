@@ -17,16 +17,17 @@
 package uk.gov.hmrc.teamsandservices
 
 import java.time.LocalDateTime
+import java.util.concurrent.Executors
+
+import akka.actor.ActorSystem
 import play.Logger
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
-import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.Json
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.teamsandservices.RetryStrategy._
-import uk.gov.hmrc.teamsandservices.config.{CacheConfigProvider, GithubConfigProvider}
-import play.api.libs.json.Json
+import uk.gov.hmrc.teamsandservices.config.{CacheConfig, GithubConfigProvider}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success}
 
 
 case class TeamRepositories(teamName: String, repositories: List[Repository])
@@ -34,9 +35,12 @@ case class Repository(name: String, url: String, isInternal: Boolean = false, de
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
+  def executionContext:ExecutionContext
 }
 
-class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Boolean) extends RepositoryDataSource {
+class GithubV3RepositoryDataSource(val gh: GithubApiClient,
+                                   val isInternal: Boolean,
+                                   override implicit val executionContext:ExecutionContext) extends RepositoryDataSource {
   self: GithubConfigProvider =>
 
   implicit val repositoryFormats = Json.format[Repository]
@@ -48,7 +52,6 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Bool
   def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     exponentialRetry(retries, initialDuration) {
       gh.getOrganisations.flatMap { orgs =>
-
         Future.sequence(orgs.map(mapOrganisation)).map {
           _.flatten
         }
@@ -93,7 +96,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient, val isInternal: Bool
   }
 }
 
-class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource]) extends RepositoryDataSource {
+class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource], implicit override val executionContext:ExecutionContext) extends RepositoryDataSource {
   override def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened = results.flatten
@@ -105,29 +108,58 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
     }
 }
 
-class CachingRepositoryDataSource(dataSource: RepositoryDataSource, timeStamp: () => LocalDateTime) {
-  self: CacheConfigProvider =>
-  private var data: Future[CachedResult[Seq[TeamRepositories]]] = fromSource
+
+class CachingRepositoryDataSource[T](
+                                      akkaSystem:ActorSystem,
+                                      cacheConfig:CacheConfig,
+                                      dataSource: () => Future[T],
+                                      timeStamp: () => LocalDateTime) {
+
+  private var cachedData: Option[CachedResult[T]] = None
+  private val initialPromise = Promise[CachedResult[T]]()
+
+  import ExecutionContext.Implicits._
+
+  dataUpdate()
 
   private def fromSource = {
-    dataSource.getTeamRepoMapping.map { d => {
+    dataSource().map { d => {
       val stamp = timeStamp()
       Logger.debug(s"Cache reloaded at $stamp")
       new CachedResult(d, stamp)
-    }
-    }
+    }}
   }
 
-  def getCachedTeamRepoMapping: Future[CachedResult[Seq[TeamRepositories]]] = data
+  def getCachedTeamRepoMapping: Future[CachedResult[T]] = {
+    Logger.info(s"cachedData is available = ${cachedData.isDefined}")
+    cachedData.fold(initialPromise.future)(d => Future.successful(d))
+  }
 
   def reload() = {
     Logger.info(s"Manual teams repository cache reload triggered")
-    data = fromSource
+    dataUpdate()
   }
 
   Logger.info(s"Initialising cache reload every ${cacheConfig.teamsCacheDuration}")
-  Akka.system.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
+  akkaSystem.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
     Logger.info("Scheduled teams repository cache reload triggered")
-    data = fromSource
+    dataUpdate()
+  }
+
+  private def dataUpdate(){
+    fromSource.onComplete {
+      case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
+      case Success(d) => {
+        synchronized {
+          this.cachedData = Some(d)
+          Logger.info(s"data update completed successfully")
+
+          if (!initialPromise.isCompleted) {
+            Logger.debug("early clients being sent result")
+            this.initialPromise.success(d)
+          }
+        }
+      }
+    }
   }
 }

@@ -21,7 +21,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
 
@@ -45,7 +45,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2), ExecutionContext.global)
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 6
@@ -78,7 +78,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2), ExecutionContext.global)
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 4
