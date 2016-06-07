@@ -36,11 +36,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
 
   def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
-    val fakeDataSource = mock[CachingRepositoryDataSource]
+    val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
     when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
     new TeamsServicesController {
-      override def dataSource: CachingRepositoryDataSource = fakeDataSource
+      override def dataSource = fakeDataSource
       override def ciUrlTemplates  = new UrlTemplates(
         Seq(new UrlTemplate("open","$name")),
         Seq(new UrlTemplate("closed","$name")))

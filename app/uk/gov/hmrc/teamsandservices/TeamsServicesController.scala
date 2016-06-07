@@ -18,14 +18,19 @@ package uk.gov.hmrc.teamsandservices
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.util.concurrent.Executors
 
+import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, Result}
+import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
 import uk.gov.hmrc.teamsandservices.config._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 
 case class Link(name: String, url: String)
@@ -36,19 +41,24 @@ case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], 
 object TeamsServicesController extends TeamsServicesController
 with UrlTemplatesProvider {
 
+  private val githubClientEc = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
+
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
 
   private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true) with GithubConfigProvider
+    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true, githubClientEc) with GithubConfigProvider
 
   private val gitOpenClient = GithubApiClient(GithubConfig.githubApiOpenConfig.apiUrl, GithubConfig.githubApiOpenConfig.key)
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
+    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false, githubClientEc) with GithubConfigProvider
 
-  protected val dataSource: CachingRepositoryDataSource = new CachingRepositoryDataSource(
-    new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)),
+  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource), githubClientEc).getTeamRepoMapping _
+
+  protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
+    Akka.system(), CacheConfig,
+    dataLoader,
     LocalDateTime.now
-  ) with CacheConfigProvider
+  )
 }
 
 trait TeamsServicesController extends BaseController {
@@ -57,7 +67,7 @@ trait TeamsServicesController extends BaseController {
 
   protected def ciUrlTemplates: UrlTemplates
 
-  protected def dataSource: CachingRepositoryDataSource
+  protected def dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]]
 
   implicit val linkFormats = Json.format[Link]
   implicit val serviceFormats = Json.format[Service]
@@ -70,6 +80,7 @@ trait TeamsServicesController extends BaseController {
   }
 
   def teams() = Action.async { implicit request =>
+    Logger.info("fetching teams info")
     dataSource.getCachedTeamRepoMapping.map { teams =>
       OkWithCachedTimestamp(teams.asTeamsList)
     }

@@ -20,4 +20,5 @@ import java.time.LocalDateTime
 
 class CachedResult[T](val data: T, val time: LocalDateTime) {
   def map[B](f: T => B) = new CachedResult[B](f(this.data), this.time)
+  override def toString = data.toString
 }
