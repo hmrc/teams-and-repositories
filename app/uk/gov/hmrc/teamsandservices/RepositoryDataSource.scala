@@ -35,13 +35,13 @@ case class Repository(name: String, url: String, isInternal: Boolean = false, de
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
-  def executionContext:ExecutionContext
 }
 
 class GithubV3RepositoryDataSource(val gh: GithubApiClient,
-                                   val isInternal: Boolean,
-                                   override implicit val executionContext:ExecutionContext) extends RepositoryDataSource {
+                                   val isInternal: Boolean) extends RepositoryDataSource {
   self: GithubConfigProvider =>
+
+  import BlockingIOExecutionContext._
 
   implicit val repositoryFormats = Json.format[Repository]
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
@@ -96,7 +96,10 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
   }
 }
 
-class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource], implicit override val executionContext:ExecutionContext) extends RepositoryDataSource {
+class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource]) extends RepositoryDataSource {
+
+  import BlockingIOExecutionContext._
+
   override def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened = results.flatten

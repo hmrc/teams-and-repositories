@@ -35,8 +35,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
   "Github v3 Data Source" should {
     val githubClient = mock[GithubApiClient]
-    val ec = ExecutionContext.global
-    val dataSource = createDataSource(githubClient, ec)
+    val ec = BlockingIOExecutionContext.executionContext
+    val dataSource = createDataSource(githubClient)
 
     "Return a list of teams and repositories, filtering out forks" in {
 
@@ -58,7 +58,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
     "Set internal = true if the DataSource is marked as internal" in {
 
-      val internalDataSource = new GithubV3RepositoryDataSource(githubClient, isInternal = true, ExecutionContext.global) with GithubConfigProvider {
+      val internalDataSource = new GithubV3RepositoryDataSource(githubClient, isInternal = true) with GithubConfigProvider {
         override def githubConfig: GithubConfig = new GithubConfig {
           override def hiddenRepositories: List[String] = testHiddenRepositories
           override def hiddenTeams: List[String] = testHiddenTeams
@@ -187,8 +187,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
     }
   }
 
-  private def createDataSource(githubClient: GithubApiClient, ec:ExecutionContext): GithubV3RepositoryDataSource with GithubConfigProvider {def githubConfig: GithubConfig} = {
-    new GithubV3RepositoryDataSource(githubClient, isInternal = false, ec) with GithubConfigProvider {
+  private def createDataSource(githubClient: GithubApiClient): GithubV3RepositoryDataSource with GithubConfigProvider {def githubConfig: GithubConfig} = {
+    new GithubV3RepositoryDataSource(githubClient, isInternal = false) with GithubConfigProvider {
       override def githubConfig: GithubConfig = new GithubConfig {
         override def hiddenRepositories: List[String] = testHiddenRepositories
 

@@ -37,22 +37,23 @@ case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
 case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: List[Link])
 
+object BlockingIOExecutionContext{
+  implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
+}
 
 object TeamsServicesController extends TeamsServicesController
 with UrlTemplatesProvider {
 
-  private val githubClientEc = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
-
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
 
   private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true, githubClientEc) with GithubConfigProvider
+    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true) with GithubConfigProvider
 
   private val gitOpenClient = GithubApiClient(GithubConfig.githubApiOpenConfig.apiUrl, GithubConfig.githubApiOpenConfig.key)
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false, githubClientEc) with GithubConfigProvider
+    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 
-  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource), githubClientEc).getTeamRepoMapping _
+  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
 
   protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
     Akka.system(), CacheConfig,
