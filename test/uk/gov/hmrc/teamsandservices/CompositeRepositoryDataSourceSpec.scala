@@ -45,7 +45,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2), ExecutionContext.global)
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 6
@@ -78,7 +78,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       val dataSource2 = mock[RepositoryDataSource]
       when(dataSource2.getTeamRepoMapping).thenReturn(Future.successful(teamsList2))
 
-      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2), ExecutionContext.global)
+      val compositeDataSource = new CompositeRepositoryDataSource(List(dataSource1, dataSource2))
       val result = compositeDataSource.getTeamRepoMapping.futureValue
 
       result.length shouldBe 4
