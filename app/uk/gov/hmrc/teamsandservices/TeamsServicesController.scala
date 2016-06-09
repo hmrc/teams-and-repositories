@@ -81,7 +81,6 @@ trait TeamsServicesController extends BaseController {
   }
 
   def teams() = Action.async { implicit request =>
-    Logger.info("fetching teams info")
     dataSource.getCachedTeamRepoMapping.map { teams =>
       OkWithCachedTimestamp(teams.asTeamsList)
     }
