@@ -4,3 +4,4 @@ GET         /api/teams                      uk.gov.hmrc.teamsandservices.TeamsSe
 GET         /api/teams/:team/services       uk.gov.hmrc.teamsandservices.TeamsServicesController.teamServices(team)
 GET         /api/cache/reload               uk.gov.hmrc.teamsandservices.TeamsServicesController.reloadCache
 GET         /api/services                   uk.gov.hmrc.teamsandservices.TeamsServicesController.services
+GET         /api/service/:name              uk.gov.hmrc.teamsandservices.TeamsServicesController.service(name)
