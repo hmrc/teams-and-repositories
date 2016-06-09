@@ -74,6 +74,21 @@ trait TeamsServicesController extends BaseController {
   implicit val serviceFormats = Json.format[Service]
   implicit val teamFormats = Json.format[TeamServices]
 
+  def service(name:String) = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { teams =>
+      val serviceList = teams.asServicesList(ciUrlTemplates)
+
+      val maybeService = serviceList.data
+        .find(_.name == name)
+        .map { s => serviceList.map(_ => s) }
+
+      maybeService match {
+        case None => NotFound
+        case Some(s) => OkWithCachedTimestamp(s)
+      }
+    }
+  }
+
   def services() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
       OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))

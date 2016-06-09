@@ -30,7 +30,7 @@ object DataSourceToApiContractMappings {
 
     def asTeamsList = cachedTeamRepositories.map { teams => teams.map(_.teamName) }
 
-    def asServicesList(ciUrlTemplates: UrlTemplates) =
+    def asServicesList(ciUrlTemplates: UrlTemplates): CachedResult[Seq[Service]] =
       cachedTeamRepositories.map { data =>
         repositoryTeams(data)
           .groupBy(_.repositories)

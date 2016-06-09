@@ -23,7 +23,7 @@ import org.mockito.Mockito._
 import org.scalatest.OptionValues
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsArray
+import play.api.libs.json.{JsArray, JsObject}
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -49,7 +49,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   val defaultData = new CachedResult[Seq[TeamRepositories]](
     Seq(
-      new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", deployable = true))),
+      new TeamRepositories("test-team", List(
+        Repository("repo-name", "repo-url", deployable = true))),
       new TeamRepositories("another-team", List(
         Repository("another-repo", "another-url", deployable = true),
         Repository("middle-repo", "middle-url", deployable = true)))
@@ -276,7 +277,32 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val controller = controllerWithData(data)
       val result = controller.teamServices("test-team").apply(FakeRequest())
 
-      await(result).header.status mustBe 404
+      status(result) mustBe 404
+    }
+  }
+
+  "Retrieving a service" should {
+
+    "Return a json representation of the service" in {
+      val controller = controllerWithData(defaultData)
+      val result = controller.service("repo-name").apply(FakeRequest())
+
+      status(result) mustBe 200
+      val json = contentAsJson(result)
+
+      val thirdGithubLinks = (json \ "githubUrls").as[JsArray].value
+      (json \ "name").as[String] mustBe "repo-name"
+      (json \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
+      (thirdGithubLinks.head \ "name").as[String] mustBe "github-open"
+      (thirdGithubLinks.head \ "url").as[String] mustBe "repo-url"
+    }
+
+
+    "Return a 404 when the serivce is not found" in {
+      val controller = controllerWithData(defaultData)
+      val result = controller.service("not-Found").apply(FakeRequest())
+
+      status(result) mustBe 404
     }
   }
 }
