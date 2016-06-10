@@ -18,16 +18,15 @@ package uk.gov.hmrc.teamsandservices
 
 import java.time.LocalDateTime
 
-import org.joda.time.DateTime
 import org.mockito.Mockito._
 import org.scalatest.OptionValues
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsArray, JsObject}
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
 
@@ -43,7 +42,14 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       override def dataSource = fakeDataSource
       override def ciUrlTemplates  = new UrlTemplates(
         Seq(new UrlTemplate("open","$name")),
-        Seq(new UrlTemplate("closed","$name")))
+        Seq(new UrlTemplate("closed","$name")),
+        Map(
+          "env1" -> Seq(
+            new UrlTemplate("kibana","$name"),
+            new UrlTemplate("grafana","$name")),
+          "env2" -> Seq(
+            new UrlTemplate("kibana","$name"))
+        ))
     }
   }
 
@@ -290,13 +296,25 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       status(result) mustBe 200
       val json = contentAsJson(result)
 
-      val thirdGithubLinks = (json \ "githubUrls").as[JsArray].value
+      val githubLinks = (json \ "githubUrls").as[JsArray].value
       (json \ "name").as[String] mustBe "repo-name"
       (json \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
-      (thirdGithubLinks.head \ "name").as[String] mustBe "github-open"
-      (thirdGithubLinks.head \ "url").as[String] mustBe "repo-url"
-    }
+      (githubLinks.head \ "name").as[String] mustBe "github-open"
+      (githubLinks.head \ "url").as[String] mustBe "repo-url"
 
+      val environments = (json \ "environments").as[JsArray].value
+      
+      val env1Services = environments.find(_ \ "name" == JsString("env1")).value.as[JsObject] \ "services"
+      val env1Links = env1Services.as[List[Map[String, String]]].toSet
+      env1Links mustBe Set(
+        Map("name" -> "kibana", "url" -> "repo-name"),
+        Map("name" -> "grafana", "url" -> "repo-name"))
+
+      val env2Services = environments.find(_ \ "name" == JsString("env2")).value.as[JsObject] \ "services"
+      val env2Links = env2Services.as[List[Map[String, String]]].toSet
+      env2Links mustBe Set(
+        Map("name" -> "kibana", "url" -> "repo-name"))
+    }
 
     "Return a 404 when the serivce is not found" in {
       val controller = controllerWithData(defaultData)
