@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.teamsandservices.config
 
+import play.api.Configuration
 import play.api.libs.json.Json
 
-case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate])
+case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate], environments:Map[String, Seq[UrlTemplate]])
 
 case class UrlTemplate(name: String, template: String) {
   def url(serviceName : String) = template.replace("$name", serviceName)
@@ -35,8 +36,9 @@ trait UrlTemplatesProvider {
       config =>
         val openConfigs = getTemplatesForConfig("ci-open")
         val closedConfigs = getTemplatesForConfig("ci-closed")
+        val envConfigs = getTemplatesForEnvironments
 
-        UrlTemplates(ciOpen = openConfigs, ciClosed = closedConfigs)
+        UrlTemplates(closedConfigs, openConfigs, envConfigs)
     }.getOrElse(throw new RuntimeException("no url-templates config found"))
   }
 
@@ -44,16 +46,34 @@ trait UrlTemplatesProvider {
     play.api.Play.current.configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
   }
 
+  private def getTemplatesForEnvironments: Map[String, Seq[UrlTemplate]] = {
+    val configs = urlTemplates.getConfigSeq("envrionments")
+      .getOrElse(throw new RuntimeException("incorrect environment configuration"))
+
+    configs.map { cf =>
+      val envName = cf.getString("name")
+        .getOrElse(throw new RuntimeException("incorrect environment configuration"))
+
+      val envTemplates = cf.getConfigSeq("services")
+        .getOrElse(throw new RuntimeException("incorrect environment configuration"))
+        .map { s => readLink(s) }
+      envName -> envTemplates.toSeq.flatten
+    }.toMap
+  }
+
   private def getTemplatesForConfig(path: String) = {
     val configs = urlTemplates.getConfigSeq(path)
     require(configs.exists(_.nonEmpty), s"no $path config found")
 
     configs.get.flatMap { config =>
-      for {
-        name <- config.getString("name")
-        url <- config.getString("url")
-      } yield UrlTemplate(name, url)
+      readLink(config)
     }.distinct
+  }
 
+  private def readLink(config:Configuration):Option[UrlTemplate]={
+    for {
+      name <- config.getString("name")
+      url <- config.getString("url")
+    } yield UrlTemplate(name, url)
   }
 }

@@ -59,7 +59,7 @@ object DataSourceToApiContractMappings {
   class RepositorySeqWrapper(repositories: Seq[Repository]) {
     val primaryRepository = repositories.sortBy(_.isInternal).head
 
-    def asService(teamNames: Seq[String], ciUrlTemplates: UrlTemplates): Option[Service] =
+    def asService(teamNames: Seq[String], urlTemplates: UrlTemplates): Option[Service] =
       if (!primaryRepository.deployable) None
       else Some(
         Service(
@@ -68,9 +68,17 @@ object DataSourceToApiContractMappings {
           repositories.map { repo =>
             Link(if (repo.isInternal) "github" else "github-open", repo.url)
           },
-          buildCiUrls(primaryRepository, ciUrlTemplates)))
+          buildCiUrls(primaryRepository, urlTemplates),
+          buildEnvironmentUrls(primaryRepository, urlTemplates)))
 
     private def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(primaryRepository.name))).toList
+
+    private def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] ={
+      urlTemplates.environments.map { case(name, tps) =>
+        val links = tps.map { tp => Link(tp.name, tp.url(repository.name)) }
+        Environment(name, links)
+      }.toSeq
+    }
 
     private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
       repository.isInternal match {

@@ -32,10 +32,10 @@ import uk.gov.hmrc.teamsandservices.config._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
+case class Environment(name:String, services:Seq[Link])
 case class Link(name: String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
-case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: List[Link])
+case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link], environments:Seq[Environment])
 
 object BlockingIOExecutionContext{
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
@@ -70,7 +70,8 @@ trait TeamsServicesController extends BaseController {
 
   protected def dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]]
 
-  implicit val linkFormats = Json.format[Link]
+  implicit val environmentFormats = Json.format[Link]
+  implicit val linkFormats = Json.format[Environment]
   implicit val serviceFormats = Json.format[Service]
   implicit val teamFormats = Json.format[TeamServices]
 
