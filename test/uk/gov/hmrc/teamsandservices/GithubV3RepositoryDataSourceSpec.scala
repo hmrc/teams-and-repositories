@@ -110,7 +110,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
     }
 
-    "Set deployable=true if the repository contains an app folder" in {
+    "Set deployable=true if the repository contains an app/application.conf folder" in {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
@@ -119,8 +119,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r", 4, "url_D"))))
       when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
 
-      when(githubClient.repoContainsContent("app","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
-      when(githubClient.repoContainsContent("app","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
+      when(githubClient.repoContainsContent("app/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent("app/application.conf","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
@@ -143,6 +143,27 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
     }
+
+
+    "Set deployable=true if the repository contains a deploy.properties" in {
+
+      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
+      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
+      when(githubClient.getTeamsForOrganisation("DDCN")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("D", 4))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r", 1, "url_A"))))
+      when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r", 4, "url_D"))))
+
+      when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("Procfile"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("deploy.properties"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(true))
+
+      dataSource.getTeamRepoMapping.futureValue shouldBe List(
+        TeamRepositories("A", List(Repository("A_r", "url_A", deployable = false))),
+        TeamRepositories("D", List(Repository("D_r", "url_D", deployable = true))))
+    }
+
 
     "Retry up to 5 times in the event of a failed api call" in {
 

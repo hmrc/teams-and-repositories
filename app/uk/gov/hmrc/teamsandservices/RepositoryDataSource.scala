@@ -31,6 +31,7 @@ import scala.util.{Failure, Success}
 
 
 case class TeamRepositories(teamName: String, repositories: List[Repository])
+
 case class Repository(name: String, url: String, isInternal: Boolean = false, deployable: Boolean = false)
 
 trait RepositoryDataSource {
@@ -79,17 +80,23 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       }
     }
 
-  private def mapRepository(organisation: GhOrganisation, repo: GhRepository) =
-    for {
-      hasAppFolder <- exponentialRetry(retries, initialDuration) {
-        hasPath(organisation, repo, "app")
-      }
-      hasProcfile <- exponentialRetry(retries, initialDuration) {
-        hasPath(organisation, repo, "Procfile")
-      }
-    } yield {
-      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, deployable = hasAppFolder || hasProcfile)
+  private def mapRepository(organisation: GhOrganisation, repo: GhRepository) = {
+    import uk.gov.hmrc.teamsandservices.FutureHelpers._
+
+    def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "app/application.conf"))
+
+    def hasProcFile = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
+
+    def isJavaService = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
+
+    (isPlayServiceF || isJavaService || hasProcFile) map { isDeployable =>
+
+      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, deployable = isDeployable)
     }
+
+
+  }
+
 
   def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String): Future[Boolean] = {
     gh.repoContainsContent(path, repo.name, organisation.login)
@@ -113,8 +120,8 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
 
 
 class CachingRepositoryDataSource[T](
-                                      akkaSystem:ActorSystem,
-                                      cacheConfig:CacheConfig,
+                                      akkaSystem: ActorSystem,
+                                      cacheConfig: CacheConfig,
                                       dataSource: () => Future[T],
                                       timeStamp: () => LocalDateTime) {
 
@@ -130,7 +137,8 @@ class CachingRepositoryDataSource[T](
       val stamp = timeStamp()
       Logger.debug(s"Cache reloaded at $stamp")
       new CachedResult(d, stamp)
-    }}
+    }
+    }
   }
 
   def getCachedTeamRepoMapping: Future[CachedResult[T]] = {
@@ -149,7 +157,7 @@ class CachingRepositoryDataSource[T](
     dataUpdate()
   }
 
-  private def dataUpdate(){
+  private def dataUpdate() {
     fromSource.onComplete {
       case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
       case Success(d) => {
