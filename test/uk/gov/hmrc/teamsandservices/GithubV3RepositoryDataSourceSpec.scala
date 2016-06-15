@@ -119,8 +119,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r", 4, "url_D"))))
       when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
 
-      when(githubClient.repoContainsContent("app/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
-      when(githubClient.repoContainsContent("app/application.conf","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
+      when(githubClient.repoContainsContent("conf/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent("conf/application.conf","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
