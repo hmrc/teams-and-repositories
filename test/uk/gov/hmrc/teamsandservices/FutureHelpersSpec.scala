@@ -22,18 +22,17 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class RichFutureSpec extends WordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
+class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
 
-  "RichFutures ||" should {
+  "FutureOfBoolean ||" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers._
+      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 
       def delayedF1 = Future {
         Thread.sleep(50); counter += 1; false
       }
-
 
       def delayedF2 = Future {
         Thread.sleep(50); counter += 1; true
@@ -43,22 +42,19 @@ class RichFutureSpec extends WordSpec with Matchers with ScalaFutures with Defau
         Thread.sleep(50); counter += 1; false
       }
 
-
       (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe true
 
       counter shouldBe 2
-
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers._
+      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 
       def delayedF1 = Future {
         Thread.sleep(50); counter += 1; false
       }
-
 
       def delayedF2 = Future {
         Thread.sleep(50); counter += 1; false
@@ -68,11 +64,9 @@ class RichFutureSpec extends WordSpec with Matchers with ScalaFutures with Defau
         Thread.sleep(50); counter += 1; false
       }
 
-
       (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe false
 
       counter shouldBe 3
-
     }
   }
 

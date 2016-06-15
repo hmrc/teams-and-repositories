@@ -23,7 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object FutureHelpers {
 
-  implicit class RichFuture(f: Future[Boolean]) {
+  implicit class FutureOfBoolean(f: Future[Boolean]) {
 
     def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
 
