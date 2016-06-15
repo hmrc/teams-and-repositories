@@ -83,7 +83,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository) = {
     import uk.gov.hmrc.teamsandservices.FutureHelpers._
 
-    def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "app/application.conf"))
+    def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
 
     def hasProcFileF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
 
