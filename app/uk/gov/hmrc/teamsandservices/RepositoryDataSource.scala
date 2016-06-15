@@ -85,16 +85,14 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
     def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "app/application.conf"))
 
-    def hasProcFile = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
+    def hasProcFileF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
 
-    def isJavaService = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
+    def isJavaServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
 
-    (isPlayServiceF || isJavaService || hasProcFile) map { isDeployable =>
+    (isPlayServiceF || isJavaServiceF || hasProcFileF) map { isDeployable =>
 
       Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, deployable = isDeployable)
     }
-
-
   }
 
 
