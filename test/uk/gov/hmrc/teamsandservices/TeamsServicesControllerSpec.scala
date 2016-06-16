@@ -22,7 +22,7 @@ import org.mockito.Mockito._
 import org.scalatest.OptionValues
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -134,35 +134,49 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     }
   }
 
+
   "Retrieving a list of all services" should {
 
-    "Return a json representation of the data sorted alphabetically, including the cache timestamp" in {
+    "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request has a servicedetails content type" in {
+      val controller = controllerWithData(defaultData)
+
+      val result = controller.services().apply(
+        FakeRequest().withHeaders(ACCEPT -> "application/vnd.servicedetails.hal+json"))
+
+      val resultJson = contentAsJson(result)
+
+      val serviceNames = resultJson.as[Seq[JsObject]].map(_.value("name").as[String])
+      serviceNames mustBe List("another-repo", "middle-repo", "repo-name")
+
+      val last = resultJson.as[Seq[JsObject]].last
+
+      val githubLinks = (last \ "githubUrls").as[JsArray].value
+      last.nameField mustBe "repo-name"
+      last.teamNameSeq mustBe Seq("test-team")
+      githubLinks.head.nameField mustBe "github-open"
+      githubLinks.head.urlField mustBe "repo-url"
+
+      val environments = (last \ "environments").as[JsArray].value
+
+      val env1Services = environments.find(_ \ "name" == JsString("env1")).value.as[JsObject] \ "services"
+      val env1Links = env1Services.as[List[Map[String, String]]].toSet
+      env1Links mustBe Set(
+        Map("name" -> "kibana", "url" -> "repo-name"),
+        Map("name" -> "grafana", "url" -> "repo-name"))
+
+      val env2Services = environments.find(_ \ "name" == JsString("env2")).value.as[JsObject] \ "services"
+      val env2Links = env2Services.as[List[Map[String, String]]].toSet
+      env2Links mustBe Set(
+        Map("name" -> "kibana", "url" -> "repo-name"))
+    }
+
+    "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request doesn't have a servicedetails content type" in {
       val controller = controllerWithData(defaultData)
       val result = controller.services().apply(FakeRequest())
 
-      val json = contentAsJson(result)
-      header("x-cache-timesamp", result)
+      val serviceList = contentAsJson(result).as[Seq[String]]
 
-      val first = json.as[JsArray].value.head
-      val firstGithubLinks = (first \ "githubUrls").as[JsArray].value
-      (first \ "name").as[String] mustBe "another-repo"
-      (first \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
-      (firstGithubLinks(0) \ "name").as[String] mustBe "github-open"
-      (firstGithubLinks(0) \ "url").as[String] mustBe "another-url"
-
-      val second = json.as[JsArray].value(1)
-      val secondGithubLinks = (second \ "githubUrls").as[JsArray].value
-      (second \ "name").as[String] mustBe "middle-repo"
-      (second \ "teamNames").as[Seq[String]] mustBe Seq("another-team")
-      (secondGithubLinks(0) \ "name").as[String] mustBe "github-open"
-      (secondGithubLinks(0) \ "url").as[String] mustBe "middle-url"
-
-      val third = json.as[JsArray].value(2)
-      val thirdGithubLinks = (third \ "githubUrls").as[JsArray].value
-      (third \ "name").as[String] mustBe "repo-name"
-      (third \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
-      (thirdGithubLinks(0) \ "name").as[String] mustBe "github-open"
-      (thirdGithubLinks(0) \ "url").as[String] mustBe "repo-url"
+      serviceList mustBe Seq("another-repo", "middle-repo", "repo-name")
     }
 
     //TODO this should not be a controller test
@@ -177,14 +191,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val controller = controllerWithData(sourceData)
       val result = controller.services().apply(FakeRequest())
 
-      val json = contentAsJson(result)
-      val first = json.as[JsArray].value.head
-      val second = json.as[JsArray].value(1)
-      val third = json.as[JsArray].value(2)
-
-      (first \ "name").as[String] mustBe "aadvark-repo"
-      (second \ "name").as[String] mustBe "Another-repo"
-      (third \ "name").as[String] mustBe "repo-name"
+      contentAsJson(result).as[List[String]] mustBe List("aadvark-repo", "Another-repo", "repo-name")
     }
 
     //TODO this should not be a controller test
@@ -202,13 +209,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val json = contentAsJson(result)
 
-      val first = json.as[JsArray].value.head
-      (first \ "name").as[String] mustBe "repo-name"
-      (first \ "teamNames").as[Seq[String]] mustBe Seq("test-team", "another-team")
-
-      val githubLinks = (first \ "githubUrls").as[JsArray].value
-      (githubLinks(0) \ "name").as[String] mustBe "github-open"
-      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
+      json.as[JsArray].value.size mustBe 1
     }
 
     //TODO this should not be a controller test
@@ -222,7 +223,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
         timestamp)
 
       val controller = controllerWithData(data)
-      val result = controller.services().apply(FakeRequest())
+      val result = controller.services().apply(FakeRequest().withHeaders(ACCEPT -> "application/vnd.servicedetails.hal+json"))
 
       val json = contentAsJson(result)
 
@@ -230,16 +231,16 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       jsonData.length mustBe 1
 
       val first = jsonData.head
-      (first \ "name").as[String] mustBe "repo-name"
-      (first \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
+      first.nameField mustBe "repo-name"
+      first.teamNameSeq mustBe Seq("test-team")
 
       val githubLinks = (first \ "githubUrls").as[JsArray].value
 
-      (githubLinks(0) \ "name").as[String] mustBe "github"
-      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
+      githubLinks(0).nameField mustBe "github"
+      githubLinks(0).urlField mustBe "repo-url"
 
-      (githubLinks(1) \ "name").as[String] mustBe "github-open"
-      (githubLinks(1) \ "url").as[String] mustBe "repo-open-url"
+      githubLinks(1).nameField mustBe "github-open"
+      githubLinks(1).urlField mustBe "repo-open-url"
 
     }
 
@@ -297,10 +298,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val json = contentAsJson(result)
 
       val githubLinks = (json \ "githubUrls").as[JsArray].value
-      (json \ "name").as[String] mustBe "repo-name"
-      (json \ "teamNames").as[Seq[String]] mustBe Seq("test-team")
-      (githubLinks.head \ "name").as[String] mustBe "github-open"
-      (githubLinks.head \ "url").as[String] mustBe "repo-url"
+
+      json.nameField mustBe "repo-name"
+      json.teamNameSeq mustBe Seq("test-team")
+      githubLinks.head.nameField mustBe "github-open"
+      githubLinks.head.urlField mustBe "repo-url"
 
       val environments = (json \ "environments").as[JsArray].value
       
@@ -322,5 +324,12 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       status(result) mustBe 404
     }
+  }
+
+  implicit class RichJsonValue(obj:JsValue){
+    def string(st:String):String= (obj \ st).as[String]
+    def nameField = (obj \ "name").as[String]
+    def urlField = (obj \ "url").as[String]
+    def teamNameSeq = (obj \ "teamNames").as[Seq[String]]
   }
 }

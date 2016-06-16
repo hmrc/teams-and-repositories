@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.time.LocalDateTime
 import java.util.concurrent.Executors
 
-import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.{Json, Writes}
-import play.api.mvc.{Action, Result}
+import play.api.libs.json.Json
+import play.api.mvc.{Accepting, Action}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -75,6 +73,8 @@ trait TeamsServicesController extends BaseController {
   implicit val serviceFormats = Json.format[Service]
   implicit val teamFormats = Json.format[TeamServices]
 
+  private val ServiceDetailsContentType = Accepting("application/vnd.servicedetails.hal+json")
+
   def service(name:String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { teams =>
       val serviceList = teams.asServicesList(ciUrlTemplates)
@@ -91,9 +91,10 @@ trait TeamsServicesController extends BaseController {
   }
 
   def services() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { teams =>
-      OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))
-    }
+    dataSource.getCachedTeamRepoMapping.map { teams => render {
+      case Accepts.Json() => OkWithCachedTimestamp(teams.asServiceNameList)
+      case ServiceDetailsContentType() => OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))
+    }}
   }
 
   def teams() = Action.async { implicit request =>
