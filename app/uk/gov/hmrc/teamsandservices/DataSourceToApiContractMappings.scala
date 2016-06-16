@@ -30,6 +30,13 @@ object DataSourceToApiContractMappings {
 
     def asTeamsList = cachedTeamRepositories.map { teams => teams.map(_.teamName) }
 
+    def asServiceNameList = cachedTeamRepositories.map { data =>
+      repositoryTeams(data)
+        .flatMap(_.repositories.map(_.name))
+        .distinct
+        .sortBy(_.toUpperCase)
+    }
+
     def asServicesList(ciUrlTemplates: UrlTemplates): CachedResult[Seq[Service]] =
       cachedTeamRepositories.map { data =>
         repositoryTeams(data)

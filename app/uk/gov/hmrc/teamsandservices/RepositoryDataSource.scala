@@ -141,6 +141,9 @@ class CachingRepositoryDataSource[T](
 
   def getCachedTeamRepoMapping: Future[CachedResult[T]] = {
     Logger.info(s"cachedData is available = ${cachedData.isDefined}")
+    if(cachedData.isEmpty && initialPromise.isCompleted){
+      Logger.warn("in unexpected state where initial promise is complete but there is not cached data. Perform manual reload.")
+    }
     cachedData.fold(initialPromise.future)(d => Future.successful(d))
   }
 
