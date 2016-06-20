@@ -50,7 +50,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "a-frontend",
         "https://not-open-github/org/a-frontend",
         isInternal = true,
-        deployable = true))
+        isDeployable = true))
 
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
@@ -63,7 +63,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       val repo = Seq(Repository(
         "a-frontend",
         "https://github.com/org/a-frontend",
-        deployable = true))
+        isDeployable = true))
 
       val service = repoGroupToService(repo, Seq("teamName"), urlTemplates)
 
@@ -75,7 +75,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       val aFrontend = Repository(
         "a-frontend",
         "https://not-open-github/org/a-frontend",
-        deployable = true)
+        isDeployable = true)
 
 
       val repos = Seq(aFrontend)
@@ -93,12 +93,12 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "a-frontend",
         "https://not-open-github/org/a-frontend",
         isInternal = true,
-        deployable = true)
+        isDeployable = true)
 
       val openRepo = Repository(
         "a-frontend",
         "https://github.com/org/a-frontend",
-        deployable = true)
+        isDeployable = true)
 
       val repos = Seq(internalRepo, openRepo)
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
