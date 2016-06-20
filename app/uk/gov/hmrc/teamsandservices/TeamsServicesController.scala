@@ -19,13 +19,11 @@ package uk.gov.hmrc.teamsandservices
 import java.time.LocalDateTime
 import java.util.concurrent.Executors
 
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
-import play.api.mvc.{Accepting, Action}
+import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
 import uk.gov.hmrc.teamsandservices.config._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -62,7 +60,7 @@ with UrlTemplatesProvider {
 
 trait TeamsServicesController extends BaseController {
 
-  import Results._
+  import TeamRepositoryWrapper._
 
   protected def ciUrlTemplates: UrlTemplates
 
@@ -74,42 +72,29 @@ trait TeamsServicesController extends BaseController {
   implicit val teamFormats = Json.format[TeamServices]
 
   private val ServiceDetailsContentType = Accepting("application/vnd.servicedetails.hal+json")
+  private val CachedTeamsAction = CachedTeamsActionBuilder(dataSource.getCachedTeamRepoMapping _)
 
-  def service(name:String) = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { teams =>
-      val serviceList = teams.asServicesList(ciUrlTemplates)
 
-      val maybeService = serviceList.data
-        .find(_.name == name)
-        .map { s => serviceList.map(_ => s) }
-
-      maybeService match {
-        case None => NotFound
-        case Some(s) => OkWithCachedTimestamp(s)
-      }
+  def service(name:String) = CachedTeamsAction { implicit request =>
+    request.teams.findService(name, ciUrlTemplates) match {
+      case None => NotFound
+      case Some(x) => Results.Ok(Json.toJson(x))
     }
   }
 
-  def services() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { teams => render {
-      case Accepts.Json() => OkWithCachedTimestamp(teams.asServiceNameList)
-      case ServiceDetailsContentType() => OkWithCachedTimestamp(teams.asServicesList(ciUrlTemplates))
-    }}
+  def services() = CachedTeamsAction { implicit request => render {
+    case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
+    case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asServicesList(ciUrlTemplates)))
+  }}
+
+  def teams() = CachedTeamsAction { implicit request =>
+    Results.Ok(Json.toJson(request.teams.asTeamNameList))
   }
 
-  def teams() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { teams =>
-      OkWithCachedTimestamp(teams.asTeamsList)
-    }
-  }
-
-  def teamServices(teamName: String) = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { teams =>
-      val cached = teams.asTeamServices(teamName, ciUrlTemplates)
-      cached.data match {
-        case None => NotFound
-        case Some(x) => OkWithCachedTimestamp(x)
-      }
+  def teamServices(teamName: String) = CachedTeamsAction { implicit request =>
+    request.teams.asTeamServiceNameList(teamName) match {
+      case None => NotFound
+      case Some(x) => Results.Ok(Json.toJson(x))
     }
   }
 

@@ -18,9 +18,11 @@ package uk.gov.hmrc.teamsandservices
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
-import uk.gov.hmrc.teamsandservices.DataSourceToApiContractMappings._
+import uk.gov.hmrc.teamsandservices.TeamRepositoryWrapper._
 
 class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with OptionValues {
+
+  import TeamRepositoryWrapper._
 
   val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
@@ -50,7 +52,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         isInternal = true,
         deployable = true))
 
-      val service = repos.asService(Seq("teamName"), urlTemplates).value
+      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.githubUrls shouldBe Seq(Link("github", "https://not-open-github/org/a-frontend"))
       service.ci shouldBe List(Link("closed", "http://closed/a-frontend"))
@@ -63,7 +65,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "https://github.com/org/a-frontend",
         deployable = true))
 
-      val service = repo.asService(Seq("teamName"), urlTemplates).value
+      val service = repoGroupToService(repo, Seq("teamName"), urlTemplates)
 
       service.githubUrls shouldBe Seq(Link("github-open", "https://github.com/org/a-frontend"))
       service.ci shouldBe List(Link("open", "http://open/a-frontend"))
@@ -78,7 +80,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repos = Seq(aFrontend)
 
-      val service = repos.asService(Seq("teamName"), urlTemplates).value
+      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.environments.size shouldBe 2
       service.environments.find(_.name == "env1").value shouldBe Environment("env1", Seq(Link("kibana","a-frontend"), Link("grafana","a-frontend")))
@@ -99,7 +101,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         deployable = true)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repos.asService(Seq("teamName"), urlTemplates).value
+      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.githubUrls shouldBe Seq(
         Link("github", "https://not-open-github/org/a-frontend"),

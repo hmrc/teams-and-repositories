@@ -59,7 +59,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
         Repository("repo-name", "repo-url", deployable = true))),
       new TeamRepositories("another-team", List(
         Repository("another-repo", "another-url", deployable = true),
-        Repository("middle-repo", "middle-url", deployable = true)))
+        Repository("middle-repo", "middle-url", deployable = true),
+        Repository("library-repo", "library-url", deployable = false)))
     ),
     timestamp)
 
@@ -97,23 +98,14 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   "Retrieving a list of services for a team" should {
 
-    "Return a json representation of the data, including the cache timestamp" in {
+    "Return a the serivces belonging to a team, excluding un-deployables" in {
       val controller = controllerWithData(defaultData)
-      val result = controller.teamServices("test-team").apply(FakeRequest())
+      val result = controller.teamServices("another-team").apply(FakeRequest())
 
       val timestampHeader = header("x-cache-timestamp", result)
-      val data = contentAsJson(result).as[JsArray].value
+      val data = contentAsJson(result).as[List[String]]
 
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-      data.length mustBe 1
-
-      val service = data.head
-      (service \ "name").as[String] mustBe "repo-name"
-
-      val githubLinks = (service \ "githubUrls").as[JsArray].value
-      (githubLinks(0) \ "name").as[String] mustBe "github-open"
-      (githubLinks(0) \ "url").as[String] mustBe "repo-url"
-
+      data mustBe List("another-repo", "middle-repo")
     }
 
     "Return information about all the teams that have access to a repo" in {
@@ -127,10 +119,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val controller = controllerWithData(sourceData)
       val result = controller.teamServices("another-team").apply(FakeRequest())
 
-      val data = contentAsJson(result).as[JsArray].value
-
-      val service = data.head
-      (service \ "teamNames").as[Seq[String]] mustBe Seq("test-team", "another-team")
+      contentAsJson(result).as[List[String]] mustBe List("repo-name")
     }
   }
 
@@ -296,6 +285,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       status(result) mustBe 200
       val json = contentAsJson(result)
+
+      println(s"json = $json")
+
 
       val githubLinks = (json \ "githubUrls").as[JsArray].value
 
