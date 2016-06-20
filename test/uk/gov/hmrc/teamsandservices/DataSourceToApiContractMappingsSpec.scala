@@ -54,7 +54,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
-      service.githubUrls shouldBe Seq(Link("github", "https://not-open-github/org/a-frontend"))
+      service.githubUrls shouldBe Seq(Link("GitHub Enterprise", "https://not-open-github/org/a-frontend"))
       service.ci shouldBe List(Link("closed", "http://closed/a-frontend"))
     }
 
@@ -67,7 +67,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val service = repoGroupToService(repo, Seq("teamName"), urlTemplates)
 
-      service.githubUrls shouldBe Seq(Link("github-open", "https://github.com/org/a-frontend"))
+      service.githubUrls shouldBe Seq(Link("GitHub.com", "https://github.com/org/a-frontend"))
       service.ci shouldBe List(Link("open", "http://open/a-frontend"))
     }
 
@@ -104,8 +104,8 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.githubUrls shouldBe Seq(
-        Link("github", "https://not-open-github/org/a-frontend"),
-        Link("github-open", "https://github.com/org/a-frontend"))
+        Link("GitHub Enterprise", "https://not-open-github/org/a-frontend"),
+        Link("GitHub.com", "https://github.com/org/a-frontend"))
 
       service.ci shouldBe List(Link("open", "http://open/a-frontend"))
     }

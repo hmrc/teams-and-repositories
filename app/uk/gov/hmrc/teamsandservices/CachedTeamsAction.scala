@@ -41,13 +41,9 @@ object CachedTeamsActionBuilder {
       dataSource().flatMap { cachedTeams =>
 
         val teamServices = cachedTeams.map { teams =>
-          println("before " + teams.find(_.teamName.toLowerCase() == "cato"))
-          val deployoable = teams.map { s =>
+          teams.map { s =>
             TeamRepositories(s.teamName, s.repositories.filter(_.deployable))
           }
-          println("after " + deployoable.find(_.teamName.toLowerCase()  == "cato"))
-
-          deployoable
         }
 
         block(new TeamsRequest(teamServices.data, request)).map { res =>
