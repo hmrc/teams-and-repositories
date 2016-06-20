@@ -126,6 +126,20 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       contentAsJson(result).as[List[String]] mustBe List("repo-name")
     }
+
+    "not show the same service twice when it has an open and internal source repository" in {
+      val sourceData = new CachedResult[Seq[TeamRepositories]](
+        Seq(new TeamRepositories("test-team", List(
+          Repository("repo-name", "Another-url", isDeployable = true),
+          Repository("repo-name", "repo-url", isDeployable = true),
+          Repository("aadvark-repo", "aadvark-url", isDeployable = true)))),
+        timestamp)
+
+      val controller = controllerWithData(sourceData)
+      val result = controller.teamServices("test-team").apply(FakeRequest())
+
+      contentAsJson(result).as[List[String]] mustBe List("aadvark-repo", "repo-name")
+    }
   }
 
 
@@ -172,7 +186,6 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       serviceList mustBe Seq("another-repo", "middle-repo", "repo-name")
     }
 
-    //TODO this should not be a controller test
     "Ignore case when sorting alphabetically" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
