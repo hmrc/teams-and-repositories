@@ -30,7 +30,7 @@ import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
 
-class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues{
+class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues {
 
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
 
@@ -64,6 +64,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     ),
     timestamp)
 
+  def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl:String = "repo-url", isInternal: Boolean = true) = {
+    new CachedResult[Seq[TeamRepositories]](Seq(
+      new TeamRepositories("test-team", List(
+        Repository(repoName,repoUrl, deployable = true, isInternal = isInternal)))), timestamp)
+  }
 
 
   "Teams controller" should {
@@ -139,11 +144,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val last = resultJson.as[Seq[JsObject]].last
 
-      val githubLinks = (last \ "githubUrls").as[JsArray].value
+      (last \ "githubUrls").as[JsArray].value.size mustBe 1
+
       last.nameField mustBe "repo-name"
       last.teamNameSeq mustBe Seq("test-team")
-      githubLinks.head.nameField mustBe "github-open"
-      githubLinks.head.urlField mustBe "repo-url"
 
       val environments = (last \ "environments").as[JsArray].value
 
@@ -225,10 +229,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val githubLinks = (first \ "githubUrls").as[JsArray].value
 
-      githubLinks(0).nameField mustBe "github"
+      githubLinks(0).nameField mustBe "GitHub Enterprise"
       githubLinks(0).urlField mustBe "repo-url"
 
-      githubLinks(1).nameField mustBe "github-open"
+      githubLinks(1).nameField mustBe "GitHub.com"
       githubLinks(1).urlField mustBe "repo-open-url"
 
     }
@@ -279,6 +283,16 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   "Retrieving a service" should {
 
+    "return the internal source control name for an internal repo" in {
+      val controller = controllerWithData(singleRepoResult(repoName = "r1", repoUrl = "ru", isInternal = false))
+      val result = controller.service("r1").apply(FakeRequest())
+
+      val githubLinks = (contentAsJson(result) \ "githubUrls").as[JsArray].value
+
+      githubLinks.head.nameField mustBe "GitHub.com"
+      githubLinks.head.urlField mustBe "ru"
+    }
+
     "Return a json representation of the service" in {
       val controller = controllerWithData(defaultData)
       val result = controller.service("repo-name").apply(FakeRequest())
@@ -286,18 +300,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       status(result) mustBe 200
       val json = contentAsJson(result)
 
-      println(s"json = $json")
-
-
-      val githubLinks = (json \ "githubUrls").as[JsArray].value
-
       json.nameField mustBe "repo-name"
       json.teamNameSeq mustBe Seq("test-team")
-      githubLinks.head.nameField mustBe "github-open"
-      githubLinks.head.urlField mustBe "repo-url"
 
       val environments = (json \ "environments").as[JsArray].value
-      
+
       val env1Services = environments.find(_ \ "name" == JsString("env1")).value.as[JsObject] \ "services"
       val env1Links = env1Services.as[List[Map[String, String]]].toSet
       env1Links mustBe Set(
