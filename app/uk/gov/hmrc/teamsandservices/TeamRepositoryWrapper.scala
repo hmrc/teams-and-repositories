@@ -56,6 +56,8 @@ object TeamRepositoryWrapper {
       val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
       teamServiceRepos.find(_.teamName == decodedTeamName).map { t =>
         t.repositories.map(_.name)
+          .distinct
+          .sortBy(_.toUpperCase)
       }
     }
 
