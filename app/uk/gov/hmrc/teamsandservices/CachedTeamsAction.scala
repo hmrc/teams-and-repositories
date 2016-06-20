@@ -42,7 +42,7 @@ object CachedTeamsActionBuilder {
 
         val teamServices = cachedTeams.map { teams =>
           teams.map { s =>
-            TeamRepositories(s.teamName, s.repositories.filter(_.deployable))
+            TeamRepositories(s.teamName, s.repositories.filter(_.isDeployable))
           }
         }
 

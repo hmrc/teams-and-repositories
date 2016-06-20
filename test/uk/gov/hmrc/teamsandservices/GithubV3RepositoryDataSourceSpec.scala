@@ -123,7 +123,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("conf/application.conf","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
+        TeamRepositories("A", List(Repository("A_r", "url_A", isDeployable = true))),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
     }
 
@@ -140,7 +140,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("Procfile","B_r","HMRC")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "url_A", deployable = true))),
+        TeamRepositories("A", List(Repository("A_r", "url_A", isDeployable = true))),
         TeamRepositories("D", List(Repository("D_r", "url_D"))))
     }
 
@@ -160,8 +160,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(same("deploy.properties"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(true))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "url_A", deployable = false))),
-        TeamRepositories("D", List(Repository("D_r", "url_D", deployable = true))))
+        TeamRepositories("A", List(Repository("A_r", "url_A", isDeployable = false))),
+        TeamRepositories("D", List(Repository("D_r", "url_D", isDeployable = true))))
     }
 
 

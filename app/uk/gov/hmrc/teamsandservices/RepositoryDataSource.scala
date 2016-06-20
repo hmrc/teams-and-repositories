@@ -32,7 +32,7 @@ import scala.util.{Failure, Success}
 
 case class TeamRepositories(teamName: String, repositories: List[Repository])
 
-case class Repository(name: String, url: String, isInternal: Boolean = false, deployable: Boolean = false)
+case class Repository(name: String, url: String, isInternal: Boolean = false, isDeployable: Boolean = false)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -91,7 +91,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
     (isPlayServiceF || isJavaServiceF || hasProcFileF) map { isDeployable =>
 
-      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, deployable = isDeployable)
+      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, isDeployable = isDeployable)
     }
   }
 
