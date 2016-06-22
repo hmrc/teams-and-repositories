@@ -73,11 +73,11 @@ object TeamRepositoryWrapper {
 
     val primaryRepository = repositories.sortBy(_.isInternal).head
 
-    def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.url(primaryRepository.name))).toList
+    def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(primaryRepository.name))).toList
 
     def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] ={
       urlTemplates.environments.map { case(name, tps) =>
-        val links = tps.map { tp => Link(tp.name, tp.url(repository.name)) }
+        val links = tps.map { tp => Link(tp.name, tp.displayName, tp.url(repository.name)) }
         Environment(name, links)
       }.toSeq
     }
@@ -87,11 +87,17 @@ object TeamRepositoryWrapper {
         case true => buildUrls(urlTemplates.ciClosed)
         case false => buildUrls(urlTemplates.ciOpen) }
 
+    def githubName(isInternal:Boolean) = if (isInternal) "github-enterprise" else "github-com"
+    def githubDisplayName(isInternal:Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
+
     Service(
       primaryRepository.name,
       teamNames,
       repositories.map { repo =>
-        Link(if (repo.isInternal) "github-enterprise" else "github-com", repo.url)
+        Link(
+          githubName(repo.isInternal),
+          githubDisplayName(repo.isInternal),
+          repo.url)
       },
       buildCiUrls(primaryRepository, urlTemplates),
       buildEnvironmentUrls(primaryRepository, urlTemplates))

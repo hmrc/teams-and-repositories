@@ -32,19 +32,23 @@ class TeamsAndServicesConfigSpec extends WordSpec with Matchers {
         |  ci-closed : [
         |    {
         |      name: "ci-closed1"
+        |      display-name: "closed 1"
         |      url: "http://closed1/$name"
         |    },
         |    {
         |      name: "ci-closed2"
+        |      display-name: "closed 2"
         |      url: "http://closed2/$name"
         |    }]
         |  ci-open : [
         |    {
         |      name: "ci-open1"
+        |      display-name: "open 1"
         |      url: "http://open1/$name"
         |    },
         |    {
         |      name: "ci-open2"
+        |      display-name: "open 2"
         |      url: "http://open2/$name"
         |    }]
         |}}
@@ -61,11 +65,11 @@ class TeamsAndServicesConfigSpec extends WordSpec with Matchers {
     "return all the url templates" in new Setup {
       val conf = new UrlTemplatesProvider() {}
       val templates: UrlTemplates = conf.ciUrlTemplates
-      templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "http://closed1/$name"), UrlTemplate("ci-closed2", "http://closed2/$name"))
-      templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "http://open1/$name"), UrlTemplate("ci-open2", "http://open2/$name"))
+      templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "closed 1", "http://closed1/$name"), UrlTemplate("ci-closed2", "closed 2", "http://closed2/$name"))
+      templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "open 1", "http://open1/$name"), UrlTemplate("ci-open2", "open 2", "http://open2/$name"))
       templates.environments shouldBe Map(
-        "env1" -> Seq(UrlTemplate("ser1", "http://ser1/$name"), UrlTemplate("ser2", "http://ser2/$name")),
-        "env2" -> Seq(UrlTemplate("ser1", "http://ser1/$name"), UrlTemplate("ser2", "http://ser2/$name"))
+        "env1" -> Seq(UrlTemplate("ser1", "ser 1", "http://ser1/$name"), UrlTemplate("ser2", "ser 2", "http://ser2/$name")),
+        "env2" -> Seq(UrlTemplate("ser1", "ser 1", "http://ser1/$name"), UrlTemplate("ser2", "ser 2", "http://ser2/$name"))
       )
     }
 

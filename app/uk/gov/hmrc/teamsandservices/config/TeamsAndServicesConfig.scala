@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 
 case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate], environments:Map[String, Seq[UrlTemplate]])
 
-case class UrlTemplate(name: String, template: String) {
+case class UrlTemplate(name: String, displayName: String, template: String) {
   def url(serviceName : String) = template.replace("$name", serviceName)
 }
 
@@ -73,7 +73,8 @@ trait UrlTemplatesProvider {
   private def readLink(config:Configuration):Option[UrlTemplate]={
     for {
       name <- config.getString("name")
+      displayName <- config.getString("display-name")
       url <- config.getString("url")
-    } yield UrlTemplate(name, url)
+    } yield UrlTemplate(name, displayName, url)
   }
 }
