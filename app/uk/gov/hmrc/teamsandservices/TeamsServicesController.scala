@@ -29,7 +29,7 @@ import uk.gov.hmrc.teamsandservices.config._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class Environment(name:String, services:Seq[Link])
-case class Link(name: String, url: String)
+case class Link(name: String, displayName:String, url: String)
 case class TeamServices(teamName: String, Services: List[Service])
 case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link], environments:Seq[Environment])
 

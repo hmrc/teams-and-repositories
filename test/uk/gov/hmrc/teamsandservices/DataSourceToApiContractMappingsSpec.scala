@@ -26,23 +26,28 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
   val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
-      name = "open",
+      name = "open1",
+      displayName = "open 1",
       template = "http://open/$name"
     )),
     ciClosed = Seq(UrlTemplate(
-      name = "closed",
+      name = "closed1",
+      displayName = "closed 1",
       template = "http://closed/$name"
     )),
     environments = Map(
       "env1" -> Seq(
-        new UrlTemplate("kibana", "$name"),
-        new UrlTemplate("grafana", "$name")),
+        new UrlTemplate("log1", "log 1", "$name"),
+        new UrlTemplate("mon1", "mon 1", "$name")),
       "env2" -> Seq(
-        new UrlTemplate("kibana", "$name"))
+        new UrlTemplate("log1", "log 1", "$name"))
     )
   )
 
-  "Mapping between repositories and services" should {
+  def enterpriseGithubLink(url:String) = Link("github-enterprise", "Github Enterprise", url)
+  def openGithubLink(url:String) = Link("github-com", "GitHub.com", url)
+
+    "Mapping between repositories and services" should {
 
     "create links for a closed service" in {
 
@@ -54,8 +59,8 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
-      service.githubUrls shouldBe Seq(Link("github-enterprise", "https://not-open-github/org/a-frontend"))
-      service.ci shouldBe List(Link("closed", "http://closed/a-frontend"))
+      service.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-frontend"))
+      service.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
     }
 
     "create links for a open service" in {
@@ -67,8 +72,9 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val service = repoGroupToService(repo, Seq("teamName"), urlTemplates)
 
-      service.githubUrls shouldBe Seq(Link("github-com", "https://github.com/org/a-frontend"))
-      service.ci shouldBe List(Link("open", "http://open/a-frontend"))
+
+      service.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
+      service.ci shouldBe List(Link("open1","open 1", "http://open/a-frontend"))
     }
 
     "create links for each environment" in {
@@ -83,8 +89,9 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.environments.size shouldBe 2
-      service.environments.find(_.name == "env1").value shouldBe Environment("env1", Seq(Link("kibana","a-frontend"), Link("grafana","a-frontend")))
-      service.environments.find(_.name == "env2").value shouldBe Environment("env2", Seq(Link("kibana","a-frontend")))
+
+      service.environments.find(_.name == "env1").value shouldBe Environment("env1", List(Link("log1", "log 1", "a-frontend"), Link("mon1","mon 1", "a-frontend")))
+      service.environments.find(_.name == "env2").value shouldBe Environment("env2", List(Link("log1", "log 1", "a-frontend")))
     }
 
     "create github links for both open and internal services if both are present, but only open ci links" in {
@@ -104,10 +111,10 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
 
       service.githubUrls shouldBe Seq(
-        Link("github-enterprise", "https://not-open-github/org/a-frontend"),
-        Link("github-com", "https://github.com/org/a-frontend"))
+        enterpriseGithubLink("https://not-open-github/org/a-frontend"),
+        openGithubLink("https://github.com/org/a-frontend"))
 
-      service.ci shouldBe List(Link("open", "http://open/a-frontend"))
+      service.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
   }
 }
