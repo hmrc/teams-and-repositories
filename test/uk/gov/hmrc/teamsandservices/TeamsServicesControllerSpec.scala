@@ -242,10 +242,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val githubLinks = (first \ "githubUrls").as[JsArray].value
 
-      githubLinks(0).nameField mustBe "GitHub Enterprise"
+      githubLinks(0).nameField mustBe "github-enterprise"
       githubLinks(0).urlField mustBe "repo-url"
 
-      githubLinks(1).nameField mustBe "GitHub.com"
+      githubLinks(1).nameField mustBe "github-com"
       githubLinks(1).urlField mustBe "repo-open-url"
 
     }
@@ -302,7 +302,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val githubLinks = (contentAsJson(result) \ "githubUrls").as[JsArray].value
 
-      githubLinks.head.nameField mustBe "GitHub.com"
+      githubLinks.head.nameField mustBe "github-com"
       githubLinks.head.urlField mustBe "ru"
     }
 
