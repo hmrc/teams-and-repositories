@@ -91,7 +91,7 @@ object TeamRepositoryWrapper {
       primaryRepository.name,
       teamNames,
       repositories.map { repo =>
-        Link(if (repo.isInternal) "GitHub Enterprise" else "GitHub.com", repo.url)
+        Link(if (repo.isInternal) "github-enterprise" else "github-com", repo.url)
       },
       buildCiUrls(primaryRepository, urlTemplates),
       buildEnvironmentUrls(primaryRepository, urlTemplates))
