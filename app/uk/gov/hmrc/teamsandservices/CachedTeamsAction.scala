@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter
 
 import play.api.mvc.{ActionBuilder, Request, Result, WrappedRequest}
 
+import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -42,7 +43,7 @@ object CachedTeamsActionBuilder {
 
         val teamServices = cachedTeams.map { teams =>
           teams.map { s =>
-            TeamRepositories(s.teamName, s.repositories.filter(_.isDeployable))
+            TeamRepositories(s.teamName, extractRepositoriesForDeployableService(s.repositories))
           }
         }
 
@@ -51,6 +52,13 @@ object CachedTeamsActionBuilder {
         }
       }
     }
+  }
+
+  private def extractRepositoriesForDeployableService[A](repositories: List[Repository]): List[Repository] = {
+    repositories
+      .groupBy(_.name)
+      .filter { case (name, repos) => repos.exists(_.isDeployable) }
+      .flatMap(_._2).toList
   }
 
   private def format(dateTime: LocalDateTime): String = {

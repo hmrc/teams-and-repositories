@@ -69,7 +69,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
     }
 
 
-  def mapTeam(organisation: GhOrganisation, team: GhTeam) =
+  def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] =
     exponentialRetry(retries, initialDuration) {
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
@@ -80,7 +80,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       }
     }
 
-  private def mapRepository(organisation: GhOrganisation, repo: GhRepository) = {
+  private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[Repository] = {
     import uk.gov.hmrc.teamsandservices.FutureHelpers._
 
     def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
@@ -107,7 +107,7 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
 
   override def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
-      val flattened = results.flatten
+      val flattened: List[TeamRepositories] = results.flatten
 
       Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
       flattened.groupBy(_.teamName).map { case (name, teams) =>
