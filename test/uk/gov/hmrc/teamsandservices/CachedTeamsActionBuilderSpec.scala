@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandservices
 
 import java.time.LocalDateTime
 
+import org.scalatest.Matchers
 import play.api.mvc.{Result, Results}
 import play.api.test.{FakeRequest, PlaySpecification}
 
@@ -38,6 +39,45 @@ class CachedTeamsActionBuilderSpec extends PlaySpecification {
       header("X-Cache-Timestamp", result) shouldEqual Some("Sat, 1 Jan 2000 01:01:01 GMT")
 
       contentAsString(result) mustEqual "1"
+    }
+
+    "include repository with isDeployable=false as services if one of the repository with same name isDeployable" in {
+
+      var result = Map.empty[String, Seq[Repository]]
+
+      val aResult: Future[CachedResult[Seq[TeamRepositories]]] =
+        Future.successful(new CachedResult(
+          Seq(
+            TeamRepositories("teamName", List(
+              Repository("repo1", "", isInternal = false, isDeployable = true),
+              Repository("repo2", "", isInternal = true, isDeployable = true),
+              Repository("repo1", "", isInternal = true, isDeployable = false),
+              Repository("repo3", "", isInternal = true, isDeployable = false)
+            )
+            ),
+            TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, isDeployable = false)))
+          )
+          , LocalDateTime.of(2000, 1, 1, 1, 1, 1))
+        )
+
+      val resultF: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
+
+        result += ("repos" -> request.teams.flatMap(_.repositories))
+
+
+        Results.Ok("Success")
+
+      }, FakeRequest())
+
+
+      contentAsString(resultF) must contain("Success")
+      result("repos").toSet.size mustEqual 3
+      result("repos").toSet mustEqual Seq(
+        Repository("repo1", "", isInternal = false, isDeployable = true),
+        Repository("repo2", "", isInternal = true, isDeployable = true),
+        Repository("repo1", "", isInternal = true, isDeployable = false)
+      ).toSet
+
     }
   }
 }
