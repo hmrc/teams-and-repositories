@@ -79,5 +79,37 @@ class CachedTeamsActionBuilderSpec extends PlaySpecification {
       ).toSet
 
     }
+
+
+    "not include repository with prototypes in their names" in {
+
+      var result = Map.empty[String, Seq[Repository]]
+
+      val aResult: Future[CachedResult[Seq[TeamRepositories]]] =
+        Future.successful(new CachedResult(
+          Seq(
+            TeamRepositories("teamName", List(
+              Repository("repo1-prototype", "", isInternal = false, isDeployable = true)
+            )),
+            TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, isDeployable = false)))
+          )
+          , LocalDateTime.of(2000, 1, 1, 1, 1, 1))
+        )
+
+      val resultF: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
+
+        result += ("repos" -> request.teams.flatMap(_.repositories))
+
+
+        Results.Ok("Success")
+
+      }, FakeRequest())
+
+
+      contentAsString(resultF) must contain("Success")
+      result("repos").toSet.size mustEqual 0
+    }
+
+
   }
 }
