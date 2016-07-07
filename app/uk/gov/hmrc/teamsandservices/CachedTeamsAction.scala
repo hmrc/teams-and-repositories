@@ -57,8 +57,8 @@ object CachedTeamsActionBuilder {
   private def extractRepositoriesForDeployableService[A](repositories: List[Repository]): List[Repository] = {
     repositories
       .groupBy(_.name)
-      .filter { case (name, repos) => repos.exists(_.isDeployable) }
-      .flatMap(_._2).toList
+      .filter { case (name, repos) => repos.exists(_.isDeployable)}
+      .flatMap(_._2).filter(!_.name.contains("prototype")).toList
   }
 
   private def format(dateTime: LocalDateTime): String = {
