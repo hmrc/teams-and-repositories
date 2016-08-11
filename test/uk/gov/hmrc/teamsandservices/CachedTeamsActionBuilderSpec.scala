@@ -18,9 +18,9 @@ package uk.gov.hmrc.teamsandservices
 
 import java.time.LocalDateTime
 
-import org.scalatest.Matchers
 import play.api.mvc.{Result, Results}
 import play.api.test.{FakeRequest, PlaySpecification}
+import uk.gov.hmrc.teamsandservices.RepoType._
 
 import scala.concurrent.Future
 
@@ -30,7 +30,7 @@ class CachedTeamsActionBuilderSpec extends PlaySpecification {
     "return the cache timestamp header and act on the cached result" in {
       val aResult: Future[CachedResult[Seq[TeamRepositories]]] =
         Future.successful(new CachedResult(
-          Seq(TeamRepositories("teamName", List(Repository("repo1", "", true, true)))), LocalDateTime.of(2000, 1, 1, 1, 1, 1)))
+          Seq(TeamRepositories("teamName", List(Repository("repo1", "", true, RepoType.Deployable)))), LocalDateTime.of(2000, 1, 1, 1, 1, 1)))
 
       val result: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
         Results.Ok(request.teams.size.toString)
@@ -41,74 +41,6 @@ class CachedTeamsActionBuilderSpec extends PlaySpecification {
       contentAsString(result) mustEqual "1"
     }
 
-    "include repository with isDeployable=false as services if one of the repository with same name isDeployable" in {
-
-      var result = Map.empty[String, Seq[Repository]]
-
-      val aResult: Future[CachedResult[Seq[TeamRepositories]]] =
-        Future.successful(new CachedResult(
-          Seq(
-            TeamRepositories("teamName", List(
-              Repository("repo1", "", isInternal = false, isDeployable = true),
-              Repository("repo2", "", isInternal = true, isDeployable = true),
-              Repository("repo1", "", isInternal = true, isDeployable = false),
-              Repository("repo3", "", isInternal = true, isDeployable = false)
-            )
-            ),
-            TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, isDeployable = false)))
-          )
-          , LocalDateTime.of(2000, 1, 1, 1, 1, 1))
-        )
-
-      val resultF: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
-
-        result += ("repos" -> request.teams.flatMap(_.repositories))
-
-
-        Results.Ok("Success")
-
-      }, FakeRequest())
-
-
-      contentAsString(resultF) must contain("Success")
-      result("repos").toSet.size mustEqual 3
-      result("repos").toSet mustEqual Seq(
-        Repository("repo1", "", isInternal = false, isDeployable = true),
-        Repository("repo2", "", isInternal = true, isDeployable = true),
-        Repository("repo1", "", isInternal = true, isDeployable = false)
-      ).toSet
-
-    }
-
-
-    "not include repository with prototypes in their names" in {
-
-      var result = Map.empty[String, Seq[Repository]]
-
-      val aResult: Future[CachedResult[Seq[TeamRepositories]]] =
-        Future.successful(new CachedResult(
-          Seq(
-            TeamRepositories("teamName", List(
-              Repository("repo1-prototype", "", isInternal = false, isDeployable = true)
-            )),
-            TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, isDeployable = false)))
-          )
-          , LocalDateTime.of(2000, 1, 1, 1, 1, 1))
-        )
-
-      val resultF: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
-
-        result += ("repos" -> request.teams.flatMap(_.repositories))
-
-
-        Results.Ok("Success")
-
-      }, FakeRequest())
-
-
-      contentAsString(resultF) must contain("Success")
-      result("repos").toSet.size mustEqual 0
-    }
 
 
   }

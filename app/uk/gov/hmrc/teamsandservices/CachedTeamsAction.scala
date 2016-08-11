@@ -41,24 +41,11 @@ object CachedTeamsActionBuilder {
 
       dataSource().flatMap { cachedTeams =>
 
-        val teamServices = cachedTeams.map { teams =>
-          teams.map { s =>
-            TeamRepositories(s.teamName, extractRepositoriesForDeployableService(s.repositories))
-          }
-        }
-
-        block(new TeamsRequest(teamServices.data, request)).map { res =>
+        block(new TeamsRequest(cachedTeams.data, request)).map { res =>
           res.withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
         }
       }
     }
-  }
-
-  private def extractRepositoriesForDeployableService[A](repositories: List[Repository]): List[Repository] = {
-    repositories
-      .groupBy(_.name)
-      .filter { case (name, repos) => repos.exists(_.isDeployable)}
-      .flatMap(_._2).filter(!_.name.contains("prototype")).toList
   }
 
   private def format(dateTime: LocalDateTime): String = {

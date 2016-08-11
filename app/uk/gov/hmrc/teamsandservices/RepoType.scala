@@ -16,19 +16,10 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import scala.concurrent.Future
+object RepoType extends Enumeration {
 
-import scala.concurrent.ExecutionContext.Implicits.global
+  type RepoType = Value
 
-
-object FutureHelpers {
-
-  implicit class FutureOfBoolean(f: Future[Boolean]) {
-
-    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (bv) Future.successful(bv)
-      else f1
-    }
-  }
+  val Deployable, Library, Other = Value
 
 }

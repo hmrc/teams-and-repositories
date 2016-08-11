@@ -26,6 +26,7 @@ import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.teamsandservices.RepoType._
 import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
@@ -56,18 +57,18 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   val defaultData = new CachedResult[Seq[TeamRepositories]](
     Seq(
       new TeamRepositories("test-team", List(
-        Repository("repo-name", "repo-url", isDeployable = true))),
+        Repository("repo-name", "repo-url", repoType = RepoType.Deployable))),
       new TeamRepositories("another-team", List(
-        Repository("another-repo", "another-url", isDeployable = true),
-        Repository("middle-repo", "middle-url", isDeployable = true),
-        Repository("library-repo", "library-url", isDeployable = false)))
+        Repository("another-repo", "another-url", repoType = RepoType.Deployable),
+        Repository("middle-repo", "middle-url", repoType = RepoType.Deployable),
+        Repository("library-repo", "library-url", repoType = RepoType.Library)))
     ),
     timestamp)
 
   def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl:String = "repo-url", isInternal: Boolean = true) = {
     new CachedResult[Seq[TeamRepositories]](Seq(
       new TeamRepositories("test-team", List(
-        Repository(repoName,repoUrl, isDeployable = true, isInternal = isInternal)))), timestamp)
+        Repository(repoName,repoUrl, repoType = RepoType.Deployable, isInternal = isInternal)))), timestamp)
   }
 
 
@@ -116,8 +117,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "Return information about all the teams that have access to a repo" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(
-          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", isDeployable = true))),
-          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", isDeployable = true)))
+          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", repoType = RepoType.Deployable))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", repoType = RepoType.Deployable)))
         ),
         timestamp)
 
@@ -130,9 +131,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "not show the same service twice when it has an open and internal source repository" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
-          Repository("repo-name", "Another-url", isDeployable = true),
-          Repository("repo-name", "repo-url", isDeployable = true),
-          Repository("aadvark-repo", "aadvark-url", isDeployable = true)))),
+          Repository("repo-name", "Another-url", repoType = RepoType.Deployable),
+          Repository("repo-name", "repo-url", repoType =RepoType.Deployable),
+          Repository("aadvark-repo", "aadvark-url", repoType = RepoType.Deployable)))),
         timestamp)
 
       val controller = controllerWithData(sourceData)
@@ -189,9 +190,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "Ignore case when sorting alphabetically" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
-          Repository("Another-repo", "Another-url", isDeployable = true),
-          Repository("repo-name", "repo-url", isDeployable = true),
-          Repository("aadvark-repo", "aadvark-url", isDeployable = true)))),
+          Repository("Another-repo", "Another-url", repoType = RepoType.Deployable),
+          Repository("repo-name", "repo-url", repoType = RepoType.Deployable),
+          Repository("aadvark-repo", "aadvark-url", repoType = RepoType.Deployable)))),
         timestamp)
 
       val controller = controllerWithData(sourceData)
@@ -205,8 +206,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
-          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", isDeployable = true))),
-          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", isDeployable = true)))
+          new TeamRepositories("test-team", List(Repository("repo-name", "repo-url", repoType = RepoType.Deployable))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "repo-url", repoType = RepoType.Deployable)))
         ),
         timestamp)
 
@@ -224,8 +225,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
           new TeamRepositories("test-team", List(
-            Repository("repo-name", "repo-url", isDeployable = true, isInternal = true),
-            Repository("repo-name", "repo-open-url", isDeployable = true, isInternal = false)))),
+            Repository("repo-name", "repo-url", repoType = RepoType.Deployable, isInternal = true),
+            Repository("repo-name", "repo-open-url", repoType = RepoType.Deployable, isInternal = false)))),
         timestamp)
 
       val controller = controllerWithData(data)
@@ -255,8 +256,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
           new TeamRepositories("test-team", List(
-            Repository("repo-name", "repo-url", isDeployable = false, isInternal = true),
-            Repository("repo-open-name", "repo-open-url", isDeployable = false, isInternal = false)))),
+            Repository("repo-name", "repo-url", repoType = RepoType.Library, isInternal = true),
+            Repository("repo-open-name", "repo-open-url", repoType = RepoType.Library, isInternal = false)))),
         timestamp)
 
       val controller = controllerWithData(data)

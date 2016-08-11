@@ -21,15 +21,15 @@ import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
 object TeamRepositoryWrapper {
 
-  implicit class TeamRepositoryWrapper(teamServiceRepos: Seq[TeamRepositories]) {
+  implicit class TeamRepositoryWrapper(teamRepos: Seq[TeamRepositories]) {
 
-    def asTeamNameList = teamServiceRepos.map(_.teamName)
+    def asTeamNameList = teamRepos.map(_.teamName)
 
     def asServiceNameList = {
 
       val repoNames = for {
-        d <- teamServiceRepos
-        r <- d.repositories
+        d <- teamRepos
+        r <- extractRepositoriesForServices(d.repositories)
       } yield r.name
 
       repoNames
@@ -37,7 +37,7 @@ object TeamRepositoryWrapper {
         .sortBy(_.toUpperCase)
     }
 
-    def findService(serviceName:String, ciUrlTemplates: UrlTemplates): Option[Service] =  {
+    def findService(serviceName: String, ciUrlTemplates: UrlTemplates): Option[Service] = {
       val decodedServiceName = URLDecoder.decode(serviceName, "UTF-8")
 
       asServicesList(ciUrlTemplates)
@@ -45,23 +45,24 @@ object TeamRepositoryWrapper {
     }
 
     def asServicesList(ciUrlTemplates: UrlTemplates): Seq[Service] =
-      repositoryTeams(teamServiceRepos)
+      repositoryTeams(teamRepos)
         .groupBy(_.repositories)
-        .map { case (repositories, t) => repoGroupToService(repositories, t.map(_.teamName), ciUrlTemplates) }
+        .flatMap { case (repositories, t) => repoGroupToService(repositories, t.map(_.teamName), ciUrlTemplates) }
         .toSeq
         .sortBy(_.name.toUpperCase)
 
 
     def asTeamServiceNameList(teamName: String): Option[List[String]] = {
       val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
-      teamServiceRepos.find(_.teamName == decodedTeamName).map { t =>
-        t.repositories.map(_.name)
+      teamRepos.find(_.teamName == decodedTeamName).map { t =>
+        extractRepositoriesForServices(t.repositories).map(_.name)
           .distinct
           .sortBy(_.toUpperCase)
       }
     }
 
     private case class RepositoryTeam(repositories: Seq[Repository], teamName: String)
+
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoryTeam] =
       for {
         team <- data
@@ -69,14 +70,14 @@ object TeamRepositoryWrapper {
       } yield RepositoryTeam(repositories, team.teamName)
   }
 
-  def repoGroupToService(repositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates):Service={
+  def repoGroupToService(repositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[Service] = {
 
-    val primaryRepository = repositories.sortBy(_.isInternal).head
+    val primaryRepository = extractRepositoriesForServices(repositories).sortBy(_.isInternal).headOption
 
-    def buildUrls(templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(primaryRepository.name))).toList
+    def buildUrls(repo: Repository, templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
 
-    def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] ={
-      urlTemplates.environments.map { case(name, tps) =>
+    def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] = {
+      urlTemplates.environments.map { case (name, tps) =>
         val links = tps.map { tp => Link(tp.name, tp.displayName, tp.url(repository.name)) }
         Environment(name, links)
       }.toSeq
@@ -84,22 +85,35 @@ object TeamRepositoryWrapper {
 
     def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
       repository.isInternal match {
-        case true => buildUrls(urlTemplates.ciClosed)
-        case false => buildUrls(urlTemplates.ciOpen) }
+        case true => buildUrls(repository, urlTemplates.ciClosed)
+        case false => buildUrls(repository, urlTemplates.ciOpen)
+      }
 
-    def githubName(isInternal:Boolean) = if (isInternal) "github-enterprise" else "github-com"
-    def githubDisplayName(isInternal:Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
+    def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"
+    def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
 
-    Service(
-      primaryRepository.name,
-      teamNames,
-      repositories.map { repo =>
-        Link(
-          githubName(repo.isInternal),
-          githubDisplayName(repo.isInternal),
-          repo.url)
-      },
-      buildCiUrls(primaryRepository, urlTemplates),
-      buildEnvironmentUrls(primaryRepository, urlTemplates))
+    primaryRepository.map { repo =>
+      Service(
+        repo.name,
+        teamNames,
+        repositories.map { repo =>
+          Link(
+            githubName(repo.isInternal),
+            githubDisplayName(repo.isInternal),
+            repo.url)
+        },
+        buildCiUrls(repo, urlTemplates),
+        buildEnvironmentUrls(repo, urlTemplates))
+
+    }
+
   }
+
+  def extractRepositoriesForServices(repositories: Seq[Repository]): List[Repository] = {
+    repositories
+      .groupBy(_.name)
+      .filter { case (name, repos) => repos.exists(x => x.repoType == RepoType.Deployable) }
+      .flatMap(_._2).filter(!_.name.contains("prototype")).toList
+  }
+
 }
