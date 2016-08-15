@@ -103,7 +103,7 @@ trait TeamsServicesController extends BaseController {
   def team(teamName: String) = CachedTeamsAction { implicit request =>
     request.teams.asTeamRepositoryNameList(teamName) match {
       case None => NotFound
-      case Some(x) => Results.Ok(Json.toJson(x.filter(_._2.nonEmpty).map { case (t, v) =>
+      case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) =>
         (t.toString, v)
       }))
     }

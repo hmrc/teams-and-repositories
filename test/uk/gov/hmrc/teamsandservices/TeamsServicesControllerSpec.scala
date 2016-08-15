@@ -112,11 +112,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val timestampHeader = header("x-cache-timestamp", result)
       val data = contentAsJson(result).as[Map[String, List[String]]]
 
-      data.size mustBe 2
+      data.size mustBe 3
       data mustBe Map(
         "Deployable" -> List("another-repo", "middle-repo"),
-        "Library" -> List("library-repo")
-
+        "Library" -> List("library-repo"),
+        "Other" -> List()
       )
     }
 
@@ -131,7 +131,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val controller = controllerWithData(sourceData)
       val result = controller.team("another-team").apply(FakeRequest())
 
-      contentAsJson(result).as[Map[String, List[String]]] mustBe Map("Deployable" -> List("repo-name"))
+      contentAsJson(result).as[Map[String, List[String]]] mustBe Map(
+        "Deployable" -> List("repo-name"),
+        "Library" -> List(),
+        "Other" -> List() )
     }
 
     "not show the same service twice when it has an open and internal source repository" in {
@@ -145,7 +148,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val controller = controllerWithData(sourceData)
       val result = controller.team("test-team").apply(FakeRequest())
 
-      contentAsJson(result).as[Map[String, List[String]]] mustBe Map("Deployable" -> List("aadvark-repo", "repo-name"))
+      contentAsJson(result).as[Map[String, List[String]]] mustBe Map(
+        "Deployable" -> List("aadvark-repo", "repo-name"),
+        "Library" -> List(),
+        "Other" -> List()
+      )
     }
   }
 
@@ -269,7 +276,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
     }
 
-    "do not return the repository type if a team does not have it" in {
+    "return the empty list for repository type if a team does not have it" in {
 
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
@@ -284,7 +291,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val json = contentAsJson(result)
 
       val jsonData = json.as[Map[String, List[String]]]
-      jsonData.get("Deployable") mustBe None
+      jsonData.get("Deployable") mustBe Some(List())
 
     }
 
@@ -298,7 +305,12 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val json = contentAsJson(result)
 
       val jsonData = json.as[Map[String, List[String]]]
-      jsonData.size mustBe 0
+      jsonData mustBe Map(
+        "Deployable" -> List(),
+        "Library" -> List(),
+        "Other" -> List()
+
+      )
 
     }
 
