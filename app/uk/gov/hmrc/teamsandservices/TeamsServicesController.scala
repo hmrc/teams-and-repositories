@@ -33,7 +33,7 @@ case class Environment(name: String, services: Seq[Link])
 case class Link(name: String, displayName: String, url: String)
 
 
-case class RepositoryDetails(name: String, repoType: RepoType.RepoType , teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link] = Seq.empty, environments: Seq[Environment] = Seq.empty)
+case class RepositoryDetails(name: String, repoType: RepoType.RepoType, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link] = Seq.empty, environments: Seq[Environment] = Seq.empty)
 
 
 object BlockingIOExecutionContext {
@@ -84,16 +84,17 @@ trait TeamsServicesController extends BaseController {
     }
   }
 
-  def services() = CachedTeamsAction { implicit request => render {
-    case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
-    case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
-  }
+  def services() = CachedTeamsAction { implicit request =>
+    render {
+      case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
+      case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
+    }
   }
 
   def libraries() = CachedTeamsAction { implicit request =>
     Results.Ok(Json.toJson(request.teams.asLibraryNameList))
   }
-  
+
 
   def teams() = CachedTeamsAction { implicit request =>
     Results.Ok(Json.toJson(request.teams.asTeamNameList))
