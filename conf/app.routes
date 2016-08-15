@@ -5,4 +5,4 @@ GET         /api/teams/:team                uk.gov.hmrc.teamsandservices.TeamsSe
 GET         /api/cache/reload               uk.gov.hmrc.teamsandservices.TeamsServicesController.reloadCache
 GET         /api/services                   uk.gov.hmrc.teamsandservices.TeamsServicesController.services
 GET         /api/libraries                  uk.gov.hmrc.teamsandservices.TeamsServicesController.libraries
-GET         /api/repository/:name           uk.gov.hmrc.teamsandservices.TeamsServicesController.repositoryDetails(name)
+GET         /api/repositories/:name         uk.gov.hmrc.teamsandservices.TeamsServicesController.repositoryDetails(name)
