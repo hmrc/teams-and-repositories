@@ -16,24 +16,18 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import scala.concurrent.Future
+import play.api.libs.json.{JsString, JsResult, JsValue, Format}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+object RepoType extends Enumeration {
 
+  type RepoType = Value
 
-object FutureHelpers {
+  val Deployable, Library, Other = Value
 
-  implicit class FutureOfBoolean(f: Future[Boolean]) {
+  implicit val repoType = new Format[RepoType] {
+    override def reads(json: JsValue): JsResult[RepoType] = ???
 
-    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (bv) Future.successful(bv)
-      else f1
-    }
-
-    def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (!bv) Future.successful(bv)
-      else f1
-    }
+    override def writes(o: RepoType): JsValue = JsString(o.toString)
   }
 
 }

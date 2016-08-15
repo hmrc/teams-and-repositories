@@ -70,4 +70,51 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
     }
   }
 
+
+  "FutureOfBoolean &&" should {
+    "short circuit if needed" in {
+      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+
+      var counter = 0
+
+      def delayedF1 = Future {
+        Thread.sleep(50); counter += 1; true
+      }
+
+      def delayedF2 = Future {
+        Thread.sleep(50); counter += 1; false
+      }
+
+      def delayedF3 = Future {
+        Thread.sleep(50); counter += 1; true
+      }
+
+      (delayedF1 && delayedF2 && delayedF3 ).futureValue shouldBe false
+
+      counter shouldBe 2
+    }
+
+    "execute all if needed" in {
+      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+
+      var counter = 0
+
+      def delayedF1 = Future {
+        Thread.sleep(50); counter += 1; false
+      }
+
+      def delayedF2 = Future {
+        Thread.sleep(50); counter += 1; false
+      }
+
+      def delayedF3 = Future {
+        Thread.sleep(50); counter += 1; false
+      }
+
+      (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe false
+
+      counter shouldBe 3
+    }
+  }
+
 }
