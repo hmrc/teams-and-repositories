@@ -16,24 +16,28 @@
 
 package uk.gov.hmrc.teamsandservices
 
-import scala.concurrent.Future
+import org.scalatest.{Matchers, WordSpec, FunSuite}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+class TeamRepositoriesSpec extends WordSpec with Matchers {
+
+  "TeamRepositories" should {
+    "get repositories by type" in {
+
+      val teamRepos = TeamRepositories("A", List(
+        Repository("r1", "", repoType = RepoType.Deployable),
+        Repository("r2", "", repoType = RepoType.Library),
+        Repository("r3", "", repoType = RepoType.Deployable),
+        Repository("r4", "")
+      ))
+
+      teamRepos.repositoriesByType(RepoType.Deployable) shouldBe List(
+        Repository("r1", "", repoType = RepoType.Deployable),
+        Repository("r3", "", repoType = RepoType.Deployable)
+      )
 
 
-object FutureHelpers {
-
-  implicit class FutureOfBoolean(f: Future[Boolean]) {
-
-    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (bv) Future.successful(bv)
-      else f1
-    }
-
-    def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (!bv) Future.successful(bv)
-      else f1
     }
   }
+
 
 }

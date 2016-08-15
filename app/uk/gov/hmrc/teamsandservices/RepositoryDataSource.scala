@@ -21,8 +21,9 @@ import java.util.concurrent.Executors
 
 import akka.actor.ActorSystem
 import play.Logger
-import play.api.libs.json.Json
+import play.api.libs.json._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
+import uk.gov.hmrc.teamsandservices.RepoType._
 import uk.gov.hmrc.teamsandservices.RetryStrategy._
 import uk.gov.hmrc.teamsandservices.config.{CacheConfig, GithubConfigProvider}
 
@@ -30,9 +31,13 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
 
 
-case class TeamRepositories(teamName: String, repositories: List[Repository])
+case class TeamRepositories(teamName: String, repositories: List[Repository]) {
 
-case class Repository(name: String, url: String, isInternal: Boolean = false, isDeployable: Boolean = false)
+  def repositoriesByType(repoType: RepoType.RepoType) = repositories.filter(_.repoType == repoType)
+}
+
+
+case class Repository(name: String, url: String, isInternal: Boolean = false, repoType: RepoType.RepoType = RepoType.Other)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -45,6 +50,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
   import BlockingIOExecutionContext._
 
   implicit val repositoryFormats = Json.format[Repository]
+
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
   val retries: Int = 5
@@ -80,6 +86,9 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       }
     }
 
+  def hasTags(organisation: GhOrganisation, repository: GhRepository): Future[Boolean] = gh.getTags(organisation.login, repository.name).map(_.nonEmpty)
+
+
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[Repository] = {
     import uk.gov.hmrc.teamsandservices.FutureHelpers._
 
@@ -88,10 +97,22 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
     def hasProcFileF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
 
     def isJavaServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
+    val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
 
-    (isPlayServiceF || isJavaServiceF || hasProcFileF) map { isDeployable =>
+    (isPlayServiceF || isJavaServiceF || hasProcFileF) flatMap { isDeployable =>
 
-      Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal, isDeployable = isDeployable)
+      val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
+      if (isDeployable)
+        Future.successful(repository.copy(repoType = RepoType.Deployable))
+      else {
+        def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
+        def hasSrcMainJava = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/java"))
+        def containsTags = hasTags(organisation, repo)
+        ((hasSrcMainScala || hasSrcMainJava) && containsTags).map { tags =>
+          if (tags) repository.copy(repoType = RepoType.Library)
+          else repository
+        }
+      }
     }
   }
 
@@ -141,7 +162,7 @@ class CachingRepositoryDataSource[T](
 
   def getCachedTeamRepoMapping: Future[CachedResult[T]] = {
     Logger.info(s"cachedData is available = ${cachedData.isDefined}")
-    if(cachedData.isEmpty && initialPromise.isCompleted){
+    if (cachedData.isEmpty && initialPromise.isCompleted) {
       Logger.warn("in unexpected state where initial promise is complete but there is not cached data. Perform manual reload.")
     }
     cachedData.fold(initialPromise.future)(d => Future.successful(d))

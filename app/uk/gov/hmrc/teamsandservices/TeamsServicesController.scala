@@ -28,12 +28,15 @@ import uk.gov.hmrc.teamsandservices.config._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Environment(name:String, services:Seq[Link])
-case class Link(name: String, displayName:String, url: String)
-case class TeamServices(teamName: String, Services: List[Service])
-case class Service(name: String, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link], environments:Seq[Environment])
+case class Environment(name: String, services: Seq[Link])
 
-object BlockingIOExecutionContext{
+case class Link(name: String, displayName: String, url: String)
+
+
+case class RepositoryDetails(name: String, repoType: RepoType.RepoType, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link] = Seq.empty, environments: Seq[Environment] = Seq.empty)
+
+
+object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
 }
 
@@ -68,33 +71,41 @@ trait TeamsServicesController extends BaseController {
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats = Json.format[Environment]
-  implicit val serviceFormats = Json.format[Service]
-  implicit val teamFormats = Json.format[TeamServices]
+  implicit val serviceFormats = Json.format[RepositoryDetails]
 
   private val ServiceDetailsContentType = Accepting("application/vnd.servicedetails.hal+json")
   private val CachedTeamsAction = CachedTeamsActionBuilder(dataSource.getCachedTeamRepoMapping _)
 
 
-  def service(name:String) = CachedTeamsAction { implicit request =>
-    request.teams.findService(name, ciUrlTemplates) match {
+  def repositoryDetails(name: String) = CachedTeamsAction { implicit request =>
+    request.teams.findRepositoryDetails(name, ciUrlTemplates) match {
       case None => NotFound
       case Some(x) => Results.Ok(Json.toJson(x))
     }
   }
 
-  def services() = CachedTeamsAction { implicit request => render {
-    case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
-    case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asServicesList(ciUrlTemplates)))
-  }}
+  def services() = CachedTeamsAction { implicit request =>
+    render {
+      case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
+      case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
+    }
+  }
+
+  def libraries() = CachedTeamsAction { implicit request =>
+    Results.Ok(Json.toJson(request.teams.asLibraryNameList))
+  }
+
 
   def teams() = CachedTeamsAction { implicit request =>
     Results.Ok(Json.toJson(request.teams.asTeamNameList))
   }
 
-  def teamServices(teamName: String) = CachedTeamsAction { implicit request =>
-    request.teams.asTeamServiceNameList(teamName) match {
+  def team(teamName: String) = CachedTeamsAction { implicit request =>
+    request.teams.asTeamRepositoryNameList(teamName) match {
       case None => NotFound
-      case Some(x) => Results.Ok(Json.toJson(x))
+      case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) =>
+        (t.toString, v)
+      }))
     }
   }
 
