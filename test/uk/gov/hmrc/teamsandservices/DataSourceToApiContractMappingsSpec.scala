@@ -45,10 +45,11 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
     )
   )
 
-  def enterpriseGithubLink(url:String) = Link("github-enterprise", "Github Enterprise", url)
-  def openGithubLink(url:String) = Link("github-com", "GitHub.com", url)
+  def enterpriseGithubLink(url: String) = Link("github-enterprise", "Github Enterprise", url)
 
-    "Mapping between repositories and services" should {
+  def openGithubLink(url: String) = Link("github-com", "GitHub.com", url)
+
+  "Mapping between repositories and services" should {
 
     "create links for a closed service" in {
 
@@ -58,10 +59,38 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         isInternal = true,
         repoType = RepoType.Deployable))
 
-      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-frontend"))
       service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
+    }
+
+    "create links for a closed libraries" in {
+
+      val repos = Seq(Repository(
+        "a-library",
+        "https://not-open-github/org/a-library",
+        isInternal = true,
+        repoType = RepoType.Library))
+
+      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+
+      service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-library"))
+      service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
+    }
+
+    "create links for a open Libraries" in {
+
+      val repo = Seq(Repository(
+        "a-library",
+        "https://github.com/org/a-library",
+        repoType = RepoType.Library))
+
+      val service = repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
+
+
+      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-library"))
+      service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
     "create links for a open service" in {
@@ -71,12 +100,13 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "https://github.com/org/a-frontend",
         repoType = RepoType.Deployable))
 
-      val service = repoGroupToService(repo, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repo, Seq("teamName"), urlTemplates)
 
 
       service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
-      service.get.ci shouldBe List(Link("open1","open 1", "http://open/a-frontend"))
+      service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
+
 
     "create links for each environment" in {
       val aFrontend = Repository(
@@ -87,13 +117,29 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repos = Seq(aFrontend)
 
-      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
 
       service.get.environments.size shouldBe 2
 
-      service.get.environments.find(_.name == "env1").value shouldBe Environment("env1", List(Link("log1", "log 1", "a-frontend"), Link("mon1","mon 1", "a-frontend")))
+      service.get.environments.find(_.name == "env1").value shouldBe Environment("env1", List(Link("log1", "log 1", "a-frontend"), Link("mon1", "mon 1", "a-frontend")))
       service.get.environments.find(_.name == "env2").value shouldBe Environment("env2", List(Link("log1", "log 1", "a-frontend")))
     }
+
+    "do not create environment links for libraries" in {
+      val aLibrary = Repository(
+        "a-library",
+        "https://not-open-github/org/a-library",
+        repoType = RepoType.Library)
+
+
+      val repos = Seq(aLibrary)
+
+      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+
+      service.get.environments shouldBe Seq.empty
+
+    }
+
 
     "create github links for both open and internal services if both are present, but only open ci links" in {
 
@@ -109,7 +155,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         repoType = RepoType.Deployable)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repoGroupToService(repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe Seq(
         enterpriseGithubLink("https://not-open-github/org/a-frontend"),
@@ -117,5 +163,54 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
+
+    "create github links for both open and internal Libraries if both are present, but only open ci links" in {
+
+      val internalRepo = Repository(
+        "a-library",
+        "https://not-open-github/org/a-library",
+        isInternal = true,
+        repoType = RepoType.Library)
+
+      val openRepo = Repository(
+        "a-library",
+        "https://github.com/org/a-library",
+        repoType = RepoType.Library)
+
+      val repos = Seq(internalRepo, openRepo)
+      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+
+      service.get.githubUrls shouldBe Seq(
+        enterpriseGithubLink("https://not-open-github/org/a-library"),
+        openGithubLink("https://github.com/org/a-library"))
+
+      service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-library"))
+    }
+
+
+    "just create github links if not Deployable or Library" in {
+
+      val internalRepo = Repository(
+        "a-repo",
+        "https://not-open-github/org/a-repo",
+        isInternal = true,
+        repoType = RepoType.Other)
+
+      val openRepo = Repository(
+        "a-repo",
+        "https://github.com/org/a-repo",
+        repoType = RepoType.Other)
+
+      val repos = Seq(internalRepo, openRepo)
+      val service = repoGroupToRepositoryDetails(RepoType.Other, repos, Seq("teamName"), urlTemplates)
+
+      service.get.githubUrls shouldBe Seq(
+        enterpriseGithubLink("https://not-open-github/org/a-repo"),
+        openGithubLink("https://github.com/org/a-repo"))
+
+      service.get.ci shouldBe Seq.empty
+      service.get.environments shouldBe Seq.empty
+    }
+
   }
 }

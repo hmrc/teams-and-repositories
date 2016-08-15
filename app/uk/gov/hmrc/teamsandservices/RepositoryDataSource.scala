@@ -49,12 +49,6 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
   import BlockingIOExecutionContext._
 
-  implicit val repoType = new Format[RepoType] {
-    override def reads(json: JsValue): JsResult[RepoType] = ???
-
-    override def writes(o: RepoType): JsValue = JsString(o.toString)
-  }
-
   implicit val repositoryFormats = Json.format[Repository]
 
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
@@ -110,11 +104,15 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
       if (isDeployable)
         Future.successful(repository.copy(repoType = RepoType.Deployable))
-      else
-        hasTags(organisation, repo).map { tags =>
+      else {
+        def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
+        def hasSrcMainJava = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/java"))
+        def containsTags = hasTags(organisation, repo)
+        ((hasSrcMainScala || hasSrcMainJava) && containsTags).map { tags =>
           if (tags) repository.copy(repoType = RepoType.Library)
           else repository
         }
+      }
     }
   }
 

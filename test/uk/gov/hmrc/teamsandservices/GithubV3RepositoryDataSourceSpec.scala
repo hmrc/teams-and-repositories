@@ -167,7 +167,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("D", List(Repository("D_r", "url_D", repoType = RepoType.Deployable))))
     }
 
-    "Set type Library if not Service and has tags" in {
+    "Set type Library if not Service and has src/main/scala and has tags" in {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
@@ -182,6 +182,34 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(same("Procfile"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(false))
 
       when(githubClient.repoContainsContent(same("deploy.properties"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("src/main/scala"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(true))
+
+      val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
+
+      repositories should contain(TeamRepositories("D", List(Repository("D_r", "url_D", repoType = RepoType.Library))))
+
+      repositories should contain(TeamRepositories("A", List(Repository("A_r", "url_A", repoType = RepoType.Other))))
+    }
+
+
+    "Set type Library if not Service and has src/main/java and has tags" in {
+
+      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
+      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
+      when(githubClient.getTeamsForOrganisation("DDCN")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("D", 4))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r", 1, "url_A"))))
+      when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r", 4, "url_D"))))
+      when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List.empty))
+      when(githubClient.getTags("DDCN", "D_r")(ec)).thenReturn(Future.successful(List("D_r_tag")))
+
+      when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("Procfile"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("deploy.properties"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(false))
+
+      when(githubClient.repoContainsContent(same("src/main/java"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(true))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
 
