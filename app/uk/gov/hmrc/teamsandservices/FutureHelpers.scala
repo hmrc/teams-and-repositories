@@ -29,6 +29,11 @@ object FutureHelpers {
       if (bv) Future.successful(bv)
       else f1
     }
+
+    def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
+      if (!bv) Future.successful(bv)
+      else f1
+    }
   }
 
 }

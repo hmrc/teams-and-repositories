@@ -16,10 +16,18 @@
 
 package uk.gov.hmrc.teamsandservices
 
+import play.api.libs.json.{JsString, JsResult, JsValue, Format}
+
 object RepoType extends Enumeration {
 
   type RepoType = Value
 
   val Deployable, Library, Other = Value
+
+  implicit val repoType = new Format[RepoType] {
+    override def reads(json: JsValue): JsResult[RepoType] = ???
+
+    override def writes(o: RepoType): JsValue = JsString(o.toString)
+  }
 
 }

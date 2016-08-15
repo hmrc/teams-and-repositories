@@ -57,6 +57,46 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
     }
   }
 
+  "asLibraryNameList" should {
+    "not include libraries if one of the repository with same name is Deployable" in {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          Repository("repo1", "", isInternal = false, repoType = RepoType.Deployable),
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Deployable),
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
+        )
+        ),
+        TeamRepositories("teamNameOther", List(Repository("repo4", "", isInternal = true, repoType = RepoType.Library)))
+      )
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result: Seq[String] = wrapper.asLibraryNameList
+
+      result shouldBe List("repo3", "repo4")
+
+    }
+
+    "include as library even if one of the repository with same name is Other" in {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          Repository("repo1", "", isInternal = false, repoType = RepoType.Other),
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Deployable),
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
+        )
+        ),
+        TeamRepositories("teamNameOther", List(Repository("repo4", "", isInternal = true, repoType = RepoType.Library)))
+      )
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result: Seq[String] = wrapper.asLibraryNameList
+
+      result shouldBe List("repo1", "repo3", "repo4")
+    }
+
+  }
+
   "findService" should {
 
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
@@ -71,7 +111,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, repoType = RepoType.Library)))
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.findService("repo1", UrlTemplates(Seq(), Seq(), Map()))
+      val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
 
       result.get.name shouldBe "repo1"
     }
@@ -85,14 +125,14 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.findService("repo1", UrlTemplates(Seq(), Seq(), Map()))
+      val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
       result shouldBe None
     }
 
   }
 
 
-  "asTeamServiceNameList" should {
+  "asTeamRepositoryNameList" should {
 
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
@@ -106,9 +146,9 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, repoType = RepoType.Library)))
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamServiceNameList("teamName")
+      val result = wrapper.asTeamRepositoryNameList("teamName")
 
-      result shouldBe Some(List("repo1", "repo2"))
+      result shouldBe Some(Map(RepoType.Deployable -> List("repo1", "repo2"), RepoType.Library -> List("repo3"), RepoType.Other -> List()))
     }
 
     "not include repository with prototypes in their names" in {
@@ -120,12 +160,10 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamServiceNameList("teamName")
-      result shouldBe Some(List())
+      val result = wrapper.asTeamRepositoryNameList("teamName")
+      result shouldBe Some(Map(RepoType.Deployable -> List(), RepoType.Library -> List(), RepoType.Other -> List()))
     }
 
   }
-
-
 
 }
