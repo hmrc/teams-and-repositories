@@ -14,12 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories.config
 
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import java.nio.file.Path
 
-trait DefaultPatienceConfig {
-  self : ScalaFutures =>
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
-}
+import scala.io.Source
+
+class ConfigFile(file: Path) {
+
+   private val kvMap: Map[String, String] = {
+     try {
+       Source.fromFile(file.toFile)
+         .getLines().toSeq
+         .map(_.split("="))
+         .map { case Array(key, value) => key.trim -> value.trim}.toMap
+     } catch {
+       case e: Exception => {
+         Map.empty
+       }
+     }
+   }
+
+   def get(path: String) = kvMap.get(path)
+ }

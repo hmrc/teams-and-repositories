@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import uk.gov.hmrc.teamsandservices.RepoType._
-import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
-import uk.gov.hmrc.teamsandservices.TeamRepositoryWrapper._
+import uk.gov.hmrc.teamsandrepositories.RepoType._
+import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
 
 class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with OptionValues {
 

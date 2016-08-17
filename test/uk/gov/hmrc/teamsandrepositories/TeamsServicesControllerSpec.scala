@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 
@@ -26,8 +26,8 @@ import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandservices.RepoType._
-import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.teamsandrepositories.RepoType._
+import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
 
@@ -76,15 +76,15 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.teams().url mustBe "/api/teams"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.teams().url mustBe "/api/teams"
     }
 
     "have the correct url set up for a team's services" in {
-      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.team("test-team").url mustBe "/api/teams/test-team"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.team("test-team").url mustBe "/api/teams/test-team"
     }
 
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandservices.routes.TeamsServicesController.services().url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.services().url mustBe "/api/services"
     }
 
   }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 import java.util.concurrent.Executors
@@ -23,9 +23,9 @@ import akka.actor.ActorSystem
 import play.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
-import uk.gov.hmrc.teamsandservices.RepoType._
-import uk.gov.hmrc.teamsandservices.RetryStrategy._
-import uk.gov.hmrc.teamsandservices.config.{CacheConfig, GithubConfigProvider}
+import uk.gov.hmrc.teamsandrepositories.RepoType._
+import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
+import uk.gov.hmrc.teamsandrepositories.config.{CacheConfig, GithubConfigProvider}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -90,7 +90,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[Repository] = {
-    import uk.gov.hmrc.teamsandservices.FutureHelpers._
+    import uk.gov.hmrc.teamsandrepositories.FutureHelpers._
 
     def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
 

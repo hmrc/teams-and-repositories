@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.config
+package uk.gov.hmrc.teamsandrepositories.config
 
 import play.api.Configuration
 import play.api.libs.json.Json

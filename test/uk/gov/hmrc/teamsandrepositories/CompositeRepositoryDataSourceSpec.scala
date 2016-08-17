@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures

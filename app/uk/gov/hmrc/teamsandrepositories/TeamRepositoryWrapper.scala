@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
-import uk.gov.hmrc.teamsandservices.RepoType
-import uk.gov.hmrc.teamsandservices.RepoType.RepoType
-import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.teamsandrepositories.RepoType
+import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
+import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.collection.immutable.::
 

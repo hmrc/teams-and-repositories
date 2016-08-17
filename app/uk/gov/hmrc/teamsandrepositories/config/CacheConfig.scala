@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories.config
 
-import java.time.LocalDateTime
+import play.api.Play
 
-class CachedResult[T](val data: T, val time: LocalDateTime) {
-  def map[B](f: T => B) = new CachedResult[B](f(this.data), this.time)
-  override def toString = data.toString
+import scala.concurrent.duration._
+
+trait CacheConfigProvider {
+  def cacheConfig: CacheConfig = CacheConfig
+}
+
+trait CacheConfig {
+  def teamsCacheDuration: FiniteDuration
+}
+
+object CacheConfig extends CacheConfig {
+  val teamsCacheDurationConfigPath = "cache.teams.duration"
+  val defaultTimeout = 1 hour
+
+  def teamsCacheDuration: FiniteDuration = {
+    Play.current.configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
+  }
 }

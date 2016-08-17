@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
@@ -26,7 +26,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
 
   "FutureOfBoolean ||" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 
@@ -48,7 +48,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 
@@ -73,7 +73,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
 
   "FutureOfBoolean &&" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 
@@ -95,7 +95,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandservices.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
 
       var counter = 0
 

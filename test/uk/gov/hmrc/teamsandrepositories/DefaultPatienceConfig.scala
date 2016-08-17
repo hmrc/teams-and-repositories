@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.config
+package uk.gov.hmrc.teamsandrepositories
 
-import play.api.Play
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Seconds, Span}
 
-import scala.concurrent.duration._
-
-trait CacheConfigProvider {
-  def cacheConfig: CacheConfig = CacheConfig
-}
-
-trait CacheConfig {
-  def teamsCacheDuration: FiniteDuration
-}
-
-object CacheConfig extends CacheConfig {
-  val teamsCacheDurationConfigPath = "cache.teams.duration"
-  val defaultTimeout = 1 hour
-
-  def teamsCacheDuration: FiniteDuration = {
-    Play.current.configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
-  }
+trait DefaultPatienceConfig {
+  self : ScalaFutures =>
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 }
