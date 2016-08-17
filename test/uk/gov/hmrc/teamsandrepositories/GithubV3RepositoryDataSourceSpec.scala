@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import org.mockito.Matchers._
 import org.mockito.Mockito
@@ -24,9 +24,9 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandservices.RepoType._
-import uk.gov.hmrc.teamsandservices.TeamRepositories
-import uk.gov.hmrc.teamsandservices.config.{GithubConfig, GithubConfigProvider}
+import uk.gov.hmrc.teamsandrepositories.RepoType._
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, GithubConfigProvider}
 
 import scala.concurrent.{ExecutionContext, Future}
 

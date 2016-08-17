@@ -5,7 +5,7 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 
 object MicroServiceBuild extends Build with MicroService {
 
-  override val appName = "teams-and-services"
+  override val appName = "teams-and-repositories"
 
   override lazy val plugins: Seq[Plugins] = Seq(
     SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin

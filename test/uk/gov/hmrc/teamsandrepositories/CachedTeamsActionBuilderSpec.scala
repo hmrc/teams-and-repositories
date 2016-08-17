@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 
 import play.api.mvc.{Result, Results}
 import play.api.test.{FakeRequest, PlaySpecification}
-import uk.gov.hmrc.teamsandservices.RepoType._
+import uk.gov.hmrc.teamsandrepositories.RepoType._
 
 import scala.concurrent.Future
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 import java.util.concurrent.Executors
@@ -24,7 +24,7 @@ import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandservices.config._
+import uk.gov.hmrc.teamsandrepositories.config._
 
 import scala.concurrent.{ExecutionContext, Future}
 

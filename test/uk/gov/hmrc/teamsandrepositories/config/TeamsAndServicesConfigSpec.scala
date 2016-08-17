@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.config
+package uk.gov.hmrc.teamsandrepositories.config
 
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}

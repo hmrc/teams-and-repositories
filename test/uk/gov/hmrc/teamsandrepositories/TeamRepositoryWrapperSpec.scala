@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.teamsandservices.TeamRepositoryWrapper.TeamRepositoryWrapper
-import uk.gov.hmrc.teamsandservices.config.UrlTemplates
+import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
+import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 

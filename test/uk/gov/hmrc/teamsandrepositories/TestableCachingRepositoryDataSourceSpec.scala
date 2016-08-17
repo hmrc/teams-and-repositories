@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import uk.gov.hmrc.teamsandservices.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration

@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandservices.config
+package uk.gov.hmrc.teamsandrepositories
 
-import uk.gov.hmrc.play.config.{AppName, RunMode}
-import uk.gov.hmrc.play.http.hooks.HttpHook
-import uk.gov.hmrc.play.http.ws._
+import play.api.libs.json.{JsString, JsResult, JsValue, Format}
 
-object WSHttp extends WSGet with WSPut with WSPost with WSDelete with WSPatch with AppName with RunMode {
-  override val hooks: Seq[HttpHook] = Seq()
+object RepoType extends Enumeration {
+
+  type RepoType = Value
+
+  val Deployable, Library, Other = Value
+
+  implicit val repoType = new Format[RepoType] {
+    override def reads(json: JsValue): JsResult[RepoType] = ???
+
+    override def writes(o: RepoType): JsValue = JsString(o.toString)
+  }
+
 }
