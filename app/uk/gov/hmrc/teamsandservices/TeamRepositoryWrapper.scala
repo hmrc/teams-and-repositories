@@ -21,6 +21,8 @@ import uk.gov.hmrc.teamsandservices.RepoType
 import uk.gov.hmrc.teamsandservices.RepoType.RepoType
 import uk.gov.hmrc.teamsandservices.config.{UrlTemplate, UrlTemplates}
 
+import scala.collection.immutable.::
+
 
 object TeamRepositoryWrapper {
 
@@ -35,11 +37,15 @@ object TeamRepositoryWrapper {
     def findRepositoryDetails(repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
       val decodedServiceName = URLDecoder.decode(repoName, "UTF-8")
 
-      repositoryTeams(teamRepos)
-        .groupBy(_.repositories)
-        .flatMap { case (repositories, t) => repoGroupToRepositoryDetails(primaryRepoType(repositories), repositories, t.map(_.teamName), ciUrlTemplates) }
-        .toSeq
-        .sortBy(_.name.toUpperCase).find(_.name == decodedServiceName)
+      teamRepos.foldLeft((Set.empty[String], Set.empty[Repository])) { case ((ts, repos), tr) =>
+        if (tr.repositories.exists(_.name == decodedServiceName))
+          (ts + tr.teamName, repos ++ tr.repositories.filter(_.name == decodedServiceName))
+        else (ts, repos)
+      } match {
+        case (teams, repos) if repos.nonEmpty =>
+          repoGroupToRepositoryDetails(primaryRepoType(repos.toSeq), repos.toSeq, teams.toSeq.sorted, ciUrlTemplates)
+        case _ => None
+      }
     }
 
     def asRepositoryDetailsList(repoType: RepoType, ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
@@ -116,7 +122,7 @@ object TeamRepositoryWrapper {
     def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"
     def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
 
-    def hasEnvironment(repo: Repository): Boolean =  repo.repoType == RepoType.Deployable
+    def hasEnvironment(repo: Repository): Boolean = repo.repoType == RepoType.Deployable
 
     def hasBuild(repo: Repository): Boolean = repo.repoType == RepoType.Library
 
@@ -140,7 +146,6 @@ object TeamRepositoryWrapper {
       else repoDetails
     }
   }
-
 
 
   def extractRepositoriesForType(repoType: RepoType.RepoType, repositories: Seq[Repository]): List[Repository] = {
