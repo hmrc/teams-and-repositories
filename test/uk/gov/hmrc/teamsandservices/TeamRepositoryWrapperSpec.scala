@@ -34,7 +34,9 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
         )
         ),
-        TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, repoType = RepoType.Library)))
+        TeamRepositories("teamNameOther", List(
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library))
+        )
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
       val result: Seq[String] = wrapper.asServiceNameList
@@ -97,24 +99,54 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   }
 
-  "findService" should {
+  "findRepositoryDetails" should {
 
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
           Repository("repo1", "", isInternal = false, repoType = RepoType.Deployable),
           Repository("repo2", "", isInternal = true, repoType = RepoType.Deployable),
-          Repository("repo1", "", isInternal = true, repoType = RepoType.Other),
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Library),
           Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
         )
         ),
-        TeamRepositories("teamNameOther", List(Repository("repo3", "", isInternal = true, repoType = RepoType.Library)))
+        TeamRepositories("teamNameOther", List(
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Other))
+        )
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+      val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
 
       result.get.name shouldBe "repo1"
+      result.get.repoType shouldBe RepoType.Deployable
+
     }
+
+    "find repository as type Library even if one of the repo with same name is not type library" in {
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Other),
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Deployable),
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
+        )
+        ),
+        TeamRepositories("teamNameOther", List(
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo1", "", isInternal = false, repoType = RepoType.Library))
+        ),
+        TeamRepositories("teamNameOther1", List(Repository("repo1", "", isInternal = false, repoType = RepoType.Library)))
+      )
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+
+      result.get.name shouldBe "repo1"
+      result.get.repoType shouldBe RepoType.Library
+      result.get.teamNames shouldBe List("teamName", "teamNameOther", "teamNameOther1")
+      result.get.githubUrls.size shouldBe 2
+
+    }
+
 
     "not include repository with prototypes in their names" in {
       val teams = Seq(
