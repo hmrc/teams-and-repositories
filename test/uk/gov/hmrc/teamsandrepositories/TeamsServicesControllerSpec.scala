@@ -23,10 +23,11 @@ import org.scalatest.OptionValues
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
-import play.api.mvc.Results
+import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
+import uk.gov.hmrc.teamsandrepositories.Repository
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
@@ -43,8 +44,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       override def dataSource = fakeDataSource
 
       override def ciUrlTemplates = new UrlTemplates(
-        Seq(new UrlTemplate("open", "open", "$name")),
         Seq(new UrlTemplate("closed", "closed", "$name")),
+        Seq(new UrlTemplate("open", "open", "$name")),
         Map(
           "env1" -> Seq(
             new UrlTemplate("log1", "log 1", "$name"),
@@ -58,11 +59,16 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   val defaultData = new CachedResult[Seq[TeamRepositories]](
     Seq(
       new TeamRepositories("test-team", List(
-        Repository("repo-name", "repo-url", repoType = RepoType.Deployable))),
+        Repository("repo-name", "repo-url", repoType = RepoType.Deployable),
+        Repository("library-repo", "library-url", repoType = RepoType.Library)
+
+      )),
+
       new TeamRepositories("another-team", List(
         Repository("another-repo", "another-url", repoType = RepoType.Deployable),
         Repository("middle-repo", "middle-url", repoType = RepoType.Deployable),
-        Repository("library-repo", "library-url", repoType = RepoType.Library)))
+        Repository("alibrary-repo", "library-url", repoType = RepoType.Library)
+      ))
     ),
     timestamp)
 
@@ -115,7 +121,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       data.size mustBe 3
       data mustBe Map(
         "Deployable" -> List("another-repo", "middle-repo"),
-        "Library" -> List("library-repo"),
+        "Library" -> List("alibrary-repo"),
         "Other" -> List()
       )
     }
@@ -134,7 +140,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       contentAsJson(result).as[Map[String, List[String]]] mustBe Map(
         "Deployable" -> List("repo-name"),
         "Library" -> List(),
-        "Other" -> List() )
+        "Other" -> List())
     }
 
     "not show the same service twice when it has an open and internal source repository" in {
@@ -158,24 +164,47 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
   "Retrieving a list of all libraries" should {
 
-    "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request doesn't have a servicedetails content type" in {
+    "retun a name list of all the libraries" in {
       val controller = controllerWithData(defaultData)
       val result = controller.libraries()(FakeRequest())
       val resultJson = contentAsJson(result)
       val libraryNames = resultJson.as[Seq[String]]
-      libraryNames mustBe List("library-repo")
+      libraryNames mustBe List("alibrary-repo", "library-repo")
     }
 
+    "Return a json representation of the data when request has a details query parameter" in {
+      val controller = controllerWithData(defaultData)
+
+      val result = controller.libraries().apply(FakeRequest("GET", "/libraries?details=true"))
+
+      val resultJson = contentAsJson(result)
+
+      val libraryNames = resultJson.as[Seq[JsObject]].map(_.value("name").as[String])
+      libraryNames mustBe List("alibrary-repo", "library-repo")
+
+      val last = resultJson.as[Seq[JsObject]].last
+
+      (last \ "githubUrls").as[JsArray].value.size mustBe 1
+
+      last.nameField mustBe "library-repo"
+      last.teamNameSeq mustBe Seq("test-team")
+
+      val ciDetails: Seq[JsValue] = (last \ "ci").as[JsArray].value
+      ciDetails.size mustBe 1
+
+      ciDetails(0).as[JsObject].as[Map[String, String]] mustBe Map("name" -> "open", "displayName" -> "open", "url" -> "library-repo")
+
+
+    }
   }
 
 
   "Retrieving a list of all services" should {
 
-    "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request has a servicedetails content type" in {
+    "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request has a details query parameter" in {
       val controller = controllerWithData(defaultData)
 
-      val result = controller.services().apply(
-        FakeRequest().withHeaders(ACCEPT -> "application/vnd.servicedetails.hal+json"))
+      val result = controller.services().apply(FakeRequest("GET", "/services?details=true"))
 
       val resultJson = contentAsJson(result)
 
@@ -205,7 +234,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
     "Return a json representation of the data sorted alphabetically, including the cache timestamp, when the request doesn't have a servicedetails content type" in {
       val controller = controllerWithData(defaultData)
-      val result = controller.services().apply(FakeRequest())
+      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+      val result = controller.services().apply(request)
 
       val serviceList = contentAsJson(result).as[Seq[String]]
 
@@ -255,7 +285,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
         timestamp)
 
       val controller = controllerWithData(data)
-      val result = controller.services().apply(FakeRequest().withHeaders(ACCEPT -> "application/vnd.servicedetails.hal+json"))
+      val result = controller.services().apply(FakeRequest("GET", "/services?details=true"))
 
       val json = contentAsJson(result)
 

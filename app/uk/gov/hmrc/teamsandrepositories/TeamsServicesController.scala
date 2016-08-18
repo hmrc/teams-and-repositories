@@ -85,14 +85,27 @@ trait TeamsServicesController extends BaseController {
   }
 
   def services() = CachedTeamsAction { implicit request =>
-    render {
-      case Accepts.Json() => Results.Ok(Json.toJson(request.teams.asServiceNameList))
-      case ServiceDetailsContentType() => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
-    }
+    withNameListOrDetails(
+      _ => Results.Ok(Json.toJson(request.teams.asServiceNameList)),
+      _ => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
+    )
   }
 
   def libraries() = CachedTeamsAction { implicit request =>
-    Results.Ok(Json.toJson(request.teams.asLibraryNameList))
+    withNameListOrDetails(
+      _ => Results.Ok(Json.toJson(request.teams.asLibraryNameList)),
+      _ => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates)))
+    )
+
+  }
+
+  private def withNameListOrDetails[T](nameListF: TeamsRequest[_] => T, detailsListF: TeamsRequest[_] => T)(implicit request: TeamsRequest[_]) : T= {
+
+    if (request.request.getQueryString("details").contains("true"))
+      detailsListF(request)
+    else
+      nameListF(request)
+
   }
 
 
