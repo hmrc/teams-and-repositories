@@ -86,40 +86,62 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       }
     }
 
-  def hasTags(organisation: GhOrganisation, repository: GhRepository): Future[Boolean] = gh.getTags(organisation.login, repository.name).map(_.nonEmpty)
-
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[Repository] = {
-    import uk.gov.hmrc.teamsandrepositories.FutureHelpers._
 
-    def isPlayServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
-
-    def hasProcFileF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
-
-    def isJavaServiceF = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
-    val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
-
-    (isPlayServiceF || isJavaServiceF || hasProcFileF) flatMap { isDeployable =>
+    isDeployable(repo, organisation) flatMap { deployable =>
 
       val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
-      if (isDeployable)
+
+      if (deployable)
+
         Future.successful(repository.copy(repoType = RepoType.Deployable))
-      else {
-        def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
-        def hasSrcMainJava = exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/java"))
-        def containsTags = hasTags(organisation, repo)
-        ((hasSrcMainScala || hasSrcMainJava) && containsTags).map { tags =>
-          if (tags) repository.copy(repoType = RepoType.Library)
-          else repository
-        }
+
+      else isLibrary(repo, organisation).map { tags =>
+
+        if (tags) repository.copy(repoType = RepoType.Library)
+
+        else repository
       }
+
     }
   }
 
+  private def isLibrary(repo: GhRepository, organisation: GhOrganisation) = {
+    import uk.gov.hmrc.teamsandrepositories.FutureHelpers._
 
-  def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String): Future[Boolean] = {
-    gh.repoContainsContent(path, repo.name, organisation.login)
+    def hasSrcMainScala =
+      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
+
+    def hasSrcMainJava =
+      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/java"))
+
+    def containsTags =
+      hasTags(organisation, repo)
+
+    (hasSrcMainScala || hasSrcMainJava) && containsTags
   }
+
+  private def isDeployable(repo: GhRepository, organisation: GhOrganisation) = {
+    import uk.gov.hmrc.teamsandrepositories.FutureHelpers._
+
+    def isPlayServiceF =
+      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
+
+    def hasProcFileF =
+      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
+
+    def isJavaServiceF =
+      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
+
+    isPlayServiceF || isJavaServiceF || hasProcFileF
+  }
+
+  private def hasTags(organisation: GhOrganisation, repository: GhRepository) =
+    gh.getTags(organisation.login, repository.name).map(_.nonEmpty)
+
+  private def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String) =
+    gh.repoContainsContent(path, repo.name, organisation.login)
 }
 
 class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource]) extends RepositoryDataSource {
