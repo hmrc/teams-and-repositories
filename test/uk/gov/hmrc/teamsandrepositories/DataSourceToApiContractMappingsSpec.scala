@@ -164,7 +164,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
-    "create github links for both open and internal Libraries if both are present, but only open ci links" in {
+    "create github links for both open and internal Libraries if both are present, but only ci-open links" in {
 
       val internalRepo = Repository(
         "a-library",

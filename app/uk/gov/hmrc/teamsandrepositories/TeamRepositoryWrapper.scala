@@ -68,7 +68,7 @@ object TeamRepositoryWrapper {
       teamRepos.find(_.teamName == decodedTeamName).map { t =>
 
         RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, rtype) =>
-          m + (rtype -> extractRepositoriesForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
+          m + (rtype -> extractRepositoryGroupForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
         }
 
       }
@@ -79,7 +79,7 @@ object TeamRepositoryWrapper {
     private def asNameListOfGivenRepoType(repoType: RepoType.Value): Seq[String] = {
       val repoNames = for {
         d <- teamRepos
-        r <- extractRepositoriesForType(repoType, d.repositories)
+        r <- extractRepositoryGroupForType(repoType, d.repositories)
       } yield r.name
 
       repoNames
@@ -97,34 +97,13 @@ object TeamRepositoryWrapper {
 
   def repoGroupToRepositoryDetails(repoType: RepoType, repositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
 
-    val primaryRepository = extractRepositoriesForType(repoType, repositories).sortBy(_.isInternal).headOption
+    val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
 
     buildRepositoryDetails(primaryRepository, repositories, teamNames, urlTemplates)
 
   }
 
   def buildRepositoryDetails(primaryRepository: Option[Repository], allRepositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
-    def buildUrls(repo: Repository, templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
-
-    def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] = {
-      urlTemplates.environments.map { case (name, tps) =>
-        val links = tps.map { tp => Link(tp.name, tp.displayName, tp.url(repository.name)) }
-        Environment(name, links)
-      }.toSeq
-    }
-
-    def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
-      repository.isInternal match {
-        case true => buildUrls(repository, urlTemplates.ciClosed)
-        case false => buildUrls(repository, urlTemplates.ciOpen)
-      }
-
-    def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"
-    def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
-
-    def hasEnvironment(repo: Repository): Boolean = repo.repoType == RepoType.Deployable
-
-    def hasBuild(repo: Repository): Boolean = repo.repoType == RepoType.Library
 
     primaryRepository.map { repo =>
 
@@ -139,26 +118,51 @@ object TeamRepositoryWrapper {
             repo.url)
         })
 
+      val repositoryForCiUrls: Repository = allRepositories.find(!_.isInternal).fold(repo)(identity)
+
       if (hasEnvironment(repo))
-        repoDetails.copy(ci = buildCiUrls(repo, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
+        repoDetails.copy(ci = buildCiUrls(repositoryForCiUrls, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
       else if (hasBuild(repo))
-        repoDetails.copy(ci = buildCiUrls(repo, urlTemplates))
+        repoDetails.copy(ci = buildCiUrls(repositoryForCiUrls, urlTemplates))
       else repoDetails
     }
   }
 
+  private def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"
 
-  def extractRepositoriesForType(repoType: RepoType.RepoType, repositories: Seq[Repository]): List[Repository] = {
+  private def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
+
+  private def hasEnvironment(repo: Repository): Boolean = repo.repoType == RepoType.Deployable
+
+  private def hasBuild(repo: Repository): Boolean = repo.repoType == RepoType.Library
+
+  private def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] = {
+    urlTemplates.environments.map { case (name, tps) =>
+      val links = tps.map { tp => Link(tp.name, tp.displayName, tp.url(repository.name)) }
+      Environment(name, links)
+    }.toSeq
+  }
+
+  private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
+    repository.isInternal match {
+      case true => buildUrls(repository, urlTemplates.ciClosed)
+      case false => buildUrls(repository, urlTemplates.ciOpen)
+    }
+
+  private def buildUrls(repo: Repository, templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
+
+
+  def extractRepositoryGroupForType(repoType: RepoType.RepoType, repositories: Seq[Repository]): List[Repository] = {
     repositories
       .groupBy(_.name)
       .filter {
-      case (name, repos) if repoType == RepoType.Deployable =>
-        repos.exists(x => x.repoType == RepoType.Deployable)
-      case (name, repos) if repoType == RepoType.Library =>
-        !repos.exists(x => x.repoType == RepoType.Deployable) && repos.exists(x => x.repoType == RepoType.Library)
-      case (name, repos) =>
-        !repos.exists(x => x.repoType == RepoType.Deployable) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
-    }
+        case (name, repos) if repoType == RepoType.Deployable =>
+          repos.exists(x => x.repoType == RepoType.Deployable)
+        case (name, repos) if repoType == RepoType.Library =>
+          !repos.exists(x => x.repoType == RepoType.Deployable) && repos.exists(x => x.repoType == RepoType.Library)
+        case (name, repos) =>
+          !repos.exists(x => x.repoType == RepoType.Deployable) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
+      }
       .flatMap(_._2).filter(x => !x.name.contains("prototype")).toList
   }
 
