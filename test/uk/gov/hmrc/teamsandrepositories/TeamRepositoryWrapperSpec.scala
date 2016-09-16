@@ -104,9 +104,9 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-          Repository("repo1", "", isInternal = false, repoType = RepoType.Deployable),
+          Repository("repo1", "", isInternal = false, repoType = RepoType.Library),
           Repository("repo2", "", isInternal = true, repoType = RepoType.Deployable),
-          Repository("repo1", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo1", "", isInternal = true, repoType = RepoType.Deployable),
           Repository("repo3", "", isInternal = true, repoType = RepoType.Library)
         )
         ),
