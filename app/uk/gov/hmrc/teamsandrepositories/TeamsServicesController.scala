@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
 import play.api.libs.json.Json
@@ -26,12 +27,12 @@ import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandrepositories.config._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 case class Environment(name: String, services: Seq[Link])
 
 case class Link(name: String, displayName: String, url: String)
-
 
 case class RepositoryDetails(name: String, repoType: RepoType.RepoType, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link] = Seq.empty, environments: Seq[Environment] = Seq.empty)
 
@@ -73,9 +74,13 @@ trait TeamsServicesController extends BaseController {
   implicit val linkFormats = Json.format[Environment]
   implicit val serviceFormats = Json.format[RepositoryDetails]
 
-  private val ServiceDetailsContentType = Accepting("application/vnd.servicedetails.hal+json")
   private val CachedTeamsAction = CachedTeamsActionBuilder(dataSource.getCachedTeamRepoMapping _)
 
+  val CacheTimestampHeaderName = "X-Cache-Timestamp"
+
+  private def format(dateTime: LocalDateTime): String = {
+    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
+  }
 
   def repositoryDetails(name: String) = CachedTeamsAction { implicit request =>
     request.teams.findRepositoryDetails(name, ciUrlTemplates) match {
@@ -84,42 +89,41 @@ trait TeamsServicesController extends BaseController {
     }
   }
 
-  def services() = CachedTeamsAction { implicit request =>
-    withNameListOrDetails(
-      _ => Results.Ok(Json.toJson(request.teams.asServiceNameList)),
-      _ => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates)))
-    )
+  def services() = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      Ok(determineServicesResponse(request, cachedTeams.data))
+        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time)) }
   }
+
+  private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
+    if (request.getQueryString("details").nonEmpty)
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates))
+    else if (request.getQueryString("teamDetails").nonEmpty)
+      Json.toJson(data.asRepositoryTeamNameList())
+    else Json.toJson(data.asServiceNameList)
 
   def libraries() = CachedTeamsAction { implicit request =>
     withNameListOrDetails(
       _ => Results.Ok(Json.toJson(request.teams.asLibraryNameList)),
       _ => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates)))
     )
-
   }
 
   private def withNameListOrDetails[T](nameListF: TeamsRequest[_] => T, detailsListF: TeamsRequest[_] => T)(implicit request: TeamsRequest[_]) : T= {
-
     if (request.request.getQueryString("details").contains("true"))
       detailsListF(request)
     else
       nameListF(request)
-
   }
-
 
   def teams() = CachedTeamsAction { implicit request =>
     Results.Ok(Json.toJson(request.teams.asTeamNameList))
   }
 
-  def team(teamName: String) = CachedTeamsAction { implicit request =>
+  def repositoriesByTeam(teamName: String) = CachedTeamsAction { implicit request =>
     request.teams.asTeamRepositoryNameList(teamName) match {
       case None => NotFound
-      case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) =>
-        (t.toString, v)
-      }))
-    }
+      case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) })) }
   }
 
   def reloadCache() = Action { implicit request =>

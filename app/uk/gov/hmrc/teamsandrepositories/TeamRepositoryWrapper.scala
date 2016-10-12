@@ -73,8 +73,28 @@ object TeamRepositoryWrapper {
 
       }
     }
+//
+//    def asRepositoryTeamNameList(repoName: String): Option[Map[String, Seq[String]]] = {
+//      ???
+////      val decodedRepoName = URLDecoder.decode(repoName, "UTF-8")
+////      teamRepos.filter(_.repositories.exists(r => r.name == decodedRepoName)) match {
+////        case x if x.isEmpty => None
+////        case x => Some(x.map { repoName -> _.teamName } toMap) }
+//    }
 
-    private case class RepositoryTeam(repositories: Seq[Repository], teamName: String)
+    private case class RepositoryToTeam(repositoryName: String, teamName: String)
+
+    def asRepositoryTeamNameList(): Map[String, Seq[String]] = {
+      val mappings = for {
+        tr <- teamRepos
+        r <- tr.repositories
+      } yield RepositoryToTeam(r.name, tr.teamName)
+
+      mappings.groupBy(_.repositoryName)
+        .map { m => m._1 -> m._2.map(_.teamName).distinct }
+    }
+
+    private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
 
     private def asNameListOfGivenRepoType(repoType: RepoType.Value): Seq[String] = {
       val repoNames = for {
@@ -88,11 +108,11 @@ object TeamRepositoryWrapper {
     }
 
 
-    private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoryTeam] =
+    private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
       for {
         team <- data
         repositories <- team.repositories.groupBy(_.name).values
-      } yield RepositoryTeam(repositories, team.teamName)
+      } yield RepositoriesToTeam(repositories, team.teamName)
   }
 
   def repoGroupToRepositoryDetails(repoType: RepoType, repositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {

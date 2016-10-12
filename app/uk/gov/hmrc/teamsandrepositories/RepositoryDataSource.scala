@@ -32,7 +32,6 @@ import scala.util.{Failure, Success}
 
 
 case class TeamRepositories(teamName: String, repositories: List[Repository]) {
-
   def repositoriesByType(repoType: RepoType.RepoType) = repositories.filter(_.repoType == repoType)
 }
 

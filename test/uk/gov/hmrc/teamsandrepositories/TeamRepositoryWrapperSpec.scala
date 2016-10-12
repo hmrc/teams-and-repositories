@@ -198,4 +198,34 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   }
 
+  "asRepositoryTeamNameList" should {
+
+    "group teams by services they own filtering out any duplicates" in {
+
+      val teams = Seq(
+        TeamRepositories("team1", List(
+          Repository("repo1", "", isInternal = false, repoType = RepoType.Deployable),
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Library))),
+        TeamRepositories("team2", List(
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library))),
+        TeamRepositories("team2", List(
+          Repository("repo2", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library))),
+        TeamRepositories("team3", List(
+          Repository("repo3", "", isInternal = true, repoType = RepoType.Library),
+          Repository("repo4", "", isInternal = true, repoType = RepoType.Library))))
+
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result = wrapper.asRepositoryTeamNameList()
+
+      result should contain ("repo1" -> Seq("team1"))
+      result should contain ("repo2" -> Seq("team1", "team2"))
+      result should contain ("repo3" -> Seq("team2", "team3"))
+      result should contain ("repo4" -> Seq("team3"))
+
+    }
+
+  }
+
 }
