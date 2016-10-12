@@ -40,7 +40,6 @@ object CachedTeamsActionBuilder {
                         block: TeamsRequest[A] => Future[Result]): Future[Result] = {
 
       dataSource().flatMap { cachedTeams =>
-
         block(new TeamsRequest(cachedTeams.data, request)).map { res =>
           res.withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
         }
