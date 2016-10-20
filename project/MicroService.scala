@@ -1,7 +1,9 @@
+
 import sbt.Keys._
-import sbt.Tests.{SubProcess, Group}
+import sbt.Tests.{Group, SubProcess}
 import sbt._
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+//import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+import play.sbt.PlayImport._
 
 
 trait MicroService {
@@ -19,10 +21,10 @@ trait MicroService {
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
+    .enablePlugins(plugins : _*)
     .settings(playSettings : _*)
     .settings(scalaSettings: _*)
-    .settings(publishingSettings: _*)
+//    .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
     .settings(
       libraryDependencies ++= appDependencies,

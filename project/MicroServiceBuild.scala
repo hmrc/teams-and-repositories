@@ -1,22 +1,22 @@
 import sbt._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
+//import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 
 object MicroServiceBuild extends Build with MicroService {
 
   override val appName = "teams-and-repositories"
 
   override lazy val plugins: Seq[Plugins] = Seq(
-    SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin
+    SbtAutoBuildPlugin, SbtGitVersioning//, SbtDistributablesPlugin
   )
 
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 }
 
 private object AppDependencies {
-  import play.PlayImport._
-  import play.core.PlayVersion
+
+  import play.core.PlayVersion.current
 
   private val microserviceBootstrapVersion = "4.2.1"
   private val playAuthVersion = "3.1.0"
@@ -30,7 +30,7 @@ private object AppDependencies {
 
   val compile = Seq(
 
-    ws,
+    //ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "github-client" % githubClientVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
@@ -55,7 +55,7 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "2.2.2" % scope,
         "org.scalatestplus" %% "play" % "1.2.0" % scope,
         "org.pegdown" % "pegdown" % "1.4.2" % scope,        
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "com.typesafe.play" %% "play-test" % current % scope,
         "com.github.tomakehurst" % "wiremock" % "1.52" % scope
       )
     }.test
