@@ -27,7 +27,6 @@ import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
-import uk.gov.hmrc.teamsandrepositories.Repository
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
