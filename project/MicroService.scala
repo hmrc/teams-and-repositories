@@ -1,32 +1,27 @@
 
 
 import play.sbt.PlayScala
+import play.sbt.routes.RoutesKeys.{routesGenerator, _}
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
-import play.sbt.routes.RoutesKeys.routesGenerator
-import play.sbt.routes.RoutesKeys._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-import play.sbt.PlayImport._
 
 
 trait MicroService {
 
   import uk.gov.hmrc._
   import DefaultBuildSettings._
-  import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
-
-  import TestPhases._
 
   val appName: String
 
-  lazy val appDependencies : Seq[ModuleID] = ???
-  lazy val plugins : Seq[Plugins] = Seq()
-  lazy val playSettings : Seq[Setting[_]] = Seq.empty
+  lazy val appDependencies: Seq[ModuleID] = ???
+  lazy val plugins: Seq[Plugins] = Seq()
+  lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(PlayScala) ++ plugins : _*)
-    .settings(playSettings : _*)
+    .enablePlugins(Seq(PlayScala) ++ plugins: _*)
+    .settings(playSettings: _*)
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
@@ -39,7 +34,7 @@ trait MicroService {
       routesGenerator := StaticRoutesGenerator
     )
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
+    .settings(resolvers ++= Seq(Resolver.bintrayRepo("hmrc", "releases"), Resolver.jcenterRepo))
 }
 
 private object TestPhases {
