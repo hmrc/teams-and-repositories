@@ -74,25 +74,26 @@ trait TeamsRepositoriesController extends BaseController {
   implicit val linkFormats = Json.format[Environment]
   implicit val serviceFormats = Json.format[RepositoryDetails]
 
-  private val CachedTeamsAction = CachedTeamsActionBuilder(dataSource.getCachedTeamRepoMapping _)
-
   val CacheTimestampHeaderName = "X-Cache-Timestamp"
 
   private def format(dateTime: LocalDateTime): String = {
     DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
   }
 
-  def repositoryDetails(name: String) = CachedTeamsAction { implicit request =>
-    request.teams.findRepositoryDetails(name, ciUrlTemplates) match {
-      case None => NotFound
-      case Some(x) => Results.Ok(Json.toJson(x))
+  def repositoryDetails(name: String) = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      (cachedTeams.data.findRepositoryDetails(name, ciUrlTemplates) match {
+        case None => NotFound
+        case Some(x) => Results.Ok(Json.toJson(x))
+      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
 
   def services() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
       Ok(determineServicesResponse(request, cachedTeams.data))
-        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time)) }
+        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
   }
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
@@ -102,28 +103,34 @@ trait TeamsRepositoriesController extends BaseController {
       Json.toJson(data.asRepositoryTeamNameList())
     else Json.toJson(data.asServiceNameList)
 
-  def libraries() = CachedTeamsAction { implicit request =>
-    withNameListOrDetails(
-      _ => Results.Ok(Json.toJson(request.teams.asLibraryNameList)),
-      _ => Results.Ok(Json.toJson(request.teams.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates)))
-    )
+  def libraries() = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      Ok(determineLibrariesResponse(request, cachedTeams.data))
+        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
   }
 
-  private def withNameListOrDetails[T](nameListF: TeamsRequest[_] => T, detailsListF: TeamsRequest[_] => T)(implicit request: TeamsRequest[_]) : T= {
-    if (request.request.getQueryString("details").contains("true"))
-      detailsListF(request)
+  private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) = {
+    if (request.getQueryString("details").nonEmpty)
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates))
     else
-      nameListF(request)
+      Json.toJson(data.asLibraryNameList)
   }
 
-  def teams() = CachedTeamsAction { implicit request =>
-    Results.Ok(Json.toJson(request.teams.asTeamNameList))
+  def teams() = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      Results.Ok(Json.toJson(cachedTeams.data.asTeamNameList))
+        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
   }
 
-  def repositoriesByTeam(teamName: String) = CachedTeamsAction { implicit request =>
-    request.teams.asTeamRepositoryNameList(teamName) match {
-      case None => NotFound
-      case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) })) }
+  def repositoriesByTeam(teamName: String) = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      (cachedTeams.data.asTeamRepositoryNameList(teamName) match {
+        case None => NotFound
+        case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
   }
 
   def reloadCache() = Action { implicit request =>
