@@ -40,7 +40,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
     when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
-    new TeamsServicesController {
+    new TeamsRepositoriesController {
       override def dataSource = fakeDataSource
 
       override def ciUrlTemplates = new UrlTemplates(
@@ -79,15 +79,15 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.teams().url mustBe "/api/teams"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController.teams().url mustBe "/api/teams"
     }
 
     "have the correct url set up for a team's services" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.repositoriesByTeam("test-team").url mustBe "/api/teams/test-team"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController.repositoriesByTeam("test-team").url mustBe "/api/teams/test-team"
     }
 
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsServicesController.services().url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController.services().url mustBe "/api/services"
     }
 
   }
