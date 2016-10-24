@@ -16,16 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import org.mockito.Matchers._
-import org.mockito.Mockito
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandrepositories.RepoType._
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, GithubConfigProvider}
 
 import scala.concurrent.{ExecutionContext, Future}

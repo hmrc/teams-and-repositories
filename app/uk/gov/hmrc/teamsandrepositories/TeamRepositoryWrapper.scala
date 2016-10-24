@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
-import uk.gov.hmrc.teamsandrepositories.RepoType
+
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
