@@ -41,7 +41,7 @@ object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
 }
 
-object TeamsServicesController extends TeamsServicesController
+object TeamsRepositoriesController extends TeamsRepositoriesController
 with UrlTemplatesProvider {
 
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
@@ -62,7 +62,7 @@ with UrlTemplatesProvider {
   )
 }
 
-trait TeamsServicesController extends BaseController {
+trait TeamsRepositoriesController extends BaseController {
 
   import TeamRepositoryWrapper._
 
