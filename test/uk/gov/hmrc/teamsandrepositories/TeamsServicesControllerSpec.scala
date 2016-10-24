@@ -27,7 +27,6 @@ import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
-import uk.gov.hmrc.teamsandrepositories.Repository
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
@@ -260,13 +259,14 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val environments = (last \ "environments").as[JsArray].value
 
-      val env1Services = environments.find(_ \ "name" == JsString("env1")).value.as[JsObject] \ "services"
+      val find: Option[JsValue] = environments.find(x => x.nameField == "env1")
+      val env1Services = find.value.as[JsObject] \ "services"
       val env1Links = env1Services.as[List[Map[String, String]]].toSet
       env1Links mustBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"),
         Map("name" -> "mon1", "displayName" -> "mon 1", "url" -> "repo-name"))
 
-      val env2Services = environments.find(_ \ "name" == JsString("env2")).value.as[JsObject] \ "services"
+      val env2Services = environments.find(x => x.nameField == "env2").value.as[JsObject] \ "services"
       val env2Links = env2Services.as[List[Map[String, String]]].toSet
       env2Links mustBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
@@ -442,13 +442,13 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val environments = (json \ "environments").as[JsArray].value
 
-      val env1Services = environments.find(_ \ "name" == JsString("env1")).value.as[JsObject] \ "services"
+      val env1Services = environments.find(x => (x \ "name").get == JsString("env1")).value.as[JsObject] \ "services"
       val env1Links = env1Services.as[List[Map[String, String]]].toSet
       env1Links mustBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"),
         Map("name" -> "mon1", "displayName" -> "mon 1", "url" -> "repo-name"))
 
-      val env2Services = environments.find(_ \ "name" == JsString("env2")).value.as[JsObject] \ "services"
+      val env2Services = environments.find(x => (x \ "name").get == JsString("env2")).value.as[JsObject] \ "services"
       val env2Links = env2Services.as[List[Map[String, String]]].toSet
       env2Links mustBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))

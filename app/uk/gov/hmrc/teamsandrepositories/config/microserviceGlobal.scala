@@ -16,21 +16,17 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import com.kenshoo.play.metrics.MetricsFilter
 import com.typesafe.config.Config
+import net.ceedubs.ficus.Ficus._
 import play.api._
-import play.api.mvc.{EssentialFilter, Filters, EssentialAction}
+import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.play.audit.filters.AuditFilter
-import uk.gov.hmrc.play.audit.http.config.{ErrorAuditingSettings, AuditingConfig}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.filters.{RecoveryFilter, NoCacheFilter}
-import uk.gov.hmrc.play.graphite.GraphiteConfig
-import uk.gov.hmrc.play.http.logging.filters.{FrontendLoggingFilter, LoggingFilter}
-import uk.gov.hmrc.play.microservice.bootstrap.{JsonErrorHandling, DefaultMicroserviceGlobal}
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
-import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.play.microservice.bootstrap.Routing.RemovingOfTrailingSlashes
+import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
+import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
+import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -41,46 +37,27 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
   lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
 }
 
-object MicroserviceLoggingFilter extends LoggingFilter {
-  override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
+object MicroserviceAuditFilter extends AuditFilter with AppName{
+  implicit val app = play.api.Play.current
+  implicit val mat = Play.materializer
+  override val auditConnector = MicroserviceAuditConnector
+  override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
 }
 
-trait MicroserviceFilters {
 
-  def loggingFilter: LoggingFilter
-
-  def metricsFilter: MetricsFilter = MetricsFilter
-
-  protected lazy val defaultMicroserviceFilters: Seq[EssentialFilter] = Seq(
-    Some(metricsFilter),
-    Some(loggingFilter),
-    Some(NoCacheFilter),
-    Some(RecoveryFilter)).flatten
-
-  def microserviceFilters: Seq[EssentialFilter] = defaultMicroserviceFilters
-}
-
-object CatalogLoggingFilter extends LoggingFilter {
+object CatalogLoggingFilter extends LoggingFilter with MicroserviceFilterSupport{
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
 
-object MicroserviceGlobal extends GlobalSettings with RunMode with GraphiteConfig
-with RemovingOfTrailingSlashes
-with JsonErrorHandling
-with MicroserviceFilters {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig("microservice.metrics")
 
-  lazy val appName = Play.current.configuration.getString("appName").getOrElse("APP NAME NOT SET")
-
-  override def onStart(app: Application) {
-    Logger.info(s"Starting microservice : $appName : in mode : ${app.mode}")
-    super.onStart(app)
-  }
-
-  override def doFilter(a: EssentialAction): EssentialAction = {
-    Filters(super.doFilter(a), microserviceFilters: _*)
-  }
-
   override def loggingFilter: LoggingFilter = CatalogLoggingFilter
+
+  override def microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
+
+  override def authFilter: Option[EssentialFilter] = None
+
+  override def auditConnector: AuditConnector = MicroserviceAuditConnector
 }
