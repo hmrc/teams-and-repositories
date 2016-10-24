@@ -23,7 +23,7 @@ import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
 
 
-class TeamsAndServicesConfigSpec extends WordSpec with Matchers with OneAppPerSuite{
+class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite{
 
 
 
