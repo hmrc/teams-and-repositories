@@ -1,8 +1,12 @@
 
+
+import play.sbt.PlayScala
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
-//import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+import play.sbt.routes.RoutesKeys.routesGenerator
+import play.sbt.routes.RoutesKeys._
+import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import play.sbt.PlayImport._
 
 
@@ -21,17 +25,18 @@ trait MicroService {
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(plugins : _*)
+    .enablePlugins(Seq(PlayScala) ++ plugins : _*)
     .settings(playSettings : _*)
     .settings(scalaSettings: _*)
-//    .settings(publishingSettings: _*)
+    .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
     .settings(
       libraryDependencies ++= appDependencies,
       parallelExecution in Test := false,
       fork in Test := false,
       targetJvm := "jvm-1.8",
-      retrieveManaged := true
+      retrieveManaged := true,
+      routesGenerator := StaticRoutesGenerator
     )
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
     .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))

@@ -18,13 +18,19 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
 
+import akka.stream.Materializer
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Result, Results}
-import play.api.test.{FakeRequest, PlaySpecification}
-import uk.gov.hmrc.teamsandrepositories.RepoType._
+import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.play.test.WithFakeApplication
 
 import scala.concurrent.Future
 
-class CachedTeamsActionBuilderSpec extends PlaySpecification {
+class CachedTeamsActionBuilderSpec extends PlaySpec with WithFakeApplication{
+
+  implicit lazy val materializer: Materializer = fakeApplication.materializer
 
   "CachedTeamsActionBuilder" should {
     "return the cache timestamp header and act on the cached result" in {
@@ -32,13 +38,13 @@ class CachedTeamsActionBuilderSpec extends PlaySpecification {
         Future.successful(new CachedResult(
           Seq(TeamRepositories("teamName", List(Repository("repo1", "", true, RepoType.Deployable)))), LocalDateTime.of(2000, 1, 1, 1, 1, 1)))
 
-      val result: Future[Result] = call(CachedTeamsActionBuilder(() => aResult) { request =>
+      val result: Future[Result] = Helpers.call(CachedTeamsActionBuilder(() => aResult) { request =>
         Results.Ok(request.teams.size.toString)
       }, FakeRequest())
 
-      header("X-Cache-Timestamp", result) shouldEqual Some("Sat, 1 Jan 2000 01:01:01 GMT")
+      header("X-Cache-Timestamp", result) mustBe  Some("Sat, 1 Jan 2000 01:01:01 GMT")
 
-      contentAsString(result) mustEqual "1"
+      contentAsString(result) mustBe "1"
     }
 
 
