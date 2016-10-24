@@ -22,7 +22,7 @@ import play.api.{Configuration, GlobalSettings}
 import play.api.test.{FakeApplication, WithApplication}
 
 
-class TeamsAndServicesConfigSpec extends WordSpec with Matchers {
+class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers {
 
   trait Setup extends WithApplication {
 
