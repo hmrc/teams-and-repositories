@@ -58,7 +58,6 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
   implicit override lazy val app = new GuiceApplicationBuilder().configure(Configuration(ConfigFactory.parseString(templatesConfig))).build()
 
 
-
   "ciUrlTemplates" should {
     "return all the url templates" in {
       val conf = new UrlTemplatesProvider() {}
