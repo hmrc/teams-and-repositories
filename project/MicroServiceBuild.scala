@@ -21,7 +21,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "5.1.0"
   private val playAuthVersion = "4.0.0"
   private val playHealthVersion = "2.0.0"
-  private val logbackJsonLoggerVersion = "3.0.0"
+  private val playJsonLoggerVersion = "3.0.0"
   private val playUrlBindersVersion = "2.0.0"
   private val playConfigVersion = "3.0.0"
   private val domainVersion = "3.3.0"
@@ -36,7 +36,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
+    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "org.mockito" % "mockito-core" % "2.2.6",
     "org.apache.httpcomponents" % "httpcore" % "4.3.2",
