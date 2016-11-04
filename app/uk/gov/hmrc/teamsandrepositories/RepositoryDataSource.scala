@@ -36,7 +36,7 @@ case class TeamRepositories(teamName: String, repositories: List[Repository]) {
 }
 
 
-case class Repository(name: String, url: String, isInternal: Boolean = false, repoType: RepoType.RepoType = RepoType.Other)
+case class Repository(name: String, url: String, createdDate: LocalDateTime, lastActiveDate: LocalDateTime, isInternal: Boolean = false, repoType: RepoType = RepoType.Other)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -79,7 +79,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
-        } yield mapRepository(organisation, repo)).map { repos =>
+        } yield mapRepository(organisation, repo)).map { (repos: List[Repository]) =>
           TeamRepositories(team.name, repositories = repos)
         }
       }
@@ -90,7 +90,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
     isDeployable(repo, organisation) flatMap { deployable =>
 
-      val repository: Repository = Repository(repo.name, repo.htmlUrl, isInternal = this.isInternal)
+      val repository: Repository = Repository(repo.name, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
 
       if (deployable)
 

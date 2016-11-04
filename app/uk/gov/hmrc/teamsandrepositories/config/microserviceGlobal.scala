@@ -37,7 +37,7 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
   lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
 }
 
-object MicroserviceAuditFilter extends AuditFilter with AppName{
+object MicroserviceAuditFilter extends AuditFilter with AppName {
   implicit val app = play.api.Play.current
   implicit val mat = Play.materializer
   override val auditConnector = MicroserviceAuditConnector

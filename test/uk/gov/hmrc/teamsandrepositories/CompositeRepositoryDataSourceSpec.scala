@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.LocalDateTime
+
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
@@ -25,19 +27,21 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
 
+  val now = LocalDateTime.now()
+
   "Retrieving team repo mappings" should {
 
     "return the combination of all input sources"  in {
 
       val teamsList1 = List(
-        TeamRepositories("A", List(Repository("A_r", "url_A"))),
-        TeamRepositories("B", List(Repository("B_r", "url_B"))),
-        TeamRepositories("C", List(Repository("C_r", "url_C"))))
+        TeamRepositories("A", List(Repository("A_r", "url_A", now, now))),
+        TeamRepositories("B", List(Repository("B_r", "url_B", now, now))),
+        TeamRepositories("C", List(Repository("C_r", "url_C", now, now))))
 
       val teamsList2 = List(
-        TeamRepositories("D", List(Repository("D_r", "url_D"))),
-        TeamRepositories("E", List(Repository("E_r", "url_E"))),
-        TeamRepositories("F", List(Repository("F_r", "url_F"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D", now, now))),
+        TeamRepositories("E", List(Repository("E_r", "url_E", now, now))),
+        TeamRepositories("F", List(Repository("F_r", "url_F", now, now))))
 
       val dataSource1 = mock[RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))
@@ -59,18 +63,18 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
     "combine teams that have the same names in both sources and sort repositories alphabetically"  in {
 
-      val repoAA = Repository("A_A", "url_A_A")
-      val repoAB = Repository("A_B", "url_A_B")
-      val repoAC = Repository("A_C", "url_A_C")
+      val repoAA = Repository("A_A", "url_A_A", now, now)
+      val repoAB = Repository("A_B", "url_A_B", now, now)
+      val repoAC = Repository("A_C", "url_A_C", now, now)
 
       val teamsList1 = List(
         TeamRepositories("A", List(repoAC, repoAB)),
-        TeamRepositories("B", List(Repository("B_r", "url_B"))),
-        TeamRepositories("C", List(Repository("C_r", "url_C"))))
+        TeamRepositories("B", List(Repository("B_r", "url_B", now, now))),
+        TeamRepositories("C", List(Repository("C_r", "url_C", now, now))))
 
       val teamsList2 = List(
         TeamRepositories("A", List(repoAA)),
-        TeamRepositories("D", List(Repository("D_r", "url_D"))))
+        TeamRepositories("D", List(Repository("D_r", "url_D", now, now))))
 
       val dataSource1 = mock[RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(Future.successful(teamsList1))

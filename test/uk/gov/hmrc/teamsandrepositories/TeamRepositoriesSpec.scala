@@ -16,23 +16,27 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import org.scalatest.{Matchers, WordSpec, FunSuite}
+import java.time.LocalDateTime
+
+import org.scalatest.{FunSuite, Matchers, WordSpec}
 
 class TeamRepositoriesSpec extends WordSpec with Matchers {
+
+  val timestamp = LocalDateTime.now()
 
   "TeamRepositories" should {
     "get repositories by type" in {
 
       val teamRepos = TeamRepositories("A", List(
-        Repository("r1", "", repoType = RepoType.Deployable),
-        Repository("r2", "", repoType = RepoType.Library),
-        Repository("r3", "", repoType = RepoType.Deployable),
-        Repository("r4", "")
+        Repository("r1", "", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
+        Repository("r2", "", repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
+        Repository("r3", "", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
+        Repository("r4", "", createdDate = timestamp, lastActiveDate = timestamp)
       ))
 
       teamRepos.repositoriesByType(RepoType.Deployable) shouldBe List(
-        Repository("r1", "", repoType = RepoType.Deployable),
-        Repository("r3", "", repoType = RepoType.Deployable)
+        Repository("r1", "", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
+        Repository("r3", "", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp)
       )
 
 

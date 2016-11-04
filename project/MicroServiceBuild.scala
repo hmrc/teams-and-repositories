@@ -26,7 +26,7 @@ private object AppDependencies {
   private val playConfigVersion = "3.0.0"
   private val domainVersion = "3.3.0"
   private val hmrcTestVersion = "2.0.0"
-  private val githubClientVersion = "1.6.0"
+  private val githubClientVersion = "1.8.0"
 
   val compile = Seq(
 
