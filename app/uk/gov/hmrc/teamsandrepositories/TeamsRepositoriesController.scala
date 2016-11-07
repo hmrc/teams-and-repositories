@@ -34,7 +34,15 @@ case class Environment(name: String, services: Seq[Link])
 
 case class Link(name: String, displayName: String, url: String)
 
-case class RepositoryDetails(name: String, repoType: RepoType.RepoType, teamNames: Seq[String], githubUrls: Seq[Link], ci: Seq[Link] = Seq.empty, environments: Seq[Environment] = Seq.empty)
+case class RepositoryDetails(name: String,
+                             description: String,
+                             createAt: LocalDateTime,
+                             lastActive: LocalDateTime,
+                             repoType: RepoType.RepoType,
+                             teamNames: Seq[String],
+                             githubUrls: Seq[Link],
+                             ci: Seq[Link] = Seq.empty,
+                             environments: Seq[Environment] = Seq.empty)
 
 
 object BlockingIOExecutionContext {
@@ -84,7 +92,7 @@ trait TeamsRepositoriesController extends BaseController {
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
       (cachedTeams.data.findRepositoryDetails(name, ciUrlTemplates) match {
         case None => NotFound
-        case Some(x) => Results.Ok(Json.toJson(x))
+        case Some(x: RepositoryDetails) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }

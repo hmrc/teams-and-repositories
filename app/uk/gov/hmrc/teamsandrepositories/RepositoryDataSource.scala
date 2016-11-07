@@ -36,7 +36,13 @@ case class TeamRepositories(teamName: String, repositories: List[Repository]) {
 }
 
 
-case class Repository(name: String, url: String, createdDate: LocalDateTime, lastActiveDate: LocalDateTime, isInternal: Boolean = false, repoType: RepoType = RepoType.Other)
+case class Repository(name: String,
+                      description: String,
+                      url: String,
+                      createdDate: LocalDateTime,
+                      lastActiveDate: LocalDateTime,
+                      isInternal: Boolean = false,
+                      repoType: RepoType = RepoType.Other)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -90,7 +96,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
 
     isDeployable(repo, organisation) flatMap { deployable =>
 
-      val repository: Repository = Repository(repo.name, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
+      val repository: Repository = Repository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
 
       if (deployable)
 

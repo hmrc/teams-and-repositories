@@ -129,6 +129,9 @@ object TeamRepositoryWrapper {
 
       val repoDetails = RepositoryDetails(
         repo.name,
+        repo.description,
+        repo.createdDate,
+        repo.lastActiveDate,
         repo.repoType,
         teamNames,
         allRepositories.map { repo =>

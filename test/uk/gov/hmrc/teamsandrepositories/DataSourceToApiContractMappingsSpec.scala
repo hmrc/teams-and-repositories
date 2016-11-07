@@ -57,7 +57,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a closed service" in {
 
-      val repos = Seq(Repository("a-frontend", "https://not-open-github/org/a-frontend", now, now, isInternal = true, repoType = RepoType.Deployable))
+      val repos = Seq(Repository(
+        "a-frontend",
+        "Some Description",
+        "https://not-open-github/org/a-frontend",
+        now,
+        now,
+        isInternal = true,
+        repoType = RepoType.Deployable))
 
       val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
 
@@ -67,7 +74,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a closed libraries" in {
 
-      val repos = Seq(Repository("a-library", "https://not-open-github/org/a-library", now, now, isInternal = true, repoType = RepoType.Library))
+      val repos = Seq(Repository(
+        "a-library",
+        "Some Description",
+        "https://not-open-github/org/a-library",
+        now,
+        now,
+        isInternal = true,
+        repoType = RepoType.Library))
 
       val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
 
@@ -79,6 +93,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repo = Seq(Repository(
         "a-library",
+        "Some Description",
         "https://github.com/org/a-library", now, now,
         repoType = RepoType.Library))
 
@@ -93,6 +108,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repo = Seq(Repository(
         "a-frontend",
+        "Some Description",
         "https://github.com/org/a-frontend", now, now,
         repoType = RepoType.Deployable))
 
@@ -107,6 +123,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
     "create links for each environment" in {
       val aFrontend = Repository(
         "a-frontend",
+        "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
         repoType = RepoType.Deployable)
 
@@ -124,6 +141,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
     "do not create environment links for libraries" in {
       val aLibrary = Repository(
         "a-library",
+        "Some Description",
         "https://not-open-github/org/a-library", now, now,
         repoType = RepoType.Library)
 
@@ -141,12 +159,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val internalRepo = Repository(
         "a-frontend",
+        "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
         isInternal = true,
         repoType = RepoType.Deployable)
 
       val openRepo = Repository(
         "a-frontend",
+        "Some Description",
         "https://github.com/org/a-frontend", now, now,
         repoType = RepoType.Deployable)
 
@@ -164,12 +184,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val internalRepo = Repository(
         "a-library",
+        "Some Description",
         "https://not-open-github/org/a-library", now, now,
         isInternal = true,
         repoType = RepoType.Library)
 
       val openRepo = Repository(
         "a-library",
+        "Some Description",
         "https://github.com/org/a-library", now, now,
         repoType = RepoType.Library)
 
@@ -188,12 +210,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val internalRepo = Repository(
         "a-repo",
+        "Some Description",
         "https://not-open-github/org/a-repo", now, now,
         isInternal = true,
         repoType = RepoType.Other)
 
       val openRepo = Repository(
         "a-repo",
+        "Some Description",
         "https://github.com/org/a-repo", now, now,
         repoType = RepoType.Other)
 
