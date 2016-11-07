@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
@@ -31,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with Matchers with DefaultPatienceConfig with MockitoSugar with BeforeAndAfterEach {
 
-  val now = LocalDateTime.now()
+  val now = new Date().getTime
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")

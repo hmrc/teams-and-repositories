@@ -17,12 +17,14 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.scalatest.{FunSuite, Matchers, WordSpec}
 
 class TeamRepositoriesSpec extends WordSpec with Matchers {
 
-  val timestamp = LocalDateTime.now()
+  val timestamp = new Date().getTime
+
 
   "TeamRepositories" should {
     "get repositories by type" in {

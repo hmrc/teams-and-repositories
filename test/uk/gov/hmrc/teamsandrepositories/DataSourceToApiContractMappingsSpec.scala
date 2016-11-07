@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
@@ -25,7 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
 
 class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with OptionValues {
 
-  val now = LocalDateTime.now()
+  val now = new Date().getTime
 
   import TeamRepositoryWrapper._
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.mockito.Mockito._
 import org.scalatest.OptionValues
@@ -34,6 +35,8 @@ import scala.concurrent.Future
 class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues {
 
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
+
+  val now = new Date().getTime
 
   def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
     val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
@@ -58,13 +61,13 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   val defaultData = new CachedResult[Seq[TeamRepositories]](
     Seq(
       new TeamRepositories("test-team", List(
-        Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-        Repository("library-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)
+        Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+        Repository("library-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = now, lastActiveDate = now)
       )),
       new TeamRepositories("another-team", List(
-        Repository("another-repo", "some description", "another-url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-        Repository("middle-repo", "some description", "middle-url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-        Repository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)
+        Repository("another-repo", "some description", "another-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+        Repository("middle-repo", "some description", "middle-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+        Repository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = now, lastActiveDate = now)
       ))
     ),
     timestamp)
@@ -72,7 +75,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url", isInternal: Boolean = true) = {
     new CachedResult[Seq[TeamRepositories]](Seq(
       new TeamRepositories("test-team", List(
-        Repository(repoName, "some description", repoUrl, repoType = RepoType.Deployable, isInternal = isInternal, createdDate = timestamp, lastActiveDate = timestamp)))), timestamp)
+        Repository(repoName, "some description", repoUrl, repoType = RepoType.Deployable, isInternal = isInternal, createdDate = now, lastActiveDate = now)))), timestamp)
   }
 
   "Teams controller" should {
@@ -138,8 +141,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "Return information about all the teams that have access to a repo" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(
-          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp))),
-          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp)))
+          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now)))
         ),
         timestamp)
 
@@ -155,9 +158,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "not show the same service twice when it has an open and internal source repository" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
-          Repository("repo-name", "some description", "Another-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp)))),
+          Repository("repo-name", "some description", "Another-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
+          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
+          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now)))),
         timestamp)
 
       val controller = controllerWithData(sourceData)
@@ -300,9 +303,9 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "Ignore case when sorting alphabetically" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
-          Repository("Another-repo", "some description", "Another-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp)))),
+          Repository("Another-repo", "some description", "Another-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
+          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
+          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now)))),
         timestamp)
 
       val controller = controllerWithData(sourceData)
@@ -316,8 +319,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
-          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp))),
-          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp)))
+          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now)))
         ),
         timestamp)
 
@@ -335,8 +338,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
           new TeamRepositories("test-team", List(
-            Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, isInternal = true, createdDate = timestamp, lastActiveDate = timestamp),
-            Repository("repo-name", "some description", "repo-open-url", repoType = RepoType.Deployable, isInternal = false, createdDate = timestamp, lastActiveDate = timestamp)))),
+            Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, isInternal = true, createdDate = now, lastActiveDate = now),
+            Repository("repo-name", "some description", "repo-open-url", repoType = RepoType.Deployable, isInternal = false, createdDate = now, lastActiveDate = now)))),
         timestamp)
 
       val controller = controllerWithData(data)
@@ -366,8 +369,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val data = new CachedResult[Seq[TeamRepositories]](
         Seq(
           new TeamRepositories("test-team", List(
-            Repository("repo-name", "some description", "repo-url", repoType = RepoType.Library, isInternal = true, createdDate = timestamp, lastActiveDate = timestamp),
-            Repository("repo-open-name", "some description", "repo-open-url", repoType = RepoType.Library, isInternal = false, createdDate = timestamp, lastActiveDate = timestamp)))),
+            Repository("repo-name", "some description", "repo-url", repoType = RepoType.Library, isInternal = true, createdDate = now, lastActiveDate = now),
+            Repository("repo-open-name", "some description", "repo-open-url", repoType = RepoType.Library, isInternal = false, createdDate = now, lastActiveDate = now)))),
         timestamp)
 
       val controller = controllerWithData(data)

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
@@ -27,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
 
-  val now = LocalDateTime.now()
+  val now = new Date().getTime
 
   "Retrieving team repo mappings" should {
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
+import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
@@ -24,7 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
-  val timestamp = LocalDateTime.now()
+  val timestamp = new Date().getTime
 
   "asServiceNameList" should {
 

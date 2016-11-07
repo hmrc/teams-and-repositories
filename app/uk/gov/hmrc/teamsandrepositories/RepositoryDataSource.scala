@@ -39,8 +39,8 @@ case class TeamRepositories(teamName: String, repositories: List[Repository]) {
 case class Repository(name: String,
                       description: String,
                       url: String,
-                      createdDate: LocalDateTime,
-                      lastActiveDate: LocalDateTime,
+                      createdDate: Long,
+                      lastActiveDate: Long,
                       isInternal: Boolean = false,
                       repoType: RepoType = RepoType.Other)
 
