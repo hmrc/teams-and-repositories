@@ -36,7 +36,7 @@ case class Link(name: String, displayName: String, url: String)
 
 case class RepositoryDetails(name: String,
                              description: String,
-                             createAt: Long,
+                             createdAt: Long,
                              lastActive: Long,
                              repoType: RepoType.RepoType,
                              teamNames: Seq[String],
