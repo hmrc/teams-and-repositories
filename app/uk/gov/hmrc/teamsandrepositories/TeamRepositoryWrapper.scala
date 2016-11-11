@@ -21,18 +21,17 @@ import java.net.URLDecoder
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
-import scala.collection.immutable.::
-
 
 object TeamRepositoryWrapper {
+
 
   implicit class TeamRepositoryWrapper(teamRepos: Seq[TeamRepositories]) {
 
     def asTeamNameList = teamRepos.map(_.teamName)
 
-    def asServiceNameList = asNameListOfGivenRepoType(RepoType.Deployable)
+    def asServiceRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Deployable)
 
-    def asLibraryNameList: Seq[String] = asNameListOfGivenRepoType(RepoType.Library)
+    def asLibraryRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Library)
 
     def findRepositoryDetails(repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
       val decodedServiceName = URLDecoder.decode(repoName, "UTF-8")
@@ -73,14 +72,6 @@ object TeamRepositoryWrapper {
 
       }
     }
-//
-//    def asRepositoryTeamNameList(repoName: String): Option[Map[String, Seq[String]]] = {
-//      ???
-////      val decodedRepoName = URLDecoder.decode(repoName, "UTF-8")
-////      teamRepos.filter(_.repositories.exists(r => r.name == decodedRepoName)) match {
-////        case x if x.isEmpty => None
-////        case x => Some(x.map { repoName -> _.teamName } toMap) }
-//    }
 
     private case class RepositoryToTeam(repositoryName: String, teamName: String)
 
@@ -96,15 +87,26 @@ object TeamRepositoryWrapper {
 
     private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
 
-    private def asNameListOfGivenRepoType(repoType: RepoType.Value): Seq[String] = {
-      val repoNames = for {
+//    private def asNameListOfGivenRepoType(repoType: RepoType.Value): Seq[String] = {
+//      val repoNames = for {
+//        d <- teamRepos
+//        r <- extractRepositoryGroupForType(repoType, d.repositories)
+//      } yield r.name
+//
+//      repoNames
+//        .distinct
+//        .sortBy(_.toUpperCase)
+//    }
+
+    private def asRepoDetailsOfGivenRepoType(repoType: RepoType.Value): Seq[RepositoryDisplayDetails] = {
+      val repoDetails = for {
         d <- teamRepos
         r <- extractRepositoryGroupForType(repoType, d.repositories)
-      } yield r.name
+      } yield RepositoryDisplayDetails(r.name, r.createdDate, r.lastActiveDate)
 
-      repoNames
-        .distinct
-        .sortBy(_.toUpperCase)
+      repoDetails
+        .groupBy(_.name).map(_._2.head).toList
+        .sortBy(_.name.toUpperCase)
     }
 
 

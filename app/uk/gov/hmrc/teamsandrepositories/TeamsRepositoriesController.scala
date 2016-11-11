@@ -30,6 +30,8 @@ import uk.gov.hmrc.teamsandrepositories.config._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
+
+
 case class Environment(name: String, services: Seq[Link])
 
 case class Link(name: String, displayName: String, url: String)
@@ -44,6 +46,10 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
+case class RepositoryDisplayDetails(name:String, createdAt: Long, lastUpdatedAt: Long)
+object RepositoryDisplayDetails {
+  implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
+}
 
 object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
@@ -61,7 +67,7 @@ with UrlTemplatesProvider {
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
     new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 
-    private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
+  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
 
   protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
     Akka.system(), CacheConfig,
@@ -98,18 +104,21 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
   def services() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+    dataSource.getCachedTeamRepoMapping.map { (cachedTeams: CachedResult[Seq[TeamRepositories]]) =>
       Ok(determineServicesResponse(request, cachedTeams.data))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
 
+
+
+  import RepositoryDisplayDetails._
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
     if (request.getQueryString("details").nonEmpty)
       Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
       Json.toJson(data.asRepositoryTeamNameList())
-    else Json.toJson(data.asServiceNameList)
+    else Json.toJson(data.asServiceRepoDetailsList)
 
   def libraries() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
@@ -122,7 +131,7 @@ trait TeamsRepositoriesController extends BaseController {
     if (request.getQueryString("details").nonEmpty)
       Json.toJson(data.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates))
     else
-      Json.toJson(data.asLibraryNameList)
+      Json.toJson(data.asLibraryRepoDetailsList)
   }
 
   def teams() = Action.async { implicit request =>

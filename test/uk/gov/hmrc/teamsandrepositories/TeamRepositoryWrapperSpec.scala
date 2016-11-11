@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
 import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
@@ -27,60 +26,78 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   val timestamp = new Date().getTime
 
-  "asServiceNameList" should {
 
-    "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
+  private val createdDateForDeployable1 = 11111111l
+  private val createdDateForDeployable2 = 111111112l
+  private val lastActiveDateForDeployable1 = 111111114l
+  private val lastActiveDateForDeployable2 = 111111115l
+
+  private val createdDateForLib1 = 111111117l
+  private val createdDateForLib2 = 111111118l
+  private val createdDateForLib3 = 111111119l
+  private val lastActiveDateForLib1 = 111111120l
+  private val lastActiveDateForLib2 = 111111121l
+  private val lastActiveDateForLib3 = 111111122l
+
+  private val createdDateForOther  = 111111123l
+  private val lastActiveDateForOther = 111111124l
+
+  "asServiceRepoDetailsList" should {
+
+    "include repository with type not Deployable as services if one of the repositories with same name is Deployable" in {
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-          Repository("repo1", "some desc",  "", isInternal = false, repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo2", "some desc",  "", isInternal = true, repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo1", "some desc",  "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo3", "some desc", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)
+            Repository("repo1", "some desc",  "", isInternal = false, repoType = RepoType.Deployable, createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1),
+          Repository("repo2", "some desc",  "", isInternal = true, repoType = RepoType.Deployable, createdDate = createdDateForDeployable2, lastActiveDate = lastActiveDateForDeployable2),
+          Repository("repo1", "some desc",  "", isInternal = true, repoType = RepoType.Other, createdDate = createdDateForOther, lastActiveDate = lastActiveDateForOther),
+          Repository("repo3", "some desc", "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2)
         )
         ),
         TeamRepositories("teamNameOther", List(
-          Repository("repo3", "some desc", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp))
+          Repository("repo3", "some desc", "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib3, lastActiveDate = lastActiveDateForLib3))
         )
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[String] = wrapper.asServiceNameList
+      val result: Seq[RepositoryDisplayDetails] = wrapper.asServiceRepoDetailsList
 
-      result shouldBe List("repo1", "repo2")
+      result.map(_.name) shouldBe List("repo1", "repo2")
+      result.map(_.createdAt) shouldBe List(createdDateForDeployable1, createdDateForDeployable2)
+      result.map(_.lastUpdatedAt) shouldBe List(lastActiveDateForDeployable1, lastActiveDateForDeployable2)
 
     }
 
     "not include repository with prototypes in their names" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-          Repository("repo1-prototype", "Some description", "", isInternal = false, repoType = RepoType.Deployable,createdDate = timestamp, lastActiveDate = timestamp)
+          Repository("repo1-prototype", "Some description", "", isInternal = false, repoType = RepoType.Deployable,createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1)
         )),
-        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp)))
+        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Other, createdDate = createdDateForOther, lastActiveDate = lastActiveDateForOther)))
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[String] = wrapper.asServiceNameList
+      val result: Seq[RepositoryDisplayDetails] = wrapper.asServiceRepoDetailsList
       result.size shouldBe 0
     }
   }
 
-  "asLibraryNameList" should {
+  "asLibraryRepoDetailsList" should {
     "not include libraries if one of the repository with same name is Deployable" in {
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-          Repository("repo1", "Some description" , "", isInternal = false, repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo2", "Some description" , "", isInternal = true, repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo1", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)
+          Repository("repo1", "Some description" , "", isInternal = false, repoType = RepoType.Deployable, createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1),
+          Repository("repo2", "Some description" , "", isInternal = true, repoType = RepoType.Deployable, createdDate = createdDateForDeployable2, lastActiveDate = lastActiveDateForDeployable2),
+          Repository("repo1", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1),
+          Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2)
         )
         ),
         TeamRepositories("teamNameOther", List(Repository("repo4", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[String] = wrapper.asLibraryNameList
+      val result: Seq[RepositoryDisplayDetails] = wrapper.asLibraryRepoDetailsList
 
-      result shouldBe List("repo3", "repo4")
+      result.map(_.name) shouldBe List("repo3", "repo4")
 
     }
 
@@ -88,18 +105,20 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-          Repository("repo1", "Some description" , "", isInternal = false, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo2", "Some description" , "", isInternal = true, repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo1", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
-          Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)
+          Repository("repo1", "Some description" , "", isInternal = false, repoType = RepoType.Other, createdDate = createdDateForOther, lastActiveDate = lastActiveDateForOther),
+          Repository("repo2", "Some description" , "", isInternal = true, repoType = RepoType.Deployable, createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1),
+          Repository("repo1", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForDeployable1),
+          Repository("repo3", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2)
         )
         ),
-        TeamRepositories("teamNameOther", List(Repository("repo4", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+        TeamRepositories("teamNameOther", List(Repository("repo4", "Some description" , "", isInternal = true, repoType = RepoType.Library, createdDate = createdDateForLib3, lastActiveDate = lastActiveDateForLib3)))
       )
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[String] = wrapper.asLibraryNameList
+      val result: Seq[RepositoryDisplayDetails] = wrapper.asLibraryRepoDetailsList
 
-      result shouldBe List("repo1", "repo3", "repo4")
+      result.map(_.name) shouldBe List("repo1", "repo3", "repo4")
+      result.map(_.createdAt) shouldBe List(createdDateForOther,createdDateForLib2,createdDateForLib3)
+      result.map(_.lastUpdatedAt) shouldBe List(lastActiveDateForOther, lastActiveDateForLib2, lastActiveDateForLib3)
     }
 
   }
