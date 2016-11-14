@@ -25,6 +25,7 @@ import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -67,7 +68,7 @@ with UrlTemplatesProvider {
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
     new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 
-  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
+  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource)).getTeamRepoMapping _
 
 
   protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
@@ -144,9 +145,9 @@ trait TeamsRepositoriesController extends BaseController {
 
   def repositoriesByTeam(teamName: String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.asTeamRepositoryNameList(teamName) match {
+      (cachedTeams.data.asTeamRepositoryDetailsList(teamName) match {
         case None => NotFound
-        case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+        case Some(x) => Results.Ok(Json.toJson(x.map { case (t: RepoType, v: List[RepositoryDisplayDetails]) => (t.toString, v) }))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
