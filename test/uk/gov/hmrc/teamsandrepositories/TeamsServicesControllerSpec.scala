@@ -36,17 +36,18 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
 
   private val now = new Date().getTime
-  private val createdDateForDeployable1 = 1011111001l
-  private val createdDateForDeployable2 = 10111110012l
-  private val createdDateForDeployable3 = 10111110013l
-  private val lastActiveDateForDeployable1 = 10111110014l
-  private val lastActiveDateForDeployable2 = 10111110015l
-  private val lastActiveDateForDeployable3 = 10111110016l
 
-  private val createdDateForLib1 = 10111110017l
-  private val createdDateForLib2 = 10111110017l
-  private val lastActiveDateForLib1 = 10111110020l
-  private val lastActiveDateForLib2 = 10111110021l
+  private val createdDateForDeployable1 = 1
+  private val createdDateForDeployable2 = 2
+  private val createdDateForDeployable3 = 3
+  private val createdDateForLib1 = 4
+  private val createdDateForLib2 = 5
+
+  private val lastActiveDateForDeployable1 = 10
+  private val lastActiveDateForDeployable2 = 20
+  private val lastActiveDateForDeployable3 = 30
+  private val lastActiveDateForLib1 = 40
+  private val lastActiveDateForLib2 = 50
 
 
   def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
