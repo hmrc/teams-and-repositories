@@ -51,7 +51,7 @@ object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
 
-case class Team(name : String, firstActiveAt : Long, lastActiveDate:Long)
+case class Team(name : String, firstActiveAt : Option[Long] = None, lastActiveDate:Option[Long] = None)
 object Team {
   implicit val format = Json.format[Team]
 }
