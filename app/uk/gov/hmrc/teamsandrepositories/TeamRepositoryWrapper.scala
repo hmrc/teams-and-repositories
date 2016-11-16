@@ -73,6 +73,23 @@ object TeamRepositoryWrapper {
       }
     }
 
+    def asTeamRepositoryDetailsList(teamName: String): Option[Map[RepoType.RepoType, List[RepositoryDisplayDetails]]] = {
+      val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
+      teamRepos.find(_.teamName == decodedTeamName).map { t =>
+
+        RepoType.values.foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, rtype) =>
+          m + (
+            rtype ->
+              extractRepositoryGroupForType(rtype, t.repositories)
+                .map(r => RepositoryDisplayDetails(r.name, r.createdDate, r.lastActiveDate))
+                .groupBy(_.name).map(_._2.head).toList
+                .sortBy(_.name.toUpperCase)
+            )
+        }
+
+      }
+    }
+
     private case class RepositoryToTeam(repositoryName: String, teamName: String)
 
     def asRepositoryTeamNameList(): Map[String, Seq[String]] = {

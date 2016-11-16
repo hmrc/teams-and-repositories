@@ -74,7 +74,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
     exponentialRetry(retries, initialDuration) {
       gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
         Future.sequence(for {
-          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
+          team <- teams if !githubConfig.hiddenTeams.contains(team.name)
         } yield mapTeam(organisation, team))
       }
     }
@@ -169,9 +169,10 @@ class CachingRepositoryDataSource[T](
                                       akkaSystem: ActorSystem,
                                       cacheConfig: CacheConfig,
                                       dataSource: () => Future[T],
-                                      timeStamp: () => LocalDateTime) {
+                                      timeStamp: () => LocalDateTime,
+                                      enabled: Boolean = true) {
 
-  private var cachedData: Option[CachedResult[T]] = None
+  var cachedData: Option[CachedResult[T]] = None
   private val initialPromise = Promise[CachedResult[T]]()
 
   import ExecutionContext.Implicits._
@@ -207,16 +208,18 @@ class CachingRepositoryDataSource[T](
   }
 
   private def dataUpdate() {
-    fromSource.onComplete {
-      case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
-      case Success(d) => {
-        synchronized {
-          this.cachedData = Some(d)
-          Logger.info(s"data update completed successfully")
+    if (enabled) {
+      fromSource.onComplete {
+        case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
+        case Success(d) => {
+          synchronized {
+            this.cachedData = Some(d)
+            Logger.info(s"data update completed successfully")
 
-          if (!initialPromise.isCompleted) {
-            Logger.debug("early clients being sent result")
-            this.initialPromise.success(d)
+            if (!initialPromise.isCompleted) {
+              Logger.debug("early clients being sent result")
+              this.initialPromise.success(d)
+            }
           }
         }
       }
