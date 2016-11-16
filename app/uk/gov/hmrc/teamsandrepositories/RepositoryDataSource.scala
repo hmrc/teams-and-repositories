@@ -74,7 +74,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
     exponentialRetry(retries, initialDuration) {
       gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
         Future.sequence(for {
-          team <- teams if !githubConfig.hiddenTeams.contains(team.name) && team.name == "CCA"
+          team <- teams if !githubConfig.hiddenTeams.contains(team.name)
         } yield mapTeam(organisation, team))
       }
     }
