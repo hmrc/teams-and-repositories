@@ -28,11 +28,14 @@ object TeamRepositoryWrapper {
 
   implicit class TeamRepositoryWrapper(teamRepos: Seq[TeamRepositories]) {
 
-    def asTeamList = {
+    def asTeamList =
       teamRepos.map(_.teamName).map { tn =>
-        val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(filter(teamFilter = _.teamName == tn))
-        Team(name = tn, firstActiveAt = firstActiveAt, lastActiveDate = latestActiveAt)
-      }
+        val repos: Seq[Repository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
+        val team = Team(name = tn)
+        if (repos.nonEmpty) {
+          val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(repos)
+          team.copy(firstActiveAt = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
+        } else team
 
     }
 
@@ -136,26 +139,21 @@ object TeamRepositoryWrapper {
         r: Repository <- extractRepositoryGroupForType(repoType, d.repositories)
       } yield r.name
 
-      repoNames.distinct.map { repoName =>
+      repoNames.distinct.map { case (repoName) =>
 
-        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(filter(repoFilter = _.name == repoName))
+        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(teamRepos.flatMap(_.repositories).filter(_.name == repoName))
 
         RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
       }.sortBy(_.name.toUpperCase)
     }
 
-    private def getRepoMinMaxActivityDates(repositories: Seq[Repository]) = {
+    private def getRepoMinMaxActivityDates(repos: Seq[Repository]) = {
 
-      val maxLastUpdatedAt = repositories.maxBy(_.lastActiveDate).lastActiveDate
-      val minCreatedAt = repositories.minBy(_.createdDate).createdDate
+      val maxLastUpdatedAt = repos.maxBy(_.lastActiveDate).lastActiveDate
+      val minCreatedAt = repos.minBy(_.createdDate).createdDate
 
       (minCreatedAt, maxLastUpdatedAt)
 
-    }
-
-    def filter(repoFilter: Repository => Boolean = _ => true, teamFilter: TeamRepositories => Boolean = _ => true): Seq[Repository] = {
-      val filteredRepos: Seq[Repository] = teamRepos.filter(teamFilter).flatMap(_.repositories).filter(repoFilter)
-      filteredRepos
     }
 
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
@@ -242,6 +240,5 @@ object TeamRepositoryWrapper {
       }
       .flatMap(_._2).filter(x => !x.name.contains("prototype")).toList
   }
-
 
 }
