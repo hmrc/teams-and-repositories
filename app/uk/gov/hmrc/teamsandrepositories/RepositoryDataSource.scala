@@ -169,14 +169,16 @@ class CachingRepositoryDataSource[T](
                                       akkaSystem: ActorSystem,
                                       cacheConfig: CacheConfig,
                                       dataSource: () => Future[T],
-                                      timeStamp: () => LocalDateTime) {
+                                      timeStamp: () => LocalDateTime,
+                                      initialLoad: Boolean = true) {
 
-  private var cachedData: Option[CachedResult[T]] = None
+  var cachedData: Option[CachedResult[T]] = None
   private val initialPromise = Promise[CachedResult[T]]()
 
   import ExecutionContext.Implicits._
 
-  dataUpdate()
+  if(initialLoad)
+    dataUpdate()
 
   private def fromSource = {
     dataSource().map { d => {

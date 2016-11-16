@@ -16,21 +16,23 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
 
+import play.api.Play
 import play.api.libs.json.Json
 import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
+import scala.util.Random
 
 
 case class Environment(name: String, services: Seq[Link])
@@ -47,7 +49,8 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
-case class RepositoryDisplayDetails(name:String, createdAt: Long, lastUpdatedAt: Long)
+case class RepositoryDisplayDetails(name: String, createdAt: Long, lastUpdatedAt: Long)
+
 object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
@@ -57,7 +60,7 @@ object BlockingIOExecutionContext {
 }
 
 object TeamsRepositoriesController extends TeamsRepositoriesController
-with UrlTemplatesProvider {
+  with UrlTemplatesProvider {
 
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
 
@@ -68,13 +71,14 @@ with UrlTemplatesProvider {
   private val openTeamsRepositoryDataSource: RepositoryDataSource =
     new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
 
-  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource)).getTeamRepoMapping _
+  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
 
 
   protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
     Akka.system(), CacheConfig,
     dataLoader,
-    LocalDateTime.now
+    LocalDateTime.now,
+    Play.current.configuration.getBoolean("initialiseCache").getOrElse(true)
   )
 }
 
@@ -113,8 +117,8 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
 
-
   import RepositoryDisplayDetails._
+
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
     if (request.getQueryString("details").nonEmpty)
       Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates))
@@ -156,4 +160,61 @@ trait TeamsRepositoriesController extends BaseController {
     dataSource.reload()
     Ok("Cache reload triggered successfully")
   }
+
+  def save = Action.async { implicit request =>
+    val file = s"/tmp/myobject${Random.nextInt()}.data"
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      import java.io._
+      implicit val repositoryFormats = Json.format[Repository]
+      implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+      val pw = new PrintWriter(new File(file ))
+      pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
+      pw.close
+
+      Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
+
+  }
+  def load = Action { implicit request =>
+    val file: Option[String] = request.getQueryString("f")
+
+    println("-*" * 20)
+
+
+      implicit val repositoryFormats = Json.format[Repository]
+      implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+
+      file match {
+        case Some(f) =>
+          println(f)
+
+          println("1" * 20)
+
+          val str = scala.io.Source.fromFile(s"/tmp/$f").mkString
+          println("2" * 20)
+          println(str)
+
+          try {
+            val repos = Json.parse(str).as[Seq[TeamRepositories]]
+            println(repos)
+            dataSource.cachedData = Some(new CachedResult(repos, LocalDateTime.now))
+
+          } catch {
+            case e =>
+              e.printStackTrace()
+          }
+          println("3" * 20)
+
+          Ok(s"read $file").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now()))
+        case None =>
+          Ok(s"no file specified").withHeaders(CacheTimestampHeaderName -> format((LocalDateTime.now())))
+      }
+
+
+
+
+//    }
+
+  }
+
 }
