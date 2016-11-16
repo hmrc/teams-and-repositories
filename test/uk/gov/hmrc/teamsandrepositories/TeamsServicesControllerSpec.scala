@@ -121,7 +121,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.teams().apply(FakeRequest())
 
       val team = contentAsJson(result).as[JsArray].value.head
-      team.as[String] mustBe "test-team"
+      team.as[Team].name mustBe "test-team"
     }
   }
 

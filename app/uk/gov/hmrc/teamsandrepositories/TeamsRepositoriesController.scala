@@ -51,7 +51,7 @@ object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
 
-case class Team(name : String, createAt : Long, lastActiveDate:Long)
+case class Team(name : String, firstActiveAt : Long, lastActiveDate:Long)
 object Team {
   implicit val format = Json.format[Team]
 }
@@ -141,7 +141,7 @@ trait TeamsRepositoriesController extends BaseController {
 
   def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      Results.Ok(Json.toJson(cachedTeams.data.asTeamNameList))
+      Results.Ok(Json.toJson(cachedTeams.data.asTeamList))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }

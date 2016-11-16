@@ -24,10 +24,17 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 object TeamRepositoryWrapper {
 
+  private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
 
   implicit class TeamRepositoryWrapper(teamRepos: Seq[TeamRepositories]) {
 
-    def asTeamNameList = teamRepos.map(_.teamName)
+    def asTeamList = {
+      teamRepos.map(_.teamName).map { tn =>
+        val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(teamFilter = _.teamName == tn)
+        Team(name = tn, firstActiveAt = firstActiveAt, lastActiveDate = latestActiveAt)
+      }
+
+    }
 
     def asServiceRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Deployable)
 
@@ -85,25 +92,8 @@ object TeamRepositoryWrapper {
         .map { m => m._1 -> m._2.map(_.teamName).distinct }
     }
 
-    private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
-
-    //    private def asNameListOfGivenRepoType(repoType: RepoType.Value): Seq[String] = {
-    //      val repoNames = for {
-    //        d <- teamRepos
-    //        r <- extractRepositoryGroupForType(repoType, d.repositories)
-    //      } yield r.name
-    //
-    //      repoNames
-    //        .distinct
-    //        .sortBy(_.toUpperCase)
-    //    }
-
-
 
     private def asRepoDetailsOfGivenRepoType(repoType: RepoType.Value): Seq[RepositoryDisplayDetails] = {
-
-
-
 
       val repoNames: Seq[String] = for {
         d: TeamRepositories <- teamRepos
@@ -112,15 +102,15 @@ object TeamRepositoryWrapper {
 
       repoNames.distinct.map { case (repoName) =>
 
-        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(_.name == repoName)
+        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(repoFilter = _.name == repoName)
 
         RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
       }.sortBy(_.name.toUpperCase)
     }
 
-    private def getRepoMinMaxActivityDates(filter : Repository => Boolean) = {
+    private def getRepoMinMaxActivityDates(repoFilter: Repository => Boolean = _ => true, teamFilter: TeamRepositories => Boolean = _ => true) = {
 
-      val allReposWithSameName: Seq[Repository] = teamRepos.flatMap(_.repositories).filter(filter)
+      val allReposWithSameName: Seq[Repository] = teamRepos.filter(teamFilter).flatMap(_.repositories).filter(repoFilter)
 
       val maxLastUpdatedAt = allReposWithSameName.maxBy(_.lastActiveDate).lastActiveDate
       val minCreatedAt = allReposWithSameName.minBy(_.createdDate).createdDate
