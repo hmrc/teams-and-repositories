@@ -360,7 +360,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
       val result = wrapper.asTeamRepositoryDetailsList("teamName")
 
-      result shouldBe Some(Map(RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 20))))
+      result shouldBe Some(Map(RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 20)), RepoType.Library -> List(), RepoType.Other -> List()))
     }
 
   }

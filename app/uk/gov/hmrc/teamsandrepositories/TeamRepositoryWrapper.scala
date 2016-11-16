@@ -82,28 +82,32 @@ object TeamRepositoryWrapper {
 
     def asTeamRepositoryDetailsList(teamName: String): Option[Map[RepoType.RepoType, List[RepositoryDisplayDetails]]] = {
       val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
-      teamRepos.find(_.teamName == decodedTeamName).map { teamRepositories =>
+      teamRepos.find(_.teamName == decodedTeamName).map { (teamRepositories: TeamRepositories) =>
+
+        val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories)
 
         RepoType.values.foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, rtype) =>
           m + (
             rtype ->
               extractRepositoryGroupForType(rtype, teamRepositories.repositories)
-                .map((r: Repository) => RepositoryDisplayDetails(r.name, r.createdDate, r.lastActiveDate))
+                .map { repository =>
+                  val (firstActive, lastActive) = teamRepoActivityDatesGroupedByName(repository.name)
+                  RepositoryDisplayDetails(repository.name, firstActive, lastActive)
+                }.distinct.sortBy(_.name.toUpperCase)
 
-                .sortBy(_.name.toUpperCase)
             )
         }
 
-
-//        repoNames.distinct.map { repoName =>
-//
-//          val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(_.name == repoName)
-//
-//          RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
-//        }.sortBy(_.name.toUpperCase)
-
-
       }
+    }
+
+    def groupActivityDatesByName(repositories: List[Repository]): Map[String, (Long, Long)] = {
+
+      repositories
+        .groupBy(_.name)
+        .map { case (repoName, repositories) =>
+          (repoName, getRepoMinMaxActivityDates(repositories))
+        }
     }
 
     private case class RepositoryToTeam(repositoryName: String, teamName: String)

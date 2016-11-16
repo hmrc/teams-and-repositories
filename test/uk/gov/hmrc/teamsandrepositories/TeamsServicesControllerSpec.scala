@@ -140,10 +140,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
       val timestampHeader = header("x-cache-timestamp", result)
-      val data = contentAsJson(result).as[Map[String, List[String]]]
+      val data = contentAsJson(result).as[Map[String, List[RepositoryDisplayDetails]]]
 
       data.size mustBe 3
-      data mustBe Map(
+      data.map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
         "Deployable" -> List("another-repo", "middle-repo"),
         "Library" -> List("alibrary-repo"),
         "Other" -> List()
@@ -153,15 +153,17 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "Return information about all the teams that have access to a repo" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(
-          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now))),
-          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now)))
+          new TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now))),
+          new TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now)))
         ),
         timestamp)
 
       val controller = controllerWithData(sourceData)
       val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
-      contentAsJson(result).as[Map[String, List[String]]] mustBe Map(
+      contentAsJson(result)
+        .as[Map[String, List[RepositoryDisplayDetails]]]
+        .map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
         "Deployable" -> List("repo-name"),
         "Library" -> List(),
         "Other" -> List())
@@ -170,15 +172,17 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
     "not show the same service twice when it has an open and internal source repository" in {
       val sourceData = new CachedResult[Seq[TeamRepositories]](
         Seq(new TeamRepositories("test-team", List(
-          Repository("repo-name", "some description", "Another-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
-          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now),
-          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable,createdDate = now, lastActiveDate = now)))),
+          Repository("repo-name", "some description", "Another-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now)))),
         timestamp)
 
       val controller = controllerWithData(sourceData)
       val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
 
-      contentAsJson(result).as[Map[String, List[String]]] mustBe Map(
+      contentAsJson(result)
+        .as[Map[String, List[RepositoryDisplayDetails]]]
+        .map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
         "Deployable" -> List("aadvark-repo", "repo-name"),
         "Library" -> List(),
         "Other" -> List()
@@ -395,7 +399,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val json = contentAsJson(result)
 
-      val jsonData = json.as[Map[String, List[String]]]
+      val jsonData = json.as[Map[String, List[RepositoryDisplayDetails]]]
       jsonData.get("Deployable") mustBe Some(List())
 
     }
