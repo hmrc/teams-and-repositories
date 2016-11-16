@@ -49,7 +49,6 @@ object CatalogLoggingFilter extends LoggingFilter with MicroserviceFilterSupport
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
-
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig("microservice.metrics")
 

@@ -102,18 +102,7 @@ object TeamRepositoryWrapper {
 
     private def asRepoDetailsOfGivenRepoType(repoType: RepoType.Value): Seq[RepositoryDisplayDetails] = {
 
-      def getMinMaxActivityDates(repositoryName: String) = {
 
-        val allReposWithSameName: Seq[Repository] = teamRepos.flatMap(_.repositories).filter(_.name == repositoryName)
-
-        println(s"repositoryName: $repositoryName, allReposWithSameName => $allReposWithSameName")
-
-        val maxLastUpdatedAt = allReposWithSameName.maxBy(_.lastActiveDate).lastActiveDate
-        val minCreatedAt = allReposWithSameName.minBy(_.createdDate).createdDate
-
-        (minCreatedAt, maxLastUpdatedAt)
-
-      }
 
 
       val repoNames: Seq[String] = for {
@@ -123,12 +112,22 @@ object TeamRepositoryWrapper {
 
       repoNames.distinct.map { case (repoName) =>
 
-        val (createdAt: Long, lastActiveAt: Long) = getMinMaxActivityDates(repoName)
+        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(_.name == repoName)
 
         RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
       }.sortBy(_.name.toUpperCase)
     }
 
+    private def getRepoMinMaxActivityDates(filter : Repository => Boolean) = {
+
+      val allReposWithSameName: Seq[Repository] = teamRepos.flatMap(_.repositories).filter(filter)
+
+      val maxLastUpdatedAt = allReposWithSameName.maxBy(_.lastActiveDate).lastActiveDate
+      val minCreatedAt = allReposWithSameName.minBy(_.createdDate).createdDate
+
+      (minCreatedAt, maxLastUpdatedAt)
+
+    }
 
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
       for {

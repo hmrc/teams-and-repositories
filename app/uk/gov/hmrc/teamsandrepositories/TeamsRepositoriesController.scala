@@ -51,6 +51,11 @@ object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
 
+case class Team(name : String, createAt : Long, lastActiveDate:Long)
+object Team {
+  implicit val format = Json.format[Team]
+}
+
 object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
 }
