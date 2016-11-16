@@ -25,14 +25,13 @@ import play.api.libs.json.Json
 import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
+import scala.util.{Failure, Success, Try}
 
 
 case class Environment(name: String, services: Seq[Link])
@@ -73,12 +72,13 @@ object TeamsRepositoriesController extends TeamsRepositoriesController
 
   private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
 
+  private val githubIntegrationEnabled  = Play.current.configuration.getBoolean("github.integration.enabled").getOrElse(true)
 
   protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
     Akka.system(), CacheConfig,
     dataLoader,
     LocalDateTime.now,
-    Play.current.configuration.getBoolean("initialiseCache").getOrElse(true)
+    githubIntegrationEnabled
   )
 }
 
@@ -162,59 +162,49 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
   def save = Action.async { implicit request =>
-    val file = s"/tmp/myobject${Random.nextInt()}.data"
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      import java.io._
-      implicit val repositoryFormats = Json.format[Repository]
-      implicit val teamRepositoryFormats = Json.format[TeamRepositories]
-      val pw = new PrintWriter(new File(file ))
-      pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
-      pw.close
+    Play.current.configuration
+    val file: Option[String] = request.getQueryString("file")
 
-      Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    file match {
+      case Some(filename) =>
+        dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+          import java.io._
+          implicit val repositoryFormats = Json.format[Repository]
+          implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+          val pw = new PrintWriter(new File(filename))
+          pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
+          pw.close()
+
+          Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+        }
+      case None =>
+        Future(NotAcceptable(s"no file specified").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now())))
     }
 
   }
+
   def load = Action { implicit request =>
-    val file: Option[String] = request.getQueryString("f")
 
-    println("-*" * 20)
-
+    val file: Option[String] = request.getQueryString("file")
 
       implicit val repositoryFormats = Json.format[Repository]
       implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
-      file match {
-        case Some(f) =>
-          println(f)
+    file match {
+      case Some(filename) =>
+        println(filename)
 
-          println("1" * 20)
+        val fileContents = scala.io.Source.fromFile(filename).mkString
 
-          val str = scala.io.Source.fromFile(s"/tmp/$f").mkString
-          println("2" * 20)
-          println(str)
+        Try(Json.parse(fileContents).as[Seq[TeamRepositories]]) match {
+          case Success(repos) => dataSource.cachedData = Some(new CachedResult(repos, LocalDateTime.now))
+          case Failure(e) => e.printStackTrace()
+        }
 
-          try {
-            val repos = Json.parse(str).as[Seq[TeamRepositories]]
-            println(repos)
-            dataSource.cachedData = Some(new CachedResult(repos, LocalDateTime.now))
-
-          } catch {
-            case e =>
-              e.printStackTrace()
-          }
-          println("3" * 20)
-
-          Ok(s"read $file").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now()))
-        case None =>
-          Ok(s"no file specified").withHeaders(CacheTimestampHeaderName -> format((LocalDateTime.now())))
-      }
-
-
-
-
-//    }
-
+        Ok(s"read $file").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now()))
+      case None =>
+        Ok(s"no file specified").withHeaders(CacheTimestampHeaderName -> format((LocalDateTime.now())))
+    }
   }
 
 }
