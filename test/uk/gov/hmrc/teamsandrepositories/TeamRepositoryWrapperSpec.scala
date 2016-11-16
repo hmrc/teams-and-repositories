@@ -27,19 +27,19 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
   val timestamp = new Date().getTime
 
 
-  private val createdDateForDeployable1 = 11111111l
-  private val createdDateForDeployable2 = 111111112l
-  private val lastActiveDateForDeployable1 = 111111114l
-  private val lastActiveDateForDeployable2 = 111111115l
+  private val createdDateForDeployable1 = 1
+  private val createdDateForDeployable2 = 2
+  private val createdDateForLib1 = 3
+  private val createdDateForLib2 = 4
+  private val createdDateForLib3 = 5
 
-  private val createdDateForLib1 = 111111117l
-  private val createdDateForLib2 = 111111118l
-  private val createdDateForLib3 = 111111119l
-  private val lastActiveDateForLib1 = 111111120l
-  private val lastActiveDateForLib2 = 111111121l
-  private val lastActiveDateForLib3 = 111111122l
+  private val lastActiveDateForDeployable1 = 10
+  private val lastActiveDateForDeployable2 = 20
+  private val lastActiveDateForLib1 = 30
+  private val lastActiveDateForLib2 = 40
+  private val lastActiveDateForLib3 = 50
 
-  private val createdDateForOther = 111111123l
+  private val createdDateForOther  = 111111123l
   private val lastActiveDateForOther = 111111124l
 
   "asTeamList" should {
@@ -347,4 +347,22 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   }
 
-}
+  "asTeamRepositoryDetailsList" should {
+
+    "get the max last active and min created at for repositories with the same name" in {
+      val oldRepo = Repository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Deployable, createdDate = 1, lastActiveDate = 10)
+      val newRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 2, lastActiveDate = 20)
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(oldRepo, newRepo)),
+        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+      )
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+
+      result shouldBe Some(Map(RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 20))))
+    }
+
+  }
+
+  }
