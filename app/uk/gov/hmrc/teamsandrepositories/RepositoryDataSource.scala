@@ -28,7 +28,8 @@ import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.config.{CacheConfig, GithubConfigProvider}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 
 case class TeamRepositories(teamName: String, repositories: List[Repository]) {
@@ -74,7 +75,7 @@ class GithubV3RepositoryDataSource(val gh: GithubApiClient,
     exponentialRetry(retries, initialDuration) {
       gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
         Future.sequence(for {
-          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
+          team <- teams if !githubConfig.hiddenTeams.contains(team.name)
         } yield mapTeam(organisation, team))
       }
     }
@@ -165,13 +166,13 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
 }
 
 
-class CachingRepositoryDataSource[T](
-                                      akkaSystem: ActorSystem,
-                                      cacheConfig: CacheConfig,
-                                      dataSource: () => Future[T],
-                                      timeStamp: () => LocalDateTime) {
+class CachingRepositoryDataSource[T](akkaSystem: ActorSystem,
+                                     cacheConfig: CacheConfig,
+                                     dataSource: () => Future[T],
+                                     timeStamp: () => LocalDateTime,
+                                     enabled: Boolean = true) extends AbstractRepositoryDataSource[T] {
 
-  private var cachedData: Option[CachedResult[T]] = None
+  var cachedData: Option[CachedResult[T]] = None
   private val initialPromise = Promise[CachedResult[T]]()
 
   import ExecutionContext.Implicits._
@@ -207,19 +208,52 @@ class CachingRepositoryDataSource[T](
   }
 
   private def dataUpdate() {
-    fromSource.onComplete {
-      case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
-      case Success(d) => {
-        synchronized {
-          this.cachedData = Some(d)
-          Logger.info(s"data update completed successfully")
+    if (enabled ) {
+      fromSource.onComplete {
+        case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
+        case Success(d) => {
+          synchronized {
+            this.cachedData = Some(d)
+            Logger.info(s"data update completed successfully")
 
-          if (!initialPromise.isCompleted) {
-            Logger.debug("early clients being sent result")
-            this.initialPromise.success(d)
+            if (!initialPromise.isCompleted) {
+              Logger.debug("early clients being sent result")
+              this.initialPromise.success(d)
+            }
           }
         }
       }
     }
   }
+}
+
+abstract class AbstractRepositoryDataSource[T] {
+  def getCachedTeamRepoMapping: Future[CachedResult[T]]
+
+  def reload(): Unit
+}
+
+
+class FileRepositoryDataSource(cacheFilename: String) extends AbstractRepositoryDataSource[Seq[TeamRepositories]] {
+
+  implicit val repositoryFormats = Json.format[Repository]
+  implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+
+  var cachedData = loadCacheData
+
+  def loadCacheData: Option[CachedResult[Seq[TeamRepositories]]] = {
+    Try(Json.parse(Source.fromFile(cacheFilename).mkString)
+      .as[Seq[TeamRepositories]]) match {
+      case Success(repos) => Some(new CachedResult(repos, LocalDateTime.now))
+      case Failure(e) =>
+        e.printStackTrace()
+        None
+    }
+  }
+
+  override def getCachedTeamRepoMapping: Future[CachedResult[Seq[TeamRepositories]]] = {
+    Future.successful(cachedData.get)
+  }
+
+  override def reload(): Unit = cachedData = loadCacheData
 }

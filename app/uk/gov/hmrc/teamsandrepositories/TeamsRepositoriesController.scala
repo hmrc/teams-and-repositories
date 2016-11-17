@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
 
+import play.api.Play
 import play.api.libs.json.Json
 import play.api.mvc.{Results, _}
 import play.libs.Akka
@@ -29,7 +30,7 @@ import uk.gov.hmrc.teamsandrepositories.config._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
+import scala.util.{Failure, Success, Try}
 
 
 case class Environment(name: String, services: Seq[Link])
@@ -46,7 +47,8 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
-case class RepositoryDisplayDetails(name:String, createdAt: Long, lastUpdatedAt: Long)
+case class RepositoryDisplayDetails(name: String, createdAt: Long, lastUpdatedAt: Long)
+
 object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
@@ -61,7 +63,7 @@ object BlockingIOExecutionContext {
 }
 
 object TeamsRepositoriesController extends TeamsRepositoriesController
-with UrlTemplatesProvider {
+  with UrlTemplatesProvider {
 
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
 
@@ -74,11 +76,19 @@ with UrlTemplatesProvider {
 
   private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
 
-  protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
-    Akka.system(), CacheConfig,
-    dataLoader,
-    LocalDateTime.now
-  )
+  private val githubIntegrationEnabled  = Play.current.configuration.getBoolean("github.integration.enabled").getOrElse(true)
+
+  protected val dataSource: AbstractRepositoryDataSource[Seq[TeamRepositories]] =
+    if (githubIntegrationEnabled) {
+      new CachingRepositoryDataSource[Seq[TeamRepositories]](
+        Akka.system(), CacheConfig,
+        dataLoader,
+        LocalDateTime.now
+      )
+    } else {
+      val cacheFilename = Play.current.configuration.getString("cacheFilename").getOrElse(throw new RuntimeException("cacheFilename is not specified for off-line (dev) usage"))
+      new FileRepositoryDataSource(cacheFilename)
+    }
 }
 
 trait TeamsRepositoriesController extends BaseController {
@@ -87,7 +97,7 @@ trait TeamsRepositoriesController extends BaseController {
 
   protected def ciUrlTemplates: UrlTemplates
 
-  protected def dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]]
+  protected def dataSource: AbstractRepositoryDataSource[Seq[TeamRepositories]]
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats = Json.format[Environment]
@@ -116,8 +126,8 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
 
-
   import RepositoryDisplayDetails._
+
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
     if (request.getQueryString("details").nonEmpty)
       Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates))
@@ -158,5 +168,27 @@ trait TeamsRepositoriesController extends BaseController {
   def reloadCache() = Action { implicit request =>
     dataSource.reload()
     Ok("Cache reload triggered successfully")
+  }
+
+  def save = Action.async { implicit request =>
+
+    val file: Option[String] = request.getQueryString("file")
+
+    file match {
+      case Some(filename) =>
+        dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+          import java.io._
+          implicit val repositoryFormats = Json.format[Repository]
+          implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+          val pw = new PrintWriter(new File(filename))
+          pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
+          pw.close()
+
+          Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+        }
+      case None =>
+        Future(NotAcceptable(s"no file specified").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now())))
+    }
+
   }
 }
