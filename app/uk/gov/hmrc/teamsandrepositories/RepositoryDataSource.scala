@@ -35,7 +35,6 @@ case class TeamRepositories(teamName: String, repositories: List[Repository]) {
   def repositoriesByType(repoType: RepoType.RepoType) = repositories.filter(_.repoType == repoType)
 }
 
-
 case class Repository(name: String,
                       description: String,
                       url: String,
@@ -162,96 +161,4 @@ class CompositeRepositoryDataSource(val dataSources: List[RepositoryDataSource])
         TeamRepositories(name, teams.flatMap(t => t.repositories).sortBy(_.name))
       }.toList
     }
-}
-
-
-class CachingRepositoryDataSource[T](akkaSystem: ActorSystem,
-                                     cacheConfig: CacheConfig,
-                                     dataSource: () => Future[T],
-                                     timeStamp: () => LocalDateTime,
-                                     enabled: Boolean = true) extends AbstractRepositoryDataSource[T] {
-
-  private var cachedData: Option[CachedResult[T]] = None
-  private val initialPromise = Promise[CachedResult[T]]()
-
-  import ExecutionContext.Implicits._
-
-  dataUpdate()
-
-  private def fromSource = {
-    dataSource().map { d => {
-      val stamp = timeStamp()
-      Logger.debug(s"Cache reloaded at $stamp")
-      new CachedResult(d, stamp)
-    }
-    }
-  }
-
-  def getCachedTeamRepoMapping: Future[CachedResult[T]] = {
-    Logger.info(s"cachedData is available = ${cachedData.isDefined}")
-    if (cachedData.isEmpty && initialPromise.isCompleted) {
-      Logger.warn("in unexpected state where initial promise is complete but there is not cached data. Perform manual reload.")
-    }
-    cachedData.fold(initialPromise.future)(d => Future.successful(d))
-  }
-
-  def reload() = {
-    Logger.info(s"Manual teams repository cache reload triggered")
-    dataUpdate()
-  }
-
-  Logger.info(s"Initialising cache reload every ${cacheConfig.teamsCacheDuration}")
-  akkaSystem.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
-    Logger.info("Scheduled teams repository cache reload triggered")
-    dataUpdate()
-  }
-
-  private def dataUpdate() {
-
-    fromSource.onComplete {
-      case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
-      case Success(d) => {
-        synchronized {
-          this.cachedData = Some(d)
-          Logger.info(s"data update completed successfully")
-
-          if (!initialPromise.isCompleted) {
-            Logger.debug("early clients being sent result")
-            this.initialPromise.success(d)
-          }
-        }
-      }
-    }
-  }
-}
-
-abstract class AbstractRepositoryDataSource[T] {
-  def getCachedTeamRepoMapping: Future[CachedResult[T]]
-
-  def reload(): Unit
-}
-
-
-class FileRepositoryDataSource(cacheFilename: String) extends AbstractRepositoryDataSource[Seq[TeamRepositories]] {
-
-  implicit val repositoryFormats = Json.format[Repository]
-  implicit val teamRepositoryFormats = Json.format[TeamRepositories]
-
-  private var cachedData = loadCacheData
-
-  def loadCacheData: Option[CachedResult[Seq[TeamRepositories]]] = {
-    Try(Json.parse(Source.fromFile(cacheFilename).mkString)
-      .as[Seq[TeamRepositories]]) match {
-      case Success(repos) => Some(new CachedResult(repos, LocalDateTime.now))
-      case Failure(e) =>
-        e.printStackTrace()
-        None
-    }
-  }
-
-  override def getCachedTeamRepoMapping: Future[CachedResult[Seq[TeamRepositories]]] = {
-    Future.successful(cachedData.get)
-  }
-
-  override def reload(): Unit = cachedData = loadCacheData
 }

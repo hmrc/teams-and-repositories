@@ -51,7 +51,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
 
   def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
-    val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
+    val fakeDataSource = mock[MemoryCachedRepositoryDataSource[Seq[TeamRepositories]]]
     when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
     new TeamsRepositoriesController {

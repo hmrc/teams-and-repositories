@@ -78,16 +78,16 @@ object TeamsRepositoriesController extends TeamsRepositoriesController
 
   private val githubIntegrationEnabled  = Play.current.configuration.getBoolean("github.integration.enabled").getOrElse(true)
 
-  protected val dataSource: AbstractRepositoryDataSource[Seq[TeamRepositories]] =
+  protected val dataSource: CachedRepositoryDataSource[Seq[TeamRepositories]] =
     if (githubIntegrationEnabled) {
-      new CachingRepositoryDataSource[Seq[TeamRepositories]](
+      new MemoryCachedRepositoryDataSource[Seq[TeamRepositories]](
         Akka.system(), CacheConfig,
         dataLoader,
         LocalDateTime.now
       )
     } else {
       val cacheFilename = Play.current.configuration.getString("cacheFilename").getOrElse(throw new RuntimeException("cacheFilename is not specified for off-line (dev) usage"))
-      new FileRepositoryDataSource(cacheFilename)
+      new FileCachedRepositoryDataSource(cacheFilename)
     }
 }
 
@@ -97,7 +97,7 @@ trait TeamsRepositoriesController extends BaseController {
 
   protected def ciUrlTemplates: UrlTemplates
 
-  protected def dataSource: AbstractRepositoryDataSource[Seq[TeamRepositories]]
+  protected def dataSource: CachedRepositoryDataSource[Seq[TeamRepositories]]
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats = Json.format[Environment]
@@ -171,7 +171,6 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
   def save = Action.async { implicit request =>
-
     val file: Option[String] = request.getQueryString("file")
 
     file match {

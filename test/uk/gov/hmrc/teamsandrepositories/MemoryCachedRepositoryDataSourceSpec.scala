@@ -30,7 +30,7 @@ import scala.util.Success
 import scala.concurrent.duration._
 
 
-class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAfterAll with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
+class MemoryCachedRepositoryDataSourceSpec extends WordSpec with BeforeAndAfterAll with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
 
   val system = ActorSystem.create()
 
@@ -38,13 +38,12 @@ class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAft
     system.shutdown()
   }
 
-
   val testConfig = new CacheConfig() {
     override def teamsCacheDuration: FiniteDuration = FiniteDuration(100, TimeUnit.SECONDS)
   }
 
-  def withCache[T](dataLoader:() => Future[T], testConfig:CacheConfig = testConfig)(block: (CachingRepositoryDataSource[T]) => Unit): Unit ={
-    val cache = new CachingRepositoryDataSource[T](system, testConfig, dataLoader, () => LocalDateTime.now())
+  def withCache[T](dataLoader:() => Future[T], testConfig:CacheConfig = testConfig)(block: (MemoryCachedRepositoryDataSource[T]) => Unit): Unit ={
+    val cache = new MemoryCachedRepositoryDataSource[T](system, testConfig, dataLoader, () => LocalDateTime.now())
     block(cache)
   }
 
