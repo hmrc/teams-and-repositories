@@ -34,7 +34,7 @@ object TeamRepositoryWrapper {
         val team = Team(name = tn)
         if (repos.nonEmpty) {
           val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(repos)
-          team.copy(firstActiveAt = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
+          team.copy(firstActiveDate = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
         } else team
 
       }

@@ -61,15 +61,15 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       val result: Seq[Team] = wrapper.asTeamList
 
       result(0).name shouldBe "teamNameChicken"
-      result(0).firstActiveAt.get shouldBe oldestLibraryRepo.createdDate
+      result(0).firstActiveDate.get shouldBe oldestLibraryRepo.createdDate
       result(0).lastActiveDate.get shouldBe oldestLibraryRepo.lastActiveDate
 
       result(1).name shouldBe "teamName"
-      result(1).firstActiveAt.get shouldBe oldDeployableRepo.createdDate
+      result(1).firstActiveDate.get shouldBe oldDeployableRepo.createdDate
       result(1).lastActiveDate.get shouldBe oldOtherRepoWithLatestActiveDate.lastActiveDate
 
       result(2).name shouldBe "teamNameNotActive"
-      result(2).firstActiveAt shouldBe None
+      result(2).firstActiveDate shouldBe None
       result(2).lastActiveDate shouldBe None
 
     }
