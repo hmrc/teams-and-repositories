@@ -37,7 +37,7 @@ object TeamRepositoryWrapper {
           team.copy(firstActiveDate = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
         } else team
 
-    }
+      }
 
     def asServiceRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Deployable)
 
