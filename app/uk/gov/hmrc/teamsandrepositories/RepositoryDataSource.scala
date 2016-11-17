@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.LocalDateTime
-import java.util.concurrent.Executors
 
 import akka.actor.ActorSystem
 import play.Logger
@@ -208,18 +207,17 @@ class CachingRepositoryDataSource[T](akkaSystem: ActorSystem,
   }
 
   private def dataUpdate() {
-    if (enabled ) {
-      fromSource.onComplete {
-        case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
-        case Success(d) => {
-          synchronized {
-            this.cachedData = Some(d)
-            Logger.info(s"data update completed successfully")
 
-            if (!initialPromise.isCompleted) {
-              Logger.debug("early clients being sent result")
-              this.initialPromise.success(d)
-            }
+    fromSource.onComplete {
+      case Failure(e) => Logger.warn(s"failed to get latest data due to ${e.getMessage}", e)
+      case Success(d) => {
+        synchronized {
+          this.cachedData = Some(d)
+          Logger.info(s"data update completed successfully")
+
+          if (!initialPromise.isCompleted) {
+            Logger.debug("early clients being sent result")
+            this.initialPromise.success(d)
           }
         }
       }
