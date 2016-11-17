@@ -171,7 +171,7 @@ class CachingRepositoryDataSource[T](akkaSystem: ActorSystem,
                                      timeStamp: () => LocalDateTime,
                                      enabled: Boolean = true) extends AbstractRepositoryDataSource[T] {
 
-  var cachedData: Option[CachedResult[T]] = None
+  private var cachedData: Option[CachedResult[T]] = None
   private val initialPromise = Promise[CachedResult[T]]()
 
   import ExecutionContext.Implicits._
@@ -237,7 +237,7 @@ class FileRepositoryDataSource(cacheFilename: String) extends AbstractRepository
   implicit val repositoryFormats = Json.format[Repository]
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
-  var cachedData = loadCacheData
+  private var cachedData = loadCacheData
 
   def loadCacheData: Option[CachedResult[Seq[TeamRepositories]]] = {
     Try(Json.parse(Source.fromFile(cacheFilename).mkString)
