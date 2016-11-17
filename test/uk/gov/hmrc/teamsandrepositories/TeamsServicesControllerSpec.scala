@@ -205,7 +205,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val timestampHeader = header("x-cache-timestamp", result)
       val data = contentAsJson(result).as[Map[String, List[RepositoryDisplayDetails]]]
 
-      data.size mustBe 3
+      data.size mustBe 2
       data mustBe Map(
         "Deployable" -> List(
           RepositoryDisplayDetails("another-repo", createdDateForDeployable2, lastActiveDateForDeployable2),
@@ -213,8 +213,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
         ),
         "Library" -> List(
           RepositoryDisplayDetails("alibrary-repo", createdDateForLib2, lastActiveDateForLib2)
-        ),
-        "Other" -> List()
+        )
       )
     }
 
@@ -232,8 +231,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       contentAsJson(result)
         .as[Map[String, List[RepositoryDisplayDetails]]] mustBe Map(
         "Deployable" -> List(RepositoryDisplayDetails("repo-name", now, now)),
-        "Library" -> List(),
-        "Other" -> List())
+        "Library" -> List())
     }
 
     "not show the same service twice when it has an open and internal source repository" in {
@@ -252,9 +250,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
         "Deployable" -> List(
           RepositoryDisplayDetails("aadvark-repo", now, now),
           RepositoryDisplayDetails("repo-name", now, now)),
-        "Library" -> List(),
-        "Other" -> List()
-      )
+        "Library" -> List())
     }
   }
 

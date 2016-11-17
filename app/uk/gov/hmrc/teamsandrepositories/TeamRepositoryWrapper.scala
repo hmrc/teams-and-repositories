@@ -88,7 +88,7 @@ object TeamRepositoryWrapper {
       teamRepos
         .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
         .map { teamRepositories =>
-          val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories)
+          val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories.filterNot(_.repoType == RepoType.Other))
 
           def constructRepositoryDisplayDetails(repository: Repository): RepositoryDisplayDetails = {
             val (firstActive, lastActive) = teamRepoActivityDatesGroupedByName(repository.name)
@@ -103,9 +103,11 @@ object TeamRepositoryWrapper {
               .sortBy(_.name.toUpperCase)
           }
 
-          RepoType.values.foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, repoType) =>
-            m + (repoType -> getRepositoryDisplayDetails(repoType))
-          }
+          RepoType.values
+            .filterNot(_ == RepoType.Other)
+            .foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, repoType) =>
+              m + (repoType -> getRepositoryDisplayDetails(repoType))
+            }
 
         }
     }
