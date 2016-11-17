@@ -140,10 +140,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
       val timestampHeader = header("x-cache-timestamp", result)
-      val data = contentAsJson(result).as[Map[String, List[RepositoryDisplayDetails]]]
+      val data = contentAsJson(result).as[Map[String, List[String]]]
 
       data.size mustBe 3
-      data.map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
+      data mustBe Map(
         "Deployable" -> List("another-repo", "middle-repo"),
         "Library" -> List("alibrary-repo"),
         "Other" -> List()
@@ -162,8 +162,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Map[String, List[RepositoryDisplayDetails]]]
-        .map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
+        .as[Map[String, List[String]]] mustBe Map(
         "Deployable" -> List("repo-name"),
         "Library" -> List(),
         "Other" -> List())
@@ -181,14 +180,85 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Map[String, List[RepositoryDisplayDetails]]]
-        .map { case (k, v) => (k, v.map(_.name)) } mustBe Map(
+        .as[Map[String, List[String]]] mustBe Map(
         "Deployable" -> List("aadvark-repo", "repo-name"),
         "Library" -> List(),
         "Other" -> List()
       )
     }
   }
+
+  "Retrieving a list of repository details for a team" should {
+
+    "return the cache timestamp" in {
+      val controller = controllerWithData(defaultData)
+      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+
+      val timestampHeader = header("x-cache-timestamp", result)
+      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
+    }
+
+    "Return all repo types belonging to a team" in {
+      val controller = controllerWithData(defaultData)
+      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+
+      val timestampHeader = header("x-cache-timestamp", result)
+      val data = contentAsJson(result).as[Map[String, List[RepositoryDisplayDetails]]]
+
+      data.size mustBe 3
+      data mustBe Map(
+        "Deployable" -> List(
+          RepositoryDisplayDetails("another-repo", createdDateForDeployable2, lastActiveDateForDeployable2),
+          RepositoryDisplayDetails("middle-repo", createdDateForDeployable3, lastActiveDateForDeployable3)
+        ),
+        "Library" -> List(
+          RepositoryDisplayDetails("alibrary-repo", createdDateForLib2, lastActiveDateForLib2)
+        ),
+        "Other" -> List()
+      )
+    }
+
+    "Return information about all the teams that have access to a repo" in {
+      val sourceData = new CachedResult[Seq[TeamRepositories]](
+        Seq(
+          TeamRepositories("test-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now))),
+          TeamRepositories("another-team", List(Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now)))
+        ),
+        timestamp)
+
+      val controller = controllerWithData(sourceData)
+      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+
+      contentAsJson(result)
+        .as[Map[String, List[RepositoryDisplayDetails]]] mustBe Map(
+        "Deployable" -> List(RepositoryDisplayDetails("repo-name", now, now)),
+        "Library" -> List(),
+        "Other" -> List())
+    }
+
+    "not show the same service twice when it has an open and internal source repository" in {
+      val sourceData = new CachedResult[Seq[TeamRepositories]](
+        Seq(TeamRepositories("test-team", List(
+          Repository("repo-name", "some description", "Another-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+          Repository("repo-name", "some description", "repo-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now),
+          Repository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Deployable, createdDate = now, lastActiveDate = now)))),
+        timestamp)
+
+      val controller = controllerWithData(sourceData)
+      val result = controller.repositoriesWithDetailsByTeam("test-team").apply(FakeRequest())
+
+      contentAsJson(result)
+        .as[Map[String, List[RepositoryDisplayDetails]]] mustBe Map(
+        "Deployable" -> List(
+          RepositoryDisplayDetails("aadvark-repo", now, now),
+          RepositoryDisplayDetails("repo-name", now, now)),
+        "Library" -> List(),
+        "Other" -> List()
+      )
+    }
+  }
+
+
 
   "Retrieving a list of all libraries" should {
 
@@ -399,7 +469,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
       val json = contentAsJson(result)
 
-      val jsonData = json.as[Map[String, List[RepositoryDisplayDetails]]]
+      val jsonData = json.as[Map[String, List[String]]]
       jsonData.get("Deployable") mustBe Some(List())
 
     }

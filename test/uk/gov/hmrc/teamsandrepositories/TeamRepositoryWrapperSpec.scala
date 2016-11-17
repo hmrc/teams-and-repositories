@@ -347,20 +347,51 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   }
 
+
   "asTeamRepositoryDetailsList" should {
 
-    "get the max last active and min created at for repositories with the same name" in {
-      val oldRepo = Repository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Deployable, createdDate = 1, lastActiveDate = 10)
-      val newRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 2, lastActiveDate = 20)
+    val oldDeployableRepo = Repository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Deployable, createdDate = 1, lastActiveDate = 10)
+    val newDeployableRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 2, lastActiveDate = 20)
+    val newLibraryRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = 3, lastActiveDate = 30)
+    val newOtherRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = 4, lastActiveDate = 40)
 
-      val teams = Seq(
-        TeamRepositories("teamName", List(oldRepo, newRepo)),
-        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
-      )
+    val teams = Seq(
+      TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo)),
+      TeamRepositories("teamNameOther", List(Repository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+    )
+
+
+    "get the max last active and min created at for repositories with the same name" in {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
       val result = wrapper.asTeamRepositoryDetailsList("teamName")
 
       result shouldBe Some(Map(RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 20)), RepoType.Library -> List(), RepoType.Other -> List()))
+    }
+
+    "get the max last active and min created at for repositories with the same name for different repo types correctly" in {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo)),
+        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+      )
+
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+
+      result shouldBe Some(
+        Map(
+          RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 40)),
+          RepoType.Library -> List(RepositoryDisplayDetails("repo1", 1, 40)),
+          RepoType.Other -> List(RepositoryDisplayDetails("repo1", 1, 40))
+        )
+      )
+    }
+
+    "return None when queried with a non existing team" in {
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result = wrapper.asTeamRepositoryDetailsList("nonExistingTeam")
+
+      result shouldBe None
     }
 
   }

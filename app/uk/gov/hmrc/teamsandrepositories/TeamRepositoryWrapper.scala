@@ -81,24 +81,30 @@ object TeamRepositoryWrapper {
     }
 
     def asTeamRepositoryDetailsList(teamName: String): Option[Map[RepoType.RepoType, List[RepositoryDisplayDetails]]] = {
-      val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
-      teamRepos.find(_.teamName == decodedTeamName).map { (teamRepositories: TeamRepositories) =>
 
-        val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories)
+      teamRepos
+        .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
+        .map { teamRepositories =>
+          val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories)
 
-        RepoType.values.foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, rtype) =>
-          m + (
-            rtype ->
-              extractRepositoryGroupForType(rtype, teamRepositories.repositories)
-                .map { repository =>
-                  val (firstActive, lastActive) = teamRepoActivityDatesGroupedByName(repository.name)
-                  RepositoryDisplayDetails(repository.name, firstActive, lastActive)
-                }.distinct.sortBy(_.name.toUpperCase)
+          def constructRepositoryDisplayDetails(repository: Repository): RepositoryDisplayDetails = {
+            val (firstActive, lastActive) = teamRepoActivityDatesGroupedByName(repository.name)
+            RepositoryDisplayDetails(repository.name, firstActive, lastActive)
+          }
 
-            )
+          def getRepositoryDisplayDetails(repoType: RepoType.Value): List[RepositoryDisplayDetails] = {
+            teamRepositories.repositories
+              .filter(_.repoType == repoType)
+              .map(constructRepositoryDisplayDetails)
+              .distinct
+              .sortBy(_.name.toUpperCase)
+          }
+
+          RepoType.values.foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, repoType) =>
+            m + (repoType -> getRepositoryDisplayDetails(repoType))
+          }
+
         }
-
-      }
     }
 
     def groupActivityDatesByName(repositories: List[Repository]): Map[String, (Long, Long)] = {
@@ -236,5 +242,6 @@ object TeamRepositoryWrapper {
       }
       .flatMap(_._2).filter(x => !x.name.contains("prototype")).toList
   }
+
 
 }

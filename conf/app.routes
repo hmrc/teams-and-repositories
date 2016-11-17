@@ -2,6 +2,7 @@
 
 GET         /api/teams                      uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.teams
 GET         /api/teams/:team                uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoriesByTeam(team)
+GET         /api/teams_with_details/:team   uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoriesWithDetailsByTeam(team)
 GET         /api/cache/reload               uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.reloadCache
 GET         /api/services                   uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.services
 GET         /api/libraries                  uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.libraries

@@ -148,6 +148,15 @@ trait TeamsRepositoriesController extends BaseController {
 
   def repositoriesByTeam(teamName: String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+      (cachedTeams.data.asTeamRepositoryNameList(teamName) match {
+        case None => NotFound
+        case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
+  }
+
+  def repositoriesWithDetailsByTeam(teamName: String) = Action.async { implicit request =>
+    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
       (cachedTeams.data.asTeamRepositoryDetailsList(teamName) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
