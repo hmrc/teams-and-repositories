@@ -20,7 +20,8 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
-import play.api.libs.json.Json
+import play.api.libs.json.Json.JsValueWrapper
+import play.api.libs.json._
 import play.api.mvc.{Results, _}
 import play.libs.Akka
 import uk.gov.hmrc.githubclient.GithubApiClient
@@ -51,8 +52,32 @@ object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
 
-case class Team(name : String, firstActiveDate : Option[Long] = None, lastActiveDate:Option[Long] = None)
+case class Team(name : String,
+                firstActiveDate : Option[Long] = None,
+                lastActiveDate:Option[Long] = None,
+                repos: Map[RepoType.Value, Seq[String]])
+
 object Team {
+
+  implicit val mapReads: Reads[Map[RepoType.RepoType, Seq[String]]] = new Reads[Map[RepoType.RepoType, Seq[String]]] {
+    def reads(jv: JsValue): JsResult[Map[RepoType.RepoType, Seq[String]]] =
+      JsSuccess(jv.as[Map[String, Seq[String]]].map { case (k, v) =>
+        RepoType.withName(k) -> v.asInstanceOf[Seq[String]]
+      })
+  }
+
+  implicit val mapWrites: Writes[Map[RepoType.RepoType, Seq[String]]] = new Writes[Map[RepoType.RepoType, Seq[String]]] {
+    def writes(map: Map[RepoType.RepoType, Seq[String]]): JsValue =
+      Json.obj(map.map { case (s, o) =>
+        val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString))
+
+        ret
+      }.toSeq: _*)
+  }
+
+  implicit val mapFormat: Format[Map[RepoType.RepoType, Seq[String]]] = Format(mapReads, mapWrites)
+
+
   implicit val format = Json.format[Team]
 }
 
@@ -159,7 +184,7 @@ trait TeamsRepositoriesController extends BaseController {
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
       (cachedTeams.data.asTeamRepositoryDetailsList(teamName) match {
         case None => NotFound
-        case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+        case Some(x) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }

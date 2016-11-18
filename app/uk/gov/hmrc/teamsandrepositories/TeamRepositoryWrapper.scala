@@ -31,7 +31,7 @@ object TeamRepositoryWrapper {
     def asTeamList =
       teamRepos.map(_.teamName).map { tn =>
         val repos: Seq[Repository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
-        val team = Team(name = tn)
+        val team = Team(name = tn, repos = Map())
         if (repos.nonEmpty) {
           val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(repos)
           team.copy(firstActiveDate = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
@@ -83,42 +83,28 @@ object TeamRepositoryWrapper {
       }
     }
 
-    def asTeamRepositoryDetailsList(teamName: String): Option[Map[RepoType.RepoType, List[RepositoryDisplayDetails]]] = {
+    def asTeamRepositoryDetailsList(teamName: String): Option[Team] = {
 
       teamRepos
         .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
         .map { teamRepositories =>
-          val teamRepoActivityDatesGroupedByName = groupActivityDatesByName(teamRepositories.repositories.filterNot(_.repoType == RepoType.Other))
 
-          def constructRepositoryDisplayDetails(repository: Repository): RepositoryDisplayDetails = {
-            val (firstActive, lastActive) = teamRepoActivityDatesGroupedByName(repository.name)
-            RepositoryDisplayDetails(repository.name, firstActive, lastActive)
-          }
-
-          def getRepositoryDisplayDetails(repoType: RepoType.Value): List[RepositoryDisplayDetails] = {
+          val (min, max) = getTeamActivityDates(teamRepositories.repositories)
+          def getRepositoryDisplayDetails(repoType: RepoType.Value): List[String] = {
             teamRepositories.repositories
               .filter(_.repoType == repoType)
-              .map(constructRepositoryDisplayDetails)
+              .map(_.name)
               .distinct
-              .sortBy(_.name.toUpperCase)
+              .sortBy(_.toUpperCase)
           }
 
-          RepoType.values
-            .filterNot(_ == RepoType.Other)
-            .foldLeft(Map.empty[RepoType.Value, List[RepositoryDisplayDetails]]) { case (m, repoType) =>
-              m + (repoType -> getRepositoryDisplayDetails(repoType))
-            }
+          val repos = RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, repoType) =>
+            m + (repoType -> getRepositoryDisplayDetails(repoType))
+          }
 
+          Team(teamName, min, max, repos)
         }
-    }
 
-    def groupActivityDatesByName(repositories: List[Repository]): Map[String, (Long, Long)] = {
-
-      repositories
-        .groupBy(_.name)
-        .map { case (repoName, repositories) =>
-          (repoName, getRepoMinMaxActivityDates(repositories))
-        }
     }
 
     private case class RepositoryToTeam(repositoryName: String, teamName: String)
@@ -147,6 +133,17 @@ object TeamRepositoryWrapper {
 
         RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
       }.sortBy(_.name.toUpperCase)
+    }
+
+    private def getTeamActivityDates(repos: Seq[Repository]) = {
+      if (repos.nonEmpty) {
+        val (firstActive, lastActive) = getRepoMinMaxActivityDates(repos)
+        (Some(firstActive), Some(lastActive))
+      }
+      else {
+        (None, None)
+      }
+
     }
 
     private def getRepoMinMaxActivityDates(repos: Seq[Repository]) = {

@@ -39,7 +39,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
   private val lastActiveDateForLib2 = 40
   private val lastActiveDateForLib3 = 50
 
-  private val createdDateForOther  = 111111123l
+  private val createdDateForOther = 111111123l
   private val lastActiveDateForOther = 111111124l
 
   "asTeamList" should {
@@ -369,10 +369,10 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
       val result = wrapper.asTeamRepositoryDetailsList("teamName")
 
-      result shouldBe Some(Map(RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 20)), RepoType.Library -> List()))
+      result shouldBe Some(Team("teamName", Some(1), Some(20), Map(RepoType.Deployable -> List("repo1"), RepoType.Library -> List(), RepoType.Other -> List())))
     }
 
-    "exclude Other repositories and get the max last active and min created at for repositories with the same name for the remaining repo types correctly " in {
+    "Include all repository types when get the max last active and min created at for team" in {
 
       val teams = Seq(
         TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo)),
@@ -383,9 +383,12 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
       val result = wrapper.asTeamRepositoryDetailsList("teamName")
 
       result shouldBe Some(
-        Map(
-          RepoType.Deployable -> List(RepositoryDisplayDetails("repo1", 1, 30)),
-          RepoType.Library -> List(RepositoryDisplayDetails("repo1", 1, 30))
+        Team("teamName", Some(1), Some(40),
+          Map(
+            RepoType.Deployable -> List("repo1"),
+            RepoType.Library -> List("repo1"),
+            RepoType.Other -> List("repo1")
+          )
         )
       )
     }
@@ -399,4 +402,4 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   }
 
-  }
+}

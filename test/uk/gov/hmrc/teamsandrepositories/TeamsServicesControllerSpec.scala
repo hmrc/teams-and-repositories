@@ -203,17 +203,13 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
 
       val timestampHeader = header("x-cache-timestamp", result)
-      val data = contentAsJson(result).as[Map[String, List[RepositoryDisplayDetails]]]
+      val data = contentAsJson(result).as[Team]
 
-      data.size mustBe 2
-      data mustBe Map(
-        "Deployable" -> List(
-          RepositoryDisplayDetails("another-repo", createdDateForDeployable2, lastActiveDateForDeployable2),
-          RepositoryDisplayDetails("middle-repo", createdDateForDeployable3, lastActiveDateForDeployable3)
-        ),
-        "Library" -> List(
-          RepositoryDisplayDetails("alibrary-repo", createdDateForLib2, lastActiveDateForLib2)
-        )
+      data.repos.size mustBe 3
+      data.repos mustBe Map(
+        RepoType.Deployable -> List("another-repo", "middle-repo"),
+        RepoType.Library -> List("alibrary-repo"),
+        RepoType.Other -> List()
       )
     }
 
@@ -229,9 +225,10 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Map[String, List[RepositoryDisplayDetails]]] mustBe Map(
-        "Deployable" -> List(RepositoryDisplayDetails("repo-name", now, now)),
-        "Library" -> List())
+        .as[Team].repos mustBe Map(
+        RepoType.Deployable -> List("repo-name"),
+        RepoType.Library-> List(),
+        RepoType.Other -> List())
     }
 
     "not show the same service twice when it has an open and internal source repository" in {
@@ -246,11 +243,11 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesWithDetailsByTeam("test-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Map[String, List[RepositoryDisplayDetails]]] mustBe Map(
-        "Deployable" -> List(
-          RepositoryDisplayDetails("aadvark-repo", now, now),
-          RepositoryDisplayDetails("repo-name", now, now)),
-        "Library" -> List())
+        .as[Team].repos mustBe Map(
+        RepoType.Deployable -> List("aadvark-repo", "repo-name"),
+        RepoType.Library -> List(),
+        RepoType.Other -> List()
+      )
     }
   }
 

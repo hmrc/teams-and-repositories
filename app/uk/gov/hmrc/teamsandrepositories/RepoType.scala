@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import play.api.libs.json.{JsString, JsResult, JsValue, Format}
+import play.api.libs.json._
 
 object RepoType extends Enumeration {
 
@@ -25,7 +25,16 @@ object RepoType extends Enumeration {
   val Deployable, Library, Other = Value
 
   implicit val repoType = new Format[RepoType] {
-    override def reads(json: JsValue): JsResult[RepoType] = ???
+    override def reads(json: JsValue): JsResult[RepoType] = json match {
+      case JsString(s) => {
+        try {
+          JsSuccess(RepoType.withName(s))
+        } catch {
+          case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${RepoType.getClass}', but it does not appear to contain the value: '$s'")
+        }
+      }
+      case _ => JsError("String value expected")
+    }
 
     override def writes(o: RepoType): JsValue = JsString(o.toString)
   }
