@@ -19,17 +19,10 @@ package uk.gov.hmrc.teamsandrepositories
 import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
-import org.scalatestplus.play.OneAppPerSuite
-import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
-class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSuite {
-
-  implicit override lazy val app = new GuiceApplicationBuilder().configure(
-    "shared.repositories" -> List("sharedRepo1", "sharedRepo2", "sharedRepo3"),
-    "play.http.requestHandler" -> "play.api.http.DefaultHttpRequestHandler"
-  ).build()
+class TeamRepositoryWrapperSpec extends WordSpec with Matchers  {
 
   val timestamp = new Date().getTime
 
@@ -53,7 +46,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
 
     "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
 
-      val oldestLibraryRepo = Repository("repo1", "some desc", "", isInternal = false, repoType = RepoType.Library, createdDate = 1, lastActiveDate = 30)
+      val oldestLibraryRepo = Repository("repo1", "some desc", "", isInternal = false, repoType = RepoType.Library, createdDate = 1, lastActiveDate = 10)
       val oldDeployableRepo = Repository("repo2", "some desc", "", isInternal = false, repoType = RepoType.Deployable, createdDate = 2, lastActiveDate = 20)
       val newDeployableRepo = Repository("repo3", "some desc", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 3, lastActiveDate = 30)
       val oldOtherRepoWithLatestActiveDate = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = 2, lastActiveDate = 40)
@@ -65,15 +58,46 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[Team] = wrapper.asTeamList
+      val result: Seq[Team] = wrapper.asTeamList(Nil)
 
       result(0).name shouldBe "teamNameChicken"
       result(0).firstActiveDate.get shouldBe oldestLibraryRepo.createdDate
-      result(0).lastActiveDate.get shouldBe oldestLibraryRepo.lastActiveDate
+      result(0).lastActiveDate.get shouldBe newDeployableRepo.lastActiveDate
 
       result(1).name shouldBe "teamName"
       result(1).firstActiveDate.get shouldBe oldDeployableRepo.createdDate
       result(1).lastActiveDate.get shouldBe oldOtherRepoWithLatestActiveDate.lastActiveDate
+
+      result(2).name shouldBe "teamNameNotActive"
+      result(2).firstActiveDate shouldBe None
+      result(2).lastActiveDate shouldBe None
+
+    }
+
+    "Exclude specified repos in calculating activity max and min dates" in {
+
+      val oldLibraryRepo = Repository("repo1", "some desc", "", isInternal = false, repoType = RepoType.Library, createdDate = 2, lastActiveDate =20)
+      val oldDeployableRepo = Repository("repo2", "some desc", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 3, lastActiveDate = 30)
+      val newLibraryRepo = Repository("repo1", "some desc", "", isInternal = false, repoType = RepoType.Library, createdDate = 4, lastActiveDate = 40)
+      val newDeployableRepo = Repository("repo2", "some desc", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 5, lastActiveDate = 50)
+      val newIgnoreRepo = Repository("ignoreRepo", "some desc", "", isInternal = false, repoType = RepoType.Deployable, createdDate = 1, lastActiveDate = 10000)
+
+      val teams = Seq(
+        TeamRepositories("teamNameChicken", List(oldLibraryRepo, newDeployableRepo, newIgnoreRepo)),
+        TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newIgnoreRepo)),
+        TeamRepositories("teamNameNotActive", List())
+      )
+
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result: Seq[Team] = wrapper.asTeamList(List("ignoreRepo"))
+
+      result(0).name shouldBe "teamNameChicken"
+      result(0).firstActiveDate.get shouldBe oldLibraryRepo.createdDate
+      result(0).lastActiveDate.get shouldBe newDeployableRepo.lastActiveDate
+
+      result(1).name shouldBe "teamName"
+      result(1).firstActiveDate.get shouldBe oldDeployableRepo.createdDate
+      result(1).lastActiveDate.get shouldBe newLibraryRepo.lastActiveDate
 
       result(2).name shouldBe "teamNameNotActive"
       result(2).firstActiveDate shouldBe None
@@ -375,7 +399,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
 
     "get the max last active and min created at for repositories with the same name" in {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+      val result = wrapper.asTeamRepositoryDetailsList("teamName", Nil)
 
       result shouldBe Some(Team("teamName", Some(1), Some(20), Map(RepoType.Deployable -> List("repo1"), RepoType.Library -> List(), RepoType.Other -> List())))
     }
@@ -388,7 +412,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+      val result = wrapper.asTeamRepositoryDetailsList("teamName", Nil)
 
       result shouldBe Some(
         Team("teamName", Some(1), Some(40),
@@ -409,7 +433,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
       )
 
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+      val result = wrapper.asTeamRepositoryDetailsList("teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
 
       result shouldBe Some(
         Team("teamName", Some(1), Some(40),
@@ -424,7 +448,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSui
 
     "return None when queried with a non existing team" in {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result = wrapper.asTeamRepositoryDetailsList("nonExistingTeam")
+      val result = wrapper.asTeamRepositoryDetailsList("nonExistingTeam", Nil)
 
       result shouldBe None
     }

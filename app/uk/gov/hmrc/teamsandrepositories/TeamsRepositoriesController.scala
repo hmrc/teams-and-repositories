@@ -20,6 +20,7 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
+import play.api.Play
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
@@ -88,6 +89,9 @@ object BlockingIOExecutionContext {
 object TeamsRepositoriesController extends TeamsRepositoriesController
 with UrlTemplatesProvider {
 
+  import scala.collection.JavaConverters._
+  val repositoriesToIgnore: List[String] = Play.current.configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
+
   private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
 
   private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
@@ -107,6 +111,9 @@ with UrlTemplatesProvider {
 }
 
 trait TeamsRepositoriesController extends BaseController {
+
+  val repositoriesToIgnore: List[String]
+
 
   import TeamRepositoryWrapper._
 
@@ -166,7 +173,7 @@ trait TeamsRepositoriesController extends BaseController {
 
   def teams() = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      Results.Ok(Json.toJson(cachedTeams.data.asTeamList))
+      Results.Ok(Json.toJson(cachedTeams.data.asTeamList(repositoriesToIgnore)))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
@@ -180,9 +187,11 @@ trait TeamsRepositoriesController extends BaseController {
     }
   }
 
+
+
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async { implicit request =>
     dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.asTeamRepositoryDetailsList(teamName) match {
+      (cachedTeams.data.asTeamRepositoryDetailsList(teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))

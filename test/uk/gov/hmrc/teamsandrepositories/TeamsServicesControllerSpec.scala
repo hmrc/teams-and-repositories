@@ -22,7 +22,7 @@ import java.util.Date
 import org.mockito.Mockito._
 import org.scalatest.OptionValues
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
@@ -31,7 +31,7 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.concurrent.Future
 
-class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneAppPerSuite {
+class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues {
 
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
 
@@ -50,7 +50,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   private val lastActiveDateForLib2 = 50
 
 
-  def controllerWithData(data: CachedResult[Seq[TeamRepositories]]) = {
+  def controllerWithData(data: CachedResult[Seq[TeamRepositories]], listOfReposToIgnore: List[String] = List.empty[String]): TeamsRepositoriesController = {
     val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
     when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
 
@@ -67,6 +67,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
           "env2" -> Seq(
             new UrlTemplate("log1", "log 1", "$name"))
         ))
+
+      override val repositoriesToIgnore = listOfReposToIgnore
     }
   }
 
