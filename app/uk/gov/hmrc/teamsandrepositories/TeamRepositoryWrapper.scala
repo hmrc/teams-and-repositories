@@ -18,11 +18,16 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
 
+import play.api.Play
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 
 object TeamRepositoryWrapper {
+
+  import scala.collection.JavaConverters._
+  lazy val sharedRepositories = Play.current.configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
+
 
   private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
 
@@ -33,8 +38,8 @@ object TeamRepositoryWrapper {
         val repos: Seq[Repository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
         val team = Team(name = tn, repos = Map())
         if (repos.nonEmpty) {
-          val (firstActiveAt: Long, latestActiveAt: Long) = getRepoMinMaxActivityDates(repos)
-          team.copy(firstActiveDate = Some(firstActiveAt), lastActiveDate = Some(latestActiveAt))
+          val (firstActiveAt, latestActiveAt) = getTeamActivityDatesOfNonSharedRepos(repos)
+          team.copy(firstActiveDate = firstActiveAt, lastActiveDate = latestActiveAt)
         } else team
 
       }
@@ -89,7 +94,7 @@ object TeamRepositoryWrapper {
         .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
         .map { teamRepositories =>
 
-          val (min, max) = getTeamActivityDates(teamRepositories.repositories)
+          val (min, max) = getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories)
           def getRepositoryDisplayDetails(repoType: RepoType.Value): List[String] = {
             teamRepositories.repositories
               .filter(_.repoType == repoType)
@@ -135,9 +140,11 @@ object TeamRepositoryWrapper {
       }.sortBy(_.name.toUpperCase)
     }
 
-    private def getTeamActivityDates(repos: Seq[Repository]) = {
-      if (repos.nonEmpty) {
-        val (firstActive, lastActive) = getRepoMinMaxActivityDates(repos)
+    private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[Repository]) = {
+      val nonSharedRepos = repos.filterNot(r => sharedRepositories.contains(r.name))
+
+      if (nonSharedRepos.nonEmpty) {
+        val (firstActive, lastActive) = getRepoMinMaxActivityDates(nonSharedRepos)
         (Some(firstActive), Some(lastActive))
       }
       else {

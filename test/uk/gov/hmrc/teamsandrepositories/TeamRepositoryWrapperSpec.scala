@@ -19,10 +19,17 @@ package uk.gov.hmrc.teamsandrepositories
 import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.play.OneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
-class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
+class TeamRepositoryWrapperSpec extends WordSpec with Matchers with OneAppPerSuite {
+
+  implicit override lazy val app = new GuiceApplicationBuilder().configure(
+    "shared.repositories" -> List("sharedRepo1", "sharedRepo2", "sharedRepo3"),
+    "play.http.requestHandler" -> "play.api.http.DefaultHttpRequestHandler"
+  ).build()
 
   val timestamp = new Date().getTime
 
@@ -358,6 +365,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
     val newDeployableRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Deployable, createdDate = 2, lastActiveDate = 20)
     val newLibraryRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = 3, lastActiveDate = 30)
     val newOtherRepo = Repository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = 4, lastActiveDate = 40)
+    val sharedRepo = Repository("sharedRepo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = 5, lastActiveDate = 50)
 
     val teams = Seq(
       TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo)),
@@ -388,6 +396,27 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             RepoType.Deployable -> List("repo1"),
             RepoType.Library -> List("repo1"),
             RepoType.Other -> List("repo1")
+          )
+        )
+      )
+    }
+
+    "Exclude all shared repositories when calculating the min and max activity dates for a team" in  {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo)),
+        TeamRepositories("teamNameOther", List(Repository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+      )
+
+      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+      val result = wrapper.asTeamRepositoryDetailsList("teamName")
+
+      result shouldBe Some(
+        Team("teamName", Some(1), Some(40),
+          Map(
+            RepoType.Deployable -> List("repo1"),
+            RepoType.Library -> List("repo1"),
+            RepoType.Other -> List("repo1", "sharedRepo1")
           )
         )
       )
