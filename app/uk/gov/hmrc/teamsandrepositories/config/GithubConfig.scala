@@ -29,19 +29,24 @@ class GithubConfig(configuration: Configuration) {
   val githubHiddenTeamsConfigKey = "github.hidden.teams"
 
   val githubApiOpenConfig =
-    getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.credentials"))
+    getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".credentials")))
 
-  val githubApiEnterpriseConfig = getGitApiConfig(githubEnterpriseConfigKey).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.githubenterprise"))
+  val githubApiEnterpriseConfig =
+    getGitApiConfig(githubEnterpriseConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".githubenterprise")))
+
 
   val hiddenRepositories = configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
   val hiddenTeams = configuration.getString(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
+  private def gitPath(gitFolder: String): String =
+    s"${System.getProperty("user.home")}/.github/$gitFolder"
+
   private def getGitApiConfig(base: String): Option[GitApiConfig] =
     for {
-      host <- configuration.getString(base + ".host")
-      user <- configuration.getString(base + ".user")
-      key <- configuration.getString(base + ".key")
+      host <- configuration.getString(s"$base.host")
+      user <- configuration.getString(s"$base.user")
+      key <- configuration.getString(s"$base.key")
     } yield GitApiConfig(user, key, host)
 
 
