@@ -19,19 +19,24 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.LocalDateTime
 import java.util.Date
 
+import akka.actor.{ActorSystem, Cancellable, Scheduler}
+import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.scalatest.OptionValues
+import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
+import play.api.{Application, Configuration}
+import uk.gov.hmrc.teamsandrepositories.config.{CacheConfig, UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
-import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
-class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues {
+class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
 
   val timestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
 
@@ -50,26 +55,57 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
   private val lastActiveDateForLib2 = 50
 
 
-  def controllerWithData(data: CachedResult[Seq[TeamRepositories]], listOfReposToIgnore: List[String] = List.empty[String]): TeamsRepositoriesController = {
-    val fakeDataSource = mock[CachingRepositoryDataSource[Seq[TeamRepositories]]]
-    when(fakeDataSource.getCachedTeamRepoMapping).thenReturn(Future.successful(data))
+  import play.api.inject.guice.GuiceApplicationBuilder
 
-    new TeamsRepositoriesController {
-      override def dataSource = fakeDataSource
 
-      override def ciUrlTemplates = new UrlTemplates(
-        Seq(new UrlTemplate("closed", "closed", "$name")),
-        Seq(new UrlTemplate("open", "open", "$name")),
-        Map(
-          "env1" -> Seq(
-            new UrlTemplate("log1", "log 1", "$name"),
-            new UrlTemplate("mon1", "mon 1", "$name")),
-          "env2" -> Seq(
-            new UrlTemplate("log1", "log 1", "$name"))
-        ))
+  val mockDataLoader = mock[MemoryCachedRepositoryDataSource[TeamRepositories]]
+  val mockUrlTemplateProvider = mock[UrlTemplatesProvider]
+  val mockConfiguration = mock[Configuration]
+  val mockCacheConfig = mock[CacheConfig]
+  val mockActorSystem = mock[ActorSystem]
+
+  when(mockActorSystem.scheduler).thenReturn(new Scheduler {
+    override def schedule(initialDelay: FiniteDuration, interval: FiniteDuration, runnable: Runnable)(implicit executor: ExecutionContext): Cancellable = {
+      mock[Cancellable]
+    }
+
+    override def scheduleOnce(delay: FiniteDuration, runnable: Runnable)(implicit executor: ExecutionContext): Cancellable = ???
+
+    override def maxFrequency: Double = ???
+  })
+
+
+  import org.mockito.Mockito._
+
+
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder().build
+
+  def controllerWithData(cachedResult: CachedResult[Seq[TeamRepositories]],
+                         listOfReposToIgnore: List[String] = List.empty[String],
+                         actorSystem: Option[ActorSystem] = None): TeamsRepositoriesController = {
+
+    import scala.collection.JavaConverters._
+
+    when(mockConfiguration.getStringList("shared.repositories")).thenReturn(Some(listOfReposToIgnore.asJava))
+    when(mockDataLoader.getCachedTeamRepoMapping).thenReturn(Future.successful(cachedResult))
+    when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(new UrlTemplates(
+      Seq(new UrlTemplate("closed", "closed", "$name")),
+      Seq(new UrlTemplate("open", "open", "$name")),
+      Map(
+        "env1" -> Seq(
+          new UrlTemplate("log1", "log 1", "$name"),
+          new UrlTemplate("mon1", "mon 1", "$name")),
+        "env2" -> Seq(
+          new UrlTemplate("log1", "log 1", "$name"))
+      )))
+
+    new TeamsRepositoriesController(mockDataLoader, mockCacheConfig, mockUrlTemplateProvider, mockConfiguration, actorSystem.getOrElse(mockActorSystem)) {
 
       override val repositoriesToIgnore = listOfReposToIgnore
     }
+
+
   }
 
   val defaultData = new CachedResult[Seq[TeamRepositories]](
@@ -229,7 +265,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       contentAsJson(result)
         .as[Team].repos mustBe Map(
         RepoType.Deployable -> List("repo-name"),
-        RepoType.Library-> List(),
+        RepoType.Library -> List(),
         RepoType.Other -> List())
     }
 
@@ -548,6 +584,18 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoryDetails("not-Found").apply(FakeRequest())
 
       status(result) mustBe 404
+    }
+
+    "reload the cache at the configured intervals" in {
+      import scala.concurrent.duration._
+      when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
+
+      val controller = controllerWithData(singleRepoResult(repoName = "r1", repoUrl = "ru", isInternal = false), actorSystem = Some(app.actorSystem))
+
+
+      verify(mockDataLoader, Mockito.timeout(300).atLeast(2)).reload()
+
+
     }
   }
 

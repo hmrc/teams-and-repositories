@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
+import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.json.Json
 
@@ -29,10 +30,11 @@ object UrlTemplate {
   implicit val formats = Json.format[UrlTemplate]
 }
 
-trait UrlTemplatesProvider {
+@Singleton
+class UrlTemplatesProvider @Inject()(configuration:Configuration) {
 
   val ciUrlTemplates: UrlTemplates = {
-    play.api.Play.current.configuration.getConfig("url-templates").map {
+    configuration.getConfig("url-templates").map {
       config =>
         val openConfigs = getTemplatesForConfig("ci-open")
         val closedConfigs = getTemplatesForConfig("ci-closed")
@@ -43,7 +45,7 @@ trait UrlTemplatesProvider {
   }
 
   private def urlTemplates = {
-    play.api.Play.current.configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
+    configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
   }
 
   private def getTemplatesForEnvironments: Map[String, Seq[UrlTemplate]] = {

@@ -19,52 +19,67 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, Matchers, TestData, WordSpec}
+import org.scalatestplus.play.OneAppPerTest
+import play.api.Configuration
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.teamsandrepositories.DataGetter.DataLoaderFunction
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Success
-import scala.concurrent.duration._
 
 
-class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAfterAll with ScalaFutures with Matchers with DefaultPatienceConfig with Eventually {
+class TestableCachingRepositoryDataSourceSpec extends WordSpec
+  with BeforeAndAfterAll
+  with ScalaFutures
+  with Matchers
+  with DefaultPatienceConfig
+  with MockitoSugar
+  with Eventually
+  with OneAppPerTest {
 
-  val system = ActorSystem.create()
 
-  override def afterAll(): Unit = {
-    system.shutdown()
-  }
+  override def newAppForTest(testData: TestData) = new GuiceApplicationBuilder().disable(classOf[com.kenshoo.play.metrics.PlayModule]).build()
 
-
-  val testConfig = new CacheConfig() {
+  //!@ can we remove this?
+  val testConfig = new CacheConfig(mock[Configuration]) {
     override def teamsCacheDuration: FiniteDuration = FiniteDuration(100, TimeUnit.SECONDS)
   }
 
-  def withCache[T](dataLoader:() => Future[T], testConfig:CacheConfig = testConfig)(block: (CachingRepositoryDataSource[T]) => Unit): Unit ={
-    val cache = new CachingRepositoryDataSource[T](system, testConfig, dataLoader, () => LocalDateTime.now())
+  def withCache[T](dataGetter:DataGetter[T], testConfig:CacheConfig = testConfig)(block: (MemoryCachedRepositoryDataSource[T]) => Unit): Unit ={
+    val cache = new MemoryCachedRepositoryDataSource(dataGetter, () => LocalDateTime.now())
     block(cache)
   }
 
   "Caching teams repository data source" should {
 
     "return an uncompleted future when called before the cache has been populated" in {
-      val promise1 = Promise[String]()
+      val promise1 = Promise[Seq[String]]()
 
-      withCache(() => promise1.future){ cache =>
+      val testDataGetter = new DataGetter[String] {
+        override val runner: () => Future[Seq[String]] = () => promise1.future
+      }
+
+      withCache[String](testDataGetter){ cache =>
         cache.getCachedTeamRepoMapping.isCompleted shouldBe false
       }
     }
 
     "return the current result when the cache is in the process of reloading" in {
-      val (promise1, promise2) = (Promise[String](), Promise[String]())
-      val ResultValue = "ResultValue"
+      val (promise1, promise2) = (Promise[Seq[String]](), Promise[Seq[String]]())
+      val ResultValue = Seq("ResultValue")
 
-      val cachedData = Iterator[Promise[String]](promise1, promise2).map(_.future)
+      val cachedData = Iterator[Promise[Seq[String]]](promise1, promise2).map(_.future)
 
-      withCache(() => cachedData.next) { cache =>
+      val testDataGetter = new DataGetter[String] {
+        override val runner: () => Future[Seq[String]] = () => cachedData.next
+      }
+
+      withCache(testDataGetter) { cache =>
         promise1.complete(Success(ResultValue))
 
         eventually {
@@ -80,12 +95,16 @@ class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAft
 
 
     "return the updated result when the cache has completed reloading" in {
-      val (promise1, promise2) = (Promise[String](), Promise[String]())
+      val (promise1, promise2) = (Promise[Seq[String]](), Promise[Seq[String]]())
 
-      val cachedData = Iterator[Promise[String]](promise1, promise2).map(_.future)
+      val cachedData = Iterator[Promise[Seq[String]]](promise1, promise2).map(_.future)
 
-      withCache(() => cachedData.next) { cache =>
-        promise1.success("result1")
+      val testDataGetter = new DataGetter[String] {
+        override val runner: () => Future[Seq[String]] = () => cachedData.next
+      }
+
+      withCache(testDataGetter) { cache =>
+        promise1.success(Seq("result1"))
 
         eventually {
           cache.getCachedTeamRepoMapping.isCompleted shouldBe true
@@ -93,10 +112,10 @@ class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAft
 
         cache.reload()
 
-        promise2.success("result2")
+        promise2.success(Seq("result2"))
 
         eventually {
-          cache.getCachedTeamRepoMapping.futureValue.data shouldBe "result2"
+          cache.getCachedTeamRepoMapping.futureValue.data shouldBe Seq("result2")
         }
       }
     }
@@ -104,39 +123,24 @@ class TestableCachingRepositoryDataSourceSpec extends WordSpec with BeforeAndAft
 
     "return a completed future when the cache has been populated" in {
 
-      val (promise1, promise2) = (Promise[String](), Promise[String]())
+      val (promise1, promise2) = (Promise[Seq[String]](), Promise[Seq[String]]())
 
-      val cachedData = Iterator[Promise[String]](promise1, promise2).map(_.future)
+      val cachedData = Iterator[Promise[Seq[String]]](promise1, promise2).map(_.future)
 
-      withCache(() => cachedData.next) { cache =>
+      val testDataGetter = new DataGetter[String] {
+        override val runner: () => Future[Seq[String]] = () => cachedData.next
+      }
+
+      withCache(testDataGetter) { cache =>
 
         val future1 = cache.getCachedTeamRepoMapping
         future1.isCompleted shouldBe false
-        promise1.complete(Success("result1"))
+        promise1.complete(Success(Seq("result1")))
         eventually {
-          future1.futureValue.data shouldBe "result1"
+          future1.futureValue.data shouldBe Seq("result1")
         }
       }
     }
 
-    "populate the cache from the data source and retain it until the configured expiry time" in {
-
-      val testConfig = new CacheConfig() {
-        override def teamsCacheDuration: FiniteDuration = 100 millis
-      }
-
-      val cachedData = Iterator("result1", "result2", "result3").map(Future.successful)
-
-      withCache(() => cachedData.next, testConfig) { cache =>
-
-        eventually {
-          cache.getCachedTeamRepoMapping.futureValue.data shouldBe "result1"
-        }
-
-        eventually {
-          cache.getCachedTeamRepoMapping.futureValue.data shouldBe "result2"
-        }
-      }
-    }
   }
 }

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
 import java.util.Date
 
 import org.mockito.ArgumentMatchers._
@@ -26,7 +25,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, GithubConfigProvider}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,12 +36,19 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
 
+  val githubConfig: GithubConfig = mock[GithubConfig]
+
+
   "Github v3 Data Source" should {
     val githubClient = mock[GithubApiClient]
     val ec = BlockingIOExecutionContext.executionContext
-    val dataSource = createDataSource(githubClient)
+
+    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false)
 
     "Return a list of teams and repositories, filtering out forks" in {
+
+      when(githubConfig.hiddenRepositories).thenReturn(testHiddenRepositories)
+      when(githubConfig.hiddenTeams).thenReturn(testHiddenTeams)
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1),githubclient.GhTeam("B", 2))))
@@ -64,12 +70,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
     "Set internal = true if the DataSource is marked as internal" in {
 
-      val internalDataSource = new GithubV3RepositoryDataSource(githubClient, isInternal = true) with GithubConfigProvider {
-        override def githubConfig: GithubConfig = new GithubConfig {
-          override def hiddenRepositories: List[String] = testHiddenRepositories
-          override def hiddenTeams: List[String] = testHiddenTeams
-        }
-      }
+      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = true)
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1),githubclient.GhTeam("B", 2))))
@@ -290,13 +291,13 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
   }
 
-  private def createDataSource(githubClient: GithubApiClient): GithubV3RepositoryDataSource with GithubConfigProvider {def githubConfig: GithubConfig} = {
-    new GithubV3RepositoryDataSource(githubClient, isInternal = false) with GithubConfigProvider {
-      override def githubConfig: GithubConfig = new GithubConfig {
-        override def hiddenRepositories: List[String] = testHiddenRepositories
-
-        override def hiddenTeams: List[String] = testHiddenTeams
-      }
-    }
-  }
+//  private def createDataSource(githubClient: GithubApiClient): GithubV3RepositoryDataSource = {
+//    new GithubV3RepositoryDataSource(githubClient, isInternal = false) with GithubConfigProvider {
+//      override def githubConfig: GithubConfig = new GithubConfig {
+//        override def hiddenRepositories: List[String] = testHiddenRepositories
+//
+//        override def hiddenTeams: List[String] = testHiddenTeams
+//      }
+//    }
+//  }
 }

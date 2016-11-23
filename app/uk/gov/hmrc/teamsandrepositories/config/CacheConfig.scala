@@ -16,23 +16,17 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import play.api.Play
+import com.google.inject.Inject
+import play.api.Configuration
 
 import scala.concurrent.duration._
 
-trait CacheConfigProvider {
-  def cacheConfig: CacheConfig = CacheConfig
-}
 
-trait CacheConfig {
-  def teamsCacheDuration: FiniteDuration
-}
-
-object CacheConfig extends CacheConfig {
+class CacheConfig @Inject()(configuration: Configuration) {
   val teamsCacheDurationConfigPath = "cache.teams.duration"
   val defaultTimeout = 1 hour
 
   def teamsCacheDuration: FiniteDuration = {
-    Play.current.configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
+    configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
   }
 }

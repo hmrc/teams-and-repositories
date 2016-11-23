@@ -16,19 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import play.api.Play
+import com.google.inject.{Inject, Singleton}
+import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
 
-trait GithubConfigProvider {
-  def githubConfig: GithubConfig = GithubConfig
-}
 
-trait GithubConfig {
-  def hiddenRepositories: List[String]
-  def hiddenTeams: List[String]
-}
-
-object GithubConfig extends GithubConfig {
+@Singleton
+class GithubConfig @Inject() (configuration: Configuration) {
   val githubOpenConfigKey = "github.open.api"
   val githubEnterpriseConfigKey = "github.enterprise.api"
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
@@ -42,7 +36,7 @@ object GithubConfig extends GithubConfig {
   lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
   lazy val hiddenTeams = config(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-  private def config(path: String) = Play.current.configuration.getString(s"$path")
+  private def config(path: String) = configuration.getString(s"$path")
   private def option(config: String => Option[String]): Option[GitApiConfig] =
     for {
       host <- config("host")

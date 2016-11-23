@@ -16,22 +16,22 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
 
-import play.api.Play
+import akka.actor.ActorSystem
+import com.google.inject.Inject
+import play.Logger
+import play.api.Configuration
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
-import play.libs.Akka
-import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandrepositories.config._
+import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplatesProvider, _}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
 
 
 case class Environment(name: String, services: Seq[Link])
@@ -48,14 +48,15 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
-case class RepositoryDisplayDetails(name:String, createdAt: Long, lastUpdatedAt: Long)
+case class RepositoryDisplayDetails(name: String, createdAt: Long, lastUpdatedAt: Long)
+
 object RepositoryDisplayDetails {
   implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
 }
 
-case class Team(name : String,
-                firstActiveDate : Option[Long] = None,
-                lastActiveDate:Option[Long] = None,
+case class Team(name: String,
+                firstActiveDate: Option[Long] = None,
+                lastActiveDate: Option[Long] = None,
                 repos: Map[RepoType.Value, Seq[String]])
 
 object Team {
@@ -86,54 +87,38 @@ object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
 }
 
-object TeamsRepositoriesController extends TeamsRepositoriesController
-with UrlTemplatesProvider {
 
-  import scala.collection.JavaConverters._
-  val repositoriesToIgnore: List[String] = Play.current.configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
-
-  private val gitApiEnterpriseClient = GithubApiClient(GithubConfig.githubApiEnterpriseConfig.apiUrl, GithubConfig.githubApiEnterpriseConfig.key)
-
-  private val enterpriseTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitApiEnterpriseClient, isInternal = true) with GithubConfigProvider
-
-  private val gitOpenClient = GithubApiClient(GithubConfig.githubApiOpenConfig.apiUrl, GithubConfig.githubApiOpenConfig.key)
-  private val openTeamsRepositoryDataSource: RepositoryDataSource =
-    new GithubV3RepositoryDataSource(gitOpenClient, isInternal = false) with GithubConfigProvider
-
-  private def dataLoader: () => Future[Seq[TeamRepositories]] = new CompositeRepositoryDataSource(List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)).getTeamRepoMapping _
-
-  protected val dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]] = new CachingRepositoryDataSource[Seq[TeamRepositories]](
-    Akka.system(), CacheConfig,
-    dataLoader,
-    LocalDateTime.now
-  )
-}
-
-trait TeamsRepositoriesController extends BaseController {
-
-  val repositoriesToIgnore: List[String]
-
+class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDataSource[TeamRepositories],
+                                            cacheConfig: CacheConfig,
+                                            urlTemplatesProvider: UrlTemplatesProvider,
+                                            configuration: Configuration,
+                                            actorSystem: ActorSystem) extends BaseController {
 
   import TeamRepositoryWrapper._
 
-  protected def ciUrlTemplates: UrlTemplates
+  val CacheTimestampHeaderName = "X-Cache-Timestamp"
 
-  protected def dataSource: CachingRepositoryDataSource[Seq[TeamRepositories]]
+  import scala.collection.JavaConverters._
+
+  val repositoriesToIgnore: List[String] = configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
+
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats = Json.format[Environment]
   implicit val serviceFormats = Json.format[RepositoryDetails]
 
-  val CacheTimestampHeaderName = "X-Cache-Timestamp"
+  actorSystem.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
+    Logger.info("Scheduled teams repository cache reload triggered")
+    dataLoader.reload()
+  }
 
   private def format(dateTime: LocalDateTime): String = {
     DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
   }
 
   def repositoryDetails(name: String) = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.findRepositoryDetails(name, ciUrlTemplates) match {
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
+      (cachedTeams.data.findRepositoryDetails(name, urlTemplatesProvider.ciUrlTemplates) match {
         case None => NotFound
         case Some(x: RepositoryDetails) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
@@ -141,24 +126,24 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
   def services() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { (cachedTeams: CachedResult[Seq[TeamRepositories]]) =>
+    dataLoader.getCachedTeamRepoMapping.map { (cachedTeams: CachedResult[Seq[TeamRepositories]]) =>
       Ok(determineServicesResponse(request, cachedTeams.data))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
 
 
-
   import RepositoryDisplayDetails._
+
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, ciUrlTemplates))
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, urlTemplatesProvider.ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
       Json.toJson(data.asRepositoryTeamNameList())
     else Json.toJson(data.asServiceRepoDetailsList)
 
   def libraries() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
       Ok(determineLibrariesResponse(request, cachedTeams.data))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
@@ -166,20 +151,20 @@ trait TeamsRepositoriesController extends BaseController {
 
   private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) = {
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(data.asRepositoryDetailsList(RepoType.Library, ciUrlTemplates))
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
     else
       Json.toJson(data.asLibraryRepoDetailsList)
   }
 
   def teams() = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
       Results.Ok(Json.toJson(cachedTeams.data.asTeamList(repositoriesToIgnore)))
         .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
     }
   }
 
   def repositoriesByTeam(teamName: String) = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
       (cachedTeams.data.asTeamRepositoryNameList(teamName) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
@@ -188,9 +173,8 @@ trait TeamsRepositoriesController extends BaseController {
   }
 
 
-
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async { implicit request =>
-    dataSource.getCachedTeamRepoMapping.map { cachedTeams =>
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
       (cachedTeams.data.asTeamRepositoryDetailsList(teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x))
@@ -198,8 +182,30 @@ trait TeamsRepositoriesController extends BaseController {
     }
   }
 
-  def reloadCache() = Action { implicit request =>
-    dataSource.reload()
+  def reloadCache() = Action {
+    dataLoader.reload()
     Ok("Cache reload triggered successfully")
   }
+
+  def save = Action.async { implicit request =>
+    val file: Option[String] = request.getQueryString("file")
+
+    file match {
+      case Some(filename) =>
+        dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
+          import java.io._
+          implicit val repositoryFormats = Json.format[Repository]
+          implicit val teamRepositoryFormats = Json.format[TeamRepositories]
+          val pw = new PrintWriter(new File(filename))
+          pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
+          pw.close()
+
+          Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+        }
+      case None =>
+        Future(NotAcceptable(s"no file specified").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now())))
+    }
+
+  }
+
 }

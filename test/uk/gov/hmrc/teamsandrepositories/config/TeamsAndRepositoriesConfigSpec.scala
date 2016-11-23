@@ -17,13 +17,14 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
 
 
-class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite{
+class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {
 
 
 
@@ -60,7 +61,8 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
 
   "ciUrlTemplates" should {
     "return all the url templates" in {
-      val conf = new UrlTemplatesProvider() {}
+
+      val conf = new UrlTemplatesProvider(app.configuration)
       val templates: UrlTemplates = conf.ciUrlTemplates
       templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "closed 1", "http://closed1/$name"), UrlTemplate("ci-closed2", "closed 2", "http://closed2/$name"))
       templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "open 1", "http://open1/$name"), UrlTemplate("ci-open2", "open 2", "http://open2/$name"))
