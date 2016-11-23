@@ -21,26 +21,29 @@ import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
 
 
-@Singleton
-class GithubConfig @Inject() (configuration: Configuration) {
+
+class GithubConfig(configuration: Configuration) {
   val githubOpenConfigKey = "github.open.api"
   val githubEnterpriseConfigKey = "github.enterprise.api"
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
   val githubHiddenTeamsConfigKey = "github.hidden.teams"
 
-  private val gitOpenConfig = (key: String) => config(s"$githubOpenConfigKey.$key")
-  private val gitEnterpriseConfig = (key: String) => config(s"$githubEnterpriseConfigKey.$key")
+  val githubApiOpenConfig =
+    getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.credentials"))
 
-  lazy val githubApiOpenConfig = option(gitOpenConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.credentials"))
-  lazy val githubApiEnterpriseConfig = option(gitEnterpriseConfig).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.githubenterprise"))
-  lazy val hiddenRepositories = config(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
-  lazy val hiddenTeams = config(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+  val githubApiEnterpriseConfig = getGitApiConfig(githubEnterpriseConfigKey).getOrElse(GitApiConfig.fromFile(s"${System.getProperty("user.home")}/.github/.githubenterprise"))
 
-  private def config(path: String) = configuration.getString(s"$path")
-  private def option(config: String => Option[String]): Option[GitApiConfig] =
+  val hiddenRepositories = configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+
+  val hiddenTeams = configuration.getString(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+
+  private def getGitApiConfig(base: String): Option[GitApiConfig] =
     for {
-      host <- config("host")
-      user <- config("user")
-      key <- config("key")
+      host <- configuration.getString(base + ".host")
+      user <- configuration.getString(base + ".user")
+      key <- configuration.getString(base + ".key")
     } yield GitApiConfig(user, key, host)
+
+
 }
+

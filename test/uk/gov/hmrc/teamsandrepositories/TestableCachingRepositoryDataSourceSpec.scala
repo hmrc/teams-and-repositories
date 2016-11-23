@@ -43,7 +43,18 @@ class TestableCachingRepositoryDataSourceSpec extends WordSpec
   with OneAppPerTest {
 
 
-  override def newAppForTest(testData: TestData) = new GuiceApplicationBuilder().disable(classOf[com.kenshoo.play.metrics.PlayModule]).build()
+  override def newAppForTest(testData: TestData) = new GuiceApplicationBuilder()
+      .configure(
+        Map(
+        "github.open.api.host" ->           "http://bla.bla",
+        "github.open.api.user" ->           "",
+        "github.open.api.key" ->            "",
+        "github.enterprise.api.host" ->     "http://bla.bla",
+        "github.enterprise.api.user" ->     "",
+        "github.enterprise.api.key" ->      ""
+        )
+      )
+    .disable(classOf[com.kenshoo.play.metrics.PlayModule]).build()
 
   //!@ can we remove this?
   val testConfig = new CacheConfig(mock[Configuration]) {

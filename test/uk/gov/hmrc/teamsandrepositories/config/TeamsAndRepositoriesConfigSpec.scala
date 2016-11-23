@@ -26,8 +26,6 @@ import play.api.inject.guice.GuiceApplicationBuilder
 
 class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {
 
-
-
     def templatesConfig: String =
       """
         |{url-templates : {
@@ -56,7 +54,22 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
         |}}
       """.stripMargin
 
-  implicit override lazy val app = new GuiceApplicationBuilder().configure(Configuration(ConfigFactory.parseString(templatesConfig))).build()
+
+
+  implicit override lazy val app =
+    new GuiceApplicationBuilder()
+      .configure(Configuration(ConfigFactory.parseString(templatesConfig)))
+      .configure(
+        Map(
+          "github.open.api.host" ->           "http://bla.bla",
+          "github.open.api.user" ->           "",
+          "github.open.api.key" ->            "",
+          "github.enterprise.api.host" ->     "http://bla.bla",
+          "github.enterprise.api.user" ->     "",
+          "github.enterprise.api.key" ->      ""
+        )
+      )
+      .build()
 
 
   "ciUrlTemplates" should {

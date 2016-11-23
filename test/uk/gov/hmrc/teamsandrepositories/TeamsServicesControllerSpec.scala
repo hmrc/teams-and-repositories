@@ -79,7 +79,16 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
 
 
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder().build
+    new GuiceApplicationBuilder().configure(
+      Map(
+        "github.open.api.host" ->           "http://bla.bla",
+        "github.open.api.user" ->           "",
+        "github.open.api.key" ->            "",
+        "github.enterprise.api.host" ->     "http://bla.bla",
+        "github.enterprise.api.user" ->     "",
+        "github.enterprise.api.key" ->      ""
+      )
+    ).build
 
   def controllerWithData(cachedResult: CachedResult[Seq[TeamRepositories]],
                          listOfReposToIgnore: List[String] = List.empty[String],
