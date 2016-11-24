@@ -187,25 +187,4 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
     Ok("Cache reload triggered successfully")
   }
 
-  def save = Action.async { implicit request =>
-    val file: Option[String] = request.getQueryString("file")
-
-    file match {
-      case Some(filename) =>
-        dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-          import java.io._
-          implicit val repositoryFormats = Json.format[Repository]
-          implicit val teamRepositoryFormats = Json.format[TeamRepositories]
-          val pw = new PrintWriter(new File(filename))
-          pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
-          pw.close()
-
-          Ok(s"Saved $file").withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
-        }
-      case None =>
-        Future(NotAcceptable(s"no file specified").withHeaders(CacheTimestampHeaderName -> format(LocalDateTime.now())))
-    }
-
-  }
-
 }
