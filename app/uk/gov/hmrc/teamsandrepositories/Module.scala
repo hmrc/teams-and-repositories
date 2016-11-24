@@ -39,7 +39,7 @@ class Module(environment: play.api.Environment, configuration: Configuration) ex
 
   def fileDataLoader: FileDataGetter = {
 
-    implicit val repositoryFormats = Json.format[Repository]
+    implicit val repositoryFormats = Json.format[GitRepository]
     implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
     val cacheFilename = configuration.getString("cacheFilename").getOrElse(throw new RuntimeException("cacheFilename is not specified for off-line (dev) usage"))

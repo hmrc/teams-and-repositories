@@ -62,9 +62,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now))),
-        TeamRepositories("B", List(Repository("B_r", "some description", "url_B", now, now))),
-        TeamRepositories("C", List(Repository("C_r", "some description", "url_C", now, now))),
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now))),
+        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now))),
+        TeamRepositories("C", List(GitRepository("C_r", "some description", "url_C", now, now))),
         TeamRepositories("D", List()))
     }
 
@@ -82,9 +82,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
 
       internalDataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now, isInternal = true))),
-        TeamRepositories("B", List(Repository("B_r", "some description", "url_B", now, now, isInternal = true))),
-        TeamRepositories("C", List(Repository("C_r", "some description", "url_C", now, now, isInternal = true))),
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true))),
+        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, isInternal = true))),
+        TeamRepositories("C", List(GitRepository("C_r", "some description", "url_C", now, now, isInternal = true))),
         TeamRepositories("D", List()))
     }
 
@@ -99,9 +99,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r2" , "some description", "url_A2", now, now))),
+        TeamRepositories("A", List(GitRepository("A_r2" , "some description", "url_A2", now, now))),
         TeamRepositories("C", List()),
-        TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now))))
+        TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now))))
     }
 
     "Filter out teams according to the hidden config" in {
@@ -115,7 +115,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now))))
+        TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now))))
     }
 
     "Set repoType Service if the repository contains an app/application.conf folder" in {
@@ -131,8 +131,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("conf/application.conf","D_r","DDCN")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "some description", "url_A",now, now, repoType = RepoType.Deployable))),
-        TeamRepositories("D", List(Repository("D_r", "some description", "url_D",now, now))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A",now, now, repoType = RepoType.Deployable))),
+        TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D",now, now))))
     }
 
     "Set repoType Service if the repository contains a Procfile" in {
@@ -148,8 +148,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("Procfile","B_r","HMRC")(ec)).thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now, repoType = RepoType.Deployable))),
-        TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now, repoType = RepoType.Other))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Deployable))),
+        TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now, repoType = RepoType.Other))))
     }
 
 
@@ -167,7 +167,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.repoContainsContent(same("deploy.properties"),same("D_r"),same("DDCN"))(same(ec))).thenReturn(Future.successful(true))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now,  repoType = RepoType.Deployable))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now,  repoType = RepoType.Deployable))))
     }
 
     "Set type Library if not Service and has src/main/scala and has tags" in {
@@ -190,9 +190,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
 
-      repositories should contain(TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now, repoType = RepoType.Library))))
+      repositories should contain(TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now, repoType = RepoType.Library))))
 
-      repositories should contain(TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
     }
 
 
@@ -216,9 +216,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
 
-      repositories should contain(TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now, repoType = RepoType.Library))))
+      repositories should contain(TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now, repoType = RepoType.Library))))
 
-      repositories should contain(TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
     }
 
 
@@ -240,9 +240,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
 
-      repositories should contain(TeamRepositories("D", List(Repository("D_r", "some description", "url_D", now, now, repoType = RepoType.Other))))
+      repositories should contain(TeamRepositories("D", List(GitRepository("D_r", "some description", "url_D", now, now, repoType = RepoType.Other))))
 
-      repositories should contain(TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
     }
 
 
@@ -285,7 +285,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         .thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(Repository("A_r", "some description", "url_A", now, now))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now))))
     }
 
 

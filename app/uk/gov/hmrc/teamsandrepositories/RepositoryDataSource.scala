@@ -27,18 +27,18 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import scala.concurrent.Future
 
 
-case class TeamRepositories(teamName: String, repositories: List[Repository]) {
+case class TeamRepositories(teamName: String, repositories: List[GitRepository]) {
   def repositoriesByType(repoType: RepoType.RepoType) = repositories.filter(_.repoType == repoType)
 }
 
 
-case class Repository(name: String,
-                      description: String,
-                      url: String,
-                      createdDate: Long,
-                      lastActiveDate: Long,
-                      isInternal: Boolean = false,
-                      repoType: RepoType = RepoType.Other)
+case class GitRepository(name: String,
+                         description: String,
+                         url: String,
+                         createdDate: Long,
+                         lastActiveDate: Long,
+                         isInternal: Boolean = false,
+                         repoType: RepoType = RepoType.Other)
 
 trait RepositoryDataSource {
   def getTeamRepoMapping: Future[Seq[TeamRepositories]]
@@ -47,11 +47,10 @@ trait RepositoryDataSource {
 @Singleton
 class GithubV3RepositoryDataSource @Inject() (githubConfig: GithubConfig, gh: GithubApiClient,
                                    val isInternal: Boolean) extends RepositoryDataSource {
-//  self: GithubConfigProvider =>
 
   import BlockingIOExecutionContext._
 
-  implicit val repositoryFormats = Json.format[Repository]
+  implicit val repositoryFormats = Json.format[GitRepository]
 
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
@@ -82,18 +81,18 @@ class GithubV3RepositoryDataSource @Inject() (githubConfig: GithubConfig, gh: Gi
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
-        } yield mapRepository(organisation, repo)).map { (repos: List[Repository]) =>
+        } yield mapRepository(organisation, repo)).map { (repos: List[GitRepository]) =>
           TeamRepositories(team.name, repositories = repos)
         }
       }
     }
 
 
-  private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[Repository] = {
+  private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[GitRepository] = {
 
     isDeployable(repo, organisation) flatMap { deployable =>
 
-      val repository: Repository = Repository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
+      val repository: GitRepository = GitRepository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
 
       if (deployable)
 

@@ -58,7 +58,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a closed service" in {
 
-      val repos = Seq(Repository(
+      val repos = Seq(GitRepository(
         "a-frontend",
         "Some Description",
         "https://not-open-github/org/a-frontend",
@@ -75,7 +75,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a closed libraries" in {
 
-      val repos = Seq(Repository(
+      val repos = Seq(GitRepository(
         "a-library",
         "Some Description",
         "https://not-open-github/org/a-library",
@@ -92,7 +92,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a open Libraries" in {
 
-      val repo = Seq(Repository(
+      val repo = Seq(GitRepository(
         "a-library",
         "Some Description",
         "https://github.com/org/a-library", now, now,
@@ -107,7 +107,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create links for a open service" in {
 
-      val repo = Seq(Repository(
+      val repo = Seq(GitRepository(
         "a-frontend",
         "Some Description",
         "https://github.com/org/a-frontend", now, now,
@@ -122,7 +122,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
 
     "create links for each environment" in {
-      val aFrontend = Repository(
+      val aFrontend = GitRepository(
         "a-frontend",
         "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
@@ -140,7 +140,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
     }
 
     "do not create environment links for libraries" in {
-      val aLibrary = Repository(
+      val aLibrary = GitRepository(
         "a-library",
         "Some Description",
         "https://not-open-github/org/a-library", now, now,
@@ -158,14 +158,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create github links for both open and internal services if both are present, but only open ci links" in {
 
-      val internalRepo = Repository(
+      val internalRepo = GitRepository(
         "a-frontend",
         "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
         isInternal = true,
         repoType = RepoType.Deployable)
 
-      val openRepo = Repository(
+      val openRepo = GitRepository(
         "a-frontend",
         "Some Description",
         "https://github.com/org/a-frontend", now, now,
@@ -183,14 +183,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "create github links for both open and internal Libraries if both are present, but only ci-open links" in {
 
-      val internalRepo = Repository(
+      val internalRepo = GitRepository(
         "a-library",
         "Some Description",
         "https://not-open-github/org/a-library", now, now,
         isInternal = true,
         repoType = RepoType.Library)
 
-      val openRepo = Repository(
+      val openRepo = GitRepository(
         "a-library",
         "Some Description",
         "https://github.com/org/a-library", now, now,
@@ -209,14 +209,14 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
     "just create github links if not Deployable or Library" in {
 
-      val internalRepo = Repository(
+      val internalRepo = GitRepository(
         "a-repo",
         "Some Description",
         "https://not-open-github/org/a-repo", now, now,
         isInternal = true,
         repoType = RepoType.Other)
 
-      val openRepo = Repository(
+      val openRepo = GitRepository(
         "a-repo",
         "Some Description",
         "https://github.com/org/a-repo", now, now,

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.net.URLDecoder
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
@@ -48,10 +49,10 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
-case class RepositoryDisplayDetails(name: String, createdAt: Long, lastUpdatedAt: Long)
+case class Repository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType : RepoType.RepoType)
 
-object RepositoryDisplayDetails {
-  implicit val repoDetailsFormat = Json.format[RepositoryDisplayDetails]
+object Repository {
+  implicit val repoDetailsFormat = Json.format[Repository]
 }
 
 case class Team(name: String,
@@ -95,10 +96,11 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
                                             actorSystem: ActorSystem) extends BaseController {
 
   import TeamRepositoryWrapper._
+  import Repository._
+  import scala.collection.JavaConverters._
 
   val CacheTimestampHeaderName = "X-Cache-Timestamp"
 
-  import scala.collection.JavaConverters._
 
   val repositoriesToIgnore: List[String] = configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
 
@@ -112,13 +114,11 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
     dataLoader.reload()
   }
 
-  private def format(dateTime: LocalDateTime): String = {
-    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
-  }
 
   def repositoryDetails(name: String) = Action.async { implicit request =>
+    val repoName = URLDecoder.decode(name, "UTF-8")
     dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.findRepositoryDetails(name, urlTemplatesProvider.ciUrlTemplates) match {
+      (cachedTeams.data.findRepositoryDetails(repoName, urlTemplatesProvider.ciUrlTemplates) match {
         case None => NotFound
         case Some(x: RepositoryDetails) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
@@ -132,16 +132,6 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
     }
   }
 
-
-  import RepositoryDisplayDetails._
-
-  private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
-    if (request.getQueryString("details").nonEmpty)
-      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, urlTemplatesProvider.ciUrlTemplates))
-    else if (request.getQueryString("teamDetails").nonEmpty)
-      Json.toJson(data.asRepositoryTeamNameList())
-    else Json.toJson(data.asServiceRepoDetailsList)
-
   def libraries() = Action.async { implicit request =>
     dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
       Ok(determineLibrariesResponse(request, cachedTeams.data))
@@ -149,11 +139,12 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
     }
   }
 
-  private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) = {
-    if (request.getQueryString("details").nonEmpty)
-      Json.toJson(data.asRepositoryDetailsList(RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
-    else
-      Json.toJson(data.asLibraryRepoDetailsList)
+
+  def allRepositories() = Action.async { implicit request =>
+    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
+      Ok(Json.toJson(cachedTeams.data.allRepositories))
+        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    }
   }
 
   def teams() = Action.async { implicit request =>
@@ -175,7 +166,7 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
 
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async { implicit request =>
     dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.asTeamRepositoryDetailsList(teamName, repositoriesToIgnore) match {
+      (cachedTeams.data.findTeam(teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x))
       }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
@@ -186,5 +177,25 @@ class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDa
     dataLoader.reload()
     Ok("Cache reload triggered successfully")
   }
+
+
+  private def format(dateTime: LocalDateTime): String = {
+    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
+  }
+
+  private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
+    if (request.getQueryString("details").nonEmpty)
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, urlTemplatesProvider.ciUrlTemplates))
+    else if (request.getQueryString("teamDetails").nonEmpty)
+      Json.toJson(data.asRepositoryToTeamNameList())
+    else Json.toJson(data.asServiceRepositoryList)
+
+  private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) = {
+    if (request.getQueryString("details").nonEmpty)
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
+    else
+      Json.toJson(data.asLibraryRepositoryList)
+  }
+
 
 }

@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
 
-import play.api.Play
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
@@ -26,14 +25,13 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 object TeamRepositoryWrapper {
 
 
-
-  private case class RepositoriesToTeam(repositories: Seq[Repository], teamName: String)
+  private case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
 
   implicit class TeamRepositoryWrapper(teamRepos: Seq[TeamRepositories]) {
 
-    def asTeamList(repositoriesToIgnore:List[String]) =
+    def asTeamList(repositoriesToIgnore: List[String]) =
       teamRepos.map(_.teamName).map { tn =>
-        val repos: Seq[Repository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
+        val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
         val team = Team(name = tn, repos = Map())
         if (repos.nonEmpty) {
           val (firstActiveAt, latestActiveAt) = getTeamActivityDatesOfNonSharedRepos(repos, repositoriesToIgnore)
@@ -42,16 +40,25 @@ object TeamRepositoryWrapper {
 
       }
 
-    def asServiceRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Deployable)
+    def asServiceRepositoryList: Seq[Repository] = allRepositories.filter(_.repoType == RepoType.Deployable)
 
-    def asLibraryRepoDetailsList: Seq[RepositoryDisplayDetails] = asRepoDetailsOfGivenRepoType(RepoType.Library)
+    def asLibraryRepositoryList: Seq[Repository] = allRepositories.filter(_.repoType == RepoType.Library)
+
+    def allRepositories: Seq[Repository] =
+      teamRepos
+        .flatMap(_.repositories)
+        .groupBy(_.name)
+        .foldLeft(Seq.empty[Repository]) {
+          case (rs, (repoNam, repos)) =>
+            val repoType = primaryRepoType(repos)
+            val (createAt, lastActive) = getRepoMinMaxActivityDates(repos)
+            Repository(repoNam, createAt, lastActive, repoType) +: rs
+        }.filter(x => !x.name.contains("prototype")).sortBy(_.name.toUpperCase)
 
     def findRepositoryDetails(repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
-      val decodedServiceName = URLDecoder.decode(repoName, "UTF-8")
-
-      teamRepos.foldLeft((Set.empty[String], Set.empty[Repository])) { case ((ts, repos), tr) =>
-        if (tr.repositories.exists(_.name == decodedServiceName))
-          (ts + tr.teamName, repos ++ tr.repositories.filter(_.name == decodedServiceName))
+      teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
+        if (tr.repositories.exists(_.name == repoName))
+          (ts + tr.teamName, repos ++ tr.repositories.filter(_.name == repoName))
         else (ts, repos)
       } match {
         case (teams, repos) if repos.nonEmpty =>
@@ -68,7 +75,7 @@ object TeamRepositoryWrapper {
         .sortBy(_.name.toUpperCase)
     }
 
-    private def primaryRepoType(repositories: Seq[Repository]): RepoType = {
+    private def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
       if (repositories.exists(_.repoType == RepoType.Deployable)) RepoType.Deployable
       else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
       else RepoType.Other
@@ -86,7 +93,7 @@ object TeamRepositoryWrapper {
       }
     }
 
-    def asTeamRepositoryDetailsList(teamName: String, repositoriesToIgnore:List[String]): Option[Team] = {
+    def findTeam(teamName: String, repositoriesToIgnore: List[String]): Option[Team] = {
 
       teamRepos
         .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
@@ -112,7 +119,7 @@ object TeamRepositoryWrapper {
 
     private case class RepositoryToTeam(repositoryName: String, teamName: String)
 
-    def asRepositoryTeamNameList(): Map[String, Seq[String]] = {
+    def asRepositoryToTeamNameList(): Map[String, Seq[String]] = {
       val mappings = for {
         tr <- teamRepos
         r <- tr.repositories
@@ -123,22 +130,7 @@ object TeamRepositoryWrapper {
     }
 
 
-    private def asRepoDetailsOfGivenRepoType(repoType: RepoType.Value): Seq[RepositoryDisplayDetails] = {
-
-      val repoNames: Seq[String] = for {
-        d: TeamRepositories <- teamRepos
-        r: Repository <- extractRepositoryGroupForType(repoType, d.repositories)
-      } yield r.name
-
-      repoNames.distinct.map { case (repoName) =>
-
-        val (createdAt: Long, lastActiveAt: Long) = getRepoMinMaxActivityDates(teamRepos.flatMap(_.repositories).filter(_.name == repoName))
-
-        RepositoryDisplayDetails(repoName, createdAt, lastActiveAt)
-      }.sortBy(_.name.toUpperCase)
-    }
-
-    private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[Repository], repositoriesToIgnore:List[String]) = {
+    private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]) = {
 
       val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
 
@@ -152,7 +144,7 @@ object TeamRepositoryWrapper {
 
     }
 
-    private def getRepoMinMaxActivityDates(repos: Seq[Repository]) = {
+    private def getRepoMinMaxActivityDates(repos: Seq[GitRepository]) = {
 
       val maxLastUpdatedAt = repos.maxBy(_.lastActiveDate).lastActiveDate
       val minCreatedAt = repos.minBy(_.createdDate).createdDate
@@ -168,7 +160,7 @@ object TeamRepositoryWrapper {
       } yield RepositoriesToTeam(repositories, team.teamName)
   }
 
-  def repoGroupToRepositoryDetails(repoType: RepoType, repositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+  def repoGroupToRepositoryDetails(repoType: RepoType, repositories: Seq[GitRepository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
 
     val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
 
@@ -176,11 +168,11 @@ object TeamRepositoryWrapper {
 
   }
 
-  private def buildRepositoryDetails(primaryRepository: Option[Repository], allRepositories: Seq[Repository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+  private def buildRepositoryDetails(primaryRepository: Option[GitRepository], allRepositories: Seq[GitRepository], teamNames: Seq[String], urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
 
     primaryRepository.map { repo =>
 
-      val sameNameRepos: Seq[Repository] = allRepositories.filter(r => r.name == repo.name)
+      val sameNameRepos: Seq[GitRepository] = allRepositories.filter(r => r.name == repo.name)
       val createdDate = sameNameRepos.minBy(_.createdDate).createdDate
       val lastActiveDate = sameNameRepos.maxBy(_.lastActiveDate).lastActiveDate
 
@@ -198,7 +190,7 @@ object TeamRepositoryWrapper {
             repo.url)
         })
 
-      val repositoryForCiUrls: Repository = allRepositories.find(!_.isInternal).fold(repo)(identity)
+      val repositoryForCiUrls: GitRepository = allRepositories.find(!_.isInternal).fold(repo)(identity)
 
       if (hasEnvironment(repo))
         repoDetails.copy(ci = buildCiUrls(repositoryForCiUrls, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
@@ -212,27 +204,27 @@ object TeamRepositoryWrapper {
 
   private def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
 
-  private def hasEnvironment(repo: Repository): Boolean = repo.repoType == RepoType.Deployable
+  private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Deployable
 
-  private def hasBuild(repo: Repository): Boolean = repo.repoType == RepoType.Library
+  private def hasBuild(repo: GitRepository): Boolean = repo.repoType == RepoType.Library
 
-  private def buildEnvironmentUrls(repository: Repository, urlTemplates: UrlTemplates): Seq[Environment] = {
+  private def buildEnvironmentUrls(repository: GitRepository, urlTemplates: UrlTemplates): Seq[Environment] = {
     urlTemplates.environments.map { case (name, tps) =>
       val links = tps.map { tp => Link(tp.name, tp.displayName, tp.url(repository.name)) }
       Environment(name, links)
     }.toSeq
   }
 
-  private def buildCiUrls(repository: Repository, urlTemplates: UrlTemplates): List[Link] =
+  private def buildCiUrls(repository: GitRepository, urlTemplates: UrlTemplates): List[Link] =
     repository.isInternal match {
       case true => buildUrls(repository, urlTemplates.ciClosed)
       case false => buildUrls(repository, urlTemplates.ciOpen)
     }
 
-  private def buildUrls(repo: Repository, templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
+  private def buildUrls(repo: GitRepository, templates: Seq[UrlTemplate]) = templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
 
 
-  def extractRepositoryGroupForType(repoType: RepoType.RepoType, repositories: Seq[Repository]): List[Repository] = {
+  def extractRepositoryGroupForType(repoType: RepoType.RepoType, repositories: Seq[GitRepository]): List[GitRepository] = {
     repositories
       .groupBy(_.name)
       .filter {

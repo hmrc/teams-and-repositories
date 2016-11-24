@@ -52,7 +52,7 @@ class DataSavingController @Inject()(dataLoader: MemoryCachedRepositoryDataSourc
       case Some(filename) =>
         dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
           import java.io._
-          implicit val repositoryFormats = Json.format[Repository]
+          implicit val repositoryFormats = Json.format[GitRepository]
           implicit val teamRepositoryFormats = Json.format[TeamRepositories]
           val pw = new PrintWriter(new File(filename))
           pw.write(Json.stringify(Json.toJson(cachedTeams.data)))
