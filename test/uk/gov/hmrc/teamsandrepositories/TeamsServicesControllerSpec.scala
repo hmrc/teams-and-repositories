@@ -253,8 +253,8 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val timestampHeader = header("x-cache-timestamp", result)
       val data = contentAsJson(result).as[Team]
 
-      data.repos.size mustBe 3
-      data.repos mustBe Map(
+      data.repos.value.size mustBe 3
+      data.repos.value mustBe Map(
         RepoType.Deployable -> List("another-repo", "middle-repo"),
         RepoType.Library -> List("alibrary-repo"),
         RepoType.Other -> List("other-repo")
@@ -273,7 +273,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Team].repos mustBe Map(
+        .as[Team].repos.value mustBe Map(
         RepoType.Deployable -> List("repo-name"),
         RepoType.Library -> List(),
         RepoType.Other -> List())
@@ -291,7 +291,7 @@ class TeamsServicesControllerSpec extends PlaySpec with MockitoSugar with Result
       val result = controller.repositoriesWithDetailsByTeam("test-team").apply(FakeRequest())
 
       contentAsJson(result)
-        .as[Team].repos mustBe Map(
+        .as[Team].repos.value mustBe Map(
         RepoType.Deployable -> List("aadvark-repo", "repo-name"),
         RepoType.Library -> List(),
         RepoType.Other -> List()

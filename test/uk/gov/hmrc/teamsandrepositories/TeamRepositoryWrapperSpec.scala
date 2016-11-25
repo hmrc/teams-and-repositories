@@ -401,7 +401,12 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers  {
       val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
       val result = wrapper.findTeam("teamName", Nil)
 
-      result shouldBe Some(Team("teamName", Some(1), Some(20), Map(RepoType.Deployable -> List("repo1"), RepoType.Library -> List(), RepoType.Other -> List())))
+      result shouldBe Some(Team("teamName", Some(1), Some(20),
+        Some(Map(
+          RepoType.Deployable -> List("repo1"),
+          RepoType.Library -> List(),
+          RepoType.Other -> List())))
+      )
     }
 
     "Include all repository types when get the max last active and min created at for team" in {
@@ -416,11 +421,11 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers  {
 
       result shouldBe Some(
         Team("teamName", Some(1), Some(40),
-          Map(
+          Some(Map(
             RepoType.Deployable -> List("repo1"),
             RepoType.Library -> List("repo1"),
             RepoType.Other -> List("repo1")
-          )
+          ))
         )
       )
     }
@@ -437,11 +442,11 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers  {
 
       result shouldBe Some(
         Team("teamName", Some(1), Some(40),
-          Map(
+          Some(Map(
             RepoType.Deployable -> List("repo1"),
             RepoType.Library -> List("repo1"),
             RepoType.Other -> List("repo1", "sharedRepo1")
-          )
+          ))
         )
       )
     }

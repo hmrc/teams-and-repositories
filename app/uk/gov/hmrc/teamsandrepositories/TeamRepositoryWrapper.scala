@@ -32,7 +32,7 @@ object TeamRepositoryWrapper {
     def asTeamList(repositoriesToIgnore: List[String]) =
       teamRepos.map(_.teamName).map { tn =>
         val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
-        val team = Team(name = tn, repos = Map())
+        val team = Team(name = tn, repos = None)
         if (repos.nonEmpty) {
           val (firstActiveAt, latestActiveAt) = getTeamActivityDatesOfNonSharedRepos(repos, repositoriesToIgnore)
           team.copy(firstActiveDate = firstActiveAt, lastActiveDate = latestActiveAt)
@@ -112,7 +112,7 @@ object TeamRepositoryWrapper {
             m + (repoType -> getRepositoryDisplayDetails(repoType))
           }
 
-          Team(teamName, min, max, repos)
+          Team(teamName, min, max, Some(repos))
         }
 
     }

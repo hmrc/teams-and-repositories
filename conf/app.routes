@@ -1,6 +1,5 @@
 # microservice specific routes
 
-#GET         /api/save                      @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.save
 GET         /api/teams                      @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.teams
 GET         /api/teams/:team                @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoriesByTeam(team)
 GET         /api/teams_with_details/:team   @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoriesWithDetailsByTeam(team)
