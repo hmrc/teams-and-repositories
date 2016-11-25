@@ -55,7 +55,7 @@ class GithubV3RepositoryDataSource @Inject() (githubConfig: GithubConfig, gh: Gi
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
   val retries: Int = 5
-  val initialDuration: Double = 200
+  val initialDuration: Double = 10
 
   def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     exponentialRetry(retries, initialDuration) {
