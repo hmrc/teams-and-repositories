@@ -22,7 +22,7 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
 
 import akka.actor.ActorSystem
-import com.google.inject.Inject
+import com.google.inject.{Inject, Singleton}
 import play.Logger
 import play.api.Configuration
 import play.api.libs.json.Json.JsValueWrapper
@@ -89,6 +89,7 @@ object BlockingIOExecutionContext {
 }
 
 
+@Singleton
 class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDataSource[TeamRepositories],
                                             cacheConfig: CacheConfig,
                                             urlTemplatesProvider: UrlTemplatesProvider,

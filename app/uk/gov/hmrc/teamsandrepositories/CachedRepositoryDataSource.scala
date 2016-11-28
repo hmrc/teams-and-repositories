@@ -4,7 +4,6 @@ import java.time.LocalDateTime
 
 import com.google.inject.{Inject, Singleton}
 import play.Logger
-import uk.gov.hmrc.teamsandrepositories.DataGetter.DataLoaderFunction
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
