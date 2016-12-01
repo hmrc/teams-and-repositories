@@ -34,3 +34,4 @@ To work with offline data:
 github.offline.mode = false
 cacheFilename = "/tmp/github.json"
 ```
+
