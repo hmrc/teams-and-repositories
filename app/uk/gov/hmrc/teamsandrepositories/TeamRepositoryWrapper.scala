@@ -53,7 +53,7 @@ object TeamRepositoryWrapper {
             val repoType = primaryRepoType(repos)
             val (createAt, lastActive) = getRepoMinMaxActivityDates(repos)
             Repository(repoNam, createAt, lastActive, repoType) +: rs
-        }.filter(x => !x.name.contains("prototype")).sortBy(_.name.toUpperCase)
+        }.sortBy(_.name.toUpperCase)
 
     def findRepositoryDetails(repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
       teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
@@ -235,7 +235,7 @@ object TeamRepositoryWrapper {
         case (name, repos) =>
           !repos.exists(x => x.repoType == RepoType.Deployable) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
       }
-      .flatMap(_._2).filter(x => !x.name.contains("prototype")).toList
+      .flatMap(_._2).toList
   }
 
 }
