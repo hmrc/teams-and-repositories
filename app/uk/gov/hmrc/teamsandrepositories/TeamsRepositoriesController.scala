@@ -58,6 +58,7 @@ object Repository {
 case class Team(name: String,
                 firstActiveDate: Option[Long] = None,
                 lastActiveDate: Option[Long] = None,
+                firstServiceCreationDate : Option[Long] = None,
                 repos: Option[Map[RepoType.Value, Seq[String]]])
 
 object Team {

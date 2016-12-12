@@ -24,6 +24,9 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 object TeamRepositoryWrapper {
 
+  private case class TeamActivityDates(firstActiveDate: Option[Long] = None,
+                                       lastActiveDate: Option[Long] = None,
+                                       firstServiceCreationDate: Option[Long] = None)
 
   private case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
 
@@ -34,8 +37,8 @@ object TeamRepositoryWrapper {
         val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
         val team = Team(name = tn, repos = None)
         if (repos.nonEmpty) {
-          val (firstActiveAt, latestActiveAt) = getTeamActivityDatesOfNonSharedRepos(repos, repositoriesToIgnore)
-          team.copy(firstActiveDate = firstActiveAt, lastActiveDate = latestActiveAt)
+          val teamActivityDates = getTeamActivityDatesOfNonSharedRepos(repos, repositoriesToIgnore)
+          team.copy(firstActiveDate = teamActivityDates.firstActiveDate, lastActiveDate = teamActivityDates.lastActiveDate)
         } else team
 
       }
@@ -99,7 +102,7 @@ object TeamRepositoryWrapper {
         .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
         .map { teamRepositories =>
 
-          val (min, max) = getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)
+          val teamActivityDates = getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)
           def getRepositoryDisplayDetails(repoType: RepoType.Value): List[String] = {
             teamRepositories.repositories
               .filter(_.repoType == repoType)
@@ -112,7 +115,7 @@ object TeamRepositoryWrapper {
             m + (repoType -> getRepositoryDisplayDetails(repoType))
           }
 
-          Team(teamName, min, max, Some(repos))
+          Team(teamName, teamActivityDates.firstActiveDate, teamActivityDates.lastActiveDate, teamActivityDates.firstServiceCreationDate, Some(repos))
         }
 
     }
@@ -130,16 +133,17 @@ object TeamRepositoryWrapper {
     }
 
 
-    private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]) = {
+    private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]): TeamActivityDates = {
 
       val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
 
       if (nonIgnoredRepos.nonEmpty) {
         val (firstActive, lastActive) = getRepoMinMaxActivityDates(nonIgnoredRepos)
-        (Some(firstActive), Some(lastActive))
+        val (firstServiceCreationDate, _) = getRepoMinMaxActivityDates(nonIgnoredRepos.filter(_.repoType == RepoType.Deployable))
+        TeamActivityDates(Some(firstActive), Some(lastActive), Some(firstServiceCreationDate))
       }
       else {
-        (None, None)
+        TeamActivityDates()
       }
 
     }

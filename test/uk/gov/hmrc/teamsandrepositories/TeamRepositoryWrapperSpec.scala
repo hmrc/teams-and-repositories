@@ -376,8 +376,8 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
         val result = wrapper.findTeam("teamName", Nil)
 
-        result shouldBe Some(Team("teamName", Some(1), Some(20),
-          Some(Map(
+        result shouldBe Some(Team(name = "teamName", firstActiveDate = Some(1), lastActiveDate = Some(20), firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
+           repos = Some(Map(
             RepoType.Deployable -> List("repo1"),
             RepoType.Library -> List(),
             RepoType.Other -> List())))
@@ -395,7 +395,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         val result = wrapper.findTeam("teamName", Nil)
 
         result shouldBe Some(
-          Team("teamName", Some(1), Some(40),
+          Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
             Some(Map(
               RepoType.Deployable -> List("repo1"),
               RepoType.Library -> List("repo1"),
@@ -416,7 +416,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         val result = wrapper.findTeam("teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
 
         result shouldBe Some(
-          Team("teamName", Some(1), Some(40),
+          Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
             Some(Map(
               RepoType.Deployable -> List("repo1"),
               RepoType.Library -> List("repo1"),
@@ -425,6 +425,29 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           )
         )
       }
+
+
+      "populate firstServiceCreation date by looking at only the service repository" in {
+
+        val teams = Seq(
+          TeamRepositories("teamName", List(newDeployableRepo, oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo)),
+          TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
+        )
+
+        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
+        val result = wrapper.findTeam("teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
+
+        result shouldBe Some(
+          Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
+            Some(Map(
+              RepoType.Deployable -> List("repo1"),
+              RepoType.Library -> List("repo1"),
+              RepoType.Other -> List("repo1", "sharedRepo1")
+            ))
+          )
+        )
+      }
+
 
       "return None when queried with a non existing team" in {
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
