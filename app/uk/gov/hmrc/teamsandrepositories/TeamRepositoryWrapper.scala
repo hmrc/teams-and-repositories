@@ -139,8 +139,12 @@ object TeamRepositoryWrapper {
 
       if (nonIgnoredRepos.nonEmpty) {
         val (firstActive, lastActive) = getRepoMinMaxActivityDates(nonIgnoredRepos)
-        val (firstServiceCreationDate, _) = getRepoMinMaxActivityDates(nonIgnoredRepos.filter(_.repoType == RepoType.Deployable))
-        TeamActivityDates(Some(firstActive), Some(lastActive), Some(firstServiceCreationDate))
+        val services: Seq[GitRepository] = nonIgnoredRepos.filter(_.repoType == RepoType.Deployable)
+
+        val firstServiceCreationDate = if(services.nonEmpty) Some(getRepoMinMaxActivityDates(services)._1) else None
+
+
+        TeamActivityDates(Some(firstActive), Some(lastActive), firstServiceCreationDate)
       }
       else {
         TeamActivityDates()
