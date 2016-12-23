@@ -16,9 +16,24 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import scala.concurrent.Future
 
-class CachedResult[T](val data: T, val time: LocalDateTime) {
-  def map[B](f: T => B) = new CachedResult[B](f(this.data), this.time)
-  override def toString = data.toString
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+object FutureExtras {
+
+  implicit class FutureOfBoolean(f: Future[Boolean]) {
+
+    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
+      if (bv) Future.successful(bv)
+      else f1
+    }
+
+    def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
+      if (!bv) Future.successful(bv)
+      else f1
+    }
+  }
+
 }

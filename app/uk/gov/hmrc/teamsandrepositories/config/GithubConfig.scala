@@ -22,7 +22,9 @@ import uk.gov.hmrc.githubclient.GitApiConfig
 
 
 
-class GithubConfig(configuration: Configuration) {
+
+@Singleton
+class GithubConfig @Inject()(configuration: Configuration) {
   val githubOpenConfigKey = "github.open.api"
   val githubEnterpriseConfigKey = "github.enterprise.api"
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"

@@ -22,11 +22,11 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
+class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
 
   "FutureOfBoolean ||" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -48,7 +48,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -73,7 +73,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
 
   "FutureOfBoolean &&" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -95,7 +95,7 @@ class FutureHelpersSpec extends WordSpec with Matchers with ScalaFutures with De
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureHelpers.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
 
       var counter = 0
 

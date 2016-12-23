@@ -21,18 +21,16 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
 
-import akka.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
-import play.Logger
 import play.api.Configuration
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplatesProvider, _}
+import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
 
 
 case class Environment(name: String, services: Seq[Link])
@@ -49,7 +47,7 @@ case class RepositoryDetails(name: String,
                              ci: Seq[Link] = Seq.empty,
                              environments: Seq[Environment] = Seq.empty)
 
-case class Repository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType : RepoType.RepoType)
+case class Repository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType)
 
 object Repository {
   implicit val repoDetailsFormat = Json.format[Repository]
@@ -58,7 +56,7 @@ object Repository {
 case class Team(name: String,
                 firstActiveDate: Option[Long] = None,
                 lastActiveDate: Option[Long] = None,
-                firstServiceCreationDate : Option[Long] = None,
+                firstServiceCreationDate: Option[Long] = None,
                 repos: Option[Map[RepoType.Value, Seq[String]]])
 
 object Team {
@@ -91,98 +89,102 @@ object BlockingIOExecutionContext {
 
 
 @Singleton
-class TeamsRepositoriesController @Inject()(dataLoader: MemoryCachedRepositoryDataSource[TeamRepositories],
-                                            cacheConfig: CacheConfig,
+class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadScheduler,
+                                            teamsAndReposPersister: TeamsAndReposPersister,
                                             urlTemplatesProvider: UrlTemplatesProvider,
                                             configuration: Configuration,
-                                            actorSystem: ActorSystem) extends BaseController {
+                                            mongoTeamsAndReposPersister: TeamsAndReposPersister) extends BaseController {
 
-  import TeamRepositoryWrapper._
   import Repository._
+  import TeamRepositoryWrapper._
+
   import scala.collection.JavaConverters._
 
-  val CacheTimestampHeaderName = "X-Cache-Timestamp"
-
+  val TimestampHeaderName = "X-Cache-Timestamp"
 
   val repositoriesToIgnore: List[String] = configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
-
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats = Json.format[Environment]
   implicit val serviceFormats = Json.format[RepositoryDetails]
 
-  actorSystem.scheduler.schedule(cacheConfig.teamsCacheDuration, cacheConfig.teamsCacheDuration) {
-    Logger.info("Scheduled teams repository cache reload triggered")
-    dataLoader.reload()
-  }
 
-
-  def repositoryDetails(name: String) = Action.async { implicit request =>
+  def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.findRepositoryDetails(repoName, urlTemplatesProvider.ciUrlTemplates) match {
-        case None => NotFound
-        case Some(x: RepositoryDetails) => Results.Ok(Json.toJson(x))
-      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      allTeamsAndRepos.findRepositoryDetails(repoName, urlTemplatesProvider.ciUrlTemplates) match {
+        case None =>
+          NotFound
+        case Some(x: RepositoryDetails) =>
+          Ok(Json.toJson(x)).withHeaders(TimestampHeaderName -> format(timestamp))
+      }
     }
   }
 
+
   def services() = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { (cachedTeams: CachedResult[Seq[TeamRepositories]]) =>
-      Ok(determineServicesResponse(request, cachedTeams.data))
-        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      Ok(determineServicesResponse(request, allTeamsAndRepos))
+        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def libraries() = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      Ok(determineLibrariesResponse(request, cachedTeams.data))
-        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      Ok(determineLibrariesResponse(request, allTeamsAndRepos))
+        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
 
-  def allRepositories() = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      Ok(Json.toJson(cachedTeams.data.allRepositories))
-        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+  def allRepositories() = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      Ok(Json.toJson(allTeamsAndRepos.allRepositories))
+        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def teams() = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      Results.Ok(Json.toJson(cachedTeams.data.asTeamList(repositoriesToIgnore)))
-        .withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      Results.Ok(Json.toJson(allTeamsAndRepos.asTeamList(repositoriesToIgnore)))
+        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
-  def repositoriesByTeam(teamName: String) = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.asTeamRepositoryNameList(teamName) match {
+  def repositoriesByTeam(teamName: String) = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+
+      (allTeamsAndRepos.asTeamRepositoryNameList(teamName) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
-      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+      }).withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
 
-  def repositoriesWithDetailsByTeam(teamName: String) = Action.async { implicit request =>
-    dataLoader.getCachedTeamRepoMapping.map { cachedTeams =>
-      (cachedTeams.data.findTeam(teamName, repositoriesToIgnore) match {
+  def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+
+      (allTeamsAndRepos.findTeam(teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x))
-      }).withHeaders(CacheTimestampHeaderName -> format(cachedTeams.time))
+      }).withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def reloadCache() = Action {
-    dataLoader.reload()
+    dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }
 
 
   private def format(dateTime: LocalDateTime): String = {
     DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
+  }
+
+  private def format(dateTime: Option[LocalDateTime]): String = {
+    dateTime.fold("Not Available")(format)
   }
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =

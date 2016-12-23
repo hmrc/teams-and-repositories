@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 
 class CacheConfig @Inject()(configuration: Configuration) {
   val teamsCacheDurationConfigPath = "cache.teams.duration"
-  val defaultTimeout = 1 hour
+  val defaultTimeout = 2 hour
 
   def teamsCacheDuration: FiniteDuration = {
     configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)

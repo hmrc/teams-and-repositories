@@ -16,24 +16,75 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import scala.concurrent.Future
+import com.kenshoo.play.metrics.{Metrics, MetricsImpl}
+import play.api.Play
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
+
+// this is copied from service-deployments project
+trait DefaultMetricsRegistry {
+   private val metrics: Metrics = Play.current.injector.instanceOf[Metrics]
+   val defaultMetricsRegistry = metrics.defaultRegistry
+}
+
+object FutureHelpers extends DefaultMetricsRegistry{
 
 
-object FutureHelpers {
+  def withTimerAndCounter[T](name: String)(f: Future[T]) = {
+    val t = defaultMetricsRegistry.timer(s"$name.timer").time()
+    f.andThen {
+      case Success(_) =>
+        t.stop()
+        defaultMetricsRegistry.counter(s"$name.success").inc()
+      case Failure(_) =>
+        t.stop()
+        defaultMetricsRegistry.counter(s"$name.failure").inc()
+    }
+  }
+
+  implicit class FutureExtender[A](f: Future[A]) {
+    def andAlso(fn: A => Unit): Future[A] = {
+      f.flatMap { r =>
+        fn(r)
+        f
+      }
+    }
+  }
 
   implicit class FutureOfBoolean(f: Future[Boolean]) {
-
-    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (bv) Future.successful(bv)
-      else f1
-    }
-
     def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (!bv) Future.successful(bv)
+      if (!bv) Future.successful(false)
       else f1
     }
   }
 
+  object FutureIterable {
+    def apply[A](listFuture: Iterable[Future[A]]) = Future.sequence(listFuture)
+  }
+
+  implicit class FutureIterable[A](futureList: Future[Iterable[A]]) {
+    def flatMap[B](fn: A => Future[Iterable[B]])(implicit ec: ExecutionContext) = {
+      futureList.flatMap { list =>
+        val listOfFutures = list.map { li =>
+          fn(li)
+        }
+
+        Future.sequence(listOfFutures)
+      }.map(_.flatten)
+    }
+
+    def map[B](fn: A => B)(implicit ec: ExecutionContext): Future[Iterable[B]] = {
+      futureList.map(_.map {
+        fn
+      })
+    }
+
+    def filter[B](fn: A => Boolean)(implicit ec: ExecutionContext): Future[Iterable[A]] =
+      futureList.map(_.filter(fn))
+  }
+
+  def continueOnError[A](f: Future[A]) =
+    f.map(Success(_)).recover { case x => Failure(x) }
 }

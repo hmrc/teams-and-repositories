@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.LocalDateTime
 import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
@@ -25,6 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   val timestamp = new Date().getTime
+  val now = LocalDateTime.now()
 
 
   private val createdDateForDeployable1 = 1
@@ -377,7 +379,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         val result = wrapper.findTeam("teamName", Nil)
 
         result shouldBe Some(Team(name = "teamName", firstActiveDate = Some(1), lastActiveDate = Some(20), firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
-           repos = Some(Map(
+          repos = Some(Map(
             RepoType.Deployable -> List("repo1"),
             RepoType.Library -> List(),
             RepoType.Other -> List())))
