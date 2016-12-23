@@ -38,7 +38,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
   def persistTeamRepoMapping: Future[Seq[TeamRepositories]] = {
 
-    Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
+        Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened: List[TeamRepositories] = results.flatten
 
       Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
@@ -47,7 +47,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       }.toList.map(tr => persister.update(tr)))
     }.flatMap(identity).andThen {
       case Failure(t) => throw t
-      case Success(_) => persister.updateTimestamp(LocalDateTime.now()) //!@ test this
+      case Success(_) => persister.updateTimestamp(LocalDateTime.now())
     }
   }
 
