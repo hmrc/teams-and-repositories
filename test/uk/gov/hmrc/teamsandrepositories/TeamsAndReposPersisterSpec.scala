@@ -19,7 +19,7 @@ class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValue
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .build()
 
   private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]

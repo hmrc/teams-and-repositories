@@ -22,7 +22,7 @@ class DataReloadSchedulerSpec extends PlaySpec with MockitoSugar with Results wi
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .build()
 
   val mockCacheConfig = mock[CacheConfig]
