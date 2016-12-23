@@ -9,19 +9,28 @@ import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.OneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar with LoneElement with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerTest {
+class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar with LoneElement with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerSuite {
 
   private val githubConfig = mock[GithubConfig]
   private val persister = mock[TeamsAndReposPersister]
   private val connector = mock[MongoConnector]
   private val githubClientDecorator = mock[GithubApiClientDecorator]
+
+
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
+      .build()
+
 
   override protected def beforeEach() = {
     reset(githubConfig)
