@@ -8,11 +8,19 @@ import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.Future
 
 class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValues with MockitoSugar with LoneElement with MongoSpecSupport with ScalaFutures with BeforeAndAfterEach with OneAppPerSuite {
+
+
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
+      .build()
 
   private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]
   private val updateTimePersister = mock[MongoUpdateTimePersister]

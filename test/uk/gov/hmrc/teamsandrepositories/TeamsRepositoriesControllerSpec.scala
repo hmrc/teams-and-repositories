@@ -64,16 +64,18 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
 
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder().configure(
-      Map(
-        "github.open.api.host" -> "http://bla.bla",
-        "github.open.api.user" -> "",
-        "github.open.api.key" -> "",
-        "github.enterprise.api.host" -> "http://bla.bla",
-        "github.enterprise.api.user" -> "",
-        "github.enterprise.api.key" -> ""
-      )
-    ).build
+    new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
+      .configure(
+        Map(
+          "github.open.api.host" -> "http://bla.bla",
+          "github.open.api.user" -> "",
+          "github.open.api.key" -> "",
+          "github.enterprise.api.host" -> "http://bla.bla",
+          "github.enterprise.api.user" -> "",
+          "github.enterprise.api.key" -> ""
+        )
+      ).build
 
 
   def controllerWithData(mockedReturnData: Seq[TeamRepositories], listOfReposToIgnore: List[String] = List.empty[String], actorSystem: Option[ActorSystem] = None, updateTimestamp: LocalDateTime): TeamsRepositoriesController = {

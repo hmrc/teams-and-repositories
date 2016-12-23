@@ -20,13 +20,14 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.Configuration
+import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
 
 
 class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {
 
-    def templatesConfig: String =
+
+  def templatesConfig: String =
       """
         |{url-templates : {
         |  ci-closed : [
@@ -58,6 +59,7 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
 
   implicit override lazy val app =
     new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(Configuration(ConfigFactory.parseString(templatesConfig)))
       .configure(
         Map(

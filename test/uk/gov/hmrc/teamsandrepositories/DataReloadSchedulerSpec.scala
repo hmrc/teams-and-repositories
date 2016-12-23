@@ -7,7 +7,9 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.Application
 import play.api.inject.ApplicationLifecycle
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 
@@ -17,6 +19,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 class DataReloadSchedulerSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
+
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
+      .build()
 
   val mockCacheConfig = mock[CacheConfig]
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]

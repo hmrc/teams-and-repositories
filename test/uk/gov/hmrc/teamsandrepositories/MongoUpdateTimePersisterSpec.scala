@@ -22,7 +22,9 @@ with Matchers
   with OneAppPerSuite {
 
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder().configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories")).build()
+    new GuiceApplicationBuilder()
+      .disable(classOf[Module])
+      .configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories")).build()
 
   import scala.concurrent.duration._
   import scala.concurrent.{Await, Future}

@@ -17,7 +17,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement with MongoSpecSupport with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerSuite {
 
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder().configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories")).build()
+    new GuiceApplicationBuilder()
+      .disable(classOf[Module])
+      .configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories")).build()
 
   val mongoTeamsAndReposPersister = app.injector.instanceOf(classOf[MongoTeamsAndRepositoriesPersister])
 
