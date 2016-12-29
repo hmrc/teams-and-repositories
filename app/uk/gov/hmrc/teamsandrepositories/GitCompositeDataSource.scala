@@ -65,7 +65,10 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       mongots <- teamNamesFromMongo
     } yield mongots.filterNot(teamNamesFromGh.toSet)
 
-    orphanTeams.flatMap((teamNames: Set[String]) => persister.deleteTeams(teamNames))
+    orphanTeams.flatMap { (teamNames: Set[String]) =>
+      Logger.info(s"Removing these orphan teams:[${teamNames}]")
+      persister.deleteTeams(teamNames)
+    }
   }
 
 

@@ -47,7 +47,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   def removeDeletedTeams(teamRepositoriesFromGh: Seq[TeamRepositories]) = {
 
     mongoLock.tryLock {
-      Logger.info(s"Starting mongo clean up to remove these deleted teams:[${teamRepositoriesFromGh.map(_.teamName)}]")
+      Logger.info(s"Starting mongo clean up (removing orphan teams)")
       githubCompositeDataSource.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
