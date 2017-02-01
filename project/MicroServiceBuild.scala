@@ -26,7 +26,7 @@ private object AppDependencies {
   private val playConfigVersion = "3.0.0"
   private val domainVersion = "3.3.0"
   private val hmrcTestVersion = "2.0.0"
-  private val githubClientVersion = "1.11.0"
+  private val githubClientVersion = "1.12.0"
   private val playReactivemongoVersion = "5.0.0"
 
   val compile = Seq(
@@ -39,6 +39,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
+    "org.yaml" % "snakeyaml" % "1.17",
     "org.apache.httpcomponents" % "httpcore" % "4.3.2",
     "org.apache.httpcomponents" % "httpclient" % "4.3.5",
     "uk.gov.hmrc" %% "mongo-lock" % "4.0.0",

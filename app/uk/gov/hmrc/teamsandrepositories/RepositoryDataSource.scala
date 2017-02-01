@@ -16,6 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.LocalDateTime
+
+import akka.actor.ActorSystem
+import org.yaml.snakeyaml.Yaml
+import play.Logger
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.Duration
 import play.api.libs.json._
@@ -26,6 +31,7 @@ import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 
 case class GitRepository(name: String,
@@ -90,18 +96,49 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
     }
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[GitRepository] = {
+    for {
+      manifest <- gh.getFileContent("repository.manifest", repo.name, organisation.login)
+      repositoryType <- identifyRepository(repo, organisation, manifest)
+    } yield GitRepository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal, repoType = repositoryType)
+  }
 
-    isDeployable(repo, organisation) flatMap { deployable =>
+  private def identifyRepository(repo: GhRepository, organisation: GhOrganisation, manifest: Option[String]) =
+      getTypeFromManifest(repo.name, manifest) match {
+        case Some(result) => Future.successful(result)
+        case None => getTypeFromGithub(repo, organisation)
+      }
 
-      val repository: GitRepository = GitRepository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal)
+  private def getTypeFromManifest(repoName: String, manifest: Option[String]): Option[RepoType] = {
+    import scala.collection.JavaConverters._
 
-      if (deployable) {
-        Future.successful(repository.copy(repoType = RepoType.Deployable))
-      } else {
-        isLibrary(repo, organisation).map { tags =>
-          if (tags) repository.copy(repoType = RepoType.Library)
-          else repository
+    def parseAppConfigFile(contents: String): Try[Object] = {
+      Try(new Yaml().load(contents))
+    }
+
+    manifest.flatMap { contents =>
+      parseAppConfigFile(contents) match {
+        case Failure(exception) => {
+          Logger.warn(s"repository.manifest for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          None
         }
+        case Success(yamlMap) => {
+          val manifest = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+          manifest.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+            case "service" => Some(RepoType.Deployable)
+            case "library" => Some(RepoType.Library)
+            case _ => None
+          }
+        }
+      }
+    }
+  }
+
+  private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
+    isDeployable(repo, organisation) flatMap { deployable =>
+      if (deployable) Future.successful(RepoType.Deployable)
+      else isLibrary(repo, organisation).map { isLibrary =>
+        if (isLibrary) RepoType.Library
+        else RepoType.Other
       }
     }
   }
