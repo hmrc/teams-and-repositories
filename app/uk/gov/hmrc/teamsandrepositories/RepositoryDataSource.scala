@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
-
-import akka.actor.ActorSystem
 import org.yaml.snakeyaml.Yaml
 import play.Logger
 import com.google.inject.{Inject, Singleton}
@@ -122,8 +119,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
           None
         }
         case Success(yamlMap) => {
-          val manifest = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
-          manifest.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+          config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
             case "service" => Some(RepoType.Deployable)
             case "library" => Some(RepoType.Library)
             case _ => None
