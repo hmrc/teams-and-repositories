@@ -44,7 +44,7 @@ object TeamRepositoryWrapper {
 
       }
 
-    def asServiceRepositoryList: Seq[Repository] = allRepositories.filter(_.repoType == RepoType.Deployable)
+    def asServiceRepositoryList: Seq[Repository] = allRepositories.filter(_.repoType == RepoType.Service)
 
     def asLibraryRepositoryList: Seq[Repository] = allRepositories.filter(_.repoType == RepoType.Library)
 
@@ -80,7 +80,7 @@ object TeamRepositoryWrapper {
     }
 
     private def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
-      if (repositories.exists(_.repoType == RepoType.Deployable)) RepoType.Deployable
+      if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
       else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
       else RepoType.Other
     }
@@ -141,7 +141,7 @@ object TeamRepositoryWrapper {
 
       if (nonIgnoredRepos.nonEmpty) {
         val (firstActive, lastActive) = getRepoMinMaxActivityDates(nonIgnoredRepos)
-        val services: Seq[GitRepository] = nonIgnoredRepos.filter(_.repoType == RepoType.Deployable)
+        val services: Seq[GitRepository] = nonIgnoredRepos.filter(_.repoType == RepoType.Service)
 
         val firstServiceCreationDate = if (services.nonEmpty) Some(getRepoMinMaxActivityDates(services)._1) else None
 
@@ -220,7 +220,7 @@ object TeamRepositoryWrapper {
 
   private def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
 
-  private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Deployable
+  private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Service
 
   private def hasBuild(repo: GitRepository): Boolean = repo.repoType == RepoType.Library
 
@@ -244,12 +244,12 @@ object TeamRepositoryWrapper {
     repositories
       .groupBy(_.name)
       .filter {
-        case (name, repos) if repoType == RepoType.Deployable =>
-          repos.exists(x => x.repoType == RepoType.Deployable)
+        case (name, repos) if repoType == RepoType.Service =>
+          repos.exists(x => x.repoType == RepoType.Service)
         case (name, repos) if repoType == RepoType.Library =>
-          !repos.exists(x => x.repoType == RepoType.Deployable) && repos.exists(x => x.repoType == RepoType.Library)
+          !repos.exists(x => x.repoType == RepoType.Service) && repos.exists(x => x.repoType == RepoType.Library)
         case (name, repos) =>
-          !repos.exists(x => x.repoType == RepoType.Deployable) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
+          !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
       }
       .flatMap(_._2).toList
   }

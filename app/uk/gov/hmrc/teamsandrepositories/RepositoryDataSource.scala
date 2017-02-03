@@ -80,7 +80,6 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
       }
     }
 
-
   private def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] =
     exponentialRetry(retries, initialDuration) {
       gh.getReposForTeam(team.id).flatMap { repos =>
@@ -121,7 +120,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         case Success(yamlMap) => {
           val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
           config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-            case "service" => Some(RepoType.Deployable)
+            case "service" => Some(RepoType.Service)
             case "library" => Some(RepoType.Library)
             case _ => None
           }
@@ -132,15 +131,15 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
     isDeployable(repo, organisation) flatMap { deployable =>
-      if (deployable) Future.successful(RepoType.Deployable)
-      else isLibrary(repo, organisation).map { isLibrary =>
-        if (isLibrary) RepoType.Library
+      if (deployable) Future.successful(RepoType.Service)
+      else isReleasable(repo, organisation).map { releasable =>
+        if (releasable) RepoType.Library
         else RepoType.Other
       }
     }
   }
 
-  private def isLibrary(repo: GhRepository, organisation: GhOrganisation) = {
+  private def isReleasable(repo: GhRepository, organisation: GhOrganisation) = {
     import uk.gov.hmrc.teamsandrepositories.FutureExtras._
 
     def hasSrcMainScala =

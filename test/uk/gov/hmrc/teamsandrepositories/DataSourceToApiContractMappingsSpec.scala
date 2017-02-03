@@ -65,9 +65,9 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         now,
         now,
         isInternal = true,
-        repoType = RepoType.Deployable))
+        repoType = RepoType.Service))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-frontend"))
       service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
@@ -111,9 +111,9 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "a-frontend",
         "Some Description",
         "https://github.com/org/a-frontend", now, now,
-        repoType = RepoType.Deployable))
+        repoType = RepoType.Service))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repo, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
 
 
       service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
@@ -126,12 +126,12 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "a-frontend",
         "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
-        repoType = RepoType.Deployable)
+        repoType = RepoType.Service)
 
 
       val repos = Seq(aFrontend)
 
-      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.environments.size shouldBe 2
 
@@ -163,16 +163,16 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "Some Description",
         "https://not-open-github/org/a-frontend", now, now,
         isInternal = true,
-        repoType = RepoType.Deployable)
+        repoType = RepoType.Service)
 
       val openRepo = GitRepository(
         "a-frontend",
         "Some Description",
         "https://github.com/org/a-frontend", now, now,
-        repoType = RepoType.Deployable)
+        repoType = RepoType.Service)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repoGroupToRepositoryDetails(RepoType.Deployable, repos, Seq("teamName"), urlTemplates)
+      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe Seq(
         enterpriseGithubLink("https://not-open-github/org/a-frontend"),

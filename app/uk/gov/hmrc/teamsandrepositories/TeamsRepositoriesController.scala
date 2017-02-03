@@ -189,7 +189,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(data.asRepositoryDetailsList(RepoType.Deployable, urlTemplatesProvider.ciUrlTemplates))
+      Json.toJson(data.asRepositoryDetailsList(RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
       Json.toJson(data.asRepositoryToTeamNameList())
     else Json.toJson(data.asServiceRepositoryList)

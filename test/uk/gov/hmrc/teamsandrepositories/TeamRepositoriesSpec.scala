@@ -30,15 +30,15 @@ class TeamRepositoriesSpec extends WordSpec with Matchers {
     "get repositories by type" in {
 
       val teamRepos = TeamRepositories("A", List(
-        GitRepository("r1", "some desc", "url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
+        GitRepository("r1", "some desc", "url", repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = timestamp),
         GitRepository("r2", "some desc", "url", repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
-        GitRepository("r3", "some desc", "url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
+        GitRepository("r3", "some desc", "url", repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = timestamp),
         GitRepository("r4", "some desc", "url", createdDate = timestamp, lastActiveDate = timestamp)
       ))
 
-      teamRepos.repositoriesByType(RepoType.Deployable) shouldBe List(
-        GitRepository("r1", "some desc", "url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp),
-        GitRepository("r3", "some desc", "url", repoType = RepoType.Deployable, createdDate = timestamp, lastActiveDate = timestamp)
+      teamRepos.repositoriesByType(RepoType.Service) shouldBe List(
+        GitRepository("r1", "some desc", "url", repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = timestamp),
+        GitRepository("r3", "some desc", "url", repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = timestamp)
       )
 
 
