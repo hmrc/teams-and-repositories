@@ -93,7 +93,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
 
   private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[GitRepository] = {
     for {
-      manifest <- gh.getFileContent("repository.manifest", repo.name, organisation.login)
+      manifest <- gh.getFileContent("repository.yaml", repo.name, organisation.login)
       repositoryType <- identifyRepository(repo, organisation, manifest)
     } yield GitRepository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal, repoType = repositoryType)
   }
@@ -114,7 +114,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
     manifest.flatMap { contents =>
       parseAppConfigFile(contents) match {
         case Failure(exception) => {
-          Logger.warn(s"repository.manifest for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         }
         case Success(yamlMap) => {

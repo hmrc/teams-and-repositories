@@ -158,46 +158,46 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service))))
     }
 
-    "Set type as Deployable according if the repository.manifest contains a type of 'service'" in new Setup {
+    "Set type as Deployable according if the repository.yaml contains a type of 'service'" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
 
-      when(githubClient.getFileContent(same("repository.manifest"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
+      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
 
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service))))
     }
 
-    "Set type as Library according if the repository.manifest contains a type of 'library'" in new Setup {
+    "Set type as Library according if the repository.yaml contains a type of 'library'" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
 
-      when(githubClient.getFileContent(same("repository.manifest"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
+      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
 
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library))))
     }
 
-    "Set type as Other if the repository.manifest contains any other value for type" in new Setup {
+    "Set type as Other if the repository.yaml contains any other value for type" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
 
-      when(githubClient.getFileContent(same("repository.manifest"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
+      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
 
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
     }
 
-    "Set type as Other if the repository.manifest does not contain a type" in new Setup {
+    "Set type as Other if the repository.yaml does not contain a type" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
 
-      when(githubClient.getFileContent(same("repository.manifest"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
+      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
 
       dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other))))
     }
@@ -228,7 +228,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library))))
     }
 
-    "Set type Other if not Service and Library and no manifest file" in new Setup {
+    "Set type Other if not Service and Library and no repository.yaml file" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
