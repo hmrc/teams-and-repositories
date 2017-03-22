@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 
 class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
@@ -88,7 +89,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(new UrlTemplates(
       Seq(new UrlTemplate("closed", "closed", "$name")),
       Seq(new UrlTemplate("open", "open", "$name")),
-      Map(
+      ListMap(
         "env1" -> Seq(
           new UrlTemplate("log1", "log 1", "$name"),
           new UrlTemplate("mon1", "mon 1", "$name")),

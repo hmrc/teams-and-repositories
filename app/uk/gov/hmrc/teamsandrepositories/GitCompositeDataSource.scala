@@ -62,8 +62,8 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     val teamNamesFromGh = teamRepositoriesFromGh.map(_.teamName)
 
     val orphanTeams: Future[Set[String]] = for {
-      mongots <- teamNamesFromMongo
-    } yield mongots.filterNot(teamNamesFromGh.toSet)
+      mongoTeams <- teamNamesFromMongo
+    } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
 
     orphanTeams.flatMap { (teamNames: Set[String]) =>
       Logger.info(s"Removing these orphan teams:[${teamNames}]")

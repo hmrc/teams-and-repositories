@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
 import java.util.Date
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
+
+import scala.collection.immutable.ListMap
 
 class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with OptionValues {
 
@@ -41,7 +40,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
       displayName = "closed 1",
       template = "http://closed/$name"
     )),
-    environments = Map(
+    environments = ListMap(
       "env1" -> Seq(
         new UrlTemplate("log1", "log 1", "$name"),
         new UrlTemplate("mon1", "mon 1", "$name")),

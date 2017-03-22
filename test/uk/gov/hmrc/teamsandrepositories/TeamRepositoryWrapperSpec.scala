@@ -23,6 +23,8 @@ import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
+import scala.collection.immutable.ListMap
+
 class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
   val timestamp = new Date().getTime
@@ -234,7 +236,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           )
         )
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         result.get.name shouldBe "repo1"
         result.get.repoType shouldBe RepoType.Service
@@ -256,7 +258,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           )
         )
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         val repositoryDetails: RepositoryDetails = result.get
         repositoryDetails.name shouldBe "repo1"
@@ -281,7 +283,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           TeamRepositories("teamNameOther1", List(GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         result.get.name shouldBe "repo1"
         result.get.repoType shouldBe RepoType.Library
@@ -300,7 +302,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         )
 
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), Map()))
+        val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
         result shouldBe None
       }
 
