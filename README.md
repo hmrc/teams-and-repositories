@@ -8,4 +8,5 @@ For developers:
   This will get the data from github and persists it all into your local mongo instance configured via the mongodb.uri config key (ie. application.conf) 
 
  N.B Please make sure mongod is running for the above to work
+ 
 
