@@ -22,7 +22,7 @@ object RepoType extends Enumeration {
 
   type RepoType = Value
 
-  val Service, Library, Other = Value
+  val Service, Library, Prototype, Other = Value
 
   implicit val repoType = new Format[RepoType] {
     override def reads(json: JsValue): JsResult[RepoType] = json match {

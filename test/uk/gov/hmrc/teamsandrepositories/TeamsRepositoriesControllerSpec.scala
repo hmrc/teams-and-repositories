@@ -115,6 +115,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         GitRepository("another-repo", "some description", "another-url", repoType = RepoType.Service, createdDate = createdDateForService2, lastActiveDate = lastActiveDateForService2),
         GitRepository("middle-repo", "some description", "middle-url", repoType = RepoType.Service, createdDate = createdDateForService3, lastActiveDate = lastActiveDateForService3),
         GitRepository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2),
+        GitRepository("CATO-prototype", "some description", "prototype-url", repoType = RepoType.Prototype, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2),
         GitRepository("other-repo", "some description", "library-url", repoType = RepoType.Other, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2)
       ))
     )
@@ -177,10 +178,10 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       val timestampHeader = header("x-cache-timestamp", result)
       val data = contentAsJson(result).as[Map[String, List[String]]]
 
-      data.size mustBe 3
       data mustBe Map(
         "Service" -> List("another-repo", "middle-repo"),
         "Library" -> List("alibrary-repo"),
+        "Prototype" -> List("CATO-prototype"),
         "Other" -> List("other-repo")
       )
     }
@@ -199,6 +200,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         .as[Map[String, List[String]]] mustBe Map(
         "Service" -> List("repo-name"),
         "Library" -> List(),
+        "Prototype" -> List(),
         "Other" -> List())
     }
 
@@ -217,6 +219,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         .as[Map[String, List[String]]] mustBe Map(
         "Service" -> List("aadvark-repo", "repo-name"),
         "Library" -> List(),
+        "Prototype" -> List(),
         "Other" -> List()
       )
     }
@@ -239,10 +242,10 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       val timestampHeader = header("x-cache-timestamp", result)
       val data = contentAsJson(result).as[Team]
 
-      data.repos.value.size mustBe 3
       data.repos.value mustBe Map(
         RepoType.Service -> List("another-repo", "middle-repo"),
         RepoType.Library -> List("alibrary-repo"),
+        RepoType.Prototype -> List("CATO-prototype"),
         RepoType.Other -> List("other-repo")
       )
     }
@@ -261,6 +264,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         .as[Team].repos.value mustBe Map(
         RepoType.Service -> List("repo-name"),
         RepoType.Library -> List(),
+        RepoType.Prototype -> List(),
         RepoType.Other -> List())
     }
 
@@ -278,6 +282,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         .as[Team].repos.value mustBe Map(
         RepoType.Service -> List("aadvark-repo", "repo-name"),
         RepoType.Library -> List(),
+        RepoType.Prototype -> List(),
         RepoType.Other -> List()
       )
     }
@@ -400,6 +405,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
         "another-repo" -> Seq("another-team"),
         "middle-repo" -> Seq("another-team"),
         "alibrary-repo" -> Seq("another-team"),
+        "CATO-prototype" -> Seq("another-team"),
         "other-repo" -> List("another-team")
       )
     }
@@ -506,8 +512,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       jsonData mustBe Map(
         "Service" -> List(),
         "Library" -> List(),
+        "Prototype" -> List(),
         "Other" -> List()
-
       )
 
     }
@@ -592,7 +598,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       val result = controller.allRepositories()(FakeRequest())
       val resultJson = contentAsJson(result)
       val repositories = resultJson.as[Seq[Repository]]
-      repositories.map(_.name) mustBe List("alibrary-repo", "another-repo", "library-repo", "middle-repo", "other-repo", "repo-name")
+      repositories.map(_.name) mustBe List("alibrary-repo", "another-repo", "CATO-prototype", "library-repo", "middle-repo", "other-repo", "repo-name")
     }
 
   }

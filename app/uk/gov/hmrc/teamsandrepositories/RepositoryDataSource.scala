@@ -130,16 +130,22 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
-    isDeployable(repo, organisation) flatMap { deployable =>
-      if (deployable) Future.successful(RepoType.Service)
-      else isReleasable(repo, organisation).map { releasable =>
-        if (releasable) RepoType.Library
-        else RepoType.Other
-      }
+    lazy val isDeployableValue: Future[Boolean] = isDeployable(repo, organisation)
+    lazy val isReleasableValue: Future[Boolean] = isReleasable(repo, organisation)
+    lazy val isPrototypeValue: Future[Boolean] = isPrototype(repo)
+
+    Future.sequence(List(isPrototypeValue, isDeployableValue, isReleasableValue)).map {
+      case true :: _ => RepoType.Prototype
+      case false :: true :: _ => RepoType.Service
+      case false :: false :: true :: _ => RepoType.Library
+      case _ => RepoType.Other
     }
   }
 
-  private def isReleasable(repo: GhRepository, organisation: GhOrganisation) = {
+  private def isPrototype(repo: GhRepository): Future[Boolean] =
+    Future.successful {repo.name.endsWith("-prototype")}
+
+  private def isReleasable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.FutureExtras._
 
     def hasSrcMainScala =
@@ -154,7 +160,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
     (hasSrcMainScala || hasSrcMainJava) && containsTags
   }
 
-  private def isDeployable(repo: GhRepository, organisation: GhOrganisation) = {
+  private def isDeployable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.FutureExtras._
 
     def isPlayServiceF =

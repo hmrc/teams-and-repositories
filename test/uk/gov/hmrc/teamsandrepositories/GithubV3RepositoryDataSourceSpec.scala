@@ -228,7 +228,17 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library))))
     }
 
-    "Set type Other if not Service and Library and no repository.yaml file" in new Setup {
+    "Set type Prototype if the repository name ends in '-prototype'" in new Setup {
+
+      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
+      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now))))
+
+      val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
+      repositories should contain(TeamRepositories("A", List(GitRepository("CATO-prototype", "some description", "url_A", now, now, repoType = RepoType.Prototype))))
+    }
+
+    "Set type Other if not Service, Library nor Prototype and no repository.yaml file" in new Setup {
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))

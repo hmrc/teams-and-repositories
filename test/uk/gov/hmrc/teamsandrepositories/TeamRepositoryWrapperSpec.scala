@@ -325,7 +325,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
         val result = wrapper.asTeamRepositoryNameList("teamName")
 
-        result shouldBe Some(Map(RepoType.Service -> List("repo1", "repo2"), RepoType.Library -> List("repo3"), RepoType.Other -> List()))
+        result shouldBe Some(Map(RepoType.Service -> List("repo1", "repo2"), RepoType.Library -> List("repo3"), RepoType.Prototype -> List(), RepoType.Other -> List()))
       }
 
 
@@ -384,6 +384,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           repos = Some(Map(
             RepoType.Service -> List("repo1"),
             RepoType.Library -> List(),
+            RepoType.Prototype -> List(),
             RepoType.Other -> List())))
         )
       }
@@ -403,6 +404,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             Some(Map(
               RepoType.Service -> List("repo1"),
               RepoType.Library -> List("repo1"),
+              RepoType.Prototype -> List(),
               RepoType.Other -> List("repo1")
             ))
           )
@@ -424,6 +426,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             Some(Map(
               RepoType.Service -> List("repo1"),
               RepoType.Library -> List("repo1"),
+              RepoType.Prototype -> List(),
               RepoType.Other -> List("repo1", "sharedRepo1")
             ))
           )
@@ -446,6 +449,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             Some(Map(
               RepoType.Service -> List("repo1"),
               RepoType.Library -> List("repo1"),
+              RepoType.Prototype -> List(),
               RepoType.Other -> List("repo1", "sharedRepo1")
             ))
           )
