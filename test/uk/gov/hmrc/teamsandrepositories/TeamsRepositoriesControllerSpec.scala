@@ -250,7 +250,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       )
     }
 
-    "Return information about all the teams that have access to a repo" in {
+    "Return the repository information for the specified team" in {
       val sourceData =
         Seq(
           TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))),
