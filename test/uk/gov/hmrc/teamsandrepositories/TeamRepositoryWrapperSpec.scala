@@ -468,7 +468,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
 
     "allRepositories" should {
-      "all repositories" in {
+      "discard duplicate repositories according to the repository type configured hierarchy" in {
 
         val teams = Seq(
           TeamRepositories("team1", List(
@@ -482,7 +482,8 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp))),
           TeamRepositories("team3", List(
             GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
-            GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp))))
+            GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp),
+            GitRepository("repo5-prototype", "Some description", "", isInternal = true, repoType = RepoType.Prototype, createdDate = timestamp, lastActiveDate = timestamp))))
 
         val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
         val result = wrapper.allRepositories
@@ -491,7 +492,8 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           Repository(name = "repo1", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Service),
           Repository(name = "repo2", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Library),
           Repository(name = "repo3", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Library),
-          Repository(name = "repo4", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Other)
+          Repository(name = "repo4", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Other),
+          Repository(name = "repo5-prototype", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Prototype)
         )
 
       }

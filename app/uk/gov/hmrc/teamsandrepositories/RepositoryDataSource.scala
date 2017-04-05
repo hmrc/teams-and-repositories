@@ -130,15 +130,18 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
-    lazy val isDeployableValue: Future[Boolean] = isDeployable(repo, organisation)
-    lazy val isReleasableValue: Future[Boolean] = isReleasable(repo, organisation)
-    lazy val isPrototypeValue: Future[Boolean] = isPrototype(repo)
-
-    Future.sequence(List(isPrototypeValue, isDeployableValue, isReleasableValue)).map {
-      case true :: _ => RepoType.Prototype
-      case false :: true :: _ => RepoType.Service
-      case false :: false :: true :: _ => RepoType.Library
-      case _ => RepoType.Other
+    isPrototype(repo) flatMap { prototype =>
+      if (prototype) {
+        Future.successful(RepoType.Prototype)
+      } else {
+        isDeployable(repo, organisation) flatMap { deployable =>
+          if (deployable) Future.successful(RepoType.Service)
+          else isReleasable(repo, organisation).map { releasable =>
+            if (releasable) RepoType.Library
+            else RepoType.Other
+          }
+        }
+      }
     }
   }
 

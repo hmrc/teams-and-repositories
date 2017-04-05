@@ -80,7 +80,8 @@ object TeamRepositoryWrapper {
     }
 
     private def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
-      if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
+      if (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
+      else if(repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
       else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
       else RepoType.Other
     }
