@@ -113,7 +113,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     val repoName = URLDecoder.decode(name, "UTF-8")
 
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
+      TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
         case None =>
           NotFound
         case Some(x: RepositoryDetails) =>
@@ -140,14 +140,14 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
   def allRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      Ok(Json.toJson(getAllRepositories(allTeamsAndRepos)))
+      Ok(Json.toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
         .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def teams() = Action.async { implicit request =>
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      Results.Ok(Json.toJson(getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
+      Results.Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
         .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
@@ -155,7 +155,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def repositoriesByTeam(teamName: String) = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
 
-      (getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
+      (TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
       }).withHeaders(TimestampHeaderName -> format(timestamp))
@@ -166,7 +166,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
 
-      (findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
+      (TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Results.Ok(Json.toJson(x))
       }).withHeaders(TimestampHeaderName -> format(timestamp))
@@ -189,16 +189,16 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
+      Json.toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
-      Json.toJson(getRepositoryToTeamNameList(data))
-    else Json.toJson(getAllRepositories(data).filter(_.repoType == RepoType.Service))
+      Json.toJson(TeamRepositories.getRepositoryToTeamNameList(data))
+    else Json.toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Service))
 
   private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) = {
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(getRepositoryDetailsList(data, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
+      Json.toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
     else
-      Json.toJson(getAllRepositories(data).filter(_.repoType == RepoType.Library))
+      Json.toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Library))
   }
 
 

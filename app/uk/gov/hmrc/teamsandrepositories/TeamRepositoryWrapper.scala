@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
-import java.time.LocalDateTime
 
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
@@ -25,144 +24,19 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 object TeamRepositoryWrapper {
 
-  private case class TeamActivityDates(firstActiveDate: Option[Long] = None,
+  case class TeamActivityDates(firstActiveDate: Option[Long] = None,
                                        lastActiveDate: Option[Long] = None,
                                        firstServiceCreationDate: Option[Long] = None)
 
-  private case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
+  case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
 
-  def getTeamList(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =
-    teamRepos.map(_.teamName).map { tn =>
-      val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
-      val team = Team(name = tn, repos = None)
-      if (repos.nonEmpty) {
-        val teamActivityDates = getTeamActivityDatesOfNonSharedRepos(repos, repositoriesToIgnore)
-        team.copy(firstActiveDate = teamActivityDates.firstActiveDate, lastActiveDate = teamActivityDates.lastActiveDate)
-      } else team
+  case class RepositoryToTeam(repositoryName: String, teamName: String)
 
-    }
-
-  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
-    teamRepos
-      .flatMap(_.repositories)
-      .groupBy(_.name)
-      .map {
-        case (repositoryName, repositories) =>
-          Repository(
-            repositoryName,
-            repositories.minBy(_.createdDate).createdDate,
-            repositories.maxBy(_.lastActiveDate).lastActiveDate,
-            primaryRepoType(repositories))
-      }
-      .toList
-      .sortBy(_.name.toUpperCase)
-
-  def findRepositoryDetails(teamRepos: Seq[TeamRepositories], repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
-    teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
-      if (tr.repositories.exists(_.name == repoName))
-        (ts + tr.teamName, repos ++ tr.repositories.filter(_.name == repoName))
-      else (ts, repos)
-    } match {
-      case (teams, repos) if repos.nonEmpty =>
-        repoGroupToRepositoryDetails(primaryRepoType(repos.toSeq), repos.toSeq, teams.toSeq.sorted, ciUrlTemplates)
-      case _ => None
-    }
-  }
-
-  def getRepositoryDetailsList(teamRepos: Seq[TeamRepositories], repoType: RepoType, ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
-    getRepositoryTeams(teamRepos)
-      .groupBy(_.repositories)
-      .flatMap { case (repositories, teamsAndRepos: Seq[RepositoriesToTeam]) => repoGroupToRepositoryDetails(repoType, repositories, teamsAndRepos.map(_.teamName), ciUrlTemplates) }
-      .toSeq
-      .sortBy(_.name.toUpperCase)
-  }
-
-  private def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
-    if (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
-    else if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
-    else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
-    else RepoType.Other
-  }
-
-
-  def getTeamRepositoryNameList(teamRepos: Seq[TeamRepositories], teamName: String): Option[Map[RepoType.RepoType, List[String]]] = {
-    val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
-    teamRepos.find(_.teamName == decodedTeamName).map { t =>
-
-      RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, rtype) =>
-        m + (rtype -> extractRepositoryGroupForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
-      }
-
-    }
-  }
-
-  def findTeam(teamRepos: Seq[TeamRepositories], teamName: String, repositoriesToIgnore: List[String]): Option[Team] = {
-
-    teamRepos
-      .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
-      .map { teamRepositories =>
-
-        val teamActivityDates = getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)
-
-        def getRepositoryDisplayDetails(repoType: RepoType.Value): List[String] = {
-          teamRepositories.repositories
-            .filter(_.repoType == repoType)
-            .map(_.name)
-            .distinct
-            .sortBy(_.toUpperCase)
-        }
-
-        val repos = RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, repoType) =>
-          m + (repoType -> getRepositoryDisplayDetails(repoType))
-        }
-
-        Team(teamName, teamActivityDates.firstActiveDate, teamActivityDates.lastActiveDate, teamActivityDates.firstServiceCreationDate, Some(repos))
-      }
-
-  }
-
-  private case class RepositoryToTeam(repositoryName: String, teamName: String)
-
-  def getRepositoryToTeamNameList(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
-    val mappings = for {
-      tr <- teamRepos
-      r <- tr.repositories
-    } yield RepositoryToTeam(r.name, tr.teamName)
-
-    mappings.groupBy(_.repositoryName)
-      .map { m => m._1 -> m._2.map(_.teamName).distinct }
-  }
-
-
-  private def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]): TeamActivityDates = {
-
-    val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
-
-    if (nonIgnoredRepos.nonEmpty) {
-      val firstServiceCreationDate =
-        if (nonIgnoredRepos.exists(_.repoType == RepoType.Service))
-          Some(getCreatedAtDate(nonIgnoredRepos.filter(_.repoType == RepoType.Service)))
-        else
-          None
-
-      TeamActivityDates(Some(getCreatedAtDate(nonIgnoredRepos)), Some(getLastActiveDate(nonIgnoredRepos)), firstServiceCreationDate)
-    }
-    else {
-      TeamActivityDates()
-    }
-  }
-
-  private def getCreatedAtDate(repos: Seq[GitRepository]) =
+  def getCreatedAtDate(repos: Seq[GitRepository]) =
     repos.minBy(_.createdDate).createdDate
 
-  private def getLastActiveDate(repos: Seq[GitRepository]) =
+  def getLastActiveDate(repos: Seq[GitRepository]) =
     repos.maxBy(_.lastActiveDate).lastActiveDate
-
-  private def getRepositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
-    for {
-      teamAndRepositories <- data
-      repositories <- teamAndRepositories.repositories.groupBy(_.name).values
-    } yield RepositoriesToTeam(repositories, teamAndRepositories.teamName)
 
   def repoGroupToRepositoryDetails(repoType: RepoType,
                                    repositories: Seq[GitRepository],
