@@ -8,10 +8,7 @@ import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 
-case class TeamRepositories(teamName: String,
-                            repositories: List[GitRepository]) {
-  def repositoriesByType(repoType: RepoType.RepoType) = repositories.filter(_.repoType == repoType)
-}
+case class TeamRepositories(teamName: String,repositories: List[GitRepository])
 
 object TeamRepositories {
   implicit val localDateTimeRead: Reads[LocalDateTime] =
@@ -21,7 +18,8 @@ object TeamRepositories {
     def writes(dateTime: LocalDateTime): JsValue = JsNumber(value = dateTime.atOffset(ZoneOffset.UTC).toEpochSecond)
   }
 
-  implicit val formats = Json.format[TeamRepositories]
+  implicit val formats: OFormat[TeamRepositories] =
+    Json.format[TeamRepositories]
 
   case class RepositoryToTeam(repositoryName: String, teamName: String)
 
