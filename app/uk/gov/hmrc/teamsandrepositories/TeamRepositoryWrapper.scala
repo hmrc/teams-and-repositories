@@ -52,12 +52,16 @@ object TeamRepositoryWrapper {
       teamRepos
         .flatMap(_.repositories)
         .groupBy(_.name)
-        .foldLeft(Seq.empty[Repository]) {
-          case (rs, (repoNam, repos)) =>
-            val repoType = primaryRepoType(repos)
-            val (createAt, lastActive) = getRepoMinMaxActivityDates(repos)
-            Repository(repoNam, createAt, lastActive, repoType) +: rs
-        }.sortBy(_.name.toUpperCase)
+        .map {
+          case (repositoryName, repositories) =>
+            Repository(
+              repositoryName,
+              repositories.minBy(_.createdDate).createdDate,
+              repositories.maxBy(_.lastActiveDate).lastActiveDate,
+              primaryRepoType(repositories))
+        }
+        .toList
+        .sortBy(_.name.toUpperCase)
 
     def findRepositoryDetails(repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
       teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
@@ -141,28 +145,24 @@ object TeamRepositoryWrapper {
       val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
 
       if (nonIgnoredRepos.nonEmpty) {
-        val (firstActive, lastActive) = getRepoMinMaxActivityDates(nonIgnoredRepos)
-        val services: Seq[GitRepository] = nonIgnoredRepos.filter(_.repoType == RepoType.Service)
+        val firstServiceCreationDate =
+          if (nonIgnoredRepos.exists(_.repoType == RepoType.Service))
+            Some(getCreatedAtDate(nonIgnoredRepos.filter(_.repoType == RepoType.Service)))
+          else
+            None
 
-        val firstServiceCreationDate = if (services.nonEmpty) Some(getRepoMinMaxActivityDates(services)._1) else None
-
-
-        TeamActivityDates(Some(firstActive), Some(lastActive), firstServiceCreationDate)
+        TeamActivityDates(Some(getCreatedAtDate(nonIgnoredRepos)), Some(getLastActiveDate(nonIgnoredRepos)), firstServiceCreationDate)
       }
       else {
         TeamActivityDates()
       }
-
     }
 
-    private def getRepoMinMaxActivityDates(repos: Seq[GitRepository]) = {
+    private def getCreatedAtDate(repos: Seq[GitRepository]) =
+      repos.minBy(_.createdDate).createdDate
 
-      val maxLastUpdatedAt = repos.maxBy(_.lastActiveDate).lastActiveDate
-      val minCreatedAt = repos.minBy(_.createdDate).createdDate
-
-      (minCreatedAt, maxLastUpdatedAt)
-
-    }
+    private def getLastActiveDate(repos: Seq[GitRepository]) =
+      repos.maxBy(_.lastActiveDate).lastActiveDate
 
     private def repositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
       for {
