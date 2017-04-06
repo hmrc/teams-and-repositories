@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.util.Date
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamRepositoryWrapper
+import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 import scala.collection.immutable.ListMap
@@ -61,8 +61,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         TeamRepositories("teamNameNotActive", List())
       )
 
-      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[Team] = wrapper.asTeamList(Nil)
+      val result: Seq[Team] = getTeamList(teams, Nil)
 
       result(0).name shouldBe "teamNameChicken"
       result(0).firstActiveDate.get shouldBe oldestLibraryRepo.createdDate
@@ -92,8 +91,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         TeamRepositories("teamNameNotActive", List())
       )
 
-      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[Team] = wrapper.asTeamList(List("ignoreRepo"))
+      val result: Seq[Team] = getTeamList(teams, List("ignoreRepo"))
 
       result(0).name shouldBe "teamNameChicken"
       result(0).firstActiveDate.get shouldBe oldLibraryRepo.createdDate
@@ -128,8 +126,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         )
       )
 
-      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[Repository] = wrapper.asServiceRepositoryList
+      val result: Seq[Repository] = getAllRepositories(teams).filter(_.repoType == RepoType.Service)
 
       result.map(_.name) shouldBe List("repo1", "repo2")
       result.map(_.createdAt) shouldBe List(timestamp, timestamp)
@@ -150,8 +147,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
         TeamRepositories("teamNameOther", List(newestOtherRepo))
       )
 
-      val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-      val result: Seq[Repository] = wrapper.asServiceRepositoryList
+      val result: Seq[Repository] = getAllRepositories(teams).filter(_.repoType == RepoType.Service)
 
       result.map(_.name) shouldBe List("repo1")
       result.map(_.createdAt) shouldBe List(1)
@@ -173,8 +169,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           ),
           TeamRepositories("teamNameOther", List(GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Seq[Repository] = wrapper.asLibraryRepositoryList
+        val result: Seq[Repository] = getAllRepositories(teams).filter(_.repoType == RepoType.Library)
 
         result.map(_.name) shouldBe List("repo3", "repo4")
 
@@ -189,8 +184,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           )
           )
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Seq[Repository] = wrapper.asLibraryRepositoryList
+        val result: Seq[Repository] = getAllRepositories(teams).filter(_.repoType == RepoType.Library)
 
         result.map(_.name) shouldBe List("repo1")
         result.map(_.createdAt) shouldBe List(createdDateForLib1)
@@ -209,8 +203,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           ),
           TeamRepositories("teamNameOther", List(GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Seq[Repository] = wrapper.asLibraryRepositoryList
+        val result: Seq[Repository] = getAllRepositories(teams).filter(_.repoType == RepoType.Library)
 
         result.map(_.name) shouldBe List("repo1", "repo3", "repo4")
         result.map(_.createdAt) shouldBe List(timestamp, timestamp, timestamp)
@@ -235,8 +228,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             GitRepository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp))
           )
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
+        val result: Option[RepositoryDetails] = findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         result.get.name shouldBe "repo1"
         result.get.repoType shouldBe RepoType.Service
@@ -257,8 +249,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             GitRepository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = 3, lastActiveDate = 30))
           )
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
+        val result: Option[RepositoryDetails] = findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         val repositoryDetails: RepositoryDetails = result.get
         repositoryDetails.name shouldBe "repo1"
@@ -282,8 +273,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           ),
           TeamRepositories("teamNameOther1", List(GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result: Option[RepositoryDetails] = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
+        val result: Option[RepositoryDetails] = findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
         result.get.name shouldBe "repo1"
         result.get.repoType shouldBe RepoType.Library
@@ -301,8 +291,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp)))
         )
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findRepositoryDetails("repo1", UrlTemplates(Seq(), Seq(), ListMap()))
+        val result = findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
         result shouldBe None
       }
 
@@ -322,8 +311,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           ),
           TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.asTeamRepositoryNameList("teamName")
+        val result = getTeamRepositoryNameList(teams, "teamName")
 
         result shouldBe Some(Map(RepoType.Service -> List("repo1", "repo2"), RepoType.Library -> List("repo3"), RepoType.Prototype -> List(), RepoType.Other -> List()))
       }
@@ -349,8 +337,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp),
             GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp))))
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.asRepositoryToTeamNameList()
+        val result = getRepositoryToTeamNameList(teams)
 
         result should contain("repo1" -> Seq("team1"))
         result should contain("repo2" -> Seq("team1", "team2"))
@@ -377,8 +364,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
 
       "get the max last active and min created at for repositories with the same name" in {
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findTeam("teamName", Nil)
+        val result = findTeam(teams, "teamName", Nil)
 
         result shouldBe Some(Team(name = "teamName", firstActiveDate = Some(1), lastActiveDate = Some(20), firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
           repos = Some(Map(
@@ -396,8 +382,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findTeam("teamName", Nil)
+        val result = findTeam(teams, "teamName", Nil)
 
         result shouldBe Some(
           Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
@@ -418,8 +403,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findTeam("teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
+        val result = findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
 
         result shouldBe Some(
           Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
@@ -441,8 +425,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
           TeamRepositories("teamNameOther", List(GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp)))
         )
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findTeam("teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
+        val result = findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
 
         result shouldBe Some(
           Team("teamName", Some(1), Some(40), Some(oldDeployableRepo.createdDate),
@@ -458,10 +441,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
 
 
       "return None when queried with a non existing team" in {
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.findTeam("nonExistingTeam", Nil)
-
-        result shouldBe None
+        findTeam(teams, "nonExistingTeam", Nil) shouldBe None
       }
 
     }
@@ -485,10 +465,7 @@ class TeamRepositoryWrapperSpec extends WordSpec with Matchers {
             GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp),
             GitRepository("repo5-prototype", "Some description", "", isInternal = true, repoType = RepoType.Prototype, createdDate = timestamp, lastActiveDate = timestamp))))
 
-        val wrapper: TeamRepositoryWrapper = new TeamRepositoryWrapper(teams)
-        val result = wrapper.allRepositories
-
-        result shouldBe Seq(
+        getAllRepositories(teams) shouldBe Seq(
           Repository(name = "repo1", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Service),
           Repository(name = "repo2", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Library),
           Repository(name = "repo3", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = RepoType.Library),
