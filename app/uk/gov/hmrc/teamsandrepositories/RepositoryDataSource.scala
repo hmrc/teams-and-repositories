@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import org.yaml.snakeyaml.Yaml
-import play.Logger
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.Duration
+import org.yaml.snakeyaml.Yaml
+import play.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, UrlTemplates}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}

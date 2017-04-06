@@ -27,7 +27,6 @@ import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
 import scala.concurrent.ExecutionContext
@@ -159,7 +158,6 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
                                             mongoTeamsAndReposPersister: TeamsAndReposPersister) extends BaseController {
 
   import Repository._
-  import TeamRepositoryWrapper._
 
   import scala.collection.JavaConverters._
 

@@ -2,7 +2,6 @@ package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.TeamActivityDates
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 case class GitRepository(name: String,
@@ -15,6 +14,10 @@ case class GitRepository(name: String,
 
 object GitRepository {
   implicit val gitRepositoryFormats: OFormat[GitRepository] = Json.format[GitRepository]
+
+  case class TeamActivityDates(firstActiveDate: Option[Long] = None,
+                               lastActiveDate: Option[Long] = None,
+                               firstServiceCreationDate: Option[Long] = None)
 
   def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]): TeamActivityDates = {
 

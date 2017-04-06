@@ -5,7 +5,6 @@ import java.time.{LocalDateTime, ZoneOffset}
 
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.{RepositoriesToTeam, RepositoryToTeam}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 
@@ -23,6 +22,10 @@ object TeamRepositories {
   }
 
   implicit val formats = Json.format[TeamRepositories]
+
+  case class RepositoryToTeam(repositoryName: String, teamName: String)
+
+  case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
 
   def getTeamList(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =
     teamRepos.map(_.teamName).map { tn =>
