@@ -23,11 +23,9 @@ import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
 import scala.collection.immutable.ListMap
 
-class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with OptionValues {
+class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
 
   val now = new Date().getTime
-
-  import TeamRepositoryWrapper._
 
   val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
@@ -53,7 +51,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
   def openGithubLink(url: String) = Link("github-com", "GitHub.com", url)
 
-  "Mapping between repositories and services" should {
+  "repoGroupToRepositoryDetails" should {
 
     "create links for a closed service" in {
 
@@ -66,7 +64,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         isInternal = true,
         repoType = RepoType.Service))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-frontend"))
       service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
@@ -83,7 +81,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         isInternal = true,
         repoType = RepoType.Library))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-library"))
       service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
@@ -97,7 +95,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "https://github.com/org/a-library", now, now,
         repoType = RepoType.Library))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
 
 
       service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-library"))
@@ -112,7 +110,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         "https://github.com/org/a-frontend", now, now,
         repoType = RepoType.Service))
 
-      val service = repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
 
 
       service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
@@ -130,7 +128,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repos = Seq(aFrontend)
 
-      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.environments.size shouldBe 2
 
@@ -148,7 +146,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
 
       val repos = Seq(aLibrary)
 
-      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
 
       service.get.environments shouldBe Seq.empty
 
@@ -171,7 +169,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         repoType = RepoType.Service)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe Seq(
         enterpriseGithubLink("https://not-open-github/org/a-frontend"),
@@ -196,7 +194,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         repoType = RepoType.Library)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe Seq(
         enterpriseGithubLink("https://not-open-github/org/a-library"),
@@ -222,7 +220,7 @@ class DataSourceToApiContractMappingsSpec extends WordSpec with Matchers with Op
         repoType = RepoType.Other)
 
       val repos = Seq(internalRepo, openRepo)
-      val service = repoGroupToRepositoryDetails(RepoType.Other, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Other, repos, Seq("teamName"), urlTemplates)
 
       service.get.githubUrls shouldBe Seq(
         enterpriseGithubLink("https://not-open-github/org/a-repo"),

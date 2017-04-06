@@ -1,16 +1,12 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.net.URLDecoder
-import java.time.ZoneOffset
+import java.time.{LocalDateTime, ZoneOffset}
 
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.{RepositoriesToTeam, RepositoryToTeam}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
-import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper.{RepositoriesToTeam, RepositoryToTeam, extractRepositoryGroupForType, repoGroupToRepositoryDetails}
-import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import java.time.{LocalDateTime, ZoneOffset}
 
 
 case class TeamRepositories(teamName: String,
@@ -61,7 +57,7 @@ object TeamRepositories {
       else (ts, repos)
     } match {
       case (teams, repos) if repos.nonEmpty =>
-        repoGroupToRepositoryDetails(GitRepository.primaryRepoType(repos.toSeq), repos.toSeq, teams.toSeq.sorted, ciUrlTemplates)
+        GitRepository.repoGroupToRepositoryDetails(GitRepository.primaryRepoType(repos.toSeq), repos.toSeq, teams.toSeq.sorted, ciUrlTemplates)
       case _ => None
     }
   }
@@ -71,7 +67,7 @@ object TeamRepositories {
     teamRepos.find(_.teamName == decodedTeamName).map { t =>
 
       RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, rtype) =>
-        m + (rtype -> extractRepositoryGroupForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
+        m + (rtype -> GitRepository.extractRepositoryGroupForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
       }
 
     }
@@ -80,7 +76,7 @@ object TeamRepositories {
   def getRepositoryDetailsList(teamRepos: Seq[TeamRepositories], repoType: RepoType, ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
     getRepositoryTeams(teamRepos)
       .groupBy(_.repositories)
-      .flatMap { case (repositories, teamsAndRepos: Seq[RepositoriesToTeam]) => repoGroupToRepositoryDetails(repoType, repositories, teamsAndRepos.map(_.teamName), ciUrlTemplates) }
+      .flatMap { case (repositories, teamsAndRepos: Seq[RepositoriesToTeam]) => GitRepository.repoGroupToRepositoryDetails(repoType, repositories, teamsAndRepos.map(_.teamName), ciUrlTemplates) }
       .toSeq
       .sortBy(_.name.toUpperCase)
   }

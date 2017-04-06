@@ -26,49 +26,10 @@ import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.TeamRepositoryWrapper._
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, UrlTemplates}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-
-
-case class GitRepository(name: String,
-                         description: String,
-                         url: String,
-                         createdDate: Long,
-                         lastActiveDate: Long,
-                         isInternal: Boolean = false,
-                         repoType: RepoType = RepoType.Other)
-
-object GitRepository {
-  implicit val gitRepositoryFormats: OFormat[GitRepository] = Json.format[GitRepository]
-
-  def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]): TeamActivityDates = {
-
-    val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
-
-    if (nonIgnoredRepos.nonEmpty) {
-      val firstServiceCreationDate =
-        if (nonIgnoredRepos.exists(_.repoType == RepoType.Service))
-          Some(getCreatedAtDate(nonIgnoredRepos.filter(_.repoType == RepoType.Service)))
-        else
-          None
-
-      TeamActivityDates(Some(getCreatedAtDate(nonIgnoredRepos)), Some(getLastActiveDate(nonIgnoredRepos)), firstServiceCreationDate)
-    }
-    else {
-      TeamActivityDates()
-    }
-  }
-
-  def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
-    if (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
-    else if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
-    else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
-    else RepoType.Other
-  }
-}
-
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
 
