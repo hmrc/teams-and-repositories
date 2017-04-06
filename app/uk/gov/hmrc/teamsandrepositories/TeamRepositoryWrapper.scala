@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.net.URLDecoder
-
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 
@@ -32,10 +30,10 @@ object TeamRepositoryWrapper {
 
   case class RepositoryToTeam(repositoryName: String, teamName: String)
 
-  def getCreatedAtDate(repos: Seq[GitRepository]) =
+  def getCreatedAtDate(repos: Seq[GitRepository]): Long =
     repos.minBy(_.createdDate).createdDate
 
-  def getLastActiveDate(repos: Seq[GitRepository]) =
+  def getLastActiveDate(repos: Seq[GitRepository]): Long =
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
   def repoGroupToRepositoryDetails(repoType: RepoType,
