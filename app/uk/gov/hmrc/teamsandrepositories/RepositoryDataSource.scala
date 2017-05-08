@@ -133,43 +133,6 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
 
-//  private def getDigitalServiceFromManifest(repoName: String, manifest: Option[String]): Option[String] = {
-//    manifest.flatMap { contents =>
-//      parseAppConfigFile(contents) match {
-//        case Failure(exception) => {
-//          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
-//          None
-//        }
-//        case Success(yamlMap) => {
-//          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
-//          config.get("digitalServiceName").map(_.toString)
-//
-////          Some(config.getOrElse("digitalServiceName", "").asInstanceOf[String].toLowerCase)
-//        }
-//      }
-//    }
-//  }
-
-
-//  private def getTypeFromManifest(repoName: String, manifest: Option[String]): Option[RepoType] = {
-//
-//    manifest.flatMap { contents =>
-//      parseAppConfigFile(contents) match {
-//        case Failure(exception) => {
-//          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
-//          None
-//        }
-//        case Success(yamlMap) => {
-//          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
-//          config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-//            case "service" => Some(RepoType.Service)
-//            case "library" => Some(RepoType.Library)
-//            case _ => None
-//          }
-//        }
-//      }
-//    }
-//  }
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
     isPrototype(repo) flatMap { prototype =>
