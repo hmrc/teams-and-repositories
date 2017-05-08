@@ -14,6 +14,9 @@ case class GitRepository(name: String,
                          digitalServiceName: Option[String] = None)
 
 object GitRepository {
+  def toRepository(gitRepository: GitRepository): Repository =
+    Repository(gitRepository.name, gitRepository.createdDate, gitRepository.lastActiveDate, gitRepository.repoType)
+
   implicit val gitRepositoryFormats: OFormat[GitRepository] = Json.format[GitRepository]
 
   case class TeamActivityDates(firstActiveDate: Option[Long] = None,

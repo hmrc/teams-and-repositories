@@ -11,6 +11,25 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 case class TeamRepositories(teamName: String,repositories: List[GitRepository])
 
 object TeamRepositories {
+  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[Repository])
+
+  object DigitalService {
+    implicit val digitalServiceFormat = Json.format[DigitalService]
+  }
+
+  def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], sanitisedDigitalServiceName: String): Option[DigitalService] = {
+
+    val digitalServiceRepositories = allTeamsAndRepos
+      .flatMap(_.repositories)
+      .filter(_.digitalServiceName.contains(sanitisedDigitalServiceName))
+      .map(GitRepository.toRepository)
+
+    digitalServiceRepositories match {
+        case Nil => None
+        case repos => Some(DigitalService(sanitisedDigitalServiceName, digitalServiceRepositories.head.lastUpdatedAt, repos))
+      }
+  }
+
   implicit val localDateTimeRead: Reads[LocalDateTime] =
     __.read[Long].map { dateTime => LocalDateTime.ofEpochSecond(dateTime, 0, ZoneOffset.UTC) }
 

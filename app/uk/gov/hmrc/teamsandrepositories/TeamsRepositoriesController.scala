@@ -183,6 +183,19 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     }
   }
 
+  def digitalServiceDetails(digitalServiceName: String) = Action.async {
+    val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
+
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
+        case None =>
+          NotFound
+        case Some(x: RepositoryDetails) =>
+          Ok(Json.toJson(x)).withHeaders(TimestampHeaderName -> format(timestamp))
+      }
+    }
+  }
+
 
   def services() = Action.async { implicit request =>
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
