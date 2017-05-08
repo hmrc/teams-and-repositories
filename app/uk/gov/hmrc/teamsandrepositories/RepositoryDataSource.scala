@@ -77,25 +77,38 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
       }
     }
 
-  private def mapRepository(organisation: GhOrganisation, repo: GhRepository): Future[GitRepository] = {
+  private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
-      manifest <- gh.getFileContent("repository.yaml", repo.name, organisation.login)
-      repositoryType <- identifyRepository(repo, organisation, manifest)
-    } yield GitRepository(repo.name, repo.description, repo.htmlUrl, createdDate = repo.createdDate, lastActiveDate = repo.lastActiveDate, isInternal = this.isInternal, repoType = repositoryType)
+      manifest <- gh.getFileContent("repository.yaml", repository.name, organisation.login)
+      maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
+      repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
+    
+      maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
+    } yield
+      GitRepository(repository.name,
+        repository.description,
+        repository.htmlUrl,
+        createdDate = repository.createdDate,
+        lastActiveDate = repository.lastActiveDate,
+        isInternal = this.isInternal,
+        repoType = repositoryType,
+        maybeDigitalServiceName)
   }
 
-  private def identifyRepository(repo: GhRepository, organisation: GhOrganisation, manifest: Option[String]) =
-      getTypeFromManifest(repo.name, manifest) match {
-        case Some(result) => Future.successful(result)
-        case None => getTypeFromGithub(repo, organisation)
-      }
-
-  private def getTypeFromManifest(repoName: String, manifest: Option[String]): Option[RepoType] = {
-    import scala.collection.JavaConverters._
-
-    def parseAppConfigFile(contents: String): Try[Object] = {
-      Try(new Yaml().load(contents))
+  private def identifyRepository(repository: GhRepository, organisation: GhOrganisation, maybeRepoType: Option[RepoType]): Future[RepoType] =
+    maybeRepoType match {
+      case None => getTypeFromGithub(repository, organisation)
+      case Some(repositoryType) => Future.successful(repositoryType)
     }
+
+  private def parseAppConfigFile(contents: String): Try[Object] =
+    Try(new Yaml().load(contents))
+
+
+  case class ManifestDetails(repositoryType: Option[RepoType], digitalServiceName: Option[String])
+
+  private def getMaybeManifestDetails(repoName: String, manifest: Option[String]): Option[ManifestDetails] = {
+    import scala.collection.JavaConverters._
 
     manifest.flatMap { contents =>
       parseAppConfigFile(contents) match {
@@ -105,15 +118,58 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         }
         case Success(yamlMap) => {
           val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
-          config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-            case "service" => Some(RepoType.Service)
-            case "library" => Some(RepoType.Library)
-            case _ => None
-          }
+
+          Some(ManifestDetails(
+            config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+              case "service" => Some(RepoType.Service)
+              case "library" => Some(RepoType.Library)
+              case _ => None
+            },
+            config.get("digitalServiceName").map(_.toString)
+          ))
         }
       }
     }
   }
+
+
+//  private def getDigitalServiceFromManifest(repoName: String, manifest: Option[String]): Option[String] = {
+//    manifest.flatMap { contents =>
+//      parseAppConfigFile(contents) match {
+//        case Failure(exception) => {
+//          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+//          None
+//        }
+//        case Success(yamlMap) => {
+//          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+//          config.get("digitalServiceName").map(_.toString)
+//
+////          Some(config.getOrElse("digitalServiceName", "").asInstanceOf[String].toLowerCase)
+//        }
+//      }
+//    }
+//  }
+
+
+//  private def getTypeFromManifest(repoName: String, manifest: Option[String]): Option[RepoType] = {
+//
+//    manifest.flatMap { contents =>
+//      parseAppConfigFile(contents) match {
+//        case Failure(exception) => {
+//          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+//          None
+//        }
+//        case Success(yamlMap) => {
+//          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+//          config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+//            case "service" => Some(RepoType.Service)
+//            case "library" => Some(RepoType.Library)
+//            case _ => None
+//          }
+//        }
+//      }
+//    }
+//  }
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
     isPrototype(repo) flatMap { prototype =>

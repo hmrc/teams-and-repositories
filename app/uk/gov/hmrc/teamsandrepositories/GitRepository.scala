@@ -10,7 +10,8 @@ case class GitRepository(name: String,
                          createdDate: Long,
                          lastActiveDate: Long,
                          isInternal: Boolean = false,
-                         repoType: RepoType = RepoType.Other)
+                         repoType: RepoType = RepoType.Other,
+                         digitalServiceName: Option[String] = None)
 
 object GitRepository {
   implicit val gitRepositoryFormats: OFormat[GitRepository] = Json.format[GitRepository]
