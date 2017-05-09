@@ -27,6 +27,7 @@ import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
 import scala.concurrent.ExecutionContext
@@ -190,7 +191,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
       TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
         case None =>
           NotFound
-        case Some(x: RepositoryDetails) =>
+        case Some(x: DigitalService) =>
           Ok(Json.toJson(x)).withHeaders(TimestampHeaderName -> format(timestamp))
       }
     }
@@ -211,6 +212,20 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     }
   }
 
+  def digitalServices() = Action.async { implicit request =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+
+      val digitalServices: Seq[String] =
+        allTeamsAndRepos
+          .flatMap(_.repositories)
+          .flatMap(_.digitalServiceName)
+          .distinct
+          .sorted
+
+      Ok(Json.toJson(digitalServices))
+        .withHeaders(TimestampHeaderName -> format(timestamp))
+    }
+  }
 
   def allRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
@@ -274,6 +289,4 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     else
       Json.toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Library))
   }
-
-
 }

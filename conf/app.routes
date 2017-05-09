@@ -9,6 +9,7 @@ GET         /api/libraries                  @uk.gov.hmrc.teamsandrepositories.Te
 GET         /api/repositories/:name         @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoryDetails(name)
 GET         /api/repositories               @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.allRepositories
 GET         /api/digital_services/:name     @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.digitalServiceDetails(name)
+GET         /api/digital_services           @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.digitalServices
 
 
 # DO NOT DELETE THE FOLLOWING LINE (used for saving github data in offline mode - see README.MD)

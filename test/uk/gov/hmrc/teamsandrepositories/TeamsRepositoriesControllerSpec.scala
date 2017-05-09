@@ -29,6 +29,7 @@ import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 
 import scala.collection.immutable.ListMap
@@ -108,15 +109,15 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   val defaultData =
     Seq(
       new TeamRepositories("test-team", List(
-        GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = createdDateForService1, lastActiveDate = lastActiveDateForService1),
-        GitRepository("library-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1)
+        GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = createdDateForService1, lastActiveDate = lastActiveDateForService1, digitalServiceName = Some("digital-service-2")),
+        GitRepository("library-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, digitalServiceName = Some("digital-service-3"))
       )),
       new TeamRepositories("another-team", List(
-        GitRepository("another-repo", "some description", "another-url", repoType = RepoType.Service, createdDate = createdDateForService2, lastActiveDate = lastActiveDateForService2),
-        GitRepository("middle-repo", "some description", "middle-url", repoType = RepoType.Service, createdDate = createdDateForService3, lastActiveDate = lastActiveDateForService3),
-        GitRepository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2),
-        GitRepository("CATO-prototype", "some description", "prototype-url", repoType = RepoType.Prototype, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2),
-        GitRepository("other-repo", "some description", "library-url", repoType = RepoType.Other, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2)
+        GitRepository("another-repo", "some description", "another-url", repoType = RepoType.Service, createdDate = createdDateForService2, lastActiveDate = lastActiveDateForService2, digitalServiceName = Some("digital-service-1")),
+        GitRepository("middle-repo", "some description", "middle-url", repoType = RepoType.Service, createdDate = createdDateForService3, lastActiveDate = lastActiveDateForService3, digitalServiceName = Some("digital-service-2")),
+        GitRepository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-1")),
+        GitRepository("CATO-prototype", "some description", "prototype-url", repoType = RepoType.Prototype, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-2")),
+        GitRepository("other-repo", "some description", "library-url", repoType = RepoType.Other, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-1"))
       ))
     )
 
@@ -158,6 +159,25 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
       val team = contentAsJson(result).as[JsArray].value.head
       team.as[Team].name mustBe "test-team"
+    }
+  }
+  
+  "Retrieving a list of digital services" should {
+
+    "return the cache timestamp" in {
+      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
+      val result = controller.digitalServices().apply(FakeRequest())
+
+      val timestampHeader = header("x-cache-timestamp", result)
+      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
+    }
+
+    "Return a json representation of the data" in {
+      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
+      val result = controller.digitalServices().apply(FakeRequest())
+
+      val digitalServices = contentAsJson(result).as[JsArray].value
+      digitalServices.map(_.as[String]) mustBe Seq("digital-service-1", "digital-service-2", "digital-service-3")
     }
   }
 
