@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.Date
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -28,6 +28,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
   val timestamp = new Date().getTime
   val now = LocalDateTime.now()
+  val nowInMillis = now.toInstant(ZoneOffset.UTC).toEpochMilli
 
 
   private val createdDateForDeployable1 = 1
@@ -450,29 +451,76 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "get the right Digital Service information" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-          GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService1")),
-          GitRepository("repo2", "Some description", "", isInternal = true, repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService1"))
+          GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo2", "Some description", "", isInternal = true, repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1"))
         )),
         TeamRepositories("teamNameOther", List(
-          GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService1")),
-          GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService2")))
+          GitRepository("repo3", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo4", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService2")))
         ),
         TeamRepositories("teamNameOtherOne", List(
-          GitRepository("repo5", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService3")),
-          GitRepository("repo6", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = timestamp, digitalServiceName = Some("DigitalService3")))
+          GitRepository("repo5", "Some description", "", isInternal = true, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService3")),
+          GitRepository("repo6", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService3")))
         )
       )
       val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
 
       result.value.name shouldBe "DigitalService1"
       result.value.repositories shouldBe Seq(
-        Repository("repo1", timestamp, timestamp, RepoType.Library),
-        Repository("repo2", timestamp, timestamp, RepoType.Service),
-        Repository("repo3", timestamp, timestamp, RepoType.Library)
+        Repository("repo1", timestamp, nowInMillis, RepoType.Library),
+        Repository("repo2", timestamp, nowInMillis, RepoType.Service),
+        Repository("repo3", timestamp, nowInMillis, RepoType.Library)
       )
-      result.value.lastUpdatedAt shouldBe timestamp
+      result.value.lastUpdatedAt shouldBe nowInMillis
     }
+
+    "get the lastUpdated timestamp for a Digital Service" in {
+      val lastUpdatedTimestamp1 = nowInMillis
+      val lastUpdatedTimestamp2 = nowInMillis + 100
+      val lastUpdatedTimestamp3 = nowInMillis + 200
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp1, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo2", "Some description", "", isInternal = true, repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp2, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo3", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp3, digitalServiceName = Some("DigitalService1"))
+        ))
+      )
+      val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
+
+      result.value.name shouldBe "DigitalService1"
+      result.value.repositories should contain theSameElementsAs Seq(
+        Repository("repo1", timestamp, lastUpdatedTimestamp1, RepoType.Library),
+        Repository("repo3", timestamp, lastUpdatedTimestamp3, RepoType.Library),
+        Repository("repo2", timestamp, lastUpdatedTimestamp2, RepoType.Service)
+      )
+      result.value.lastUpdatedAt shouldBe lastUpdatedTimestamp3
+    }
+
+    "get the correct repo types for Digital Service information" in {
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          GitRepository("repo1", "Some description", "", isInternal = false, repoType = RepoType.Library, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Service, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1"))
+        )),
+        TeamRepositories("teamNameOther", List(
+          GitRepository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Prototype, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService1")),
+          GitRepository("repo1", "Some description", "", isInternal = true, repoType = RepoType.Other, createdDate = timestamp, lastActiveDate = nowInMillis, digitalServiceName = Some("DigitalService2")))
+        )
+      )
+      val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
+
+      result.value.name shouldBe "DigitalService1"
+      result.value.repositories shouldBe Seq(
+        Repository("repo1", timestamp, nowInMillis, RepoType.Prototype)
+      )
+      result.value.lastUpdatedAt shouldBe nowInMillis
+    }
+
+
+
   }
+
 
 
   "getAllRepositories" should {

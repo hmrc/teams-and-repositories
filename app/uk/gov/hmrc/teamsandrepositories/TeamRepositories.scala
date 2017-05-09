@@ -17,16 +17,16 @@ object TeamRepositories {
     implicit val digitalServiceFormat = Json.format[DigitalService]
   }
 
-  def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], sanitisedDigitalServiceName: String): Option[DigitalService] = {
+  def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], digitalServiceName: String): Option[DigitalService] = {
 
-    val digitalServiceRepositories = allTeamsAndRepos
-      .flatMap(_.repositories)
-      .filter(_.digitalServiceName.contains(sanitisedDigitalServiceName))
-      .map(GitRepository.toRepository)
+    val gitRepositories =
+      allTeamsAndRepos
+        .flatMap(_.repositories)
+        .filter(_.digitalServiceName.contains(digitalServiceName))
 
-    digitalServiceRepositories match {
+    identifyRepositories(gitRepositories) match {
         case Nil => None
-        case repos => Some(DigitalService(sanitisedDigitalServiceName, digitalServiceRepositories.head.lastUpdatedAt, repos))
+        case repos => Some(DigitalService(digitalServiceName, repos.map(_.lastUpdatedAt).max, repos))
       }
   }
 
@@ -55,9 +55,8 @@ object TeamRepositories {
 
     }
 
-  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
-    teamRepos
-      .flatMap(_.repositories)
+  def identifyRepositories(gitRepositories: Seq[GitRepository]): Seq[Repository] =
+    gitRepositories
       .groupBy(_.name)
       .map {
         case (repositoryName, repositories) =>
@@ -69,6 +68,9 @@ object TeamRepositories {
       }
       .toList
       .sortBy(_.name.toUpperCase)
+
+  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
+    identifyRepositories(teamRepos.flatMap(_.repositories))
 
   def findRepositoryDetails(teamRepos: Seq[TeamRepositories], repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
     teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
