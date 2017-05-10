@@ -125,7 +125,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
               case "library" => Some(RepoType.Library)
               case _ => None
             },
-            config.get("digitalServiceName").map(_.toString)
+            config.get("digital-service").map(_.toString)
           ))
         }
       }
