@@ -11,13 +11,31 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 case class TeamRepositories(teamName: String,repositories: List[GitRepository])
 
 object TeamRepositories {
-  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[Repository])
+  case class DigitalServiceRepository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType, teamNames: Seq[String])
+
+  object DigitalServiceRepository {
+    implicit val digitalServiceFormat = Json.format[DigitalServiceRepository]
+  }
+
+  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[DigitalServiceRepository])
 
   object DigitalService {
     implicit val digitalServiceFormat = Json.format[DigitalService]
   }
 
   def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], digitalServiceName: String): Option[DigitalService] = {
+
+    /**
+      * I want to have a list of team names related to each repository
+      */
+
+//    val x: Map[String, Seq[(GitRepository, String)]] =
+//      allTeamsAndRepos
+//        .flatMap(teamAndRepos => teamAndRepos.repositories.map(_ -> teamAndRepos.teamName))
+//        .groupBy(_._1.name)
+//        .map {
+//          case (repoName, gitReposAndTeamName) =>
+//        }
 
     val gitRepositories =
       allTeamsAndRepos
@@ -26,7 +44,10 @@ object TeamRepositories {
 
     identifyRepositories(gitRepositories) match {
         case Nil => None
-        case repos => Some(DigitalService(digitalServiceName, repos.map(_.lastUpdatedAt).max, repos))
+        case repos => Some(DigitalService(
+          digitalServiceName,
+          repos.map(_.lastUpdatedAt).max,
+          repos.map(repo => DigitalServiceRepository(repo.name, repo.createdAt, repo.lastUpdatedAt, repo.repoType, Seq("Whatever")))))
       }
   }
 
