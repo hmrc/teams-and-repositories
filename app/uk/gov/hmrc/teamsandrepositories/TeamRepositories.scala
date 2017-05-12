@@ -25,19 +25,17 @@ object TeamRepositories {
 
   def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], digitalServiceName: String): Option[DigitalService] = {
 
-    /**
-      * I want to have a list of team names related to each repository
-      */
+    case class RepoAndTeam(repositoryName: String, teamName: String)
 
-//    val x: Map[String, Seq[(GitRepository, String)]] =
-//      allTeamsAndRepos
-//        .flatMap(teamAndRepos => teamAndRepos.repositories.map(_ -> teamAndRepos.teamName))
-//        .groupBy(_._1.name)
-//        .map {
-//          case (repoName, gitReposAndTeamName) =>
-//        }
+    val repoNameToTeamNamesLookup: Map[String, Seq[String]] =
+      allTeamsAndRepos
+        .flatMap(teamAndRepo => teamAndRepo.repositories.map(repo => RepoAndTeam(repo.name, teamAndRepo.teamName)))
+        .groupBy(_.repositoryName)
+        .map {
+          case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
+        }
 
-    val gitRepositories =
+    val gitRepositories: Seq[GitRepository] =
       allTeamsAndRepos
         .flatMap(_.repositories)
         .filter(_.digitalServiceName.contains(digitalServiceName))
@@ -47,7 +45,13 @@ object TeamRepositories {
         case repos => Some(DigitalService(
           digitalServiceName,
           repos.map(_.lastUpdatedAt).max,
-          repos.map(repo => DigitalServiceRepository(repo.name, repo.createdAt, repo.lastUpdatedAt, repo.repoType, Seq("Whatever")))))
+          repos.map(repo =>
+            DigitalServiceRepository(
+              repo.name,
+              repo.createdAt,
+              repo.lastUpdatedAt,
+              repo.repoType,
+              repoNameToTeamNamesLookup.getOrElse(repo.name, Seq("TEAM_UNKNOWN"))))))
       }
   }
 

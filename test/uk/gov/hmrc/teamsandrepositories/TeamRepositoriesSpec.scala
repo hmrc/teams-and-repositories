@@ -513,13 +513,10 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       result.value.name shouldBe "DigitalService1"
       result.value.repositories shouldBe Seq(
-        DigitalServiceRepository("repo1", timestamp, nowInMillis, RepoType.Prototype, Seq("teamName"))
+        DigitalServiceRepository("repo1", timestamp, nowInMillis, RepoType.Prototype, Seq("teamName", "teamNameOther"))
       )
       result.value.lastUpdatedAt shouldBe nowInMillis
     }
-
-
-
   }
 
 
