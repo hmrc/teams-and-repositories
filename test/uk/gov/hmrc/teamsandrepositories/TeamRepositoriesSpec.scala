@@ -20,6 +20,7 @@ import java.time.{LocalDateTime, ZoneOffset}
 import java.util.Date
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories.DigitalServiceRepository
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 
 import scala.collection.immutable.ListMap
@@ -467,9 +468,9 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       result.value.name shouldBe "DigitalService1"
       result.value.repositories shouldBe Seq(
-        Repository("repo1", timestamp, nowInMillis, RepoType.Library),
-        Repository("repo2", timestamp, nowInMillis, RepoType.Service),
-        Repository("repo3", timestamp, nowInMillis, RepoType.Library)
+        DigitalServiceRepository("repo1", timestamp, nowInMillis, RepoType.Library, Seq("teamName")),
+        DigitalServiceRepository("repo2", timestamp, nowInMillis, RepoType.Service, Seq("teamName")),
+        DigitalServiceRepository("repo3", timestamp, nowInMillis, RepoType.Library, Seq("teamNameOther"))
       )
       result.value.lastUpdatedAt shouldBe nowInMillis
     }
@@ -490,9 +491,9 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       result.value.name shouldBe "DigitalService1"
       result.value.repositories should contain theSameElementsAs Seq(
-        Repository("repo1", timestamp, lastUpdatedTimestamp1, RepoType.Library),
-        Repository("repo3", timestamp, lastUpdatedTimestamp3, RepoType.Library),
-        Repository("repo2", timestamp, lastUpdatedTimestamp2, RepoType.Service)
+        DigitalServiceRepository("repo1", timestamp, lastUpdatedTimestamp1, RepoType.Library, Seq("teamName")),
+        DigitalServiceRepository("repo3", timestamp, lastUpdatedTimestamp3, RepoType.Library, Seq("teamName")),
+        DigitalServiceRepository("repo2", timestamp, lastUpdatedTimestamp2, RepoType.Service, Seq("teamName"))
       )
       result.value.lastUpdatedAt shouldBe lastUpdatedTimestamp3
     }
@@ -512,13 +513,10 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       result.value.name shouldBe "DigitalService1"
       result.value.repositories shouldBe Seq(
-        Repository("repo1", timestamp, nowInMillis, RepoType.Prototype)
+        DigitalServiceRepository("repo1", timestamp, nowInMillis, RepoType.Prototype, Seq("teamName", "teamNameOther"))
       )
       result.value.lastUpdatedAt shouldBe nowInMillis
     }
-
-
-
   }
 
 

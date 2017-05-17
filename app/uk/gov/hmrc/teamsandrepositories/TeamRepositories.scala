@@ -11,7 +11,13 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 case class TeamRepositories(teamName: String,repositories: List[GitRepository])
 
 object TeamRepositories {
-  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[Repository])
+  case class DigitalServiceRepository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType, teamNames: Seq[String])
+
+  object DigitalServiceRepository {
+    implicit val digitalServiceFormat = Json.format[DigitalServiceRepository]
+  }
+
+  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[DigitalServiceRepository])
 
   object DigitalService {
     implicit val digitalServiceFormat = Json.format[DigitalService]
@@ -19,14 +25,33 @@ object TeamRepositories {
 
   def findDigitalServiceDetails(allTeamsAndRepos: Seq[TeamRepositories], digitalServiceName: String): Option[DigitalService] = {
 
-    val gitRepositories =
+    case class RepoAndTeam(repositoryName: String, teamName: String)
+
+    val repoNameToTeamNamesLookup: Map[String, Seq[String]] =
+      allTeamsAndRepos
+        .flatMap(teamAndRepo => teamAndRepo.repositories.map(repo => RepoAndTeam(repo.name, teamAndRepo.teamName)))
+        .groupBy(_.repositoryName)
+        .map {
+          case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
+        }
+
+    val gitRepositories: Seq[GitRepository] =
       allTeamsAndRepos
         .flatMap(_.repositories)
         .filter(_.digitalServiceName.contains(digitalServiceName))
 
     identifyRepositories(gitRepositories) match {
         case Nil => None
-        case repos => Some(DigitalService(digitalServiceName, repos.map(_.lastUpdatedAt).max, repos))
+        case repos => Some(DigitalService(
+          digitalServiceName,
+          repos.map(_.lastUpdatedAt).max,
+          repos.map(repo =>
+            DigitalServiceRepository(
+              repo.name,
+              repo.createdAt,
+              repo.lastUpdatedAt,
+              repo.repoType,
+              repoNameToTeamNamesLookup.getOrElse(repo.name, Seq("TEAM_UNKNOWN"))))))
       }
   }
 
