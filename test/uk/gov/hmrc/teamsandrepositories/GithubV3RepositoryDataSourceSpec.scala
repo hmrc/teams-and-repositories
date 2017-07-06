@@ -76,10 +76,10 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1),githubclient.GhOrganisation("DDCN",2))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1),githubclient.GhTeam("B", 2))))
       when(githubClient.getTeamsForOrganisation("DDCN")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("C", 3),githubclient.GhTeam("D", 4))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description",  1, "url_A", fork = false, now, now), githubclient.GhRepository("A_r2",  "some description",  5, "url_A2", fork = true, now, now))))
-      when(githubClient.getReposForTeam(2)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("B_r",   "some description", 2, "url_B", fork = false, now, now))))
-      when(githubClient.getReposForTeam(3)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("C_r",   "some description", 3, "url_C", fork = false, now, now))))
-      when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r",   "some description", 4, "url_D", fork = true, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description",  1, "url_A", fork = false, now, now, false), githubclient.GhRepository("A_r2",  "some description",  5, "url_A2", fork = true, now, now, false))))
+      when(githubClient.getReposForTeam(2)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("B_r",   "some description", 2, "url_B", fork = false, now, now, false))))
+      when(githubClient.getReposForTeam(3)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("C_r",   "some description", 3, "url_C", fork = false, now, now, false))))
+      when(githubClient.getReposForTeam(4)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("D_r",   "some description", 4, "url_D", fork = true, now, now, false))))
 
       val eventualPersistedTeamAndRepositorieses = dataSource.getTeamRepoMapping
       eventualPersistedTeamAndRepositorieses.futureValue shouldBe List(
@@ -95,7 +95,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       internalDataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true, digitalServiceName = None))))
@@ -106,8 +106,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
-        githubclient.GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now),
-        githubclient.GhRepository("A_r",   "some description", 2, "url_A", false, now, now))))
+        githubclient.GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now, false),
+        githubclient.GhRepository("A_r",   "some description", 2, "url_A", false, now, now, false))))
       
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("A", List(GitRepository("A_r" , "some description", "url_A", now, now, digitalServiceName = None))))
@@ -117,7 +117,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("hidden_team1", 1), githubclient.GhTeam("B", 2))))
-      when(githubClient.getReposForTeam(2)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("B_r", "some description", 2, "url_B", false, now, now))))
+      when(githubClient.getReposForTeam(2)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("B_r", "some description", 2, "url_B", false, now, now, false))))
       
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
         TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, digitalServiceName = None))))
@@ -127,7 +127,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.repoContainsContent("conf/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
 
@@ -139,7 +139,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.repoContainsContent("Procfile","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
 
@@ -151,7 +151,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.repoContainsContent(same("deploy.properties"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
@@ -162,7 +162,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
 
@@ -173,7 +173,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       when(githubClient.getFileContent(same("repository.yaml"),same("repository-xyz"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
@@ -184,7 +184,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       private val manifestYaml =
         """
@@ -200,7 +200,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
 
@@ -211,7 +211,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
 
@@ -222,7 +222,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
 
@@ -233,7 +233,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
       when(githubClient.repoContainsContent(same("src/main/scala"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
@@ -246,7 +246,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
       when(githubClient.repoContainsContent(same("src/main/java"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
@@ -259,7 +259,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false))))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
       repositories should contain(TeamRepositories("A", List(GitRepository("CATO-prototype", "some description", "url_A", now, now, repoType = RepoType.Prototype, digitalServiceName = None))))
@@ -269,7 +269,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
       repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None))))
@@ -296,7 +296,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         .thenReturn(Future.failed(new RuntimeException("something went wrong")))
         .thenReturn(Future.failed(new RuntimeException("something went wrong")))
         .thenReturn(Future.failed(new RuntimeException("something went wrong")))
-        .thenReturn(Future.successful(List(githubclient.GhRepository("A_r", "some description", 1, "url_A", false, now, now))))
+        .thenReturn(Future.successful(List(githubclient.GhRepository("A_r", "some description", 1, "url_A", false, now, now, false))))
 
       when(githubClient.repoContainsContent("app", "A_r", "HMRC")(ec))
         .thenReturn(Future.failed(new RuntimeException("something went wrong")))

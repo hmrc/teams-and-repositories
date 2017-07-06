@@ -10,6 +10,7 @@ case class GitRepository(name: String,
                          createdDate: Long,
                          lastActiveDate: Long,
                          isInternal: Boolean = false,
+                         isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
                          digitalServiceName: Option[String] = None)
 

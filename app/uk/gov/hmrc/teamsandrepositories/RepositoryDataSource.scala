@@ -92,7 +92,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         lastActiveDate = repository.lastActiveDate,
         isInternal = this.isInternal,
         repoType = repositoryType,
-        maybeDigitalServiceName)
+        digitalServiceName = maybeDigitalServiceName)
   }
 
   private def identifyRepository(repository: GhRepository, organisation: GhOrganisation, maybeRepoType: Option[RepoType]): Future[RepoType] =

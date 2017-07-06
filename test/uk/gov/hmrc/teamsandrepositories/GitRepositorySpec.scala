@@ -117,6 +117,38 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
+    "create links for private libraries on github.com" in {
+
+      val repo = Seq(GitRepository(
+        "a-library",
+        "Some Description",
+        "https://github.com/org/a-library", now, now,
+        repoType = RepoType.Library,
+        isPrivate = true))
+
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
+
+
+      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-library"))
+      service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
+    }
+
+    "create links for private services on github.com" in {
+
+      val repo = Seq(GitRepository(
+        "a-frontend",
+        "Some Description",
+        "https://github.com/org/a-frontend", now, now,
+        repoType = RepoType.Service,
+        isPrivate = true))
+
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
+
+
+      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
+      service.get.ci shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
+    }
+
 
     "create links for each environment" in {
       val aFrontend = GitRepository(

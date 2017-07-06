@@ -40,6 +40,7 @@ case class Link(name: String, displayName: String, url: String)
 
 case class RepositoryDetails(name: String,
                              description: String,
+                             isPrivate: Boolean,
                              createdAt: Long,
                              lastActive: Long,
                              repoType: RepoType.RepoType,
@@ -63,6 +64,7 @@ object RepositoryDetails {
       val repoDetails = RepositoryDetails(
         repo.name,
         repo.description,
+        repo.isPrivate,
         createdDate,
         lastActiveDate,
         repo.repoType,
@@ -100,7 +102,7 @@ object RepositoryDetails {
   }
 
   private def buildCiUrls(repository: GitRepository, urlTemplates: UrlTemplates): List[Link] =
-    repository.isInternal match {
+    repository.isInternal || repository.isPrivate match {
       case true => buildUrls(repository, urlTemplates.ciClosed)
       case false => buildUrls(repository, urlTemplates.ciOpen)
     }
