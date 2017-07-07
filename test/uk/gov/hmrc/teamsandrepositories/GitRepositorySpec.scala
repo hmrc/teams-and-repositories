@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
-
+import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, WordSpec}
+import play.api.libs.json.Json
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.collection.immutable.ListMap
 
 class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
 
-  val now = new Date().getTime
+  val now = DateTimeUtils.now.getMillis
 
   val urlTemplates = UrlTemplates(
     ciOpen = Seq(UrlTemplate(
@@ -262,5 +263,28 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       service.get.environments shouldBe Seq.empty
     }
 
+  }
+
+  "GitRepository" should {
+    "read an object without the isPrivate field" in {
+
+      GitRepository.gitRepositoryFormats.reads(
+        Json.parse(
+        """
+          |{"name":"a-repo",
+          |"description":"Some Description",
+          |"url":"https://not-open-github/org/a-repo",
+          |"createdDate":1499417808270,
+          |"lastActiveDate":1499417808270,
+          |"isInternal":true,
+          |"repoType":"Other"}""".stripMargin)
+      ).get shouldBe GitRepository(
+        "a-repo",
+        "Some Description",
+        "https://not-open-github/org/a-repo", 1499417808270L, 1499417808270L,
+        isInternal = true,
+        repoType = RepoType.Other)
+
+    }
   }
 }

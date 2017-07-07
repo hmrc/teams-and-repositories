@@ -1,8 +1,10 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
+import play.api.libs.functional.syntax._
+
 
 case class GitRepository(name: String,
                          description: String,
@@ -18,7 +20,24 @@ object GitRepository {
   def toRepository(gitRepository: GitRepository): Repository =
     Repository(gitRepository.name, gitRepository.createdDate, gitRepository.lastActiveDate, gitRepository.repoType)
 
-  implicit val gitRepositoryFormats: OFormat[GitRepository] = Json.format[GitRepository]
+  implicit val gitRepositoryFormats: OFormat[GitRepository] = {
+
+    val reads: Reads[GitRepository] = (
+      (JsPath \ "name").read[String] and
+        (JsPath \ "description").read[String] and
+        (JsPath \ "url").read[String] and
+        (JsPath \ "createdDate").read[Long] and
+        (JsPath \ "lastActiveDate").read[Long] and
+        (JsPath \ "isInternal").read[Boolean] and
+        (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
+        (JsPath \ "repoType").read[RepoType] and
+        (JsPath \ "digitalServiceName").readNullable[String]
+      ) (GitRepository.apply _)
+
+    val writes = Json.writes[GitRepository]
+
+    OFormat(reads, writes)
+  }
 
   case class TeamActivityDates(firstActiveDate: Option[Long] = None,
                                lastActiveDate: Option[Long] = None,
