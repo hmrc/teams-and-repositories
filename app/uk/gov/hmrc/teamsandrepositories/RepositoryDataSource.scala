@@ -91,6 +91,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         createdDate = repository.createdDate,
         lastActiveDate = repository.lastActiveDate,
         isInternal = this.isInternal,
+        isPrivate = repository.isPrivate,
         repoType = repositoryType,
         digitalServiceName = maybeDigitalServiceName)
   }
