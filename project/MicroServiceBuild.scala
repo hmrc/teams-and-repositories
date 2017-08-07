@@ -18,16 +18,16 @@ private object AppDependencies {
 
   import play.core.PlayVersion.current
 
-  private val microserviceBootstrapVersion = "5.8.0"
-  private val playAuthVersion = "4.0.0"
+  private val microserviceBootstrapVersion = "5.16.0"
+  private val playAuthVersion = "4.3.0"
   private val playHealthVersion = "2.0.0"
   private val logbackJsonLoggerVersion = "3.1.0"
-  private val playUrlBindersVersion = "2.0.0"
+  private val playUrlBindersVersion = "2.1.0"
   private val playConfigVersion = "3.0.0"
-  private val domainVersion = "3.3.0"
-  private val hmrcTestVersion = "2.0.0"
-  private val githubClientVersion = "1.13.0"
-  private val playReactivemongoVersion = "5.0.0"
+  private val domainVersion = "4.1.0"
+  private val hmrcTestVersion = "2.3.0"
+  private val githubClientVersion = "1.14.0"
+  private val playReactivemongoVersion = "5.2.0"
 
   val compile = Seq(
 
@@ -42,7 +42,7 @@ private object AppDependencies {
     "org.yaml" % "snakeyaml" % "1.17",
     "org.apache.httpcomponents" % "httpcore" % "4.3.2",
     "org.apache.httpcomponents" % "httpclient" % "4.3.5",
-    "uk.gov.hmrc" %% "mongo-lock" % "4.0.0",
+    "uk.gov.hmrc" %% "mongo-lock" % "4.1.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion
   )
 
@@ -58,7 +58,7 @@ private object AppDependencies {
         "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.0" % scope,
         "org.pegdown" % "pegdown" % "1.4.2" % scope,
         "com.typesafe.play" %% "play-test" % current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
+        "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
         "com.github.tomakehurst" % "wiremock" % "1.52" % scope,
         "org.mockito" % "mockito-core" % "2.3.5" % scope
       )
