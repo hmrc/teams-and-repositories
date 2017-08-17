@@ -158,6 +158,27 @@ object TeamRepositories {
       }
   }
 
+  def allTeamsAndTheirRepositories(teamRepos: Seq[TeamRepositories]): Seq[Team] = {
+
+    teamRepos
+      .map { teamRepositories =>
+
+        def getRepositoryDisplayDetails(repoType: RepoType.Value): List[String] = {
+          teamRepositories.repositories
+            .filter(_.repoType == repoType)
+            .map(_.name)
+            .distinct
+            .sortBy(_.toUpperCase)
+        }
+
+        val repos = RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, repoType) =>
+          m + (repoType -> getRepositoryDisplayDetails(repoType))
+        }
+
+        Team(teamRepositories.teamName, None, None, None, Some(repos))
+      }
+  }
+
   def getRepositoryToTeamNameList(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
     val mappings = for {
       tr <- teamRepos

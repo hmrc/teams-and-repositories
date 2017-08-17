@@ -238,7 +238,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
   def teams() = Action.async { implicit request =>
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      Results.Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
+      Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
         .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
@@ -248,7 +248,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
       (TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
         case None => NotFound
-        case Some(x) => Results.Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+        case Some(x) => Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
       }).withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
@@ -259,8 +259,14 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
       (TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
         case None => NotFound
-        case Some(x) => Results.Ok(Json.toJson(x))
+        case Some(x) => Ok(Json.toJson(x))
       }).withHeaders(TimestampHeaderName -> format(timestamp))
+    }
+  }
+
+  def allTeamsAndRepositories() = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+      Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos))).withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
