@@ -266,7 +266,7 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
 
   def allTeamsAndRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos))).withHeaders(TimestampHeaderName -> format(timestamp))
+      Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore))).withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
