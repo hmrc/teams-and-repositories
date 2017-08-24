@@ -1,5 +1,3 @@
-
-
 import play.sbt.PlayScala
 import play.sbt.routes.RoutesKeys.{routesGenerator, _}
 import sbt.Keys._
@@ -26,6 +24,7 @@ trait MicroService {
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
     .settings(
+      scalaVersion := "2.11.11",
       libraryDependencies ++= appDependencies,
       parallelExecution in Test := false,
       fork in Test := false,
