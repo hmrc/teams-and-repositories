@@ -18,7 +18,7 @@ private object AppDependencies {
 
   import play.core.PlayVersion.current
 
-  private val microserviceBootstrapVersion = "6.7.0"
+  private val microserviceBootstrapVersion = "6.8.0"
   private val playUrlBindersVersion = "2.1.0"
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.3.0"
