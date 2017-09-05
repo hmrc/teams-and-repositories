@@ -3,10 +3,10 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.LocalDateTime
 
 import com.google.inject.{Inject, Singleton}
-import play.Logger
+import org.slf4j.LoggerFactory
+
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -20,6 +20,8 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
 
   import BlockingIOExecutionContext._
+
+  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   val gitApiEnterpriseClient: GithubApiClient =
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
@@ -38,10 +40,10 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
   def persistTeamRepoMapping: Future[Seq[TeamRepositories]] = {
 
-        Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
+    Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
       val flattened: List[TeamRepositories] = results.flatten
 
-      Logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
+      logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
       Future.sequence(flattened.groupBy(_.teamName).map { case (name, teams) =>
         TeamRepositories(name, teams.flatMap(t => t.repositories).sortBy(_.name))
       }.toList.map(tr => persister.update(tr)))
@@ -66,7 +68,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
 
     orphanTeams.flatMap { (teamNames: Set[String]) =>
-      Logger.info(s"Removing these orphan teams:[${teamNames}]")
+      logger.info(s"Removing these orphan teams:[${teamNames}]")
       persister.deleteTeams(teamNames)
     }
   }

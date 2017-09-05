@@ -18,11 +18,13 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.util.{Timer, TimerTask}
 
-import play.Logger
+import org.slf4j.LoggerFactory
+
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object RetryStrategy {
+  lazy val logger = LoggerFactory.getLogger(this.getClass)
   private def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     new Timer().schedule(new TimerTask {
@@ -34,8 +36,8 @@ object RetryStrategy {
 
   def exponentialRetry[T](times: Int, duration: Double = 10)(f: => Future[T])(implicit executor: ExecutionContext): Future[T] = {
     f recoverWith { case e if times > 0 =>
-      Logger.error("error making request Retrying :" , e)
-      Logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
+      logger.error("error making request Retrying :" , e)
+      logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
       delay(duration) {
         exponentialRetry(times - 1, duration * 2)(f)
       }

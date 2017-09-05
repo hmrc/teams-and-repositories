@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.{LocalDateTime, ZoneOffset}
 
 import com.google.inject.{Inject, Singleton}
-import play.api.Logger
+import org.slf4j.LoggerFactory
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister, mongoUpdateTimePersister: MongoUpdateTimePersister) {
 
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
-
+  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
@@ -56,7 +56,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   }
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
-    Logger.info(s"Deleting orphan teams: $teamNames")
+    logger.info(s"Deleting orphan teams: $teamNames")
     Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
   }
 }

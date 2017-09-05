@@ -18,9 +18,12 @@ package uk.gov.hmrc.teamsandrepositories
 
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.Duration
+import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
-import play.Logger
+
+
 import play.api.libs.json._
+
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
@@ -38,6 +41,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
                                              persister: TeamsAndReposPersister,
                                              val isInternal: Boolean) {
 
+
+  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   import BlockingIOExecutionContext._
 
@@ -66,7 +71,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
       }
     }
 
-  private def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] =
+  private def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
+    logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
@@ -76,7 +82,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         }
       }
     }
-
+}
   private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
       manifest <- gh.getFileContent("repository.yaml", repository.name, organisation.login)
@@ -84,7 +90,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
     
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
-    } yield
+    } yield {
+      logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
       GitRepository(repository.name,
         repository.description,
         repository.htmlUrl,
@@ -94,6 +101,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         isPrivate = repository.isPrivate,
         repoType = repositoryType,
         digitalServiceName = maybeDigitalServiceName)
+    }
   }
 
   private def identifyRepository(repository: GhRepository, organisation: GhOrganisation, maybeRepoType: Option[RepoType]): Future[RepoType] =
@@ -114,7 +122,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
     manifest.flatMap { contents =>
       parseAppConfigFile(contents) match {
         case Failure(exception) => {
-          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         }
         case Success(yamlMap) => {

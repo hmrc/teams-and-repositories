@@ -2,7 +2,8 @@ package uk.gov.hmrc.teamsandrepositories
 
 import akka.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
-import play.Logger
+import org.slf4j.LoggerFactory
+
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 
@@ -19,9 +20,10 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   private val cacheDuration = cacheConfig.teamsCacheDuration
 
+  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   private val scheduledReload = actorSystem.scheduler.schedule(cacheDuration, cacheDuration) {
-    Logger.info("Scheduled teams repository cache reload triggered")
+    logger.info("Scheduled teams repository cache reload triggered")
     reload.andThen {
       case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
         removeDeletedTeams(teamRepositoriesFromGh)
@@ -34,12 +36,12 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   //!@ extract a function and reduce duplication
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
-      Logger.info(s"Starting mongo update")
+      logger.info(s"Starting mongo update")
       githubCompositeDataSource.persistTeamRepoMapping
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      Logger.info(s"mongo update completed")
+      logger.info(s"mongo update completed")
       r
     }
   }
@@ -47,12 +49,12 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   def removeDeletedTeams(teamRepositoriesFromGh: Seq[TeamRepositories]) = {
 
     mongoLock.tryLock {
-      Logger.info(s"Starting mongo clean up (removing orphan teams)")
+      logger.info(s"Starting mongo clean up (removing orphan teams)")
       githubCompositeDataSource.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      Logger.info(s"mongo cleanup completed")
+      logger.info(s"mongo cleanup completed")
       r
     }
 
