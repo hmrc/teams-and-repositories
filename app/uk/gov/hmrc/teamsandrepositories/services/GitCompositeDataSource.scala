@@ -1,12 +1,14 @@
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.LocalDateTime
 
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
-
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

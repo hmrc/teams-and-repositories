@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.helpers
 
 import java.util.{Timer, TimerTask}
 
 import org.slf4j.LoggerFactory
 
-
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object RetryStrategy {
+
   lazy val logger = LoggerFactory.getLogger(this.getClass)
+
   private def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     new Timer().schedule(new TimerTask {

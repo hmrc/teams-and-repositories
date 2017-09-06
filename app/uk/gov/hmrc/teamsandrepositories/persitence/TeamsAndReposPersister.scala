@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.persitence
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
@@ -24,7 +24,8 @@ import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.teamsandrepositories.FutureHelpers.withTimerAndCounter
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers.withTimerAndCounter
+import uk.gov.hmrc.teamsandrepositories.persitence.model.{KeyAndTimestamp, TeamRepositories}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -112,18 +113,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
   }
 }
 
-case class KeyAndTimestamp(keyName: String, timestamp: LocalDateTime)
 
-object KeyAndTimestamp {
-  implicit val localDateTimeRead: Reads[LocalDateTime] =
-    __.read[Long].map { dateTime => LocalDateTime.ofEpochSecond(dateTime, 0, ZoneOffset.UTC) }
-
-  implicit val localDateTimeWrite: Writes[LocalDateTime] = new Writes[LocalDateTime] {
-    def writes(dateTime: LocalDateTime): JsValue = JsNumber(value = dateTime.atOffset(ZoneOffset.UTC).toEpochSecond)
-  }
-
-  implicit val formats = Json.format[KeyAndTimestamp]
-}
 
 
 @Singleton

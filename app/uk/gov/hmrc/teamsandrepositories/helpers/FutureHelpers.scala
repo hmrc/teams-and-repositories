@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.helpers
 
-import com.kenshoo.play.metrics.{Metrics, MetricsImpl}
+import com.kenshoo.play.metrics.Metrics
 import play.api.Play
 
 import scala.concurrent.ExecutionContext.Implicits.global

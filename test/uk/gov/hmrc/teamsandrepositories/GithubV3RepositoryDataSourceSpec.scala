@@ -29,6 +29,9 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, MongoUpdateTimePersister, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
 
 import scala.concurrent.{ExecutionContext, Future}
 

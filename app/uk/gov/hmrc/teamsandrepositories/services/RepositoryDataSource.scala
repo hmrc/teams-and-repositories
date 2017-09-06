@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.Duration
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
-
-
 import play.api.libs.json._
-
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
-import uk.gov.hmrc.teamsandrepositories.RetryStrategy._
+import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
@@ -44,7 +44,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
 
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
-  import BlockingIOExecutionContext._
+  //!@ use the play ec
+  import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext._
 
   implicit val repositoryFormats = Json.format[GitRepository]
 
@@ -142,7 +143,6 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
 
-
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
     isPrototype(repo) flatMap { prototype =>
       if (prototype) {
@@ -163,7 +163,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
     Future.successful {repo.name.endsWith("-prototype")}
 
   private def isReleasable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.FutureExtras._
+    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def hasSrcMainScala =
       exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
@@ -178,7 +178,7 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
   private def isDeployable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.FutureExtras._
+    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
       exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))

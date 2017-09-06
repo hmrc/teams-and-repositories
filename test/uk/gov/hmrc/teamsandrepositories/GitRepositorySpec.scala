@@ -20,6 +20,7 @@ import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import play.api.libs.json.Json
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link}
 import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.collection.immutable.ListMap

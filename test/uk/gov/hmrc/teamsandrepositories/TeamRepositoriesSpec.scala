@@ -21,8 +21,10 @@ import java.util.Date
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories.DigitalServiceRepository
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalServiceRepository
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.collection.immutable.ListMap
 

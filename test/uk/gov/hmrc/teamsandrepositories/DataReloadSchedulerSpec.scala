@@ -12,6 +12,8 @@ import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoConnector
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, MongoLock}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

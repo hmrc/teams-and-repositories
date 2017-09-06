@@ -19,8 +19,9 @@ import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import play.api.inject.bind
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoConnector
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, MongoLock}
 
 class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
 

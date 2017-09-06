@@ -10,6 +10,8 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

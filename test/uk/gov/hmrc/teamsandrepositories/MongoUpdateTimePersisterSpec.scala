@@ -3,13 +3,14 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest._
-import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoUpdateTimePersister
+import uk.gov.hmrc.teamsandrepositories.persitence.model.KeyAndTimestamp
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

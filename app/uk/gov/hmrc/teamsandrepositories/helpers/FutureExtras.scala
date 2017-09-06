@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
-
-import scala.concurrent.Future
+package uk.gov.hmrc.teamsandrepositories.helpers
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 object FutureExtras {

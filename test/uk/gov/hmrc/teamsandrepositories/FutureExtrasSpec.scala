@@ -26,7 +26,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
 
   "FutureOfBoolean ||" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -48,7 +48,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -73,7 +73,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
 
   "FutureOfBoolean &&" should {
     "short circuit if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras.FutureOfBoolean
 
       var counter = 0
 
@@ -95,7 +95,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
     }
 
     "execute all if needed" in {
-      import uk.gov.hmrc.teamsandrepositories.FutureExtras.FutureOfBoolean
+      import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras.FutureOfBoolean
 
       var counter = 0
 

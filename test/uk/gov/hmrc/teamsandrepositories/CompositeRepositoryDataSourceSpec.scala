@@ -28,6 +28,9 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource}
 
 import scala.concurrent.{ExecutionContext, Future}
 

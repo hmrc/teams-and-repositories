@@ -3,9 +3,10 @@ package uk.gov.hmrc.teamsandrepositories
 import akka.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
-
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, MongoLock}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

@@ -29,8 +29,11 @@ import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories.DigitalService
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
+import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future

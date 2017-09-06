@@ -4,6 +4,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import play.api.libs.functional.syntax._
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
 
 
 case class GitRepository(name: String,

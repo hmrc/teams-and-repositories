@@ -1,4 +1,4 @@
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.persitence.model
 
 import java.net.URLDecoder
 import java.time.{LocalDateTime, ZoneOffset}
@@ -6,7 +6,9 @@ import java.time.{LocalDateTime, ZoneOffset}
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
+import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 
 
 case class TeamRepositories(teamName: String,repositories: List[GitRepository])
