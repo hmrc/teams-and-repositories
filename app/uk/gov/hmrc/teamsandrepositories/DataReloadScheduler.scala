@@ -5,8 +5,9 @@ import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, MongoLock}
+import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -16,8 +17,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
                                     applicationLifecycle: ApplicationLifecycle,
                                     githubCompositeDataSource: GitCompositeDataSource,
                                     cacheConfig: CacheConfig,
-                                    mongoLock: MongoLock
-                                   )(implicit ec: ExecutionContext) {
+                                    mongoLock: MongoLock)(implicit ec: ExecutionContext) {
 
   private val cacheDuration = cacheConfig.teamsCacheDuration
 
@@ -38,7 +38,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
       logger.info(s"Starting mongo update")
-      githubCompositeDataSource.persistTeamRepoMapping
+      githubCompositeDataSource.persistTeamRepoMapping_new
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>

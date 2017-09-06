@@ -17,12 +17,10 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
-import org.joda.time.Duration
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
 import play.api.libs.json._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
-import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -35,11 +33,26 @@ import scala.util.{Failure, Success, Try}
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
 
-@Singleton
-class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
-                                             gh: GithubApiClient,
-                                             persister: TeamsAndReposPersister,
-                                             val isInternal: Boolean) {
+case class TeamAndOrgAndDataSource(organisation: GhOrganisation, team: GhTeam, dataSource: GithubV3RepositoryDataSource)
+
+case class OneTeamAndItsDataSources(teamName: String, teamAndDataSources: Seq[TeamAndOrgAndDataSource], updateDate: Long)
+
+object OneTeamAndItsDataSources {
+
+  def apply(teamAndDataSources: Seq[TeamAndOrgAndDataSource], updateDate: Long): OneTeamAndItsDataSources = {
+    val uniqueTeamNames = teamAndDataSources.map(_.team.name).toSet
+    require(uniqueTeamNames.size == 1, s"All records much belong to the same team! teams:($uniqueTeamNames)")
+    new OneTeamAndItsDataSources(teamAndDataSources.head.team.name, teamAndDataSources, updateDate)
+  }
+
+}
+
+
+class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
+                                   val gh: GithubApiClient,
+                                   persister: TeamsAndReposPersister,
+                                   val isInternal: Boolean,
+                                   timestampF: () => Long) {
 
 
   lazy val logger = LoggerFactory.getLogger(this.getClass)
@@ -53,6 +66,19 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
 
   val retries: Int = 5
   val initialDuration: Double = 50
+
+  def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] = {
+    gh.getOrganisations.flatMap { orgs =>
+      Future.sequence(
+        orgs.map(org => gh.getTeamsForOrganisation(org.login).map(teams => (org, teams)))
+      ).map(_.map { case (ghOrg, ghTeams) =>
+        val goodGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
+        //        val goodGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name) && team.name.toLowerCase.startsWith("op"))
+        goodGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
+
+      }).map(_.flatten)
+    }
+  }
 
   def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
     exponentialRetry(retries, initialDuration) {
@@ -72,24 +98,49 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
       }
     }
 
-  private def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
+  def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
         } yield mapRepository(organisation, repo)).map { (repos: List[GitRepository]) =>
-          TeamRepositories(team.name, repositories = repos)
+
+          TeamRepositories(team.name, repositories = repos, timestampF())
         }
       }
     }
-}
+  }
+
+  //  //!@
+  //  def mapTeam_new(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
+  //    logger.warn(s"Mapping team (${team.name})")
+  //    exponentialRetry(retries, initialDuration) {
+  //      val eventualRepositories = gh.getReposForTeam(team.id).flatMap { repos =>
+  //        println(s"000===> team: ${team.name} -> REPOS: ${repos.size} <===000")
+  //        Future.sequence(for {
+  //          repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
+  //        } yield mapRepository(organisation, repo)).map { (repos: List[GitRepository]) =>
+  //          TeamRepositories(team.name, repositories = repos)
+  //        }
+  //      }
+  //
+  //      eventualRepositories.recover{ case e =>
+  //        println("-" * 100)
+  //        println(s"ERROR: $team =-=-=-> ${e.getMessage}")
+  //        println("-" * 100)
+  //        throw e
+  //      }
+  //    }
+  //
+  //  }
+
   private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
       manifest <- gh.getFileContent("repository.yaml", repository.name, organisation.login)
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
-    
+
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
     } yield {
       logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
@@ -101,7 +152,8 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
         isInternal = this.isInternal,
         isPrivate = repository.isPrivate,
         repoType = repositoryType,
-        digitalServiceName = maybeDigitalServiceName)
+        digitalServiceName = maybeDigitalServiceName,
+        timestampF())
     }
   }
 
@@ -160,7 +212,9 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
   }
 
   private def isPrototype(repo: GhRepository): Future[Boolean] =
-    Future.successful {repo.name.endsWith("-prototype")}
+    Future.successful {
+      repo.name.endsWith("-prototype")
+    }
 
   private def isReleasable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
@@ -200,11 +254,3 @@ class GithubV3RepositoryDataSource @Inject()(githubConfig: GithubConfig,
 
 }
 
-@Singleton
-class MongoLock @Inject()(mongoConnector: MongoConnector) extends LockKeeper {
-  override def repo: LockRepository = LockMongoRepository(mongoConnector.db)
-
-  override def lockId: String = "teams-and-repositories-sync-job"
-
-  override val forceLockReleaseAfter: Duration = Duration.standardMinutes(20)
-}

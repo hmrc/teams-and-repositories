@@ -38,10 +38,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with Matchers with DefaultPatienceConfig with MockitoSugar with SpanSugar with BeforeAndAfterEach {
 
+  val now = new Date().getTime
+  private val timestampF = () => now
+
   trait Setup  {
     val githubClient = mock[GithubApiClient]
     val persister = new StubTeamsAndReposPersister
-    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = false)
+    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = false, timestampF)
 
     when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
     when(githubClient.getFileContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(None))
@@ -51,7 +54,6 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
     when(githubConfig.hiddenTeams).thenReturn(testHiddenTeams)
   }
 
-  val now = new Date().getTime
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams = List("hidden_team1", "hidden_team2")
@@ -86,22 +88,22 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       val eventualPersistedTeamAndRepositorieses = dataSource.getTeamRepoMapping
       eventualPersistedTeamAndRepositorieses.futureValue shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None))),
-        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, digitalServiceName = None))),
-        TeamRepositories("C", List(GitRepository("C_r", "some description", "url_C", now, now, digitalServiceName = None))),
-        TeamRepositories("D", List()))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()),
+        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()),
+        TeamRepositories("C", List(GitRepository("C_r", "some description", "url_C", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()),
+        TeamRepositories("D", List(), timestampF()))
     }
 
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
-      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = true)
+      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = true, timestampF)
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false))))
 
       internalDataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true, digitalServiceName = None))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Filter out repositories according to the hidden config" in new Setup {
@@ -113,7 +115,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         githubclient.GhRepository("A_r",   "some description", 2, "url_A", false, now, now, false))))
       
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r" , "some description", "url_A", now, now, digitalServiceName = None))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
     
     "Filter out teams according to the hidden config" in new Setup {
@@ -123,7 +125,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(2)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("B_r", "some description", 2, "url_B", false, now, now, false))))
       
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, digitalServiceName = None))))
+        TeamRepositories("B", List(GitRepository("B_r", "some description", "url_B", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set repoType Service if the repository contains an app/application.conf folder" in new Setup {
@@ -135,7 +137,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("conf/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A",now, now, repoType = RepoType.Service, digitalServiceName = None))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set repoType Service if the repository contains a Procfile" in new Setup {
@@ -147,7 +149,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent("Procfile","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
 
       dataSource.getTeamRepoMapping.futureValue shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type Service if the repository contains a deploy.properties" in new Setup {
@@ -158,7 +160,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.repoContainsContent(same("deploy.properties"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type as Deployable according if the repository.yaml contains a type of 'service'" in new Setup {
@@ -169,7 +171,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "extract digital service name from repository.yaml" in new Setup {
@@ -180,7 +182,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getFileContent(same("repository.yaml"),same("repository-xyz"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = Some("service-abcd")))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = Some("service-abcd"), updateDate = timestampF())), timestampF()))
     }
 
     "extract digital service name and repo type from repository.yaml" in new Setup {
@@ -196,7 +198,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         """.stripMargin
       when(githubClient.getFileContent(same("repository.yaml"),same("repository-xyz"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some(manifestYaml)))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = Some("service-abcd")))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = Some("service-abcd"), updateDate = timestampF())), timestampF()))
     }
 
     "Set type as Library according if the repository.yaml contains a type of 'library'" in new Setup {
@@ -207,7 +209,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type as Other if the repository.yaml contains any other value for type" in new Setup {
@@ -218,7 +220,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type as Other if the repository.yaml does not contain a type" in new Setup {
@@ -229,7 +231,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
 
-      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None))))
+      dataSource.getTeamRepoMapping.futureValue should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type Library if not Service and has src/main/scala and has tags" in new Setup {
@@ -242,7 +244,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(same("src/main/scala"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
-      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type Library if not Service and has src/main/java and has tags" in new Setup {
@@ -255,7 +257,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.repoContainsContent(same("src/main/java"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
-      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type Prototype if the repository name ends in '-prototype'" in new Setup {
@@ -265,7 +267,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false))))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
-      repositories should contain(TeamRepositories("A", List(GitRepository("CATO-prototype", "some description", "url_A", now, now, repoType = RepoType.Prototype, digitalServiceName = None))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("CATO-prototype", "some description", "url_A", now, now, repoType = RepoType.Prototype, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set type Other if not Service, Library nor Prototype and no repository.yaml file" in new Setup {
@@ -275,7 +277,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false))))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
-      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Set isPrivate to true if the repo is private" in new Setup {
@@ -285,7 +287,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubclient.GhRepository("A_r",   "some description", 1, "url_A", false, now, now, true))))
 
       val repositories: Seq[TeamRepositories] = dataSource.getTeamRepoMapping.futureValue
-      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, isPrivate = true))))
+      repositories should contain(TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isPrivate = true, repoType = RepoType.Other, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
 
     "Retry up to 5 times in the event of a failed api call" in new Setup {
@@ -326,7 +328,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         .thenReturn(Future.successful(false))
 
       dataSource.getTeamRepoMapping.futureValue(Timeout(1 minute)) shouldBe List(
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None))))
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, updateDate = timestampF())), timestampF()))
     }
   }
 }

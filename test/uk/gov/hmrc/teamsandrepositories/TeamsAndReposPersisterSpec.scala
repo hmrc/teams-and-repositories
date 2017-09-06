@@ -26,7 +26,7 @@ class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValue
   private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]
   private val updateTimePersister = mock[MongoUpdateTimePersister]
 
-  val teamAndRepositories = TeamRepositories("teamX", Nil)
+  val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
 
   val persister = new TeamsAndReposPersister(teamsAndReposPersister, updateTimePersister)
 

@@ -37,6 +37,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
+    logger.info(s"Updating team record: $teamsAndRepositories")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
@@ -45,6 +46,12 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
       teamsAndRepos <- mongoTeamsAndReposPersister.getAllTeamAndRepos
       timestamp <- mongoUpdateTimePersister.get(teamsAndRepositoriesTimestampKeyName)
     } yield (teamsAndRepos, timestamp.map(_.timestamp))
+  }
+
+  def getAllTeams: Future[Seq[TeamRepositories]] = {
+    for {
+      teamsAndRepos <- mongoTeamsAndReposPersister.getAllTeamAndRepos
+    } yield teamsAndRepos
   }
 
   def clearAllData: Future[Boolean] = {

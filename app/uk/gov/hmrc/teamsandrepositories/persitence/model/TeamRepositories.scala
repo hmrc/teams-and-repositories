@@ -11,7 +11,7 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 
 
-case class TeamRepositories(teamName: String,repositories: List[GitRepository])
+case class TeamRepositories(teamName: String, repositories: List[GitRepository], updateDate: Long)
 
 object TeamRepositories {
   case class DigitalServiceRepository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType, teamNames: Seq[String])

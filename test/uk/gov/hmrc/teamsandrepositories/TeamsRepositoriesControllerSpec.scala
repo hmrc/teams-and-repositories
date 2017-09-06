@@ -112,22 +112,22 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   val defaultData =
     Seq(
       new TeamRepositories("test-team", List(
-        GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = createdDateForService1, lastActiveDate = lastActiveDateForService1, digitalServiceName = Some("digital-service-2")),
-        GitRepository("library-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, digitalServiceName = Some("digital-service-3"))
-      )),
+                    GitRepository("repo-name", "some description", "repo-url", createdDate = createdDateForService1, lastActiveDate = lastActiveDateForService1, repoType = RepoType.Service, digitalServiceName = Some("digital-service-2"), updateDate = System.currentTimeMillis()),
+                    GitRepository("library-repo", "some description", "library-url", createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, repoType = RepoType.Library, digitalServiceName = Some("digital-service-3"), updateDate = System.currentTimeMillis())
+                  ), System.currentTimeMillis()),
       new TeamRepositories("another-team", List(
-        GitRepository("another-repo", "some description", "another-url", repoType = RepoType.Service, createdDate = createdDateForService2, lastActiveDate = lastActiveDateForService2, digitalServiceName = Some("digital-service-1")),
-        GitRepository("middle-repo", "some description", "middle-url", repoType = RepoType.Service, createdDate = createdDateForService3, lastActiveDate = lastActiveDateForService3, digitalServiceName = Some("digital-service-2")),
-        GitRepository("alibrary-repo", "some description", "library-url", repoType = RepoType.Library, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-1")),
-        GitRepository("CATO-prototype", "some description", "prototype-url", repoType = RepoType.Prototype, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-2")),
-        GitRepository("other-repo", "some description", "library-url", repoType = RepoType.Other, createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, digitalServiceName = Some("digital-service-1"))
-      ))
+                    GitRepository("another-repo", "some description", "another-url", createdDate = createdDateForService2, lastActiveDate = lastActiveDateForService2, repoType = RepoType.Service, digitalServiceName = Some("digital-service-1"), updateDate = System.currentTimeMillis()),
+                    GitRepository("middle-repo", "some description", "middle-url", createdDate = createdDateForService3, lastActiveDate = lastActiveDateForService3, repoType = RepoType.Service, digitalServiceName = Some("digital-service-2"), updateDate = System.currentTimeMillis()),
+                    GitRepository("alibrary-repo", "some description", "library-url", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, repoType = RepoType.Library, digitalServiceName = Some("digital-service-1"), updateDate = System.currentTimeMillis()),
+                    GitRepository("CATO-prototype", "some description", "prototype-url", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, repoType = RepoType.Prototype, digitalServiceName = Some("digital-service-2"), updateDate = System.currentTimeMillis()),
+                    GitRepository("other-repo", "some description", "library-url", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, repoType = RepoType.Other, digitalServiceName = Some("digital-service-1"), updateDate = System.currentTimeMillis())
+                  ), System.currentTimeMillis())
     )
 
   def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url", isInternal: Boolean = true) = {
     Seq(
       new TeamRepositories("test-team", List(
-        GitRepository(repoName, "some description", repoUrl, repoType = RepoType.Service, isInternal = isInternal, createdDate = now, lastActiveDate = now))))
+                    GitRepository(repoName, "some description", repoUrl, createdDate = now, lastActiveDate = now, isInternal = isInternal, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
   }
 
   "Teams controller" should {
@@ -212,8 +212,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "Return information about all the teams that have access to a repo" in {
       val sourceData =
         Seq(
-          new TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))),
-          new TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now)))
+          new TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+          new TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
         )
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -230,9 +230,9 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "not show the same service twice when it has an open and internal source repository" in {
       val sourceData =
         Seq(new TeamRepositories("test-team", List(
-          GitRepository("repo-name", "some description", "Another-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))))
+                          GitRepository("repo-name", "some description", "Another-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("aadvark-repo", "some description", "aadvark-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -276,8 +276,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "Return the repository information for the specified team" in {
       val sourceData =
         Seq(
-          TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))),
-          TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now)))
+          TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+          TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
         )
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -294,9 +294,9 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "not show the same service twice when it has an open and internal source repository" in {
       val sourceData =
         Seq(TeamRepositories("test-team", List(
-          GitRepository("repo-name", "some description", "Another-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))))
+                          GitRepository("repo-name", "some description", "Another-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("aadvark-repo", "some description", "aadvark-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
       val result = controller.repositoriesWithDetailsByTeam("test-team").apply(FakeRequest())
@@ -448,9 +448,9 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "Ignore case when sorting alphabetically" in {
       val sourceData =
         Seq(TeamRepositories("test-team", List(
-          GitRepository("Another-repo", "some description", "Another-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now),
-          GitRepository("aadvark-repo", "some description", "aadvark-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))))
+                          GitRepository("Another-repo", "some description", "Another-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                          GitRepository("aadvark-repo", "some description", "aadvark-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
       val result = controller.services().apply(FakeRequest())
@@ -462,8 +462,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     "Flatten team info if a service belongs to multiple teams" in {
       val data =
         Seq(
-          TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now))),
-          TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, createdDate = now, lastActiveDate = now)))
+          TeamRepositories("test-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+          TeamRepositories("another-team", List(GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
         )
 
       val controller = controllerWithData(data, updateTimestamp = updateTimestamp)
@@ -479,8 +479,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       val sourceData =
         Seq(
           new TeamRepositories("test-team", List(
-            GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Service, isInternal = true, createdDate = now, lastActiveDate = now),
-            GitRepository("repo-name", "some description", "repo-open-url", repoType = RepoType.Service, isInternal = false, createdDate = now, lastActiveDate = now))))
+                                GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, isInternal = true, repoType = RepoType.Service, updateDate = System.currentTimeMillis()),
+                                GitRepository("repo-name", "some description", "repo-open-url", createdDate = now, lastActiveDate = now, isInternal = false, repoType = RepoType.Service, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -510,8 +510,8 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
       val sourceData =
         Seq(
           new TeamRepositories("test-team", List(
-            GitRepository("repo-name", "some description", "repo-url", repoType = RepoType.Library, isInternal = true, createdDate = now, lastActiveDate = now),
-            GitRepository("repo-open-name", "some description", "repo-open-url", repoType = RepoType.Library, isInternal = false, createdDate = now, lastActiveDate = now))))
+                                GitRepository("repo-name", "some description", "repo-url", createdDate = now, lastActiveDate = now, isInternal = true, repoType = RepoType.Library, updateDate = System.currentTimeMillis()),
+                                GitRepository("repo-open-name", "some description", "repo-open-url", createdDate = now, lastActiveDate = now, isInternal = false, repoType = RepoType.Library, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
       val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
@@ -524,7 +524,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     }
 
     "Return an empty list if a team has no repositories" in {
-      val sourceData = Seq(new TeamRepositories("test-team", List()))
+      val sourceData = Seq(new TeamRepositories("test-team", List(), System.currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
       val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())

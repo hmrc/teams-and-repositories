@@ -16,7 +16,7 @@ import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource}
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource, Timestamper}
 
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
@@ -27,6 +27,11 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
   private val persister = mock[TeamsAndReposPersister]
   private val connector = mock[MongoConnector]
   private val githubClientDecorator = mock[GithubApiClientDecorator]
+
+  val now = new Date().getTime
+  val testTimestamper = new Timestamper {
+    override def timestampF() = now
+  }
 
 
   implicit override lazy val app: Application =
@@ -67,7 +72,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
       when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
       when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
-      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator)
+      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper)
 
       verify(gitApiOpenConfig).apiUrl
       verify(gitApiOpenConfig).key
@@ -85,21 +90,21 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
   }
 
 
-  val now = new Date().getTime
+
 
   describe("Retrieving team repo mappings") {
 
     it("return the combination of all input sources") {
 
       val teamsList1 = List(
-        TeamRepositories("A", List(GitRepository("A_r", "Some Description", "url_A", now, now))),
-        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now))),
-        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now))))
+        TeamRepositories("A", List(GitRepository("A_r", "Some Description", "url_A", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()),
+        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()),
+        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()))
 
       val teamsList2 = List(
-        TeamRepositories("D", List(GitRepository("D_r", "Some Description", "url_D", now, now))),
-        TeamRepositories("E", List(GitRepository("E_r", "Some Description", "url_E", now, now))),
-        TeamRepositories("F", List(GitRepository("F_r", "Some Description", "url_F", now, now))))
+        TeamRepositories("D", List(GitRepository("D_r", "Some Description", "url_D", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()),
+        TeamRepositories("E", List(GitRepository("E_r", "Some Description", "url_E", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()),
+        TeamRepositories("F", List(GitRepository("F_r", "Some Description", "url_F", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()))
 
       val dataSource1 = mock[GithubV3RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(successful(teamsList1))
@@ -121,18 +126,18 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
 
     it("combine teams that have the same names in both sources and sort repositories alphabetically") {
 
-      val repoAA = GitRepository("A_A", "Some Description", "url_A_A", now, now)
-      val repoAB = GitRepository("A_B", "Some Description", "url_A_B", now, now)
-      val repoAC = GitRepository("A_C", "Some Description", "url_A_C", now, now)
+      val repoAA = GitRepository("A_A", "Some Description", "url_A_A", now, now, updateDate = testTimestamper.timestampF())
+      val repoAB = GitRepository("A_B", "Some Description", "url_A_B", now, now, updateDate = testTimestamper.timestampF())
+      val repoAC = GitRepository("A_C", "Some Description", "url_A_C", now, now, updateDate = testTimestamper.timestampF())
 
       val teamsList1 = List(
-        TeamRepositories("A", List(repoAC, repoAB)),
-        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now))),
-        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now))))
+        TeamRepositories("A", List(repoAC, repoAB), testTimestamper.timestampF()),
+        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()),
+        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()))
 
       val teamsList2 = List(
-        TeamRepositories("A", List(repoAA)),
-        TeamRepositories("D", List(GitRepository("D_r", "Some Description", "url_D", now, now))))
+        TeamRepositories("A", List(repoAA), testTimestamper.timestampF()),
+        TeamRepositories("D", List(GitRepository("D_r", "Some Description", "url_D", now, now, updateDate = testTimestamper.timestampF())), testTimestamper.timestampF()))
 
       val dataSource1 = mock[GithubV3RepositoryDataSource]
       when(dataSource1.getTeamRepoMapping).thenReturn(successful(teamsList1))
@@ -161,16 +166,16 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
       val compositeDataSource = buildCompositeDataSource(List(dataSource1, dataSource2))
 
       val teamRepositoriesInMongo = Seq(
-        TeamRepositories("team-a", Nil),
-        TeamRepositories("team-b", Nil),
-        TeamRepositories("team-c", Nil),
-        TeamRepositories("team-d", Nil)
+        TeamRepositories("team-a", Nil, System.currentTimeMillis()),
+        TeamRepositories("team-b", Nil, System.currentTimeMillis()),
+        TeamRepositories("team-c", Nil, System.currentTimeMillis()),
+        TeamRepositories("team-d", Nil, System.currentTimeMillis())
       )
 
       when(persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo, None))
       when(persister.deleteTeams(ArgumentMatchers.any())).thenReturn(Future.successful(Set("something not important")))
 
-      compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil), TeamRepositories("team-c", Nil)))
+      compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil, System.currentTimeMillis()), TeamRepositories("team-c", Nil, System.currentTimeMillis())))
 
       verify(persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
     }
@@ -178,9 +183,9 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     it("should update the timestamp") {
 
       val teamsList = List(
-        TeamRepositories("A", List(GitRepository("A_r", "Some Description", "url_A", now, now))),
-        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now))),
-        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now))))
+        TeamRepositories("A", List(GitRepository("A_r", "Some Description", "url_A", now, now, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+        TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+        TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
 
       val dataSource = mock[GithubV3RepositoryDataSource]
       when(dataSource.getTeamRepoMapping).thenReturn(successful(teamsList))
@@ -227,7 +232,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
 
     when(persister.updateTimestamp(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
-    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator) {
+    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
       override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList
     }
   }
