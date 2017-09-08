@@ -50,7 +50,6 @@ object OneTeamAndItsDataSources {
 
 class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
                                    val gh: GithubApiClient,
-                                   persister: TeamsAndReposPersister,
                                    val isInternal: Boolean,
                                    timestampF: () => Long) {
 

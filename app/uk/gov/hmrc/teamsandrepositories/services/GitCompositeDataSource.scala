@@ -36,13 +36,13 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
 
   val enterpriseTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitApiEnterpriseClient, persister, isInternal = true, timestamper.timestampF)
+    new GithubV3RepositoryDataSource(githubConfig, gitApiEnterpriseClient, isInternal = true, timestamper.timestampF)
 
   val gitOpenClient: GithubApiClient =
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
   val openTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitOpenClient, persister, isInternal = false, timestamper.timestampF)
+    new GithubV3RepositoryDataSource(githubConfig, gitOpenClient, isInternal = false, timestamper.timestampF)
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 

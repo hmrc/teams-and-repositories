@@ -43,8 +43,8 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
   trait Setup  {
     val githubClient = mock[GithubApiClient]
-    val persister = new StubTeamsAndReposPersister
-    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = false, timestampF)
+//    val persister = new StubTeamsAndReposPersister
+    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false, timestampF)
 
     when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
     when(githubClient.getFileContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(None))
@@ -96,7 +96,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
-      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, persister, isInternal = true, timestampF)
+      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = true, timestampF)
 
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(githubclient.GhOrganisation("HMRC",1))))
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(githubclient.GhTeam("A", 1))))

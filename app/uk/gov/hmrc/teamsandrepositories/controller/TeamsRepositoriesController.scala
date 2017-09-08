@@ -167,6 +167,10 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     Ok("Cache reload triggered successfully")
   }
 
+  def clearCache() = Action.async {
+    teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
+  }
+
 
   private def format(dateTime: LocalDateTime): String = {
     DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
