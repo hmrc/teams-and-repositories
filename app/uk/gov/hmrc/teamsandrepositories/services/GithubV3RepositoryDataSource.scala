@@ -66,14 +66,14 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   val retries: Int = 5
   val initialDuration: Double = 50
 
+
   def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] = {
     gh.getOrganisations.flatMap { orgs =>
       Future.sequence(
         orgs.map(org => gh.getTeamsForOrganisation(org.login).map(teams => (org, teams)))
       ).map(_.map { case (ghOrg, ghTeams) =>
-        val goodGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
-        //        val goodGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name) && team.name.toLowerCase.startsWith("op"))
-        goodGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
+        val nonHiddenGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
+        nonHiddenGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
 
       }).map(_.flatten)
     }
@@ -88,14 +88,14 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
 //      }
 //    }
 
-  private def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
-    exponentialRetry(retries, initialDuration) {
-      gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
-        Future.sequence(for {
-          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
-        } yield mapTeam(organisation, team))
-      }
-    }
+//  private def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
+//    exponentialRetry(retries, initialDuration) {
+//      gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
+//        Future.sequence(for {
+//          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
+//        } yield mapTeam(organisation, team))
+//      }
+//    }
 
   def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
@@ -111,28 +111,7 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     }
   }
 
-  //  //!@
-  //  def mapTeam_new(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
-  //    logger.warn(s"Mapping team (${team.name})")
-  //    exponentialRetry(retries, initialDuration) {
-  //      val eventualRepositories = gh.getReposForTeam(team.id).flatMap { repos =>
-  //        println(s"000===> team: ${team.name} -> REPOS: ${repos.size} <===000")
-  //        Future.sequence(for {
-  //          repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
-  //        } yield mapRepository(organisation, repo)).map { (repos: List[GitRepository]) =>
-  //          TeamRepositories(team.name, repositories = repos)
-  //        }
-  //      }
-  //
-  //      eventualRepositories.recover{ case e =>
-  //        println("-" * 100)
-  //        println(s"ERROR: $team =-=-=-> ${e.getMessage}")
-  //        println("-" * 100)
-  //        throw e
-  //      }
-  //    }
-  //
-  //  }
+
 
   private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
