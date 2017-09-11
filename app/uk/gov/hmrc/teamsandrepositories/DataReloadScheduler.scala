@@ -23,6 +23,9 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
+  import BlockingIOExecutionContext._
+
+
   private val scheduledReload = actorSystem.scheduler.schedule(cacheDuration, cacheDuration) {
     logger.info("Scheduled teams repository cache reload triggered")
     reload.andThen {

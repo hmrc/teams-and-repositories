@@ -1,27 +1,25 @@
 package uk.gov.hmrc.teamsandrepositories
 
 
-import java.io.File
-
 import com.google.inject.{Injector, Key, TypeLiteral}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, when}
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{Matchers, OptionValues, WordSpec}
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.{Application, Configuration}
-import play.api.inject.ApplicationLifecycle
+import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Timestamper}
+
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.inject.bind
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
-import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Timestamper}
 
 class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
 
@@ -38,7 +36,8 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
 
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]
-  when(mockGitCompositeDataSource.persistTeamRepoMapping_new).thenReturn(Future.successful(Nil))
+  when(mockGitCompositeDataSource.persistTeamRepoMapping_new(any())).thenReturn(Future.successful(Nil))
+  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())).thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -60,7 +59,7 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping_new
+    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping_new(any())
 
   }
 }

@@ -10,7 +10,7 @@ import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndRepo
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 
@@ -27,8 +27,6 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
                                        val timestamper: Timestamper) {
 
 
-
-  import BlockingIOExecutionContext._
 
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -48,7 +46,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
 
   //!@ test
-  def persistTeamRepoMapping_new: Future[Seq[TeamRepositories]] = {
+  def persistTeamRepoMapping_new(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeams
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)
@@ -63,14 +61,14 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     }.map(_.toSeq)
   }
 
-  def getAllRepositoriesForTeam(aTeam: OneTeamAndItsDataSources): Future[Seq[TeamRepositories]] = {
+  private def getAllRepositoriesForTeam(aTeam: OneTeamAndItsDataSources)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     Future.sequence(aTeam.teamAndDataSources.map { teamAndDataSource =>
       teamAndDataSource.dataSource.mapTeam(teamAndDataSource.organisation, teamAndDataSource.team)
     })
   }
 
-  //!@ test
-  def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]]): Future[Seq[OneTeamAndItsDataSources]] = {
+
+  private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(implicit ec: ExecutionContext): Future[Seq[OneTeamAndItsDataSources]] = {
     for {
       teamsAndTheirOrgAndDataSources <- Future.sequence(dataSources.map(ds => ds.getTeamsWithOrgAndDataSourceDetails))
       persistedTeams <- persistedTeamsF
@@ -81,28 +79,17 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     
   }
 
-  def mergeRepositoriesForTeam(teamName: String, aTeamAndItsRepositories: Seq[TeamRepositories]) = {
-    aTeamAndItsRepositories.foldLeft(TeamRepositories(teamName, Nil, timestamper.timestampF())) { case (acc, tr) =>
+  private def mergeRepositoriesForTeam(teamName: String, aTeamAndItsRepositories: Seq[TeamRepositories]): TeamRepositories = {
+    val teamRepositories = aTeamAndItsRepositories.foldLeft(TeamRepositories(teamName, Nil, timestamper.timestampF())) { case (acc, tr) =>
       acc.copy(repositories = acc.repositories ++ tr.repositories)
     }
+    teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
   }
 
-  def persistTeamRepoMapping: Future[Seq[TeamRepositories]] = {
-
-    Future.sequence(dataSources.map(_.getTeamRepoMapping)).map { results =>
-      val flattened: List[TeamRepositories] = results.flatten
-
-      logger.info(s"Combining ${flattened.length} results from ${dataSources.length} sources")
-      Future.sequence(flattened.groupBy(_.teamName).map { case (name, teams) =>
-        TeamRepositories(name, teams.flatMap(t => t.repositories).sortBy(_.name), timestamper.timestampF())
-      }.toList.map(tr => persister.update(tr)))
-    }.flatMap(identity).andThen {
-      case Failure(t) => throw t
-      case Success(_) => persister.updateTimestamp(LocalDateTime.now())
-    }
-  }
 
   def removeOrphanTeamsFromMongo(teamRepositoriesFromGh: Seq[TeamRepositories]) = {
+
+    import BlockingIOExecutionContext._
 
     val teamNamesFromMongo: Future[Set[String]] = {
       persister.getAllTeamAndRepos.map { case (allPersistedTeamAndRepositories, _) =>

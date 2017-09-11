@@ -17,7 +17,7 @@ case class GitRepository(name: String,
                          isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
                          digitalServiceName: Option[String] = None,
-                         updateDate: Long)
+                         updateDate: Long)  //!@ can we remove updateDate field from this class?
 
 object GitRepository {
   def toRepository(gitRepository: GitRepository): Repository =

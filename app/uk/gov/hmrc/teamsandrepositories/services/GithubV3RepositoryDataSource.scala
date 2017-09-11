@@ -79,14 +79,14 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     }
   }
 
-  def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
-    exponentialRetry(retries, initialDuration) {
-      gh.getOrganisations.flatMap { orgs =>
-        Future.sequence(orgs.map(mapOrganisation)).map {
-          _.flatten
-        }
-      }
-    }
+//!@  def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
+//    exponentialRetry(retries, initialDuration) {
+//      gh.getOrganisations.flatMap { orgs =>
+//        Future.sequence(orgs.map(mapOrganisation)).map {
+//          _.flatten
+//        }
+//      }
+//    }
 
   private def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
     exponentialRetry(retries, initialDuration) {
