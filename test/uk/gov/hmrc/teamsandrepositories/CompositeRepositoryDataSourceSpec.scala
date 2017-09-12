@@ -325,7 +325,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
     when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
     val repositories: Seq[TeamRepositories] = Seq(TeamRepositories("testTeam", Nil, timestampF()))
-    when(persister.getAllTeams).thenReturn(Future.successful(storedTeamRepositories))
+    when(persister.getAllTeamAndRepos).thenReturn(Future.successful(storedTeamRepositories))
     when(persister.update(ArgumentMatchers.any())).thenAnswer(new Answer[Future[TeamRepositories]] {
       override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
         val args = invocation.getArguments()

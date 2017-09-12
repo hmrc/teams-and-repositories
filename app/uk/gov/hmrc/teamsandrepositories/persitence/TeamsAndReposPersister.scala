@@ -45,10 +45,6 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
       mongoTeamsAndReposPersister.getAllTeamAndRepos
   }
 
-  //!@ duplicate method, remove?
-  def getAllTeams: Future[Seq[TeamRepositories]] = {
-      mongoTeamsAndReposPersister.getAllTeamAndRepos
-  }
 
   def clearAllData: Future[Boolean] = {
     mongoTeamsAndReposPersister.clearAllData
