@@ -11,13 +11,13 @@ import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Repository
 
 case class GitRepository(name: String,
                          description: String,
-                         url: String, createdDate: Long,
+                         url: String,
+                         createdDate: Long,
                          lastActiveDate: Long,
                          isInternal: Boolean = false,
                          isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
-                         digitalServiceName: Option[String] = None,
-                         updateDate: Long)  //!@ can we remove updateDate field from this class?
+                         digitalServiceName: Option[String] = None)
 
 object GitRepository {
   def toRepository(gitRepository: GitRepository): Repository =
@@ -34,9 +34,8 @@ object GitRepository {
         (JsPath \ "isInternal").read[Boolean] and
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
-        (JsPath \ "digitalServiceName").readNullable[String] and
-        (JsPath \ "updateDate").read[Long]
-      ) (GitRepository.apply _)
+        (JsPath \ "digitalServiceName").readNullable[String]
+      ) (apply _)
 
     val writes = Json.writes[GitRepository]
 

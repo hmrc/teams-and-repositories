@@ -1,53 +1,53 @@
-//package uk.gov.hmrc.teamsandrepositories
-//
-//import java.util.Date
-//
-//import org.mockito.Mockito._
-//import org.mockito.invocation.InvocationOnMock
-//import org.mockito.stubbing.Answer
-//import org.mockito.{ArgumentMatchers, Mockito}
-//import org.scalatest._
-//import org.scalatest.concurrent.ScalaFutures
-//import org.scalatest.mock.MockitoSugar
-//import org.scalatestplus.play.OneAppPerSuite
-//import play.api.Application
-//import play.api.inject.guice.GuiceApplicationBuilder
-//import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
-//import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-//import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
-//import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-//import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource, Timestamper}
-//
-//import scala.concurrent.Future
-//import scala.concurrent.Future.successful
-//
-//class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar with LoneElement with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerSuite {
-//
-//  private val githubConfig = mock[GithubConfig]
-//  private val persister = mock[TeamsAndReposPersister]
-//  private val connector = mock[MongoConnector]
-//  private val githubClientDecorator = mock[GithubApiClientDecorator]
-//
-//  val now = new Date().getTime
-//  val testTimestamper = new Timestamper {
-//    override def timestampF() = now
-//  }
-//
-//
-//  implicit override lazy val app: Application =
-//    new GuiceApplicationBuilder()
-//      .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
-//      .build()
-//
-//
-//  override protected def beforeEach() = {
-//    reset(githubConfig)
-//    reset(persister)
-//    reset(connector)
-//    reset(githubClientDecorator)
-//  }
-//
-//
+package uk.gov.hmrc.teamsandrepositories
+
+import java.util.Date
+
+import org.mockito.Mockito._
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
+import org.mockito.{ArgumentMatchers, Mockito}
+import org.scalatest._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.mock.MockitoSugar
+import org.scalatestplus.play.OneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource, Timestamper}
+
+import scala.concurrent.Future
+import scala.concurrent.Future.successful
+
+class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar with LoneElement with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerSuite {
+
+  private val githubConfig = mock[GithubConfig]
+  private val persister = mock[TeamsAndReposPersister]
+  private val connector = mock[MongoConnector]
+  private val githubClientDecorator = mock[GithubApiClientDecorator]
+
+  val now = new Date().getTime
+  val testTimestamper = new Timestamper {
+    override def timestampF() = now
+  }
+
+
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
+      .build()
+
+
+  override protected def beforeEach() = {
+    reset(githubConfig)
+    reset(persister)
+    reset(connector)
+    reset(githubClientDecorator)
+  }
+
+
 //  describe("buildDataSource") {
 //    it("should create the right CompositeRepositoryDataSource") {
 //
@@ -88,12 +88,12 @@
 //      openDataSource shouldBe compositeRepositoryDataSource.openTeamsRepositoryDataSource
 //    }
 //  }
-//
-//
-//
-//
-//  describe("Retrieving team repo mappings") {
-//
+
+
+
+
+  describe("Retrieving team repo mappings") {
+
 //    it("return the combination of all input sources") {
 //
 //      val teamsList1 = List(
@@ -197,43 +197,43 @@
 //      verify(persister, Mockito.timeout(1000)).updateTimestamp(ArgumentMatchers.any())
 //    }
 //
-//  }
-//
-//  private def buildCompositeDataSource(dataSourceList: List[GithubV3RepositoryDataSource]) = {
-//
-//    val gitApiOpenConfig = mock[GitApiConfig]
-//    val gitApiEnterpriseConfig = mock[GitApiConfig]
-//
-//    when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
-//    when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
-//
-//    val enterpriseUrl = "enterprise.com"
-//    val enterpriseKey = "enterprise.key"
-//    when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
-//    when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
-//
-//    val openUrl = "open.com"
-//    val openKey = "open.key"
-//    when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
-//    when(gitApiOpenConfig.key).thenReturn(openKey)
-//
-//    val enterpriseGithubClient = mock[GithubApiClient]
-//    val openGithubClient = mock[GithubApiClient]
-//    when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
-//    when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
-//
-//
-//    when(persister.update(ArgumentMatchers.any())).thenAnswer(new Answer[Future[TeamRepositories]] {
-//      override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
-//        val args = invocation.getArguments()
-//        Future.successful(args(0).asInstanceOf[TeamRepositories])
-//      }
-//    })
-//
-//    when(persister.updateTimestamp(ArgumentMatchers.any())).thenReturn(Future.successful(true))
-//
-//    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
-//      override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList
-//    }
-//  }
-//}
+  }
+
+  private def buildCompositeDataSource(dataSourceList: List[GithubV3RepositoryDataSource]) = {
+
+    val gitApiOpenConfig = mock[GitApiConfig]
+    val gitApiEnterpriseConfig = mock[GitApiConfig]
+
+    when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
+    when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
+
+    val enterpriseUrl = "enterprise.com"
+    val enterpriseKey = "enterprise.key"
+    when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
+    when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
+
+    val openUrl = "open.com"
+    val openKey = "open.key"
+    when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
+    when(gitApiOpenConfig.key).thenReturn(openKey)
+
+    val enterpriseGithubClient = mock[GithubApiClient]
+    val openGithubClient = mock[GithubApiClient]
+    when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
+    when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
+
+
+    when(persister.update(ArgumentMatchers.any())).thenAnswer(new Answer[Future[TeamRepositories]] {
+      override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
+        val args = invocation.getArguments()
+        Future.successful(args(0).asInstanceOf[TeamRepositories])
+      }
+    })
+
+    when(persister.updateTimestamp(ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
+    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
+      override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList
+    }
+  }
+}

@@ -55,10 +55,10 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
     "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
 
-      val oldestLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val oldDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newDeployableRepo = GitRepository("repo3", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val oldOtherRepoWithLatestActiveDate = GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
+      val oldestLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None)
+      val oldDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Service, digitalServiceName = None)
+      val newDeployableRepo = GitRepository("repo3", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None)
+      val oldOtherRepoWithLatestActiveDate = GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None)
 
       val teams = Seq(
         TeamRepositories("teamNameChicken", List(newDeployableRepo, oldestLibraryRepo), System.currentTimeMillis()),
@@ -84,11 +84,11 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
     "Exclude specified repos in calculating activity max and min dates" in {
 
-      val oldLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val oldDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 4, lastActiveDate = 40, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 5, lastActiveDate = 50, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newIgnoreRepo = GitRepository("ignoreRepo", "some desc", "", createdDate = 1, lastActiveDate = 10000, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
+      val oldLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Library, digitalServiceName = None)
+      val oldDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None)
+      val newLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 4, lastActiveDate = 40, isInternal = false, repoType = Library, digitalServiceName = None)
+      val newDeployableRepo = GitRepository("repo2", "some desc", "", createdDate = 5, lastActiveDate = 50, isInternal = true, repoType = Service, digitalServiceName = None)
+      val newIgnoreRepo = GitRepository("ignoreRepo", "some desc", "", createdDate = 1, lastActiveDate = 10000, isInternal = false, repoType = Service, digitalServiceName = None)
 
       val teams = Seq(
         TeamRepositories("teamNameChicken", List(oldLibraryRepo, newDeployableRepo, newIgnoreRepo), System.currentTimeMillis()),
@@ -120,13 +120,13 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo2", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo3", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo3", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo3", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
 
       val result: Seq[Repository] = TeamRepositories.getAllRepositories(teams).filter(_.repoType == Service)
@@ -139,10 +139,10 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
     "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
 
-      val oldestLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val oldDeployableRepo = GitRepository("repo1", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newDeployableRepo = GitRepository("repo1", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-      val newestOtherRepo = GitRepository("repo1", description, "", createdDate = 4, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
+      val oldestLibraryRepo = GitRepository("repo1", "some desc", "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None)
+      val oldDeployableRepo = GitRepository("repo1", "some desc", "", createdDate = 2, lastActiveDate = 20, isInternal = false, repoType = Service, digitalServiceName = None)
+      val newDeployableRepo = GitRepository("repo1", "some desc", "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Service, digitalServiceName = None)
+      val newestOtherRepo = GitRepository("repo1", description, "", createdDate = 4, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None)
 
       val teams = Seq(
         TeamRepositories("teamNameChicken", List(oldestLibraryRepo), System.currentTimeMillis()),
@@ -164,12 +164,12 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = createdDateForDeployable2, lastActiveDate = lastActiveDateForDeployable2, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = createdDateForDeployable1, lastActiveDate = lastActiveDateForDeployable1, isInternal = false, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = createdDateForDeployable2, lastActiveDate = lastActiveDateForDeployable2, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result: Seq[Repository] = TeamRepositories.getAllRepositories(teams).filter(_.repoType == Library)
 
@@ -181,8 +181,8 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = createdDateForLib1, lastActiveDate = lastActiveDateForLib1, isInternal = false, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = createdDateForLib2, lastActiveDate = lastActiveDateForLib2, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis())
       )
       val result: Seq[Repository] = TeamRepositories.getAllRepositories(teams).filter(_.repoType == Library)
@@ -196,12 +196,12 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result: Seq[Repository] = TeamRepositories.getAllRepositories(teams).filter(_.repoType == Library)
 
@@ -217,14 +217,14 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result: Option[RepositoryDetails] = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
@@ -236,14 +236,14 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 20, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 20, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Other, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result: Option[RepositoryDetails] = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
@@ -258,14 +258,14 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "find repository as type Library even if one of the repo with same name is not type library" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther1", List(GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
+        TeamRepositories("teamNameOther1", List(GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result: Option[RepositoryDetails] = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
 
@@ -280,9 +280,9 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "not include repository with prototypes in their names" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1-prototype", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1-prototype", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None)
                         ), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None)), System.currentTimeMillis())
       )
 
       val result = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
@@ -297,12 +297,12 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)
                         ), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
       val result = TeamRepositories.getTeamRepositoryNameList(teams, "teamName")
 
@@ -318,17 +318,17 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("team1", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team2", List(
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team2", List(
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team3", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()))
 
       val result = TeamRepositories.getRepositoryToTeamNameList(teams)
 
@@ -344,15 +344,15 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
   "findTeam" should {
 
-    val oldDeployableRepo = GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val newDeployableRepo = GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 20, isInternal = true, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val newLibraryRepo = GitRepository("repo1", description, "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val newOtherRepo = GitRepository("repo1", description, "", createdDate = 4, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val sharedRepo = GitRepository("sharedRepo1", description, "", createdDate = 5, lastActiveDate = 50, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
+    val oldDeployableRepo = GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, isInternal = false, repoType = Service, digitalServiceName = None)
+    val newDeployableRepo = GitRepository("repo1", description, "", createdDate = 2, lastActiveDate = 20, isInternal = true, repoType = Service, digitalServiceName = None)
+    val newLibraryRepo = GitRepository("repo1", description, "", createdDate = 3, lastActiveDate = 30, isInternal = true, repoType = Library, digitalServiceName = None)
+    val newOtherRepo = GitRepository("repo1", description, "", createdDate = 4, lastActiveDate = 40, isInternal = true, repoType = Other, digitalServiceName = None)
+    val sharedRepo = GitRepository("sharedRepo1", description, "", createdDate = 5, lastActiveDate = 50, isInternal = true, repoType = Other, digitalServiceName = None)
 
     val teams = Seq(
       TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo), System.currentTimeMillis()),
-      TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+      TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
     )
 
 
@@ -372,7 +372,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
 
       val result = TeamRepositories.findTeam(teams, "teamName", Nil)
@@ -393,7 +393,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
 
       val result = TeamRepositories.findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
@@ -415,7 +415,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(newDeployableRepo, oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo), System.currentTimeMillis()),
-        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis())
       )
 
       val result = TeamRepositories.findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
@@ -442,17 +442,17 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
 
   "allTeamsAndTheirRepositories" should {
-    val repo1 = GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val repo2 = GitRepository("repo2", description, "", createdDate = 1, lastActiveDate = 10, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis())
+    val repo1 = GitRepository("repo1", description, "", createdDate = 1, lastActiveDate = 10, repoType = Service, digitalServiceName = None)
+    val repo2 = GitRepository("repo2", description, "", createdDate = 1, lastActiveDate = 10, repoType = Service, digitalServiceName = None)
 
-    val repo3 = GitRepository("repo3", description, "", createdDate = 2, lastActiveDate = 20, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val repo4 = GitRepository("repo4", description, "", createdDate = 2, lastActiveDate = 20, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())
+    val repo3 = GitRepository("repo3", description, "", createdDate = 2, lastActiveDate = 20, repoType = Library, digitalServiceName = None)
+    val repo4 = GitRepository("repo4", description, "", createdDate = 2, lastActiveDate = 20, repoType = Library, digitalServiceName = None)
 
-    val repo5 = GitRepository("repo5", description, "", createdDate = 3, lastActiveDate = 30, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val repo6 = GitRepository("repo6", description, "", createdDate = 3, lastActiveDate = 30, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis())
+    val repo5 = GitRepository("repo5", description, "", createdDate = 3, lastActiveDate = 30, repoType = Other, digitalServiceName = None)
+    val repo6 = GitRepository("repo6", description, "", createdDate = 3, lastActiveDate = 30, repoType = Other, digitalServiceName = None)
 
-    val repo7 = GitRepository("repo7", description, "", createdDate = 4, lastActiveDate = 40, repoType = Prototype, digitalServiceName = None, updateDate = System.currentTimeMillis())
-    val repo8 = GitRepository("repo8", description, "", createdDate = 4, lastActiveDate = 40, repoType = Prototype, digitalServiceName = None, updateDate = System.currentTimeMillis())
+    val repo7 = GitRepository("repo7", description, "", createdDate = 4, lastActiveDate = 40, repoType = Prototype, digitalServiceName = None)
+    val repo8 = GitRepository("repo8", description, "", createdDate = 4, lastActiveDate = 40, repoType = Prototype, digitalServiceName = None)
 
 
     val teams = Seq(
@@ -488,15 +488,15 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "get the right Digital Service information" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"))
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Library, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService2"), updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Library, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService2"))), System.currentTimeMillis()),
         TeamRepositories("teamNameOtherOne", List(
-                          GitRepository("repo5", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Library, digitalServiceName = Some("DigitalService3"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo6", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService3"), updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo5", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Library, digitalServiceName = Some("DigitalService3")),
+                          GitRepository("repo6", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService3"))), System.currentTimeMillis())
       )
       val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
 
@@ -516,9 +516,9 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp1, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp2, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp3, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp1, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp2, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = lastUpdatedTimestamp3, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"))
                         ), System.currentTimeMillis())
       )
       val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
@@ -535,12 +535,12 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "get the correct repo types for Digital Service information" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"))
                         ), System.currentTimeMillis()),
         TeamRepositories("teamNameOther", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Prototype, digitalServiceName = Some("DigitalService1"), updateDate = System.currentTimeMillis()),
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService2"), updateDate = System.currentTimeMillis())), System.currentTimeMillis())
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Prototype, digitalServiceName = Some("DigitalService1")),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Other, digitalServiceName = Some("DigitalService2"))), System.currentTimeMillis())
       )
       val result: Option[TeamRepositories.DigitalService] = TeamRepositories.findDigitalServiceDetails(teams, "DigitalService1")
 
@@ -559,18 +559,18 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
       val teams = Seq(
         TeamRepositories("team1", List(
-                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team2", List(
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team2", List(
-                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None)), System.currentTimeMillis()),
         TeamRepositories("team3", List(
-                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, updateDate = System.currentTimeMillis()),
-                          GitRepository("repo5-prototype", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Prototype, digitalServiceName = None, updateDate = System.currentTimeMillis())), System.currentTimeMillis()))
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None),
+                          GitRepository("repo4", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None),
+                          GitRepository("repo5-prototype", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Prototype, digitalServiceName = None)), System.currentTimeMillis()))
 
       TeamRepositories.getAllRepositories(teams) shouldBe Seq(
         Repository(name = "repo1", createdAt = timestamp, lastUpdatedAt = timestamp, repoType = Service),

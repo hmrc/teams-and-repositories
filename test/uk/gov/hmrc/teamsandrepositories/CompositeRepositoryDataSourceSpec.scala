@@ -47,6 +47,55 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
   import testTimestamper._
 
 
+  "buildDataSource" should {
+
+    val githubConfig = mock[GithubConfig]
+    val persister = mock[TeamsAndReposPersister]
+    val connector = mock[MongoConnector]
+    val githubClientDecorator = mock[GithubApiClientDecorator]
+
+
+    "should create the right CompositeRepositoryDataSource" in {
+
+      val gitApiOpenConfig = mock[GitApiConfig]
+      val gitApiEnterpriseConfig = mock[GitApiConfig]
+
+      when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
+      when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
+
+      val enterpriseUrl = "enterprise.com"
+      val enterpriseKey = "enterprise.key"
+      when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
+      when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
+
+      val openUrl = "open.com"
+      val openKey = "open.key"
+      when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
+      when(gitApiOpenConfig.key).thenReturn(openKey)
+
+      val enterpriseGithubClient = mock[GithubApiClient]
+      val openGithubClient = mock[GithubApiClient]
+      when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
+      when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
+
+      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper)
+
+      verify(gitApiOpenConfig).apiUrl
+      verify(gitApiOpenConfig).key
+      verify(gitApiEnterpriseConfig).apiUrl
+      verify(gitApiEnterpriseConfig).key
+
+      compositeRepositoryDataSource.dataSources.size shouldBe 2
+
+      val enterpriseDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(0)
+      enterpriseDataSource shouldBe compositeRepositoryDataSource.enterpriseTeamsRepositoryDataSource
+
+      val openDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(1)
+      openDataSource shouldBe compositeRepositoryDataSource.openTeamsRepositoryDataSource
+    }
+  }
+
+
   "persistTeamRepoMapping_new" should {
 
     "persist teams and their repos" in {
@@ -54,14 +103,14 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
       val teamARepositories =
         TeamRepositories("teamA", List(
-          GitRepository("repo1", "Some Description", "url1", now, now, updateDate = timestampF()),
-          GitRepository("repo2", "Some Description", "url2", now, now, updateDate = timestampF())
+          GitRepository("repo1", "Some Description", "url1", now, now),
+          GitRepository("repo2", "Some Description", "url2", now, now)
         ), timestampF())
 
       val teamBRepositories =
         TeamRepositories("teamB", List(
-          GitRepository("repo3", "Some Description", "url3", now, now, updateDate = timestampF()),
-          GitRepository("repo4", "Some Description", "url4", now, now, updateDate = timestampF())
+          GitRepository("repo3", "Some Description", "url3", now, now),
+          GitRepository("repo4", "Some Description", "url4", now, now)
         ), timestampF())
 
 
@@ -90,19 +139,19 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       verify(compositeDataSource.persister).update(teamBRepositories)
     }
 
-    "persist team's repos from all data sources with repositories sorted alphabetically" in {
+    "persist a team's repositories from all data sources (combine them) with repositories sorted alphabetically by name" in {
       import BlockingIOExecutionContext._
 
       val teamARepositoriesInDataSource1 =
         TeamRepositories("teamA", List(
-          GitRepository("repoB2", "Some Description", "urlB2", now, now, updateDate = timestampF()),
-            GitRepository("repoA1", "Some Description", "urlA1", now, now, updateDate = timestampF())
+          GitRepository("repoB2", "Some Description", "urlB2", now, now),
+            GitRepository("repoA1", "Some Description", "urlA1", now, now)
         ), timestampF())
 
       val teamARepositoriesInDataSource2 =
         TeamRepositories("teamA", List(
-          GitRepository("repoD4", "Some Description", "url4", now, now, updateDate = timestampF()),
-          GitRepository("repoC3", "Some Description", "url3", now, now, updateDate = timestampF())
+          GitRepository("repoD4", "Some Description", "url4", now, now),
+          GitRepository("repoC3", "Some Description", "url3", now, now)
         ), timestampF())
 
 
@@ -144,7 +193,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
       def buildTeamRepositories(teamName: String, repoName: String, url: String) =
-        TeamRepositories(teamName, List(GitRepository(repoName, "Some Description", url, now, now, updateDate = timestampF())), timestampF())
+        TeamRepositories(teamName, List(GitRepository(repoName, "Some Description", url, now, now)), timestampF())
 
       val teamARepositories = buildTeamRepositories("teamA", "repo1", "url1")
       val teamBRepositories = buildTeamRepositories("teamB", "repo2", "url2")
@@ -202,6 +251,47 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
   }
 
+  "removeOrphanTeamsFromMongo" should {
+
+        "should remove deleted teams" in {
+          val dataSource1 = mock[GithubV3RepositoryDataSource]
+          val dataSource2 = mock[GithubV3RepositoryDataSource]
+
+          val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil)
+
+          val teamRepositoriesInMongo = Seq(
+            TeamRepositories("team-a", Nil, System.currentTimeMillis()),
+            TeamRepositories("team-b", Nil, System.currentTimeMillis()),
+            TeamRepositories("team-c", Nil, System.currentTimeMillis()),
+            TeamRepositories("team-d", Nil, System.currentTimeMillis())
+          )
+
+          when(compositeDataSource.persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo, None))
+          when(compositeDataSource.persister.deleteTeams(ArgumentMatchers.any())).thenReturn(Future.successful(Set("something not important")))
+
+          compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil, System.currentTimeMillis()), TeamRepositories("team-c", Nil, System.currentTimeMillis())))
+
+          verify(compositeDataSource.persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
+        }
+  }
+
+//  "XXXXX!@" should {
+//    "should update the timestamp for teams" in {
+//            val teamsList = List(
+//              TeamRepositories("A", List(GitRepository("A_r", "Some Description", "url_A", now, now)), System.currentTimeMillis()),
+//              TeamRepositories("B", List(GitRepository("B_r", "Some Description", "url_B", now, now)), System.currentTimeMillis()),
+//              TeamRepositories("C", List(GitRepository("C_r", "Some Description", "url_C", now, now)), System.currentTimeMillis()))
+//
+//            val dataSource = mock[GithubV3RepositoryDataSource]
+//            when(dataSource.getTeamRepoMapping).thenReturn(successful(teamsList))
+//
+//
+//            val compositeDataSource = buildCompositeDataSource(List(dataSource))
+//            val result = compositeDataSource.persistTeamRepoMapping_new.futureValue
+//
+//            verify(persister, Mockito.timeout(1000)).updateTimestamp(ArgumentMatchers.any())
+//          }
+//  }
 
   private def buildCompositeDataSource(dataSource1: GithubV3RepositoryDataSource,
                                        dataSource2: GithubV3RepositoryDataSource,

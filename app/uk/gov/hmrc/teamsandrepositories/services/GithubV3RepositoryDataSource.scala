@@ -122,16 +122,7 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
     } yield {
       logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      GitRepository(repository.name,
-        repository.description,
-        repository.htmlUrl,
-        createdDate = repository.createdDate,
-        lastActiveDate = repository.lastActiveDate,
-        isInternal = this.isInternal,
-        isPrivate = repository.isPrivate,
-        repoType = repositoryType,
-        digitalServiceName = maybeDigitalServiceName,
-        timestampF())
+      GitRepository(repository.name, repository.description, repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = repositoryType, digitalServiceName = maybeDigitalServiceName)
     }
   }
 
