@@ -45,7 +45,6 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
 
-  //!@ test
   def persistTeamRepoMapping_new(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeams
 
@@ -92,7 +91,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     import BlockingIOExecutionContext._
 
     val teamNamesFromMongo: Future[Set[String]] = {
-      persister.getAllTeamAndRepos.map { case (allPersistedTeamAndRepositories, _) =>
+      persister.getAllTeamAndRepos.map { case (allPersistedTeamAndRepositories) =>
         allPersistedTeamAndRepositories.map(_.teamName).toSet
       }
     }

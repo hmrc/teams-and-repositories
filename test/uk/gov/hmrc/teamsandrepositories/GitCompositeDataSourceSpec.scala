@@ -230,7 +230,6 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
       }
     })
 
-    when(persister.updateTimestamp(ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
     new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
       override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList

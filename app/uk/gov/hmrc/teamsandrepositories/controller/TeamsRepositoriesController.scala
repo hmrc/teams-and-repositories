@@ -52,8 +52,6 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
                                             configuration: Configuration,
                                             mongoTeamsAndReposPersister: TeamsAndReposPersister) extends BaseController {
 
-//  import Repository._
-
   import scala.collection.JavaConverters._
 
   val TimestampHeaderName = "X-Cache-Timestamp"
@@ -68,12 +66,12 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
         case None =>
           NotFound
         case Some(x: RepositoryDetails) =>
-          Ok(Json.toJson(x)).withHeaders(TimestampHeaderName -> format(timestamp))
+          Ok(Json.toJson(x))
       }
     }
   }
@@ -81,33 +79,31 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def digitalServiceDetails(digitalServiceName: String) = Action.async {
     val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
         case None =>
           NotFound
         case Some(x: DigitalService) =>
-          Ok(Json.toJson(x)).withHeaders(TimestampHeaderName -> format(timestamp))
+          Ok(Json.toJson(x))
       }
     }
   }
 
 
   def services() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       Ok(determineServicesResponse(request, allTeamsAndRepos))
-        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def libraries() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       Ok(determineLibrariesResponse(request, allTeamsAndRepos))
-        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def digitalServices() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
 
       val digitalServices: Seq[String] =
         allTeamsAndRepos
@@ -117,48 +113,45 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
           .sorted
 
       Ok(Json.toJson(digitalServices))
-        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def allRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       Ok(Json.toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
-        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def teams() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
-        .withHeaders(TimestampHeaderName -> format(timestamp))
     }
   }
 
   def repositoriesByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
 
       (TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
         case None => NotFound
         case Some(x) => Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
-      }).withHeaders(TimestampHeaderName -> format(timestamp))
+      })
     }
   }
 
 
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
 
       (TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Ok(Json.toJson(x))
-      }).withHeaders(TimestampHeaderName -> format(timestamp))
+      })
     }
   }
 
   def allTeamsAndRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos, timestamp) =>
-      Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore))).withHeaders(TimestampHeaderName -> format(timestamp))
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
+      Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 

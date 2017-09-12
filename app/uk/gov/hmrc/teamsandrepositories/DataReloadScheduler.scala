@@ -37,7 +37,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   applicationLifecycle.addStopHook(() => Future(scheduledReload.cancel()))
 
-  //!@ extract a function and reduce duplication
+
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
       logger.info(s"Starting mongo update")

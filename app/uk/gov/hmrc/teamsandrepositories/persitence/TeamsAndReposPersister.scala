@@ -31,36 +31,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister, mongoUpdateTimePersister: MongoUpdateTimePersister) {
+class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
 
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    logger.info(s"Updating team record: $teamsAndRepositories")
+    logger.info(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamAndRepos: Future[(Seq[TeamRepositories], Option[LocalDateTime])] = {
-    for {
-      teamsAndRepos <- mongoTeamsAndReposPersister.getAllTeamAndRepos
-      timestamp <- mongoUpdateTimePersister.get(teamsAndRepositoriesTimestampKeyName)
-    } yield (teamsAndRepos, timestamp.map(_.timestamp))
+  def getAllTeamAndRepos: Future[Seq[TeamRepositories]] = {
+      mongoTeamsAndReposPersister.getAllTeamAndRepos
   }
 
+  //!@ duplicate method, remove?
   def getAllTeams: Future[Seq[TeamRepositories]] = {
-    for {
-      teamsAndRepos <- mongoTeamsAndReposPersister.getAllTeamAndRepos
-    } yield teamsAndRepos
+      mongoTeamsAndReposPersister.getAllTeamAndRepos
   }
 
   def clearAllData: Future[Boolean] = {
     mongoTeamsAndReposPersister.clearAllData
-    mongoUpdateTimePersister.remove(teamsAndRepositoriesTimestampKeyName)
-  }
-
-  def updateTimestamp(timestamp: LocalDateTime): Future[Boolean] = {
-    mongoUpdateTimePersister.update(KeyAndTimestamp(teamsAndRepositoriesTimestampKeyName, timestamp))
   }
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
@@ -123,42 +114,42 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
 
 
 
-@Singleton
-class MongoUpdateTimePersister @Inject()(mongoConnector: MongoConnector)
-  extends ReactiveRepository[KeyAndTimestamp, BSONObjectID](
-    collectionName = "updateTime",
-    mongo = mongoConnector.db,
-    domainFormat = KeyAndTimestamp.formats) {
-
-  private val keyFieldName = "keyName"
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(
-      Seq(
-        collection.indexesManager.ensure(Index(Seq(keyFieldName -> IndexType.Hashed), name = Some(keyFieldName + "Idx")))
-      )
-    )
-
-  def get(keyName: String): Future[Option[KeyAndTimestamp]] = {
-    withTimerAndCounter("mongo.timestamp.get") {
-      collection.find(Json.obj(keyFieldName -> Json.toJson(keyName)))
-        .cursor[KeyAndTimestamp]()
-        .collect[List]().map(_.headOption)
-    }
-  }
-
-  def update(keyAndTimestamp: KeyAndTimestamp): Future[Boolean] = {
-    withTimerAndCounter("mongo.timestamp.update") {
-      for {
-        update <- collection.update(selector = Json.obj(keyFieldName -> Json.toJson(keyAndTimestamp.keyName)), update = keyAndTimestamp, upsert = true)
-      } yield update match {
-        case lastError if lastError.inError => throw lastError
-        case _ => true
-      }
-    }
-  }
-
-  def remove(keyName: String): Future[Boolean] = super.remove(keyFieldName -> Json.toJson(keyName)).map(!_.hasErrors)
-}
+//!@@Singleton
+//class MongoUpdateTimePersister @Inject()(mongoConnector: MongoConnector)
+//  extends ReactiveRepository[KeyAndTimestamp, BSONObjectID](
+//    collectionName = "updateTime",
+//    mongo = mongoConnector.db,
+//    domainFormat = KeyAndTimestamp.formats) {
+//
+//  private val keyFieldName = "keyName"
+//
+//  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+//    Future.sequence(
+//      Seq(
+//        collection.indexesManager.ensure(Index(Seq(keyFieldName -> IndexType.Hashed), name = Some(keyFieldName + "Idx")))
+//      )
+//    )
+//
+//  def get(keyName: String): Future[Option[KeyAndTimestamp]] = {
+//    withTimerAndCounter("mongo.timestamp.get") {
+//      collection.find(Json.obj(keyFieldName -> Json.toJson(keyName)))
+//        .cursor[KeyAndTimestamp]()
+//        .collect[List]().map(_.headOption)
+//    }
+//  }
+//
+//  def update(keyAndTimestamp: KeyAndTimestamp): Future[Boolean] = {
+//    withTimerAndCounter("mongo.timestamp.update") {
+//      for {
+//        update <- collection.update(selector = Json.obj(keyFieldName -> Json.toJson(keyAndTimestamp.keyName)), update = keyAndTimestamp, upsert = true)
+//      } yield update match {
+//        case lastError if lastError.inError => throw lastError
+//        case _ => true
+//      }
+//    }
+//  }
+//
+//  def remove(keyName: String): Future[Boolean] = super.remove(keyFieldName -> Json.toJson(keyName)).map(!_.hasErrors)
+//}
 
 

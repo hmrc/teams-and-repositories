@@ -266,7 +266,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
             TeamRepositories("team-d", Nil, System.currentTimeMillis())
           )
 
-          when(compositeDataSource.persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo, None))
+          when(compositeDataSource.persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo))
           when(compositeDataSource.persister.deleteTeams(ArgumentMatchers.any())).thenReturn(Future.successful(Set("something not important")))
 
           compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil, System.currentTimeMillis()), TeamRepositories("team-c", Nil, System.currentTimeMillis())))
@@ -332,7 +332,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
         Future.successful(args(0).asInstanceOf[TeamRepositories])
       }
     })
-    when(persister.updateTimestamp(ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
 
     new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
       override val dataSources: List[GithubV3RepositoryDataSource] = List(dataSource1, dataSource2)

@@ -88,7 +88,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
     import scala.collection.JavaConverters._
 
     when(mockConfiguration.getStringList("shared.repositories")).thenReturn(Some(listOfReposToIgnore.asJava))
-    when(mockTeamsAndRepositories.getAllTeamAndRepos).thenReturn(Future.successful((mockedReturnData, Some(updateTimestamp))))
+    when(mockTeamsAndRepositories.getAllTeamAndRepos).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(new UrlTemplates(
       Seq(new UrlTemplate("closed", "closed", "$name")),
@@ -148,13 +148,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
   "Retrieving a list of teams" should {
 
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.teams().apply(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
 
     "Return a json representation of the data" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
@@ -167,14 +160,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   
   "Retrieving a list of digital services" should {
 
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.digitalServices().apply(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
     "Return a json representation of the data" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
       val result = controller.digitalServices().apply(FakeRequest())
@@ -185,14 +170,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   }
 
   "Retrieving a list of repositories for a team" should {
-
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
 
     "Return all repo types belonging to a team" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
@@ -250,14 +227,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
   "Retrieving a list of repository details for a team" should {
 
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
     "Return all repo types belonging to a team" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
       val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
@@ -314,14 +283,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
   "Retrieving a list of all libraries" should {
 
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.libraries()(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
     "return a name and dates list of all the libraries" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
       val result = controller.libraries()(FakeRequest())
@@ -357,32 +318,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   }
 
   "Retrieving a list of all services" should {
-
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
-      val result = controller.services().apply(request)
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
-    "return the cache timestamp when the request has a details query parameter" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.services().apply(FakeRequest("GET", "/services?details=true"))
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
-    "return the cache timestamp when the request has a teamDetails query parameter" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.services().apply(FakeRequest("GET", "/services?teamDetails=true"))
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
+    
     "Return a json representation of the data sorted alphabetically when the request has a details query parameter" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
 
@@ -553,14 +489,6 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
 
   "Retrieving a service" should {
 
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.repositoryDetails("repo-name").apply(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
     "return the internal source control name for an internal repo" in {
       val controller = controllerWithData(singleRepoResult(repoName = "r1", repoUrl = "ru", isInternal = false), updateTimestamp = updateTimestamp)
       val result = controller.repositoryDetails("r1").apply(FakeRequest())
@@ -606,15 +534,7 @@ class TeamsRepositoriesControllerSpec extends PlaySpec with MockitoSugar with Re
   }
 
   "Retrieving a list of all repositories" should {
-
-    "return the cache timestamp" in {
-      val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result = controller.allRepositories()(FakeRequest())
-
-      val timestampHeader = header("x-cache-timestamp", result)
-      timestampHeader.value mustBe "Tue, 5 Apr 2016 12:57:10 GMT"
-    }
-
+    
     "return all the repositories" in {
 
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)

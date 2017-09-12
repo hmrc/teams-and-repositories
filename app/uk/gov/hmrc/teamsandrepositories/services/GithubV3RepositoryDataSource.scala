@@ -79,24 +79,6 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     }
   }
 
-//!@  def getTeamRepoMapping: Future[Seq[TeamRepositories]] =
-//    exponentialRetry(retries, initialDuration) {
-//      gh.getOrganisations.flatMap { orgs =>
-//        Future.sequence(orgs.map(mapOrganisation)).map {
-//          _.flatten
-//        }
-//      }
-//    }
-
-//  private def mapOrganisation(organisation: GhOrganisation): Future[List[TeamRepositories]] =
-//    exponentialRetry(retries, initialDuration) {
-//      gh.getTeamsForOrganisation(organisation.login).flatMap { teams =>
-//        Future.sequence(for {
-//          team <- teams; if !githubConfig.hiddenTeams.contains(team.name)
-//        } yield mapTeam(organisation, team))
-//      }
-//    }
-
   def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
