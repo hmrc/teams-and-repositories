@@ -131,7 +131,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
       val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, Nil)
 
-      compositeDataSource.persistTeamRepoMapping_new.futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
       verify(dataSource).mapTeam(ghOrganisation, ghTeamA)
       verify(dataSource).mapTeam(ghOrganisation, ghTeamB)
@@ -178,7 +178,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
       val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil)
 
-      compositeDataSource.persistTeamRepoMapping_new.futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
       verify(dataSource1).mapTeam(ghOrganisation1, ghTeamAInDataSource1)
       verify(dataSource2).mapTeam(ghOrganisation2, ghTeamAInDataSource2)
@@ -235,7 +235,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       val mappingTeamsOrder = Mockito.inOrder(dataSource)
       val persistenceOrder = Mockito.inOrder(compositeDataSource.persister)
 
-      compositeDataSource.persistTeamRepoMapping_new.futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
       mappingTeamsOrder.verify(dataSource).mapTeam(ghOrganisation, ghTeamD)
       mappingTeamsOrder.verify(dataSource).mapTeam(ghOrganisation, ghTeamA)

@@ -36,7 +36,7 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
 
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]
-  when(mockGitCompositeDataSource.persistTeamRepoMapping_new(any())).thenReturn(Future.successful(Nil))
+  when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
   when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())).thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
@@ -59,7 +59,7 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping_new(any())
+    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
 
   }
 }

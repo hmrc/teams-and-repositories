@@ -45,7 +45,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
 
-  def persistTeamRepoMapping_new(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
+  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeams
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)

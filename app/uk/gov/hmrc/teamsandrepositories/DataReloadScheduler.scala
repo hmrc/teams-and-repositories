@@ -41,7 +41,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
       logger.info(s"Starting mongo update")
-      githubCompositeDataSource.persistTeamRepoMapping_new
+      githubCompositeDataSource.persistTeamRepoMapping
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
