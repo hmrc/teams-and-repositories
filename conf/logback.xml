@@ -44,6 +44,7 @@
     </logger>
 
     <logger name="uk.gov" level="INFO"/>
+    <logger name="git-hub-client" level="OFF"/>
 
     <logger name="application" level="DEBUG"/>
 

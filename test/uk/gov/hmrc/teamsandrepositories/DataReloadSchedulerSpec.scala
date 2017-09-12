@@ -12,6 +12,8 @@ import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
+import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -28,14 +30,16 @@ class DataReloadSchedulerSpec extends PlaySpec with MockitoSugar with Results wi
   val mockCacheConfig = mock[CacheConfig]
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]
 
-  when(mockGitCompositeDataSource.persistTeamRepoMapping).thenReturn(Future(Nil))
+  when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
   when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())).thenReturn(Future(Set.empty[String]))
 
   when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
 
   val testMongoLock = new MongoLock(mock[MongoConnector]) {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-      body.map(Some(_))
+      body.map(t =>
+        Some(t)
+      )
   }
 
   "reload the cache and remove orphan teams at the configured intervals" in {
@@ -47,7 +51,7 @@ class DataReloadSchedulerSpec extends PlaySpec with MockitoSugar with Results wi
         cacheConfig = mockCacheConfig,
         mongoLock = testMongoLock)
 
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping
+    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
     verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())
   }
 }

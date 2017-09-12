@@ -1,9 +1,12 @@
 package uk.gov.hmrc.teamsandrepositories
 
+import java.util.Date
+
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import play.api.libs.functional.syntax._
+import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
 
 
 case class GitRepository(name: String,
@@ -32,7 +35,7 @@ object GitRepository {
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String]
-      ) (GitRepository.apply _)
+      ) (apply _)
 
     val writes = Json.writes[GitRepository]
 

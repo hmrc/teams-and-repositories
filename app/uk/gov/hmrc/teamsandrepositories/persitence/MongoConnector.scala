@@ -1,11 +1,9 @@
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Application
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
-
-import scala.concurrent.Future
 
 @Singleton
 class MongoConnector @Inject()(application: Application) {

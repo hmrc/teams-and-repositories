@@ -5,6 +5,7 @@ GET         /api/teams/:team                @uk.gov.hmrc.teamsandrepositories.Te
 GET         /api/teams_with_details/:team   @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoriesWithDetailsByTeam(team)
 GET         /api/teams_with_repositories    @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.allTeamsAndRepositories()
 GET         /api/cache/reload               @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.reloadCache
+POST        /api/cache/clear                @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.clearCache
 GET         /api/services                   @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.services
 GET         /api/libraries                  @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.libraries
 GET         /api/repositories/:name         @uk.gov.hmrc.teamsandrepositories.TeamsRepositoriesController.repositoryDetails(name)

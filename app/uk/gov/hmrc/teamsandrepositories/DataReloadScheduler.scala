@@ -3,9 +3,11 @@ package uk.gov.hmrc.teamsandrepositories
 import akka.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
-
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -15,12 +17,14 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
                                     applicationLifecycle: ApplicationLifecycle,
                                     githubCompositeDataSource: GitCompositeDataSource,
                                     cacheConfig: CacheConfig,
-                                    mongoLock: MongoLock
-                                   )(implicit ec: ExecutionContext) {
+                                    mongoLock: MongoLock)(implicit ec: ExecutionContext) {
 
   private val cacheDuration = cacheConfig.teamsCacheDuration
 
   lazy val logger = LoggerFactory.getLogger(this.getClass)
+
+  import BlockingIOExecutionContext._
+
 
   private val scheduledReload = actorSystem.scheduler.schedule(cacheDuration, cacheDuration) {
     logger.info("Scheduled teams repository cache reload triggered")
@@ -33,7 +37,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   applicationLifecycle.addStopHook(() => Future(scheduledReload.cancel()))
 
-  //!@ extract a function and reduce duplication
+
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
       logger.info(s"Starting mongo update")
