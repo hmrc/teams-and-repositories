@@ -16,16 +16,15 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence
 
-import java.time.LocalDateTime
-
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers.withTimerAndCounter
-import uk.gov.hmrc.teamsandrepositories.persitence.model.{KeyAndTimestamp, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -78,31 +77,38 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       for {
         update <- collection.update(selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)), update = teamAndRepos, upsert = true)
       } yield update match {
-        case lastError if lastError.inError => throw new RuntimeException(s"failed to persist $teamAndRepos")
         case _ => teamAndRepos
       }
+    } recover {
+      case lastError => throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
     }
   }
 
   def add(teamsAndRepository: TeamRepositories): Future[Boolean] = {
     withTimerAndCounter("mongo.write") {
       insert(teamsAndRepository) map {
-        case lastError if lastError.inError => throw lastError
         case _ => true
       }
+    } recover {
+      case lastError =>
+        logger.error(s"Could not add ${teamsAndRepository.teamName} to TeamsAndRepository collection", lastError)
+        throw lastError
     }
   }
 
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
 
-  def clearAllData: Future[Boolean] = super.removeAll().map(!_.hasErrors)
+  def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
   def deleteTeam(teamName: String): Future[String] = {
     withTimerAndCounter("mongo.cleanup") {
-      collection.remove(query = Json.obj("teamName" -> Json.toJson(teamName))).map {
-        case lastError if lastError.inError => throw new RuntimeException(s"failed to remove $teamName")
+      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map {
         case _ => teamName
       }
+    } recover {
+      case lastError =>
+        logger.error(s"Failed to remove $teamName", lastError)
+        throw new RuntimeException(s"failed to remove $teamName")
     }
   }
 }
