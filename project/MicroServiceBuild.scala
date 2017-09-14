@@ -23,7 +23,7 @@ private object AppDependencies {
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.3.0"
   private val githubClientVersion = "1.14.0"
-  private val playReactivemongoVersion = "5.2.0"
+  private val playReactivemongoVersion = "6.0.0"
 
   val compile = Seq(
 
@@ -34,7 +34,7 @@ private object AppDependencies {
     "org.yaml" % "snakeyaml" % "1.17",
     "org.apache.httpcomponents" % "httpcore" % "4.3.2",
     "org.apache.httpcomponents" % "httpclient" % "4.3.5",
-    "uk.gov.hmrc" %% "mongo-lock" % "4.1.0",
+    "uk.gov.hmrc" %% "mongo-lock" % "5.0.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion
   )
 
