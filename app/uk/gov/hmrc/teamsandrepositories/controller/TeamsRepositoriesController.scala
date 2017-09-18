@@ -26,7 +26,7 @@ import play.api.Configuration
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc.{Results, _}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}

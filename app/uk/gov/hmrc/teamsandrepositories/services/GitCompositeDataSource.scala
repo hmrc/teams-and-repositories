@@ -68,14 +68,16 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
 
   private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(implicit ec: ExecutionContext): Future[Seq[OneTeamAndItsDataSources]] = {
-    for {
+    (for {
       teamsAndTheirOrgAndDataSources <- Future.sequence(dataSources.map(ds => ds.getTeamsWithOrgAndDataSourceDetails))
       persistedTeams <- persistedTeamsF
     } yield {
       val teamNameToSources: Map[String, List[TeamAndOrgAndDataSource]] = teamsAndTheirOrgAndDataSources.flatten.groupBy(_.team.name)
-      teamNameToSources.map { case (teamName, tds) => OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate))}
-    }.toSeq.sortBy(_.updateDate)
-    
+      teamNameToSources.map { case (teamName, tds) => OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate)) }
+    }.toSeq.sortBy(_.updateDate)).recover { case ex =>
+      logger.error(ex.getMessage, ex)
+      throw ex
+    }
   }
 
   private def mergeRepositoriesForTeam(teamName: String, aTeamAndItsRepositories: Seq[TeamRepositories]): TeamRepositories = {
