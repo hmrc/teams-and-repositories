@@ -57,7 +57,11 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
         getAllRepositoriesForTeam(aTeam).map(mergeRepositoriesForTeam(aTeam.teamName, _)).flatMap(persister.update)
       })
-    }.map(_.toSeq)
+    }.map(_.toSeq) recover {
+      case e =>
+        logger.error("Could not persist to teams repo.", e)
+        throw e
+    }
   }
 
   private def getAllRepositoriesForTeam(aTeam: OneTeamAndItsDataSources)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
@@ -108,6 +112,10 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       logger.info(s"Removing these orphan teams:[${teamNames}]")
       persister.deleteTeams(teamNames)
     }
+  } recover {
+    case e =>
+      logger.error("Could not remove orphan teams from mongo.", e)
+      throw e
   }
 
 
