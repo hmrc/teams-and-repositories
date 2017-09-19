@@ -75,7 +75,11 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
         val nonHiddenGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
         nonHiddenGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
 
-      }).map(_.flatten)
+      }).map(_.flatten) recover {
+        case e =>
+          logger.error("Could not retrieve teams for organisation list.", e)
+          throw e
+      }
     }
   }
 
@@ -90,6 +94,10 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
           TeamRepositories(team.name, repositories = repos, timestampF())
         }
       }
+    } recover {
+      case e =>
+        logger.error("Could not map teams with organisations.", e)
+        throw e
     }
   }
 
