@@ -269,7 +269,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
           when(compositeDataSource.persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo))
           when(compositeDataSource.persister.deleteTeams(ArgumentMatchers.any())).thenReturn(Future.successful(Set("something not important")))
 
-          compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil, System.currentTimeMillis()), TeamRepositories("team-c", Nil, System.currentTimeMillis())))
+          compositeDataSource.removeOrphanTeamsFromMongo(Seq(TeamRepositories("team-a", Nil, System.currentTimeMillis()), TeamRepositories("team-c", Nil, System.currentTimeMillis())))(scala.concurrent.ExecutionContext.global)
 
           verify(compositeDataSource.persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
         }

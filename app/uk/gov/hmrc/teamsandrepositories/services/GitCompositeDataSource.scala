@@ -92,7 +92,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
   }
 
 
-  def removeOrphanTeamsFromMongo(teamRepositoriesFromGh: Seq[TeamRepositories]) = {
+  def removeOrphanTeamsFromMongo(teamRepositoriesFromGh: Seq[TeamRepositories])(implicit ec: ExecutionContext) = {
 
     import BlockingIOExecutionContext._
 

@@ -37,7 +37,7 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
 
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]
   when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
-  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())).thenReturn(Future.successful(Set.empty[String]))
+  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
