@@ -1,5 +1,5 @@
 # teams-and-repositories
-API for retrieving repositories belonging to teams.
+API for retrieving information about repositories belonging to teams.
 
 For developers:
 ===============
