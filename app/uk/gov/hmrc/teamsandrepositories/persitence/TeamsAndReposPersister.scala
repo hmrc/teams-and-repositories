@@ -36,7 +36,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    logger.info(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
+    logger.debug(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
@@ -50,7 +50,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   }
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
-    logger.info(s"Deleting orphan teams: $teamNames")
+    logger.debug(s"Deleting orphan teams: $teamNames")
     Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
   }
 }

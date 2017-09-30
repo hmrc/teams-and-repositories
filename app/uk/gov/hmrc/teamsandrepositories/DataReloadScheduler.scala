@@ -40,12 +40,12 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   def reload: Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
-      logger.info(s"Starting mongo update")
+      logger.debug(s"Starting mongo update")
       githubCompositeDataSource.persistTeamRepoMapping
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      logger.info(s"mongo update completed")
+      logger.debug(s"mongo update completed")
       r
     }
   }
@@ -53,12 +53,12 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
   def removeDeletedTeams(teamRepositoriesFromGh: Seq[TeamRepositories]) = {
 
     mongoLock.tryLock {
-      logger.info(s"Starting mongo clean up (removing orphan teams)")
+      logger.debug(s"Starting mongo clean up (removing orphan teams)")
       githubCompositeDataSource.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      logger.info(s"mongo cleanup completed")
+      logger.debug(s"mongo cleanup completed")
       r
     }
 
