@@ -50,9 +50,9 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)
     sortedByUpdateDate.flatMap { ts: Seq[OneTeamAndItsDataSources] =>
-      logger.info("------ TEAM NAMES ------")
-      ts.map(_.teamName).foreach(logger.info)
-      logger.info("^^^^^^ TEAM NAMES ^^^^^^")
+      logger.debug("------ TEAM NAMES ------")
+      ts.map(_.teamName).foreach(logger.debug)
+      logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
       Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
         getAllRepositoriesForTeam(aTeam).map(mergeRepositoriesForTeam(aTeam.teamName, _)).flatMap(persister.update)
