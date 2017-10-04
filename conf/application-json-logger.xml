@@ -5,10 +5,10 @@
         <encoder class="uk.gov.hmrc.play.logging.JsonEncoder"/>
     </appender>
 
-    <logger name="uk.gov.hmrc.githubclient" level="OFF"/>
-    <logger name="uk.gov" level="INFO"/>
+    <logger name="uk.gov.hmrc.githubclient" level="${logger.uk.gov.hmrc.githubclient:-INFO}"/>
+    <logger name="uk.gov" level="${logger.uk.gov:-INFO}"/>
 
-    <root level="INFO">
+    <root level="${logger.application:-INFO}">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
