@@ -10,3 +10,4 @@ For developers:
  N.B Please make sure that mongod is running locally. You can run mongo easily in docker by running
  
     docker run -d --name teams-and-repositories-mongo mongo
+
