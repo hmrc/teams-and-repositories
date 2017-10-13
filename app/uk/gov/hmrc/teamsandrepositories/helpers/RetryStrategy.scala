@@ -19,13 +19,12 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import java.util.{Timer, TimerTask}
 
 import org.slf4j.LoggerFactory
+import play.api.Logger
 import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object RetryStrategy {
-
-  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   private def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
@@ -39,12 +38,12 @@ object RetryStrategy {
   def exponentialRetry[T](times: Int, duration: Double = 10)(f: => Future[T])(implicit executor: ExecutionContext): Future[T] = {
     f recoverWith {
       case e: APIRateLimitExceededException =>
-        logger.error(s"API rate limit is reached (at retry:$times)" , e)
+        Logger.error(s"API rate limit is reached (at retry:$times)" , e)
         Future.failed(e)
 
       case e if times > 0 =>
-        logger.error("error making request Retrying :", e)
-        logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
+        Logger.error("error making request Retrying :", e)
+        Logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
         delay(duration) {
           exponentialRetry(times - 1, duration * 2)(f)
         }

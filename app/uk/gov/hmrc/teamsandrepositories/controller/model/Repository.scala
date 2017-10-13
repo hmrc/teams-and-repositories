@@ -4,7 +4,7 @@ import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType
 
-case class Repository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType)
+case class Repository(name: String, createdAt: Long, lastUpdatedAt: Long, repoType: RepoType.RepoType, language: Option[String])
 
 object Repository {
   implicit val repoDetailsFormat = Json.format[Repository]

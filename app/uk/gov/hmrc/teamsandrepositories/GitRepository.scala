@@ -17,11 +17,12 @@ case class GitRepository(name: String,
                          isInternal: Boolean = false,
                          isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
-                         digitalServiceName: Option[String] = None)
+                         digitalServiceName: Option[String] = None,
+                         language: Option[String] = None)
 
 object GitRepository {
   def toRepository(gitRepository: GitRepository): Repository =
-    Repository(gitRepository.name, gitRepository.createdDate, gitRepository.lastActiveDate, gitRepository.repoType)
+    Repository(gitRepository.name, gitRepository.createdDate, gitRepository.lastActiveDate, gitRepository.repoType, gitRepository.language)
 
   implicit val gitRepositoryFormats: OFormat[GitRepository] = {
 
@@ -34,7 +35,8 @@ object GitRepository {
         (JsPath \ "isInternal").read[Boolean] and
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
-        (JsPath \ "digitalServiceName").readNullable[String]
+        (JsPath \ "digitalServiceName").readNullable[String] and
+        (JsPath \ "language").readNullable[String]
       ) (apply _)
 
     val writes = Json.writes[GitRepository]

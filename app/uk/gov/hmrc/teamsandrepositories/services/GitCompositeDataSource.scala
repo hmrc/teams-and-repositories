@@ -1,18 +1,14 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.LocalDateTime
-
 import com.google.inject.{Inject, Singleton}
-import org.slf4j.LoggerFactory
-import uk.gov.hmrc.githubclient.{GhTeam, GithubApiClient}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import play.api.Logger
+import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
-
 
 @Singleton
 class Timestamper {
@@ -25,10 +21,6 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
                                        val mongoConnector: MongoConnector,
                                        val githubApiClientDecorator: GithubApiClientDecorator,
                                        val timestamper: Timestamper) {
-
-
-
-  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   val gitApiEnterpriseClient: GithubApiClient =
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
@@ -50,16 +42,16 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)
     sortedByUpdateDate.flatMap { ts: Seq[OneTeamAndItsDataSources] =>
-      logger.debug("------ TEAM NAMES ------")
-      ts.map(_.teamName).foreach(logger.debug)
-      logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
+      Logger.debug("------ TEAM NAMES ------")
+      ts.map(_.teamName).foreach(t => Logger.debug(t))
+      Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
       Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
         getAllRepositoriesForTeam(aTeam).map(mergeRepositoriesForTeam(aTeam.teamName, _)).flatMap(persister.update)
       })
     }.map(_.toSeq) recover {
       case e =>
-        logger.error("Could not persist to teams repo.", e)
+        Logger.error("Could not persist to teams repo.", e)
         throw e
     }
   }
@@ -79,7 +71,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       val teamNameToSources: Map[String, List[TeamAndOrgAndDataSource]] = teamsAndTheirOrgAndDataSources.flatten.groupBy(_.team.name)
       teamNameToSources.map { case (teamName, tds) => OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate)) }
     }.toSeq.sortBy(_.updateDate)).recover { case ex =>
-      logger.error(ex.getMessage, ex)
+      Logger.error(ex.getMessage, ex)
       throw ex
     }
   }
@@ -109,12 +101,12 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
 
     orphanTeams.flatMap { (teamNames: Set[String]) =>
-      logger.info(s"Removing these orphan teams:[${teamNames}]")
+      Logger.info(s"Removing these orphan teams:[${teamNames}]")
       persister.deleteTeams(teamNames)
     }
   } recover {
     case e =>
-      logger.error("Could not remove orphan teams from mongo.", e)
+      Logger.error("Could not remove orphan teams from mongo.", e)
       throw e
   }
 

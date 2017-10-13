@@ -22,11 +22,10 @@ private object AppDependencies {
   private val playUrlBindersVersion = "2.1.0"
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.3.0"
-  private val githubClientVersion = "1.16.0"
+  private val githubClientVersion = "1.16.0-1-g5f6fb3f"
   private val playReactivemongoVersion = "6.0.0"
 
   val compile = Seq(
-
     "uk.gov.hmrc" %% "bootstrap-play-25" % "0.7.0",
     "uk.gov.hmrc" %% "github-client" % githubClientVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,

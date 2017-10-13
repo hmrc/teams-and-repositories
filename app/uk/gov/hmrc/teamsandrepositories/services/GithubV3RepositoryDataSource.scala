@@ -16,16 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import com.google.inject.{Inject, Singleton}
-import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
+import play.api.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.RepoType._
-import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.concurrent.Future
@@ -38,29 +36,22 @@ case class TeamAndOrgAndDataSource(organisation: GhOrganisation, team: GhTeam, d
 case class OneTeamAndItsDataSources(teamName: String, teamAndDataSources: Seq[TeamAndOrgAndDataSource], updateDate: Long)
 
 object OneTeamAndItsDataSources {
-
   def apply(teamAndDataSources: Seq[TeamAndOrgAndDataSource], updateDate: Long): OneTeamAndItsDataSources = {
     val uniqueTeamNames = teamAndDataSources.map(_.team.name).toSet
     require(uniqueTeamNames.size == 1, s"All records much belong to the same team! teams:($uniqueTeamNames)")
     new OneTeamAndItsDataSources(teamAndDataSources.head.team.name, teamAndDataSources, updateDate)
   }
-
 }
-
 
 class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
                                    val gh: GithubApiClient,
                                    val isInternal: Boolean,
                                    timestampF: () => Long) {
 
-
-  lazy val logger = LoggerFactory.getLogger(this.getClass)
-
   //!@ use the play ec
   import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext._
 
   implicit val repositoryFormats = Json.format[GitRepository]
-
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
   val retries: Int = 5
@@ -77,42 +68,40 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
 
       }).map(_.flatten) recover {
         case e =>
-          logger.error("Could not retrieve teams for organisation list.", e)
+          Logger.error("Could not retrieve teams for organisation list.", e)
           throw e
       }
     }
   }
 
   def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
-    logger.debug(s"Mapping team (${team.name})")
+    Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       gh.getReposForTeam(team.id).flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
-        } yield mapRepository(organisation, repo)).map { (repos: List[GitRepository]) =>
-
+        } yield {
+          mapRepository(organisation, repo)
+        }).map { (repos: List[GitRepository]) =>
           TeamRepositories(team.name, repositories = repos, timestampF())
         }
       }
     } recover {
       case e =>
-        logger.error("Could not map teams with organisations.", e)
+        Logger.error("Could not map teams with organisations.", e)
         throw e
     }
   }
-
-
 
   private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
       manifest <- gh.getFileContent("repository.yaml", repository.name, organisation.login)
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
-
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
     } yield {
-      logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      GitRepository(repository.name, repository.description, repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = repositoryType, digitalServiceName = maybeDigitalServiceName)
+      Logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
+      GitRepository(repository.name, repository.description, repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = repositoryType, digitalServiceName = maybeDigitalServiceName, Option(repository.language))
     }
   }
 
@@ -134,7 +123,7 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     manifest.flatMap { contents =>
       parseAppConfigFile(contents) match {
         case Failure(exception) => {
-          logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          Logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         }
         case Success(yamlMap) => {
@@ -152,7 +141,6 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
       }
     }
   }
-
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] = {
     isPrototype(repo) flatMap { prototype =>

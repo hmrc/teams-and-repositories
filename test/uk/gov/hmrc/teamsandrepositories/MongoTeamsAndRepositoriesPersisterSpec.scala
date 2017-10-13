@@ -33,11 +33,11 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
   "get all" should {
     "be able to add, get all teams and repos and delete everything... Everything!" in {
       val now: LocalDateTime = LocalDateTime.now()
-      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service)
-      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library)
+      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
-      val gitRepository3 = GitRepository("repo-name3", "Desc3", "url3", 1, 2, false, false, RepoType.Service)
-      val gitRepository4 = GitRepository("repo-name4", "Desc4", "url4", 3, 4, true, false, RepoType.Library)
+      val gitRepository3 = GitRepository("repo-name3", "Desc3", "url3", 1, 2, false, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository4 = GitRepository("repo-name4", "Desc4", "url4", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
       val teamAndRepositories1 = TeamRepositories("test-team1", List(gitRepository1, gitRepository2), System.currentTimeMillis())
       val teamAndRepositories2 = TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())
@@ -69,8 +69,8 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
       val now: LocalDateTime = LocalDateTime.now()
       val oneHourLater = now.plusHours(1)
 
-      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service)
-      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library)
+      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
       val teamAndRepositories1 = TeamRepositories("test-team", List(gitRepository1), System.currentTimeMillis())
       await(mongoTeamsAndReposPersister.add(teamAndRepositories1))
@@ -91,11 +91,11 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
 
   "delete" should {
     "remove all given teams" in {
-      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service)
-      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library)
+      val gitRepository1 = GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
-      val gitRepository3 = GitRepository("repo-name3", "Desc3", "url3", 1, 2, false, false, RepoType.Service)
-      val gitRepository4 = GitRepository("repo-name4", "Desc4", "url4", 3, 4, true, false, RepoType.Library)
+      val gitRepository3 = GitRepository("repo-name3", "Desc3", "url3", 1, 2, false, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository4 = GitRepository("repo-name4", "Desc4", "url4", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
       val teamAndRepositories1 = TeamRepositories("test-team1", List(gitRepository1, gitRepository2), System.currentTimeMillis())
       val teamAndRepositories2 = TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())

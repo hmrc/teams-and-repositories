@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
+import play.api.Logger
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
@@ -31,12 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
-
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
-  lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    logger.debug(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
+    Logger.debug(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
@@ -50,7 +49,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   }
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
-    logger.debug(s"Deleting orphan teams: $teamNames")
+    Logger.debug(s"Deleting orphan teams: $teamNames")
     Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
   }
 }
@@ -77,10 +76,12 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       for {
         update <- collection.update(selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)), update = teamAndRepos, upsert = true)
       } yield update match {
-        case _ => teamAndRepos
+        case _ =>
+          teamAndRepos
       }
     } recover {
-      case lastError => throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
+      case lastError =>
+        throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
     }
   }
 

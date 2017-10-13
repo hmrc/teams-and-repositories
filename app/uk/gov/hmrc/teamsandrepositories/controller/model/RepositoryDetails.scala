@@ -16,7 +16,8 @@ case class RepositoryDetails(name: String,
                              teamNames: Seq[String],
                              githubUrls: Seq[Link],
                              ci: Seq[Link] = Seq.empty,
-                             environments: Seq[Environment] = Seq.empty)
+                             environments: Seq[Environment] = Seq.empty,
+                             language: String)
 
 object RepositoryDetails {
   def buildRepositoryDetails(primaryRepository: Option[GitRepository],
@@ -29,6 +30,8 @@ object RepositoryDetails {
       val sameNameRepos: Seq[GitRepository] = allRepositories.filter(r => r.name == repo.name)
       val createdDate = sameNameRepos.minBy(_.createdDate).createdDate
       val lastActiveDate = sameNameRepos.maxBy(_.lastActiveDate).lastActiveDate
+
+      val language: String = determineLanguage(allRepositories)
 
       val repoDetails = RepositoryDetails(
         repo.name,
@@ -43,7 +46,8 @@ object RepositoryDetails {
             githubName(repo.isInternal),
             githubDisplayName(repo.isInternal),
             repo.url)
-        })
+        },
+        language = language)
 
       val repositoryForCiUrls: GitRepository = allRepositories.find(!_.isInternal).fold(repo)(identity)
 
@@ -53,6 +57,15 @@ object RepositoryDetails {
         repoDetails.copy(ci = buildCiUrls(repositoryForCiUrls, urlTemplates))
       else repoDetails
     }
+  }
+
+  def determineLanguage(allRepositories: Seq[GitRepository]): String = {
+    val language: String = allRepositories.sortBy(x => x.isInternal).reverse.foldLeft("")((b, repo) => {
+      val lang = repo.language.getOrElse("")
+      if (lang == "") b
+      else lang
+    })
+    language
   }
 
   private def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"

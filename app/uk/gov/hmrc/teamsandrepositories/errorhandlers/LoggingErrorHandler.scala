@@ -18,21 +18,18 @@ class LoggingErrorHandler @Inject() (
                                router: Provider[Router]
                              ) extends DefaultHttpErrorHandler(env, config, sourceMapper, router) {
 
-  lazy val logger: slf4j.Logger = LoggerFactory.getLogger(this.getClass)
-
   override def onProdServerError(request: RequestHeader, exception: UsefulException): Future[Result] = {
-
-    logger.error("An server error has occurred.", exception)
+    Logger.error("An server error has occurred.", exception)
     super.onProdServerError(request, exception)
   }
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
-    logger.error(s"A client error has occurred when trying to access ${request.domain} resulting in http code $statusCode")
+    Logger.error(s"A client error has occurred when trying to access ${request.domain} resulting in http code $statusCode")
     super.onClientError(request, statusCode, message)
   }
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
-    logger.error(s"A server error occurred when trying to access ${request.domain}", exception)
+    Logger.error(s"A server error occurred when trying to access ${request.domain}", exception)
     super.onServerError(request, exception)
   }
 

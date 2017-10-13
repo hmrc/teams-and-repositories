@@ -8,6 +8,7 @@ import uk.gov.hmrc.teamsandrepositories
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
+import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails.determineLanguage
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 
 
@@ -88,11 +89,13 @@ object TeamRepositories {
       .groupBy(_.name)
       .map {
         case (repositoryName, repositories) =>
+          val language: String = RepositoryDetails.determineLanguage(repositories)
           Repository(
             repositoryName,
             repositories.minBy(_.createdDate).createdDate,
             repositories.maxBy(_.lastActiveDate).lastActiveDate,
-            GitRepository.primaryRepoType(repositories))
+            GitRepository.primaryRepoType(repositories),
+            Some(language))
       }
       .toList
       .sortBy(_.name.toUpperCase)
@@ -146,7 +149,6 @@ object TeamRepositories {
     teamRepos
       .map(teamRepositories => buildTeam(teamRepositories.teamName, repositoriesToIgnore, teamRepositories))
       .map(team => team.copy(lastActiveDate = None, firstServiceCreationDate = None, firstActiveDate = None))
-
 
   private def buildTeam(teamName: String, repositoriesToIgnore: List[String], teamRepositories: TeamRepositories) = {
     val teamActivityDates = GitRepository.getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)

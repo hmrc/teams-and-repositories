@@ -103,14 +103,14 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
       val teamARepositories =
         TeamRepositories("teamA", List(
-          GitRepository("repo1", "Some Description", "url1", now, now),
-          GitRepository("repo2", "Some Description", "url2", now, now)
+          GitRepository("repo1", "Some Description", "url1", now, now, language = Some("Scala")),
+          GitRepository("repo2", "Some Description", "url2", now, now, language = Some("Scala"))
         ), timestampF())
 
       val teamBRepositories =
         TeamRepositories("teamB", List(
-          GitRepository("repo3", "Some Description", "url3", now, now),
-          GitRepository("repo4", "Some Description", "url4", now, now)
+          GitRepository("repo3", "Some Description", "url3", now, now, language = Some("Scala")),
+          GitRepository("repo4", "Some Description", "url4", now, now, language = Some("Scala"))
         ), timestampF())
 
 
@@ -144,14 +144,14 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
       val teamARepositoriesInDataSource1 =
         TeamRepositories("teamA", List(
-          GitRepository("repoB2", "Some Description", "urlB2", now, now),
-            GitRepository("repoA1", "Some Description", "urlA1", now, now)
+          GitRepository("repoB2", "Some Description", "urlB2", now, now, language = Some("Scala")),
+            GitRepository("repoA1", "Some Description", "urlA1", now, now, language = Some("Scala"))
         ), timestampF())
 
       val teamARepositoriesInDataSource2 =
         TeamRepositories("teamA", List(
-          GitRepository("repoD4", "Some Description", "url4", now, now),
-          GitRepository("repoC3", "Some Description", "url3", now, now)
+          GitRepository("repoD4", "Some Description", "url4", now, now, language = Some("Scala")),
+          GitRepository("repoC3", "Some Description", "url3", now, now, language = Some("Scala"))
         ), timestampF())
 
 
@@ -193,7 +193,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
       def buildTeamRepositories(teamName: String, repoName: String, url: String) =
-        TeamRepositories(teamName, List(GitRepository(repoName, "Some Description", url, now, now)), timestampF())
+        TeamRepositories(teamName, List(GitRepository(repoName, "Some Description", url, now, now, language = Some("Scala"))), timestampF())
 
       val teamARepositories = buildTeamRepositories("teamA", "repo1", "url1")
       val teamBRepositories = buildTeamRepositories("teamB", "repo2", "url2")

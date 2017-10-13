@@ -34,3 +34,4 @@ tmp
 .idea_modules
 bin
 /misc/
+local.conf
