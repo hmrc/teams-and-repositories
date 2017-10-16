@@ -2,6 +2,8 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.util.Date
 
+import com.codahale.metrics.{Counter, MetricRegistry}
+import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
@@ -27,6 +29,13 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
   private val persister = mock[TeamsAndReposPersister]
   private val connector = mock[MongoConnector]
   private val githubClientDecorator = mock[GithubApiClientDecorator]
+
+  val mockMetrics = mock[Metrics]
+  val mockRegistry = mock[MetricRegistry]
+  val mockCounter = mock[Counter]
+
+  when(mockMetrics.defaultRegistry).thenReturn(mockRegistry)
+  when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
 
   val now = new Date().getTime
   val testTimestamper = new Timestamper {
@@ -231,7 +240,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     })
 
 
-    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
+    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mockMetrics) {
       override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList
     }
   }

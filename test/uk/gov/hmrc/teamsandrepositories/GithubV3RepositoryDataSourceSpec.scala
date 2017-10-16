@@ -19,6 +19,9 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.LocalDateTime
 import java.util.Date
 
+import com.codahale.metrics.{Counter, MetricRegistry}
+import com.kenshoo.play.metrics.Metrics
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -40,9 +43,14 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
   val now = new Date().getTime
   private val timestampF = () => now
 
+  val mockRegistry = mock[MetricRegistry]
+  val mockCounter = mock[Counter]
+
+  when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
+
   trait Setup  {
     val githubClient = mock[GithubApiClient]
-    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false, timestampF)
+    val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false, timestampF, mockRegistry)
 
     when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
     when(githubClient.getFileContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(None))
@@ -124,7 +132,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
-      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = true, timestampF)
+      val internalDataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = true, timestampF, mockRegistry)
 
       private val org = GhOrganisation("HMRC", 1)
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))

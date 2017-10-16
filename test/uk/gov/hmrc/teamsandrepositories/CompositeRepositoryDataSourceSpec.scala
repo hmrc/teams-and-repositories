@@ -19,6 +19,8 @@ package uk.gov.hmrc.teamsandrepositories
 import java.util.Date
 import java.util.concurrent.Executors
 
+import com.codahale.metrics.{Counter, MetricRegistry}
+import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
@@ -39,6 +41,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with ScalaFutures with Matchers with DefaultPatienceConfig {
 
   val now = new Date().getTime
+
+  val mockMetrics = mock[Metrics]
+  val mockRegistry = mock[MetricRegistry]
+  val mockCounter = mock[Counter]
+
+  when(mockMetrics.defaultRegistry).thenReturn(mockRegistry)
+  when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
 
   val testTimestamper = new Timestamper {
     override def timestampF() = now
@@ -78,7 +87,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
       when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
-      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper)
+      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mockMetrics)
 
       verify(gitApiOpenConfig).apiUrl
       verify(gitApiOpenConfig).key
@@ -129,7 +138,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       when(dataSource.mapTeam(ghOrganisation, ghTeamA)).thenReturn(Future.successful(teamARepositories))
       when(dataSource.mapTeam(ghOrganisation, ghTeamB)).thenReturn(Future.successful(teamBRepositories))
 
-      val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, Nil)
+      val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, Nil, mockMetrics)
 
       compositeDataSource.persistTeamRepoMapping.futureValue
 
@@ -176,7 +185,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       when(dataSource1.mapTeam(ghOrganisation1, ghTeamAInDataSource1)).thenReturn(Future.successful(teamARepositoriesInDataSource1))
       when(dataSource2.mapTeam(ghOrganisation2, ghTeamAInDataSource2)).thenReturn(Future.successful(teamARepositoriesInDataSource2))
 
-      val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil)
+      val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil, mockMetrics)
 
       compositeDataSource.persistTeamRepoMapping.futureValue
 
@@ -230,7 +239,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
         TeamRepositories("teamC", Nil, updateDate = 2),
         TeamRepositories("teamB", Nil, updateDate = 3))
 
-      val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, persistedRepositoriesForOrdering)
+      val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, persistedRepositoriesForOrdering, mockMetrics)
 
       val mappingTeamsOrder = Mockito.inOrder(dataSource)
       val persistenceOrder = Mockito.inOrder(compositeDataSource.persister)
@@ -257,7 +266,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
           val dataSource1 = mock[GithubV3RepositoryDataSource]
           val dataSource2 = mock[GithubV3RepositoryDataSource]
 
-          val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil)
+          val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil, mockMetrics)
 
           val teamRepositoriesInMongo = Seq(
             TeamRepositories("team-a", Nil, System.currentTimeMillis()),
@@ -295,7 +304,8 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
 
   private def buildCompositeDataSource(dataSource1: GithubV3RepositoryDataSource,
                                        dataSource2: GithubV3RepositoryDataSource,
-                                       storedTeamRepositories: Seq[TeamRepositories]) = {
+                                       storedTeamRepositories: Seq[TeamRepositories],
+                                       metrics: Metrics) = {
 
     val githubConfig = mock[GithubConfig]
     val persister = mock[TeamsAndReposPersister]
@@ -333,8 +343,7 @@ class CompositeRepositoryDataSourceSpec extends WordSpec with MockitoSugar with 
       }
     })
 
-
-    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper) {
+    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, metrics) {
       override val dataSources: List[GithubV3RepositoryDataSource] = List(dataSource1, dataSource2)
     }
   }
