@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
+import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
@@ -46,7 +47,8 @@ object OneTeamAndItsDataSources {
 class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
                                    val gh: GithubApiClient,
                                    val isInternal: Boolean,
-                                   timestampF: () => Long) {
+                                   timestampF: () => Long,
+                                   val defaultMetricsRegistry: MetricRegistry) {
 
   //!@ use the play ec
   import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext._
@@ -57,11 +59,12 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   val retries: Int = 5
   val initialDuration: Double = 50
 
+  def githubName = if (isInternal) "enterprise" else "open"
 
   def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] = {
-    gh.getOrganisations.flatMap { orgs =>
+    withCounter(s"github.$githubName.orgs") { gh.getOrganisations } flatMap { orgs =>
       Future.sequence(
-        orgs.map(org => gh.getTeamsForOrganisation(org.login).map(teams => (org, teams)))
+        orgs.map(org => withCounter(s"github.$githubName.teams") { gh.getTeamsForOrganisation(org.login) } map(teams => (org, teams)))
       ).map(_.map { case (ghOrg, ghTeams) =>
         val nonHiddenGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
         nonHiddenGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
@@ -77,7 +80,7 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
-      gh.getReposForTeam(team.id).flatMap { repos =>
+      withCounter(s"github.$githubName.repos") { gh.getReposForTeam(team.id) } flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
         } yield {
@@ -95,7 +98,7 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
 
   private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
-      manifest <- gh.getFileContent("repository.yaml", repository.name, organisation.login)
+      manifest <- withCounter(s"github.$githubName.fileContent") { gh.getFileContent("repository.yaml", repository.name, organisation.login) }
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
@@ -194,10 +197,18 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   }
 
   private def hasTags(organisation: GhOrganisation, repository: GhRepository) =
-    gh.getTags(organisation.login, repository.name).map(_.nonEmpty)
+    withCounter(s"github.$githubName.tags") { gh.getTags(organisation.login, repository.name) } map(_.nonEmpty)
 
   private def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String) =
-    gh.repoContainsContent(path, repo.name, organisation.login)
+    withCounter(s"github.$githubName.containsContent") { gh.repoContainsContent(path, repo.name, organisation.login) }
 
+
+  def withCounter[T](name: String)(f: Future[T]) = {
+    f.andThen {
+      case Success(_) =>
+        defaultMetricsRegistry.counter(s"$name.success").inc()
+      case Failure(_) =>
+        defaultMetricsRegistry.counter(s"$name.failure").inc()
+    }
+  }
 }
-

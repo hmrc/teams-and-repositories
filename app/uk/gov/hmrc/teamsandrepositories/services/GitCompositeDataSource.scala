@@ -1,6 +1,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
+import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
@@ -20,19 +21,22 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
                                        val persister: TeamsAndReposPersister,
                                        val mongoConnector: MongoConnector,
                                        val githubApiClientDecorator: GithubApiClientDecorator,
-                                       val timestamper: Timestamper) {
+                                       val timestamper: Timestamper,
+                                       val metrics: Metrics) {
+
+  private val defaultMetricsRegistry = metrics.defaultRegistry
 
   val gitApiEnterpriseClient: GithubApiClient =
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
 
   val enterpriseTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitApiEnterpriseClient, isInternal = true, timestamper.timestampF)
+    new GithubV3RepositoryDataSource(githubConfig, gitApiEnterpriseClient, isInternal = true, timestamper.timestampF, metrics.defaultRegistry)
 
   val gitOpenClient: GithubApiClient =
     githubApiClientDecorator.githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
   val openTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitOpenClient, isInternal = false, timestamper.timestampF)
+    new GithubV3RepositoryDataSource(githubConfig, gitOpenClient, isInternal = false, timestamper.timestampF,  metrics.defaultRegistry)
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
