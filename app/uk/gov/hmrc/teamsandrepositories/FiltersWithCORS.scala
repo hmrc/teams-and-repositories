@@ -6,5 +6,5 @@ import play.api.http.DefaultHttpFilters
 import play.filters.cors.CORSFilter
 import uk.gov.hmrc.play.bootstrap.filters.MicroserviceFilters
 
-class Filters @Inject() (defaultFilters : MicroserviceFilters, corsFilter: CORSFilter)
+class FiltersWithCORS @Inject()(defaultFilters : MicroserviceFilters, corsFilter: CORSFilter)
   extends DefaultHttpFilters(defaultFilters.filters :+ corsFilter: _*)
