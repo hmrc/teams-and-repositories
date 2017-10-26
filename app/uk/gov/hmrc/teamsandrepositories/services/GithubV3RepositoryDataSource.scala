@@ -50,7 +50,6 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
                                    timestampF: () => Long,
                                    val defaultMetricsRegistry: MetricRegistry) {
 
-  //!@ use the play ec
   import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext._
 
   implicit val repositoryFormats = Json.format[GitRepository]
