@@ -22,7 +22,7 @@ private object AppDependencies {
   private val playUrlBindersVersion = "2.1.0"
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.3.0"
-  private val githubClientVersion = "1.17.0"
+  private val githubClientVersion = "1.18.0"
   private val playReactivemongoVersion = "6.0.0"
 
   val compile = Seq(
