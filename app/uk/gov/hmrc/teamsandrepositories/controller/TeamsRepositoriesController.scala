@@ -116,6 +116,10 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     }
   }
 
+  def all() = Action.async{
+    mongoTeamsAndReposPersister.getAllTeamAndRepos.map(allRecords => Ok(Json.toJson(allRecords)))
+  }
+
   def allRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
       Ok(Json.toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
