@@ -19,7 +19,7 @@ case class GitRepository(name: String,
                          isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
                          digitalServiceName: Option[String] = None,
-                         language: Option[String] = None) //!@ (test to see if we need to:) add the None default value for mongo backward compatibility
+                         language: Option[String] = None)
 
 object GitRepository {
 
