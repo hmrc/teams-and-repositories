@@ -79,12 +79,12 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
 
   def reload(fullRefreshWithHighApiCall: Boolean): Future[Seq[TeamRepositories]] = {
     mongoLock.tryLock {
-      Logger.debug(s"Starting mongo update")
+      Logger.info(s"Starting mongo update")
       githubCompositeDataSource.persistTeamRepoMapping(fullRefreshWithHighApiCall)
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      Logger.debug(s"mongo update completed")
+      Logger.info(s"mongo update completed")
       r
     }
   }
@@ -97,7 +97,7 @@ class DataReloadScheduler @Inject()(actorSystem: ActorSystem,
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
-      Logger.debug(s"mongo cleanup completed")
+      Logger.info(s"mongo cleanup completed")
       r
     }
 
