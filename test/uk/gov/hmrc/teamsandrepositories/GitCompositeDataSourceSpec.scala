@@ -56,53 +56,52 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     reset(githubClientDecorator)
   }
 
+  describe("buildDataSource") {
+    it("should create the right CompositeRepositoryDataSource") {
 
-//  describe("buildDataSource") {
-//    it("should create the right CompositeRepositoryDataSource") {
-//
-//      val gitApiOpenConfig = mock[GitApiConfig]
-//      val gitApiEnterpriseConfig = mock[GitApiConfig]
-//
-//      when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
-//      when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
-//
-//      val enterpriseUrl = "enterprise.com"
-//      val enterpriseKey = "enterprise.key"
-//      when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
-//      when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
-//
-//      val openUrl = "open.com"
-//      val openKey = "open.key"
-//      when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
-//      when(gitApiOpenConfig.key).thenReturn(openKey)
-//
-//      val enterpriseGithubClient = mock[GithubApiClient]
-//      val openGithubClient = mock[GithubApiClient]
-//      when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
-//      when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
-//
-//      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper)
-//
-//      verify(gitApiOpenConfig).apiUrl
-//      verify(gitApiOpenConfig).key
-//      verify(gitApiEnterpriseConfig).apiUrl
-//      verify(gitApiEnterpriseConfig).key
-//
-//      compositeRepositoryDataSource.dataSources.size shouldBe 2
-//
-//      val enterpriseDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(0)
-//      enterpriseDataSource shouldBe compositeRepositoryDataSource.enterpriseTeamsRepositoryDataSource
-//
-//      val openDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(1)
-//      openDataSource shouldBe compositeRepositoryDataSource.openTeamsRepositoryDataSource
-//    }
-//  }
+      val gitApiOpenConfig = mock[GitApiConfig]
+      val gitApiEnterpriseConfig = mock[GitApiConfig]
 
+      when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
+      when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
+
+      val enterpriseUrl = "enterprise.com"
+      val enterpriseKey = "enterprise.key"
+      when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
+      when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
+
+      val openUrl = "open.com"
+      val openKey = "open.key"
+      when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
+      when(gitApiOpenConfig.key).thenReturn(openKey)
+
+      val enterpriseGithubClient = mock[GithubApiClient]
+      val openGithubClient = mock[GithubApiClient]
+      when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
+      when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
+
+      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mock[Metrics])
+
+      verify(gitApiOpenConfig).apiUrl
+      verify(gitApiOpenConfig).key
+      verify(gitApiEnterpriseConfig).apiUrl
+      verify(gitApiEnterpriseConfig).key
+
+      compositeRepositoryDataSource.dataSources.size shouldBe 2
+
+      val enterpriseDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(0)
+      enterpriseDataSource shouldBe compositeRepositoryDataSource.enterpriseTeamsRepositoryDataSource
+
+      val openDataSource: GithubV3RepositoryDataSource = compositeRepositoryDataSource.dataSources(1)
+      openDataSource shouldBe compositeRepositoryDataSource.openTeamsRepositoryDataSource
+    }
+  }
 
 
 
+
+    //!@ why are all these commented out
   describe("Retrieving team repo mappings") {
-
 //    it("return the combination of all input sources") {
 //
 //      val teamsList1 = List(

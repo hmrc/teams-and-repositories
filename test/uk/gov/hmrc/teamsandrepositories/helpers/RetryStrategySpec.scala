@@ -51,8 +51,8 @@ class RetryStrategySpec extends FreeSpec with Matchers with ScalaFutures with In
       }.failed) {e => e shouldBe an[APIRateLimitExceededException]}
 
       dummy.retriedCount shouldBe 5
-
     }
+
   }
 
 }

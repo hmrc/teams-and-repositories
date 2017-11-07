@@ -9,6 +9,7 @@ import play.api.libs.functional.syntax._
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
 
 
+//!@ rename to PersistedRepository?
 case class GitRepository(name: String,
                          description: String,
                          url: String,
@@ -18,11 +19,9 @@ case class GitRepository(name: String,
                          isPrivate: Boolean = false,
                          repoType: RepoType = RepoType.Other,
                          digitalServiceName: Option[String] = None,
-                         language: Option[String] = None)
+                         language: Option[String] = None) //!@ (test to see if we need to:) add the None default value for mongo backward compatibility
 
 object GitRepository {
-  def toRepository(gitRepository: GitRepository): Repository =
-    Repository(gitRepository.name, gitRepository.createdDate, gitRepository.lastActiveDate, gitRepository.repoType, gitRepository.language)
 
   implicit val gitRepositoryFormats: OFormat[GitRepository] = {
 
@@ -37,7 +36,7 @@ object GitRepository {
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
         (JsPath \ "language").readNullable[String]
-      ) (apply _)
+    ) (apply _)
 
     val writes = Json.writes[GitRepository]
 

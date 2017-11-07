@@ -48,13 +48,13 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
   when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
 
-  trait Setup  {
+  trait Setup {
     val githubClient = mock[GithubApiClient]
     val dataSource = new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false, timestampF, mockRegistry)
 
-    when(githubClient.repoContainsContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
-    when(githubClient.getFileContent(anyString(),anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(None))
-    when(githubClient.getTags(anyString(),anyString())(any[ExecutionContext])).thenReturn(Future.successful(List.empty))
+    when(githubClient.repoContainsContent(anyString(), anyString(), anyString())(any[ExecutionContext])).thenReturn(Future.successful(false))
+    when(githubClient.getFileContent(anyString(), anyString(), anyString())(any[ExecutionContext])).thenReturn(Future.successful(None))
+    when(githubClient.getTags(anyString(), anyString())(any[ExecutionContext])).thenReturn(Future.successful(List.empty))
 
     when(githubConfig.hiddenRepositories).thenReturn(testHiddenRepositories)
     when(githubConfig.hiddenTeams).thenReturn(testHiddenTeams)
@@ -121,10 +121,10 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
 
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(teamA)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
-        GhRepository("A_r",   "some description",  1, "url_A", fork = false, now, now, false, "Scala"),
-        GhRepository("A_r2",  "some description",  5, "url_A2", fork = true, now, now, false, "Scala"))))
+        GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"),
+        GhRepository("A_r2", "some description", 5, "url_A2", fork = true, now, now, false, "Scala"))))
 
-      val eventualTeamRepositories = dataSource.mapTeam(hmrcOrg, teamA)
+      val eventualTeamRepositories = dataSource.mapTeam(hmrcOrg, teamA, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
       eventualTeamRepositories.futureValue shouldBe
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, language = Some("Scala"))), timestampF())
 
@@ -139,10 +139,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
-        GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+        GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      internalDataSource.mapTeam(org, team).futureValue shouldBe
-        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      internalDataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe
+        TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isInternal = true, digitalServiceName = None, language = Some("Scala"))),
+          timestampF())
     }
 
     "Filter out repositories according to the hidden config" in new Setup {
@@ -154,9 +155,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
         GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now, false, "Scala"),
-        GhRepository("A_r",   "some description", 2, "url_A", false, now, now, false, "Scala"))))
+        GhRepository("A_r", "some description", 2, "url_A", false, now, now, false, "Scala"))))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -168,11 +169,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
-        GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+        GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent("conf/application.conf","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent("conf/application.conf", "A_r", "HMRC")(ec)).thenReturn(Future.successful(true))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -182,11 +183,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent("Procfile","A_r","HMRC")(ec)).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent("Procfile", "A_r", "HMRC")(ec)).thenReturn(Future.successful(true))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -196,11 +197,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent(same("deploy.properties"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent(same("deploy.properties"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
     "Set type as Deployable according if the repository.yaml contains a type of 'service'" in new Setup {
@@ -209,11 +210,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: service")))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
     "extract digital service name from repository.yaml" in new Setup {
@@ -222,11 +223,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"),same("repository-xyz"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("digital-service: service-abcd")))
+      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = Some("service-abcd"), language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = Some("service-abcd"), language = Some("Scala"))), timestampF())
     }
 
     "extract digital service name and repo type from repository.yaml" in new Setup {
@@ -235,16 +236,16 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repository-xyz",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
       private val manifestYaml =
         """
           |digital-service: service-abcd
           |type: service
         """.stripMargin
-      when(githubClient.getFileContent(same("repository.yaml"),same("repository-xyz"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some(manifestYaml)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some(manifestYaml)))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = Some("service-abcd"), language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("repository-xyz", "some description", "url_A", now, now, repoType = RepoType.Service, digitalServiceName = Some("service-abcd"), language = Some("Scala"))), timestampF())
     }
 
     "Set type as Library according if the repository.yaml contains a type of 'library'" in new Setup {
@@ -253,11 +254,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: library")))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
     "Set type as Other if the repository.yaml contains any other value for type" in new Setup {
@@ -266,11 +267,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("type: somethingelse")))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
     "Set type as Other if the repository.yaml does not contain a type" in new Setup {
@@ -279,11 +280,11 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some("description: not a type")))
 
-      dataSource.mapTeam(org, team).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
     "Set type Library if not Service and has src/main/scala and has tags" in new Setup {
@@ -292,12 +293,12 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
-      when(githubClient.repoContainsContent(same("src/main/scala"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent(same("src/main/scala"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
-      val repositories = dataSource.mapTeam(org, team).futureValue
+      val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -307,12 +308,12 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
-      when(githubClient.repoContainsContent(same("src/main/java"),same("A_r"),same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent(same("src/main/java"), same("A_r"), same("HMRC"))(same(ec))).thenReturn(Future.successful(true))
 
-      val repositories = dataSource.mapTeam(org, team).futureValue
+      val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Library, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -324,7 +325,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      val repositories = dataSource.mapTeam(org, team).futureValue
+      val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("CATO-prototype", "some description", "url_A", now, now, repoType = RepoType.Prototype, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -334,9 +335,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, false, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      val repositories = dataSource.mapTeam(org, team).futureValue
+      val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -346,9 +347,9 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r",   "some description", 1, "url_A", false, now, now, true, "Scala"))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala"))))
 
-      val repositories: TeamRepositories = dataSource.mapTeam(org, team).futureValue
+      val repositories: TeamRepositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, isPrivate = true, repoType = RepoType.Other, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
 
@@ -357,10 +358,100 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("Pete_r",   "some description", 1, "url_A", false, now, now, true, null))))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null))))
 
-      val repositories: TeamRepositories = dataSource.mapTeam(org, team).futureValue
+      val repositories: TeamRepositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue
       repositories shouldBe TeamRepositories("A", List(GitRepository("Pete_r", "some description", "url_A", now, now, isPrivate = true, repoType = RepoType.Other, digitalServiceName = None)), timestampF())
+    }
+
+
+    "github api for determining the repo type" should {
+      val org = GhOrganisation("HMRC", 1)
+      val team = GhTeam("A", 1)
+
+      "not be called" when {
+        "fullRefreshWithHighApiCall flag is false" should {
+          "also repo type and digital service name should be copied from the previously persisted record)" in new Setup {
+            when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
+            when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+
+            val previousLastSuccessfulScheduledUpdate: Long = 1234l
+            val lastActiveDate: Long = 1234l
+            when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null))))
+
+            val persistedTeamRepositories = TeamRepositories("A", List(GitRepository("repo-1", "some description", "url_A", now, now, true, true, RepoType.Library, Some("Some Digital Service"), None)), now)
+
+            val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)), false).futureValue
+
+            //verify
+            repositories shouldBe TeamRepositories("A", List(GitRepository("repo-1", "some description", "url_A", now, lastActiveDate, isInternal = false, isPrivate = true, repoType = RepoType.Library, digitalServiceName = Some("Some Digital Service"))), timestampF())
+            verify(githubClient, never()).getFileContent(any(), any(), any())(any())
+            verify(githubClient, never()).repoContainsContent(any(), any(), any())(any())
+          }
+        }
+
+      }
+
+      "be called" when {
+        "fullRefreshWithHighApiCall flag is true" should {
+          "also repo type and digital service name should be obtained from github" in new Setup {
+            when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
+            when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+
+
+            when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now, true, null))))
+
+            private val manifestYaml =
+              """
+                |digital-service: service-abcd
+                |type: library
+              """.stripMargin
+
+            when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some(manifestYaml)))
+
+            val persistedTeamRepositories = TeamRepositories("A", List(GitRepository("repo-1", "some description", "url_A", now, now, true, true, RepoType.Library, Some("Some Digital Service"), None)), now)
+
+            private val fullRefreshWithHighApiCall = true
+            val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)), fullRefreshWithHighApiCall).futureValue
+
+            //verify
+            repositories shouldBe TeamRepositories("A", List(GitRepository("repo-1", "some description", "url_A", now, now, isInternal = false, isPrivate = true, repoType = RepoType.Library, digitalServiceName = Some("service-abcd"))), timestampF())
+            verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)
+            verify(githubClient, never()).repoContainsContent(any(), any(), any())(any())
+          }
+        }
+      }
+
+      "for a new repository" should {
+        "also repo type and digital service name should be obtained from github" in new Setup {
+          when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
+          when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+
+          val lastActiveDate: Long = 1234l
+          val previousLastSuccessfulScheduledUpdate = Option.empty[Long]
+
+          when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null))))
+
+          private val manifestYaml =
+            """
+              |digital-service: service-abcd
+              |type: library
+            """.stripMargin
+          when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("HMRC"))(same(ec))).thenReturn(Future.successful(Some(manifestYaml)))
+
+          val persistedTeamRepositories = TeamRepositories("A", Nil, now)
+
+          val repositories = dataSource.mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)), fullRefreshWithHighApiCall = false).futureValue
+
+          //verify
+          repositories shouldBe TeamRepositories("A", List(GitRepository("repo-1", "some description", "url_A", now, lastActiveDate, isInternal = false, isPrivate = true, repoType = RepoType.Library, digitalServiceName = Some("service-abcd"))), timestampF())
+          verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)
+          verify(githubClient, never()).repoContainsContent(any(), any(), any())(any())
+        }
+      }
+
+
+
     }
 
     "Retry up to 5 times in the event of a failed api call" in new Setup {
@@ -403,7 +494,7 @@ class GithubV3RepositoryDataSourceSpec extends WordSpec with ScalaFutures with M
         .thenReturn(Future.failed(new RuntimeException("something went wrong")))
         .thenReturn(Future.successful(false))
 
-      dataSource.mapTeam(org, team).futureValue(Timeout(1 minute)) shouldBe
+      dataSource.mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false).futureValue(Timeout(1 minute)) shouldBe
         TeamRepositories("A", List(GitRepository("A_r", "some description", "url_A", now, now, digitalServiceName = None, language = Some("Scala"))), timestampF())
     }
   }

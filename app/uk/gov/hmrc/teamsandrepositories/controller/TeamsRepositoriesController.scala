@@ -135,10 +135,10 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def repositoriesByTeam(teamName: String) = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
 
-      (TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
+      TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
         case None => NotFound
         case Some(x) => Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
-      })
+      }
     }
   }
 
@@ -159,8 +159,8 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
     }
   }
 
-  def reloadCache() = Action {
-    dataReloadScheduler.reload
+  def reloadCache(fullRefreshWithHighApiCall:Option[Boolean]) = Action {
+    dataReloadScheduler.reload(fullRefreshWithHighApiCall.getOrElse(false))
     Ok("Cache reload triggered successfully")
   }
 

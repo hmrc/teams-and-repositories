@@ -192,8 +192,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     }
 
     "Should use available lanugage if only one repo" in {
-      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service,
-        language = Some("Scala"))
+      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service, language = Some("Scala"))
 
       val repos = Seq(internalRepo)
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
@@ -202,10 +201,8 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     }
 
     "Should take language if open and internal are the same" in {
-      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service,
-        language = Some("Scala"))
-      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service,
-        language = Some("Scala"))
+      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service, language = Some("Scala"))
+      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service, language = Some("Scala"))
 
       val repos = Seq(internalRepo, openRepo)
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
@@ -214,10 +211,8 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     }
 
     "Should take non-empty language if open and internal both have values but one is empty" in {
-      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service,
-        language = Some("Scala"))
-      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service,
-        language = Some(""))
+      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service, language = Some("Scala"))
+      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service, language = Some(""))
 
       val repos = Seq(internalRepo, openRepo)
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
@@ -226,10 +221,8 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     }
 
     "Should take non-empty language if open and internal both have values but one is None" in {
-      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service,
-        language = Some("Scala"))
-      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service,
-        language = None)
+      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service, language = Some("Scala"))
+      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service, language = None)
 
       val repos = Seq(internalRepo, openRepo)
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
@@ -238,10 +231,8 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     }
 
     "Should take ci-open service name both are present and different" in {
-      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service,
-        language = Some("Python"))
-      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service,
-        language = Some("Scala"))
+      val internalRepo = GitRepository("a-repo", "Some Description", "https://not-open-github/org/a-repo", now, now, isInternal = true, repoType = RepoType.Service, language = Some("Python"))
+      val openRepo = GitRepository("a-repo", "Some Description", "https://github.com/org/a-repo", now, now, repoType = RepoType.Service, language = Some("Scala"))
 
       val repos = Seq(internalRepo, openRepo)
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)

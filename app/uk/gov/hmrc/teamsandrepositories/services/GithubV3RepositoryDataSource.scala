@@ -20,7 +20,7 @@ import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
-import uk.gov.hmrc.githubclient.{GhOrganisation, GhRepository, GhTeam, GithubApiClient}
+import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
@@ -28,6 +28,7 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.concurrent.Future
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
@@ -61,9 +62,13 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   def githubName = if (isInternal) "enterprise" else "open"
 
   def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] = {
-    withCounter(s"github.$githubName.orgs") { gh.getOrganisations } flatMap { orgs =>
+    withCounter(s"github.$githubName.orgs") {
+      gh.getOrganisations
+    } flatMap { orgs =>
       Future.sequence(
-        orgs.map(org => withCounter(s"github.$githubName.teams") { gh.getTeamsForOrganisation(org.login) } map(teams => (org, teams)))
+        orgs.map(org => withCounter(s"github.$githubName.teams") {
+          gh.getTeamsForOrganisation(org.login)
+        } map (teams => (org, teams)))
       ).map(_.map { case (ghOrg, ghTeams) =>
         val nonHiddenGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
         nonHiddenGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
@@ -76,14 +81,17 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     }
   }
 
-  def mapTeam(organisation: GhOrganisation, team: GhTeam): Future[TeamRepositories] = {
+
+  def mapTeam(organisation: GhOrganisation, team: GhTeam, persistedTeams: Future[Seq[TeamRepositories]], fullRefreshWithHighApiCall: Boolean): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
-      withCounter(s"github.$githubName.repos") { gh.getReposForTeam(team.id) } flatMap { repos =>
+      withCounter(s"github.$githubName.repos") {
+        gh.getReposForTeam(team.id)
+      } flatMap { repos =>
         Future.sequence(for {
           repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
         } yield {
-          mapRepository(organisation, repo)
+          mapRepository(organisation, team, repo, persistedTeams, fullRefreshWithHighApiCall)
         }).map { (repos: List[GitRepository]) =>
           TeamRepositories(team.name, repositories = repos, timestampF())
         }
@@ -95,17 +103,34 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
     }
   }
 
-  private def mapRepository(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
+
+  def getRepositoryDetailsFromGithub(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] = {
     for {
-      manifest <- withCounter(s"github.$githubName.fileContent") { gh.getFileContent("repository.yaml", repository.name, organisation.login) }
+      manifest <- withCounter(s"github.$githubName.fileContent") {
+        gh.getFileContent("repository.yaml", repository.name, organisation.login)
+      }
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
     } yield {
       Logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      GitRepository(repository.name, repository.description, repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = repositoryType, digitalServiceName = maybeDigitalServiceName, Option(repository.language))
+      buildGitRepository(repository, repositoryType, maybeDigitalServiceName)
     }
   }
+
+
+  private def mapRepository(organisation: GhOrganisation, team: GhTeam, repository: GhRepository, persistedTeamsF: Future[Seq[TeamRepositories]], fullRefreshWithHighApiCall: Boolean): Future[GitRepository] = {
+    val eventualMaybePersistedRepository = persistedTeamsF.map(_.find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName))).map(_.flatMap(_.repositories.find(_.name == repository.name)))
+
+    eventualMaybePersistedRepository.flatMap {
+      case Some(persistedRepository) if !fullRefreshWithHighApiCall =>
+        Logger.debug(s"Mapping repository (${repository.name}) as ${persistedRepository.repoType} from previously persisted repo")
+        Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
+      case _ =>
+        getRepositoryDetailsFromGithub(organisation, repository)
+    }
+  }
+
 
   private def identifyRepository(repository: GhRepository, organisation: GhOrganisation, maybeRepoType: Option[RepoType]): Future[RepoType] =
     maybeRepoType match {
@@ -196,10 +221,22 @@ class GithubV3RepositoryDataSource(githubConfig: GithubConfig,
   }
 
   private def hasTags(organisation: GhOrganisation, repository: GhRepository) =
-    withCounter(s"github.$githubName.tags") { gh.getTags(organisation.login, repository.name) } map(_.nonEmpty)
+    withCounter(s"github.$githubName.tags") {
+      gh.getTags(organisation.login, repository.name)
+    } map (_.nonEmpty)
 
   private def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String) =
-    withCounter(s"github.$githubName.containsContent") { gh.repoContainsContent(path, repo.name, organisation.login) }
+    withCounter(s"github.$githubName.containsContent") {
+      gh.repoContainsContent(path, repo.name, organisation.login)
+    }
+
+  def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) = {
+    GitRepository(name = repository.name, description = repository.description, url = repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = persistedRepository.repoType, digitalServiceName = persistedRepository.digitalServiceName, language = persistedRepository.language)
+  }
+
+  def buildGitRepository(repository: GhRepository, repositoryType: RepoType, maybeDigitalServiceName: Option[String]): GitRepository = {
+    GitRepository(repository.name, description = repository.description, url = repository.htmlUrl, createdDate = repository.createdDate, lastActiveDate = repository.lastActiveDate, isInternal = this.isInternal, isPrivate = repository.isPrivate, repoType = repositoryType, digitalServiceName = maybeDigitalServiceName, language = Option(repository.language))
+  }
 
 
   def withCounter[T](name: String)(f: Future[T]) = {
