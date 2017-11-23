@@ -41,8 +41,8 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
 
       val teamAndRepositories1 = TeamRepositories("test-team1", List(gitRepository1, gitRepository2), System.currentTimeMillis())
       val teamAndRepositories2 = TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories1))
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories2))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories2))
 
       val all = await(mongoTeamsAndReposPersister.getAllTeamAndRepos)
 
@@ -73,7 +73,7 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
       val gitRepository2 = GitRepository("repo-name2", "Desc2", "url2", 3, 4, true, false, RepoType.Library, language = Some("Scala"))
 
       val teamAndRepositories1 = TeamRepositories("test-team", List(gitRepository1), System.currentTimeMillis())
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories1))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
 
       val teamAndRepositories2 = TeamRepositories("test-team", List(gitRepository2), System.currentTimeMillis())
       await(mongoTeamsAndReposPersister.update(teamAndRepositories2))
@@ -101,9 +101,9 @@ class MongoTeamsAndRepositoriesPersisterSpec extends UnitSpec with LoneElement w
       val teamAndRepositories2 = TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())
       val teamAndRepositories3 = TeamRepositories("test-team3", List(gitRepository1), System.currentTimeMillis())
 
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories1))
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories2))
-      await(mongoTeamsAndReposPersister.add(teamAndRepositories3))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories2))
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories3))
 
       List("test-team1", "test-team2").foreach { teamName =>
         await(mongoTeamsAndReposPersister.deleteTeam(teamName))

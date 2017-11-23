@@ -85,18 +85,6 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
     }
   }
 
-  def add(teamsAndRepository: TeamRepositories): Future[Boolean] = {
-    withTimerAndCounter("mongo.write") {
-      insert(teamsAndRepository) map {
-        case _ => true
-      }
-    } recover {
-      case lastError =>
-        logger.error(s"Could not add ${teamsAndRepository.teamName} to TeamsAndRepository collection", lastError)
-        throw lastError
-    }
-  }
-
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
 
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)

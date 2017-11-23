@@ -146,10 +146,10 @@ class TeamsRepositoriesController @Inject()(dataReloadScheduler: DataReloadSched
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
     mongoTeamsAndReposPersister.getAllTeamAndRepos.map { case (allTeamsAndRepos) =>
 
-      (TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
+      TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
         case None => NotFound
         case Some(x) => Ok(Json.toJson(x))
-      })
+      }
     }
   }
 

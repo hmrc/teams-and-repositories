@@ -42,7 +42,7 @@ object TeamRepositories {
     val gitRepositories: Seq[GitRepository] =
       allTeamsAndRepos
         .flatMap(_.repositories)
-        .filter(_.digitalServiceName.contains(digitalServiceName))
+        .filter(_.digitalServiceName.exists(_.equalsIgnoreCase(digitalServiceName)))
 
     identifyRepositories(gitRepositories) match {
         case Nil => None
@@ -105,8 +105,8 @@ object TeamRepositories {
 
   def findRepositoryDetails(teamRepos: Seq[TeamRepositories], repoName: String, ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
     teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) { case ((ts, repos), tr) =>
-      if (tr.repositories.exists(_.name == repoName))
-        (ts + tr.teamName, repos ++ tr.repositories.filter(_.name == repoName))
+      if (tr.repositories.exists(_.name.equalsIgnoreCase(repoName)))
+        (ts + tr.teamName, repos ++ tr.repositories.filter(_.name.equalsIgnoreCase(repoName)))
       else (ts, repos)
     } match {
       case (teams, repos) if repos.nonEmpty =>
@@ -117,7 +117,7 @@ object TeamRepositories {
 
   def getTeamRepositoryNameList(teamRepos: Seq[TeamRepositories], teamName: String): Option[Map[RepoType.RepoType, List[String]]] = {
     val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
-    teamRepos.find(_.teamName == decodedTeamName).map { t =>
+    teamRepos.find(_.teamName.equalsIgnoreCase(decodedTeamName)).map { t =>
 
       RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) { case (m, rtype) =>
         m + (rtype -> GitRepository.extractRepositoryGroupForType(rtype, t.repositories).map(_.name).distinct.sortBy(_.toUpperCase))
@@ -142,7 +142,7 @@ object TeamRepositories {
 
   def findTeam(teamRepos: Seq[TeamRepositories], teamName: String, repositoriesToIgnore: List[String]): Option[Team] =
     teamRepos
-      .find(_.teamName == URLDecoder.decode(teamName, "UTF-8"))
+      .find(_.teamName.equalsIgnoreCase(URLDecoder.decode(teamName, "UTF-8")))
       .map(teamRepositories => buildTeam(teamName, repositoriesToIgnore, teamRepositories))
 
   def allTeamsAndTheirRepositories(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =

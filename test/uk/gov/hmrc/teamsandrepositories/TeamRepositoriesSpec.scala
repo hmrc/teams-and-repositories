@@ -212,6 +212,26 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
 
   "findRepositoryDetails" should {
 
+    "find a repository" in {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None, language = Some("Scala"))
+        ), System.currentTimeMillis()))
+
+      TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap())) shouldBe defined
+    }
+    "find a repository where the name has a different case" in {
+
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Library, digitalServiceName = None, language = Some("Scala"))
+        ), System.currentTimeMillis()))
+
+      TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(Seq(), Seq(), ListMap())) shouldBe defined
+    }
+
+
     "include repository with type not Deployable as services if one of the repository with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories("teamName", List(
@@ -306,6 +326,20 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
       result shouldBe Some(Map(Service -> List("repo1", "repo2"), Library -> List("repo3"), Prototype -> List(), Other -> List()))
     }
 
+    "find the repository if the name has different case" in {
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = false, repoType = Service, digitalServiceName = None, language = Some("Scala")),
+                          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Service, digitalServiceName = None, language = Some("Scala")),
+                          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Other, digitalServiceName = None, language = Some("Scala")),
+                          GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, language = Some("Scala"))
+                        ), System.currentTimeMillis()),
+        TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, language = Some("Scala"))), System.currentTimeMillis())
+      )
+      val result = TeamRepositories.getTeamRepositoryNameList(teams, "teamname")
+
+      result shouldBe Some(Map(Service -> List("repo1", "repo2"), Library -> List("repo3"), Prototype -> List(), Other -> List()))
+    }
 
   }
 
@@ -351,6 +385,15 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
       TeamRepositories("teamNameOther", List(GitRepository("repo3", description, "", createdDate = timestamp, lastActiveDate = timestamp, isInternal = true, repoType = Library, digitalServiceName = None, language = Some("Scala"))), System.currentTimeMillis())
     )
 
+    "find a team" in {
+      val result = TeamRepositories.findTeam(teams, "teamName", Nil)
+      result shouldBe defined
+    }
+
+    "find a team when the name is of a different case" in {
+      val result = TeamRepositories.findTeam(teams, "teamname", Nil)
+      result shouldBe defined
+    }
 
     "get the max last active and min created at for repositories with the same name" in {
       val result = TeamRepositories.findTeam(teams, "teamName", Nil)
@@ -501,6 +544,16 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
       )
       result.value.lastUpdatedAt shouldBe nowInMillis
     }
+
+    "find the Digital Service when the name is of a different case" in {
+      val teams = Seq(
+        TeamRepositories("teamName", List(
+          GitRepository("repo1", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = false, repoType = Library, digitalServiceName = Some("DigitalService1"), language = Some("Scala")),
+          GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"), language = Some("Scala"))
+        ), System.currentTimeMillis()))
+      TeamRepositories.findDigitalServiceDetails(teams, "digitalservice1") shouldBe defined
+    }
+
 
     "get the lastUpdated timestamp for a Digital Service" in {
       val lastUpdatedTimestamp1 = nowInMillis
