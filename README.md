@@ -1,4 +1,4 @@
-# teams-and-repositories
+# Teams and Repositories
 API for retrieving information about repositories belonging to teams.
 
 For developers:
