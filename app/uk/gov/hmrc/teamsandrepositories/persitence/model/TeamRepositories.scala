@@ -44,10 +44,12 @@ object TeamRepositories {
         .flatMap(_.repositories)
         .filter(_.digitalServiceName.exists(_.equalsIgnoreCase(digitalServiceName)))
 
+    val storedDigitalServiceName: String = gitRepositories.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
+
     identifyRepositories(gitRepositories) match {
         case Nil => None
         case repos => Some(DigitalService(
-          digitalServiceName,
+          storedDigitalServiceName,
           repos.map(_.lastUpdatedAt).max,
           repos.map(repo =>
             DigitalServiceRepository(
@@ -143,14 +145,14 @@ object TeamRepositories {
   def findTeam(teamRepos: Seq[TeamRepositories], teamName: String, repositoriesToIgnore: List[String]): Option[Team] =
     teamRepos
       .find(_.teamName.equalsIgnoreCase(URLDecoder.decode(teamName, "UTF-8")))
-      .map(teamRepositories => buildTeam(teamName, repositoriesToIgnore, teamRepositories))
+      .map(teamRepositories => buildTeam(repositoriesToIgnore, teamRepositories))
 
   def allTeamsAndTheirRepositories(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =
     teamRepos
-      .map(teamRepositories => buildTeam(teamRepositories.teamName, repositoriesToIgnore, teamRepositories))
+      .map(teamRepositories => buildTeam(repositoriesToIgnore, teamRepositories))
       .map(team => team.copy(lastActiveDate = None, firstServiceCreationDate = None, firstActiveDate = None))
 
-  private def buildTeam(teamName: String, repositoriesToIgnore: List[String], teamRepositories: TeamRepositories) = {
+  private def buildTeam(repositoriesToIgnore: List[String], teamRepositories: TeamRepositories) = {
     val teamActivityDates = GitRepository.getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)
 
     def getRepositoryDisplayDetails(repoType: teamsandrepositories.RepoType.Value): List[String] = {
@@ -165,7 +167,7 @@ object TeamRepositories {
       m + (repoType -> getRepositoryDisplayDetails(repoType))
     }
 
-    Team(teamName, teamActivityDates.firstActiveDate, teamActivityDates.lastActiveDate, teamActivityDates.firstServiceCreationDate, Some(repos))
+    Team(teamRepositories.teamName, teamActivityDates.firstActiveDate, teamActivityDates.lastActiveDate, teamActivityDates.firstServiceCreationDate, Some(repos))
   }
 
 

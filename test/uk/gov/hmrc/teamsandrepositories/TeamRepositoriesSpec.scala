@@ -393,6 +393,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
     "find a team when the name is of a different case" in {
       val result = TeamRepositories.findTeam(teams, "teamname", Nil)
       result shouldBe defined
+      result.get.name shouldBe "teamName"
     }
 
     "get the max last active and min created at for repositories with the same name" in {
@@ -552,6 +553,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues{
           GitRepository("repo2", description, "", createdDate = timestamp, lastActiveDate = nowInMillis, isInternal = true, repoType = Service, digitalServiceName = Some("DigitalService1"), language = Some("Scala"))
         ), System.currentTimeMillis()))
       TeamRepositories.findDigitalServiceDetails(teams, "digitalservice1") shouldBe defined
+      TeamRepositories.findDigitalServiceDetails(teams, "digitalservice1").get.name shouldBe "DigitalService1"
     }
 
 
