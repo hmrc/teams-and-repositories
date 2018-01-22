@@ -22,18 +22,21 @@ import scala.io.Source
 
 class ConfigFile(file: Path) {
 
-   private val kvMap: Map[String, String] = {
-     try {
-       Source.fromFile(file.toFile)
-         .getLines().toSeq
-         .map(_.split("="))
-         .map { case Array(key, value) => key.trim -> value.trim}.toMap
-     } catch {
-       case e: Exception => {
-         Map.empty
-       }
-     }
-   }
+  private val kvMap: Map[String, String] = {
+    try {
+      Source
+        .fromFile(file.toFile)
+        .getLines()
+        .toSeq
+        .map(_.split("="))
+        .map { case Array(key, value) => key.trim -> value.trim }
+        .toMap
+    } catch {
+      case e: Exception => {
+        Map.empty
+      }
+    }
+  }
 
-   def get(path: String) = kvMap.get(path)
- }
+  def get(path: String) = kvMap.get(path)
+}

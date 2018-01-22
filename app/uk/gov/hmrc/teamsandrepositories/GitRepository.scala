@@ -8,18 +8,18 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import play.api.libs.functional.syntax._
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
 
-
 //!@ rename to PersistedRepository?
-case class GitRepository(name: String,
-                         description: String,
-                         url: String,
-                         createdDate: Long,
-                         lastActiveDate: Long,
-                         isInternal: Boolean = false,
-                         isPrivate: Boolean = false,
-                         repoType: RepoType = RepoType.Other,
-                         digitalServiceName: Option[String] = None,
-                         language: Option[String] = None)
+case class GitRepository(
+  name: String,
+  description: String,
+  url: String,
+  createdDate: Long,
+  lastActiveDate: Long,
+  isInternal: Boolean                = false,
+  isPrivate: Boolean                 = false,
+  repoType: RepoType                 = RepoType.Other,
+  digitalServiceName: Option[String] = None,
+  language: Option[String]           = None)
 
 object GitRepository {
 
@@ -36,18 +36,21 @@ object GitRepository {
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
         (JsPath \ "language").readNullable[String]
-    ) (apply _)
+    )(apply _)
 
     val writes = Json.writes[GitRepository]
 
     OFormat(reads, writes)
   }
 
-  case class TeamActivityDates(firstActiveDate: Option[Long] = None,
-                               lastActiveDate: Option[Long] = None,
-                               firstServiceCreationDate: Option[Long] = None)
+  case class TeamActivityDates(
+    firstActiveDate: Option[Long]          = None,
+    lastActiveDate: Option[Long]           = None,
+    firstServiceCreationDate: Option[Long] = None)
 
-  def getTeamActivityDatesOfNonSharedRepos(repos: Seq[GitRepository], repositoriesToIgnore: List[String]): TeamActivityDates = {
+  def getTeamActivityDatesOfNonSharedRepos(
+    repos: Seq[GitRepository],
+    repositoriesToIgnore: List[String]): TeamActivityDates = {
 
     val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
 
@@ -58,19 +61,20 @@ object GitRepository {
         else
           None
 
-      TeamActivityDates(Some(getCreatedAtDate(nonIgnoredRepos)), Some(getLastActiveDate(nonIgnoredRepos)), firstServiceCreationDate)
-    }
-    else {
+      TeamActivityDates(
+        Some(getCreatedAtDate(nonIgnoredRepos)),
+        Some(getLastActiveDate(nonIgnoredRepos)),
+        firstServiceCreationDate)
+    } else {
       TeamActivityDates()
     }
   }
 
-  def primaryRepoType(repositories: Seq[GitRepository]): RepoType = {
+  def primaryRepoType(repositories: Seq[GitRepository]): RepoType =
     if (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
     else if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
     else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
     else RepoType.Other
-  }
 
   def getCreatedAtDate(repos: Seq[GitRepository]): Long =
     repos.minBy(_.createdDate).createdDate
@@ -78,10 +82,11 @@ object GitRepository {
   def getLastActiveDate(repos: Seq[GitRepository]): Long =
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
-  def repoGroupToRepositoryDetails(repoType: RepoType,
-                                   repositories: Seq[GitRepository],
-                                   teamNames: Seq[String],
-                                   urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+  def repoGroupToRepositoryDetails(
+    repoType: RepoType,
+    repositories: Seq[GitRepository],
+    teamNames: Seq[String],
+    urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
 
     val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
 
@@ -89,7 +94,9 @@ object GitRepository {
 
   }
 
-  def extractRepositoryGroupForType(repoType: RepoType.RepoType, repositories: Seq[GitRepository]): List[GitRepository] = {
+  def extractRepositoryGroupForType(
+    repoType: RepoType.RepoType,
+    repositories: Seq[GitRepository]): List[GitRepository] =
     repositories
       .groupBy(_.name)
       .filter {
@@ -98,10 +105,10 @@ object GitRepository {
         case (name, repos) if repoType == RepoType.Library =>
           !repos.exists(x => x.repoType == RepoType.Service) && repos.exists(x => x.repoType == RepoType.Library)
         case (name, repos) =>
-          !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos.exists(x => x.repoType == repoType)
+          !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos
+            .exists(x => x.repoType == repoType)
       }
-      .flatMap(_._2).toList
-  }
+      .flatMap(_._2)
+      .toList
 
 }
-

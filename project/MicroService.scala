@@ -5,7 +5,6 @@ import sbt.Tests.{Group, SubProcess}
 import sbt._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
-
 trait MicroService {
 
   import uk.gov.hmrc._
@@ -14,8 +13,8 @@ trait MicroService {
   val appName: String
 
   lazy val appDependencies: Seq[ModuleID] = ???
-  lazy val plugins: Seq[Plugins] = Seq()
-  lazy val playSettings: Seq[Setting[_]] = Seq.empty
+  lazy val plugins: Seq[Plugins]          = Seq()
+  lazy val playSettings: Seq[Setting[_]]  = Seq.empty
 
   lazy val microservice = Project(appName, file("."))
     .enablePlugins(Seq(PlayScala) ++ plugins: _*)
@@ -39,7 +38,7 @@ trait MicroService {
 private object TestPhases {
 
   def oneForkedJvmPerTest(tests: Seq[TestDefinition]) =
-    tests map {
-      test => new Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
+    tests map { test =>
+      new Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
     }
 }

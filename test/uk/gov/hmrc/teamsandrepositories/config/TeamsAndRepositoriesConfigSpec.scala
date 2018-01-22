@@ -25,12 +25,10 @@ import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.collection.immutable.ListMap
 
-
 class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {
 
-
   def templatesConfig: String =
-      """
+    """
         |{url-templates : {
         |  ci-closed : [
         |    {
@@ -57,35 +55,40 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
         |}}
       """.stripMargin
 
-
-
   implicit override lazy val app =
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(Configuration(ConfigFactory.parseString(templatesConfig)))
       .configure(
         Map(
-          "github.open.api.host" ->           "http://bla.bla",
-          "github.open.api.user" ->           "",
-          "github.open.api.key" ->            "",
-          "github.enterprise.api.host" ->     "http://bla.bla",
-          "github.enterprise.api.user" ->     "",
-          "github.enterprise.api.key" ->      ""
+          "github.open.api.host"       -> "http://bla.bla",
+          "github.open.api.user"       -> "",
+          "github.open.api.key"        -> "",
+          "github.enterprise.api.host" -> "http://bla.bla",
+          "github.enterprise.api.user" -> "",
+          "github.enterprise.api.key"  -> ""
         )
       )
       .build()
 
-
   "ciUrlTemplates" should {
     "return all the url templates" in {
 
-      val conf = new UrlTemplatesProvider(app.configuration)
+      val conf                    = new UrlTemplatesProvider(app.configuration)
       val templates: UrlTemplates = conf.ciUrlTemplates
-      templates.ciClosed shouldBe Seq(UrlTemplate("ci-closed1", "closed 1", "http://closed1/$name"), UrlTemplate("ci-closed2", "closed 2", "http://closed2/$name"))
-      templates.ciOpen shouldBe Seq(UrlTemplate("ci-open1", "open 1", "http://open1/$name"), UrlTemplate("ci-open2", "open 2", "http://open2/$name"))
+      templates.ciClosed shouldBe Seq(
+        UrlTemplate("ci-closed1", "closed 1", "http://closed1/$name"),
+        UrlTemplate("ci-closed2", "closed 2", "http://closed2/$name"))
+      templates.ciOpen shouldBe Seq(
+        UrlTemplate("ci-open1", "open 1", "http://open1/$name"),
+        UrlTemplate("ci-open2", "open 2", "http://open2/$name"))
       templates.environments.toList should contain theSameElementsInOrderAs ListMap(
-        "env1" -> Seq(UrlTemplate("ser1", "ser 1", "http://ser1/$name"), UrlTemplate("ser2", "ser 2", "http://ser2/$name")),
-      "env2" -> Seq(UrlTemplate("ser1", "ser 1", "http://ser1/$name"), UrlTemplate("ser2", "ser 2", "http://ser2/$name"))
+        "env1" -> Seq(
+          UrlTemplate("ser1", "ser 1", "http://ser1/$name"),
+          UrlTemplate("ser2", "ser 2", "http://ser2/$name")),
+        "env2" -> Seq(
+          UrlTemplate("ser1", "ser 1", "http://ser1/$name"),
+          UrlTemplate("ser2", "ser 2", "http://ser2/$name"))
       ).toList
     }
 

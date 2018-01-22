@@ -19,16 +19,12 @@ package uk.gov.hmrc.teamsandrepositories.config
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
-
-
-
-
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  val githubOpenConfigKey = "github.open.api"
-  val githubEnterpriseConfigKey = "github.enterprise.api"
+  val githubOpenConfigKey               = "github.open.api"
+  val githubEnterpriseConfigKey         = "github.enterprise.api"
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
-  val githubHiddenTeamsConfigKey = "github.hidden.teams"
+  val githubHiddenTeamsConfigKey        = "github.hidden.teams"
 
   val githubApiOpenConfig =
     getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".credentials")))
@@ -36,10 +32,11 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val githubApiEnterpriseConfig =
     getGitApiConfig(githubEnterpriseConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".githubenterprise")))
 
+  val hiddenRepositories =
+    configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
-  val hiddenRepositories = configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
-
-  val hiddenTeams = configuration.getString(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+  val hiddenTeams =
+    configuration.getString(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
   private def gitPath(gitFolder: String): String =
     s"${System.getProperty("user.home")}/.github/$gitFolder"
@@ -48,9 +45,7 @@ class GithubConfig @Inject()(configuration: Configuration) {
     for {
       host <- configuration.getString(s"$base.host")
       user <- configuration.getString(s"$base.user")
-      key <- configuration.getString(s"$base.key")
+      key  <- configuration.getString(s"$base.key")
     } yield GitApiConfig(user, key, host)
 
-
 }
-

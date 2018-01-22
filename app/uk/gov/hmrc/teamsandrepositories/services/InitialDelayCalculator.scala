@@ -17,7 +17,6 @@ object InitialDelayCalculator {
       case _ => throwScheduleFormatError(hourMinute)
     }
 
-
     val duration: Duration = {
       val timeTillExecution = Duration.between(now, executionTime)
       if (timeTillExecution.getSeconds < 0) {
@@ -29,7 +28,6 @@ object InitialDelayCalculator {
     scala.concurrent.duration.Duration(duration.toMinutes, TimeUnit.MINUTES)
   }
 
-  private def throwScheduleFormatError(hourMinute: String) = {
+  private def throwScheduleFormatError(hourMinute: String) =
     throw new RuntimeException(s"Schedule time must be in hh:mm format (provided value: $hourMinute)")
-  }
 }

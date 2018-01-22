@@ -30,23 +30,20 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-
 class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    Logger.debug(s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
+    Logger.debug(
+      s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamAndRepos: Future[Seq[TeamRepositories]] = {
-      mongoTeamsAndReposPersister.getAllTeamAndRepos
-  }
+  def getAllTeamAndRepos: Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getAllTeamAndRepos
 
-
-  def clearAllData: Future[Boolean] = {
+  def clearAllData: Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
-  }
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
     Logger.debug(s"Deleting orphan teams: $teamNames")
@@ -56,11 +53,10 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
 
 @Singleton
 class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnector)
-  extends ReactiveRepository[TeamRepositories, BSONObjectID](
-    collectionName = "teamsAndRepositories",
-    mongo = mongoConnector.db,
-    domainFormat = TeamRepositories.formats) {
-
+    extends ReactiveRepository[TeamRepositories, BSONObjectID](
+      collectionName = "teamsAndRepositories",
+      mongo          = mongoConnector.db,
+      domainFormat   = TeamRepositories.formats) {
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     Future.sequence(
@@ -69,27 +65,28 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       )
     )
 
-
-  def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] = {
-
+  def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] =
     withTimerAndCounter("mongo.update") {
       for {
-        update <- collection.update(selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)), update = teamAndRepos, upsert = true)
-      } yield update match {
-        case _ =>
-          teamAndRepos
-      }
+        update <- collection.update(
+                   selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
+                   update   = teamAndRepos,
+                   upsert   = true)
+      } yield
+        update match {
+          case _ =>
+            teamAndRepos
+        }
     } recover {
       case lastError =>
         throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
     }
-  }
 
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
 
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
-  def deleteTeam(teamName: String): Future[String] = {
+  def deleteTeam(teamName: String): Future[String] =
     withTimerAndCounter("mongo.cleanup") {
       collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map {
         case _ => teamName
@@ -99,6 +96,4 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
         logger.error(s"Failed to remove $teamName", lastError)
         throw new RuntimeException(s"failed to remove $teamName")
     }
-  }
 }
-

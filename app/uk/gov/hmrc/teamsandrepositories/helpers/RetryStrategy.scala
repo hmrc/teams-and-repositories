@@ -35,10 +35,11 @@ object RetryStrategy {
     promise.future
   }
 
-  def exponentialRetry[T](times: Int, duration: Double = 10)(f: => Future[T])(implicit executor: ExecutionContext): Future[T] = {
+  def exponentialRetry[T](times: Int, duration: Double = 10)(f: => Future[T])(
+    implicit executor: ExecutionContext): Future[T] =
     f recoverWith {
       case e: APIRateLimitExceededException =>
-        Logger.error(s"API rate limit is reached (at retry:$times)" , e)
+        Logger.error(s"API rate limit is reached (at retry:$times)", e)
         Future.failed(e)
 
       case e if times > 0 =>
@@ -48,5 +49,4 @@ object RetryStrategy {
           exponentialRetry(times - 1, duration * 2)(f)
         }
     }
-  }
 }

@@ -23,16 +23,24 @@ import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Github
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar with LoneElement with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerSuite {
+class GitCompositeDataSourceSpec
+    extends FunSpec
+    with Matchers
+    with MockitoSugar
+    with LoneElement
+    with ScalaFutures
+    with OptionValues
+    with BeforeAndAfterEach
+    with OneAppPerSuite {
 
-  private val githubConfig = mock[GithubConfig]
-  private val persister = mock[TeamsAndReposPersister]
-  private val connector = mock[MongoConnector]
+  private val githubConfig          = mock[GithubConfig]
+  private val persister             = mock[TeamsAndReposPersister]
+  private val connector             = mock[MongoConnector]
   private val githubClientDecorator = mock[GithubApiClientDecorator]
 
-  val mockMetrics = mock[Metrics]
+  val mockMetrics  = mock[Metrics]
   val mockRegistry = mock[MetricRegistry]
-  val mockCounter = mock[Counter]
+  val mockCounter  = mock[Counter]
 
   when(mockMetrics.defaultRegistry).thenReturn(mockRegistry)
   when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
@@ -42,12 +50,10 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     override def timestampF() = now
   }
 
-
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .build()
-
 
   override protected def beforeEach() = {
     reset(githubConfig)
@@ -59,7 +65,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
   describe("buildDataSource") {
     it("should create the right CompositeRepositoryDataSource") {
 
-      val gitApiOpenConfig = mock[GitApiConfig]
+      val gitApiOpenConfig       = mock[GitApiConfig]
       val gitApiEnterpriseConfig = mock[GitApiConfig]
 
       when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
@@ -76,11 +82,17 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
       when(gitApiOpenConfig.key).thenReturn(openKey)
 
       val enterpriseGithubClient = mock[GithubApiClient]
-      val openGithubClient = mock[GithubApiClient]
+      val openGithubClient       = mock[GithubApiClient]
       when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
       when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
-      val compositeRepositoryDataSource = new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mock[Metrics])
+      val compositeRepositoryDataSource = new GitCompositeDataSource(
+        githubConfig,
+        persister,
+        connector,
+        githubClientDecorator,
+        testTimestamper,
+        mock[Metrics])
 
       verify(gitApiOpenConfig).apiUrl
       verify(gitApiOpenConfig).key
@@ -97,10 +109,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     }
   }
 
-
-
-
-    //!@ why are all these commented out
+  //!@ why are all these commented out
   describe("Retrieving team repo mappings") {
 //    it("return the combination of all input sources") {
 //
@@ -209,7 +218,7 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
 
   private def buildCompositeDataSource(dataSourceList: List[GithubV3RepositoryDataSource]) = {
 
-    val gitApiOpenConfig = mock[GitApiConfig]
+    val gitApiOpenConfig       = mock[GitApiConfig]
     val gitApiEnterpriseConfig = mock[GitApiConfig]
 
     when(githubConfig.githubApiEnterpriseConfig).thenReturn(gitApiEnterpriseConfig)
@@ -226,10 +235,9 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
     when(gitApiOpenConfig.key).thenReturn(openKey)
 
     val enterpriseGithubClient = mock[GithubApiClient]
-    val openGithubClient = mock[GithubApiClient]
+    val openGithubClient       = mock[GithubApiClient]
     when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
     when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
-
 
     when(persister.update(ArgumentMatchers.any())).thenAnswer(new Answer[Future[TeamRepositories]] {
       override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
@@ -237,7 +245,6 @@ class GitCompositeDataSourceSpec extends FunSpec with Matchers with MockitoSugar
         Future.successful(args(0).asInstanceOf[TeamRepositories])
       }
     })
-
 
     new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mockMetrics) {
       override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList

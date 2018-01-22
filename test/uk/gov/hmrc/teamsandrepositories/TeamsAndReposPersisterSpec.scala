@@ -15,8 +15,16 @@ import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPer
 
 import scala.concurrent.Future
 
-class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValues with MockitoSugar with LoneElement with MongoSpecSupport with ScalaFutures with BeforeAndAfterEach with OneAppPerSuite {
-
+class TeamsAndReposPersisterSpec
+    extends WordSpec
+    with Matchers
+    with OptionValues
+    with MockitoSugar
+    with LoneElement
+    with MongoSpecSupport
+    with ScalaFutures
+    with BeforeAndAfterEach
+    with OneAppPerSuite {
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -24,7 +32,6 @@ class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValue
       .build()
 
   private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]
-
 
   val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
 
@@ -55,7 +62,6 @@ class TeamsAndReposPersisterSpec extends WordSpec with Matchers with OptionValue
 
       verify(teamsAndReposPersister, times(1)).clearAllData
     }
-
 
     "delegate to teamsAndReposPersister for removing a team in mongo" in {
       val now = LocalDateTime.now

@@ -8,7 +8,9 @@ case class KeyAndTimestamp(keyName: String, timestamp: LocalDateTime)
 
 object KeyAndTimestamp {
   implicit val localDateTimeRead: Reads[LocalDateTime] =
-    __.read[Long].map { dateTime => LocalDateTime.ofEpochSecond(dateTime, 0, ZoneOffset.UTC) }
+    __.read[Long].map { dateTime =>
+      LocalDateTime.ofEpochSecond(dateTime, 0, ZoneOffset.UTC)
+    }
 
   implicit val localDateTimeWrite: Writes[LocalDateTime] = new Writes[LocalDateTime] {
     def writes(dateTime: LocalDateTime): JsValue = JsNumber(value = dateTime.atOffset(ZoneOffset.UTC).toEpochSecond)

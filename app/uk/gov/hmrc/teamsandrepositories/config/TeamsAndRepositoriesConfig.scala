@@ -22,10 +22,13 @@ import play.api.libs.json.Json
 
 import scala.collection.immutable.ListMap
 
-case class UrlTemplates(ciClosed: Seq[UrlTemplate], ciOpen: Seq[UrlTemplate], environments:ListMap[String, Seq[UrlTemplate]])
+case class UrlTemplates(
+  ciClosed: Seq[UrlTemplate],
+  ciOpen: Seq[UrlTemplate],
+  environments: ListMap[String, Seq[UrlTemplate]])
 
 case class UrlTemplate(name: String, displayName: String, template: String) {
-  def url(serviceName : String) = template.replace("$name", serviceName)
+  def url(serviceName: String) = template.replace("$name", serviceName)
 }
 
 object UrlTemplate {
@@ -33,37 +36,45 @@ object UrlTemplate {
 }
 
 @Singleton
-class UrlTemplatesProvider @Inject()(configuration:Configuration) {
+class UrlTemplatesProvider @Inject()(configuration: Configuration) {
 
   val ciUrlTemplates: UrlTemplates = {
-    configuration.getConfig("url-templates").map {
-      config =>
-        val openConfigs = getTemplatesForConfig("ci-open")
+    configuration
+      .getConfig("url-templates")
+      .map { config =>
+        val openConfigs   = getTemplatesForConfig("ci-open")
         val closedConfigs = getTemplatesForConfig("ci-closed")
-        val envConfigs = getTemplatesForEnvironments
+        val envConfigs    = getTemplatesForEnvironments
 
         UrlTemplates(closedConfigs, openConfigs, envConfigs)
-    }.getOrElse(throw new RuntimeException("no url-templates config found"))
+      }
+      .getOrElse(throw new RuntimeException("no url-templates config found"))
   }
 
-  private def urlTemplates = {
+  private def urlTemplates =
     configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
-  }
 
   private def getTemplatesForEnvironments: ListMap[String, Seq[UrlTemplate]] = {
-    val configs = urlTemplates.getConfigSeq("envrionments")
+    val configs = urlTemplates
+      .getConfigSeq("envrionments")
       .getOrElse(throw new RuntimeException("incorrect environment configuration"))
 
-    configs.map { cf =>
-      val envName = cf.getString("name")
-        .getOrElse(throw new RuntimeException("incorrect environment configuration"))
+    configs
+      .map { cf =>
+        val envName = cf
+          .getString("name")
+          .getOrElse(throw new RuntimeException("incorrect environment configuration"))
 
-      val envTemplates = cf.getConfigSeq("services")
-        .getOrElse(throw new RuntimeException("incorrect environment configuration"))
-        .map { s => readLink(s) }
-      envName -> envTemplates.toSeq.flatten
-    }.foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, v) => acc + (v._1 -> v._2))
-    
+        val envTemplates = cf
+          .getConfigSeq("services")
+          .getOrElse(throw new RuntimeException("incorrect environment configuration"))
+          .map { s =>
+            readLink(s)
+          }
+        envName -> envTemplates.toSeq.flatten
+      }
+      .foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, v) => acc + (v._1 -> v._2))
+
   }
 
   private def getTemplatesForConfig(path: String) = {
@@ -75,11 +86,10 @@ class UrlTemplatesProvider @Inject()(configuration:Configuration) {
     }.distinct
   }
 
-  private def readLink(config:Configuration):Option[UrlTemplate]={
+  private def readLink(config: Configuration): Option[UrlTemplate] =
     for {
-      name <- config.getString("name")
+      name        <- config.getString("name")
       displayName <- config.getString("display-name")
-      url <- config.getString("url")
+      url         <- config.getString("url")
     } yield UrlTemplate(name, displayName, url)
-  }
 }

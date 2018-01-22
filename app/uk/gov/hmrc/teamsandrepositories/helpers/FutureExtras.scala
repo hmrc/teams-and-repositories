@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
 object FutureExtras {
 
   implicit class FutureOfBoolean(f: Future[Boolean]) {

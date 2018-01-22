@@ -22,7 +22,7 @@ class RetryStrategySpec extends FreeSpec with Matchers with ScalaFutures with In
 
       retriedCount += 1
 
-      if(retriedCount == throwAfterNumberOfCalls)
+      if (retriedCount == throwAfterNumberOfCalls)
         Future.failed(APIRateLimitExceededException(new RuntimeException))
       else
         Future.failed(new RuntimeException)
@@ -34,9 +34,14 @@ class RetryStrategySpec extends FreeSpec with Matchers with ScalaFutures with In
 
       val dummy = new DummyThrower
 
-      whenReady(RetryStrategy.exponentialRetry(times = 5) {
-        dummy.normalExceptionThrower
-      }.failed) {e => e shouldBe an[RuntimeException]}
+      whenReady(
+        RetryStrategy
+          .exponentialRetry(times = 5) {
+            dummy.normalExceptionThrower
+          }
+          .failed) { e =>
+        e shouldBe an[RuntimeException]
+      }
 
       dummy.retriedCount shouldBe 6
 
@@ -46,9 +51,14 @@ class RetryStrategySpec extends FreeSpec with Matchers with ScalaFutures with In
 
       val dummy = new DummyThrower
 
-      whenReady(RetryStrategy.exponentialRetry(times = 10) {
-        dummy.apiRateLimitThrower(5)
-      }.failed) {e => e shouldBe an[APIRateLimitExceededException]}
+      whenReady(
+        RetryStrategy
+          .exponentialRetry(times = 10) {
+            dummy.apiRateLimitThrower(5)
+          }
+          .failed) { e =>
+        e shouldBe an[APIRateLimitExceededException]
+      }
 
       dummy.retriedCount shouldBe 5
     }

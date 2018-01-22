@@ -15,88 +15,115 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class Timestamper {
-   def timestampF() = Instant.now().toEpochMilli
+  def timestampF() = Instant.now().toEpochMilli
 }
 
 @Singleton
-class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
-                                       val persister: TeamsAndReposPersister,
-                                       val mongoConnector: MongoConnector,
-                                       val githubApiClientDecorator: GithubApiClientDecorator,
-                                       val timestamper: Timestamper,
-                                       val metrics: Metrics) {
+class GitCompositeDataSource @Inject()(
+  val githubConfig: GithubConfig,
+  val persister: TeamsAndReposPersister,
+  val mongoConnector: MongoConnector,
+  val githubApiClientDecorator: GithubApiClientDecorator,
+  val timestamper: Timestamper,
+  val metrics: Metrics) {
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
   val gitApiEnterpriseClient: GithubApiClient =
-    githubApiClientDecorator.githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
+    githubApiClientDecorator
+      .githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
 
   val enterpriseTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitApiEnterpriseClient, isInternal = true, timestamper.timestampF, metrics.defaultRegistry)
+    new GithubV3RepositoryDataSource(
+      githubConfig,
+      gitApiEnterpriseClient,
+      isInternal = true,
+      timestamper.timestampF,
+      metrics.defaultRegistry)
 
   val gitOpenClient: GithubApiClient =
-    githubApiClientDecorator.githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
+    githubApiClientDecorator
+      .githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
   val openTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(githubConfig, gitOpenClient, isInternal = false, timestamper.timestampF,  metrics.defaultRegistry)
+    new GithubV3RepositoryDataSource(
+      githubConfig,
+      gitOpenClient,
+      isInternal = false,
+      timestamper.timestampF,
+      metrics.defaultRegistry)
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
-
-  def persistTeamRepoMapping(fullRefreshWithHighApiCall: Boolean = false)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
+  def persistTeamRepoMapping(fullRefreshWithHighApiCall: Boolean = false)(
+    implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeamAndRepos
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)
-    sortedByUpdateDate.flatMap { ts: Seq[OneTeamAndItsDataSources] =>
-      Logger.debug("------ TEAM NAMES ------")
-      ts.map(_.teamName).foreach(t => Logger.debug(t))
-      Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
+    sortedByUpdateDate
+      .flatMap { ts: Seq[OneTeamAndItsDataSources] =>
+        Logger.debug("------ TEAM NAMES ------")
+        ts.map(_.teamName).foreach(t => Logger.debug(t))
+        Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
-      Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
-        getAllRepositoriesForTeam(aTeam, persistedTeams, fullRefreshWithHighApiCall).map(mergeRepositoriesForTeam(aTeam.teamName, _)).flatMap(persister.update)
-      })
-    }.map(_.toSeq) recover {
+        Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
+          getAllRepositoriesForTeam(aTeam, persistedTeams, fullRefreshWithHighApiCall)
+            .map(mergeRepositoriesForTeam(aTeam.teamName, _))
+            .flatMap(persister.update)
+        })
+      }
+      .map(_.toSeq) recover {
       case e =>
         Logger.error("Could not persist to teams repo.", e)
         throw e
     }
   }
 
-  private def getAllRepositoriesForTeam(aTeam: OneTeamAndItsDataSources, persistedTeams: Future[Seq[TeamRepositories]], fullRefreshWithHighApiCall: Boolean)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
+  private def getAllRepositoriesForTeam(
+    aTeam: OneTeamAndItsDataSources,
+    persistedTeams: Future[Seq[TeamRepositories]],
+    fullRefreshWithHighApiCall: Boolean)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     Future.sequence(aTeam.teamAndDataSources.map { teamAndDataSource =>
-      teamAndDataSource.dataSource.mapTeam(teamAndDataSource.organisation, teamAndDataSource.team, persistedTeams, fullRefreshWithHighApiCall)
+      teamAndDataSource.dataSource
+        .mapTeam(teamAndDataSource.organisation, teamAndDataSource.team, persistedTeams, fullRefreshWithHighApiCall)
     })
-  }
 
-
-  private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(implicit ec: ExecutionContext): Future[Seq[OneTeamAndItsDataSources]] = {
+  private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(
+    implicit ec: ExecutionContext): Future[Seq[OneTeamAndItsDataSources]] =
     (for {
       teamsAndTheirOrgAndDataSources <- Future.sequence(dataSources.map(ds => ds.getTeamsWithOrgAndDataSourceDetails))
-      persistedTeams <- persistedTeamsF
+      persistedTeams                 <- persistedTeamsF
     } yield {
-      val teamNameToSources: Map[String, List[TeamAndOrgAndDataSource]] = teamsAndTheirOrgAndDataSources.flatten.groupBy(_.team.name)
-      teamNameToSources.map { case (teamName, tds) => OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate)) }
-    }.toSeq.sortBy(_.updateDate)).recover { case ex =>
-      Logger.error(ex.getMessage, ex)
-      throw ex
+      val teamNameToSources: Map[String, List[TeamAndOrgAndDataSource]] =
+        teamsAndTheirOrgAndDataSources.flatten.groupBy(_.team.name)
+      teamNameToSources.map {
+        case (teamName, tds) =>
+          OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate))
+      }
+    }.toSeq.sortBy(_.updateDate)).recover {
+      case ex =>
+        Logger.error(ex.getMessage, ex)
+        throw ex
     }
-  }
 
-  private def mergeRepositoriesForTeam(teamName: String, aTeamAndItsRepositories: Seq[TeamRepositories]): TeamRepositories = {
-    val teamRepositories = aTeamAndItsRepositories.foldLeft(TeamRepositories(teamName, Nil, timestamper.timestampF())) { case (acc, tr) =>
-      acc.copy(repositories = acc.repositories ++ tr.repositories)
+  private def mergeRepositoriesForTeam(
+    teamName: String,
+    aTeamAndItsRepositories: Seq[TeamRepositories]): TeamRepositories = {
+    val teamRepositories = aTeamAndItsRepositories.foldLeft(TeamRepositories(teamName, Nil, timestamper.timestampF())) {
+      case (acc, tr) =>
+        acc.copy(repositories = acc.repositories ++ tr.repositories)
     }
     teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
   }
-
 
   def removeOrphanTeamsFromMongo(teamRepositoriesFromGh: Seq[TeamRepositories])(implicit ec: ExecutionContext) = {
 
     import BlockingIOExecutionContext._
 
     val teamNamesFromMongo: Future[Set[String]] = {
-      persister.getAllTeamAndRepos.map { case (allPersistedTeamAndRepositories) =>
-        allPersistedTeamAndRepositories.map(_.teamName).toSet
+      persister.getAllTeamAndRepos.map {
+        case (allPersistedTeamAndRepositories) =>
+          allPersistedTeamAndRepositories.map(_.teamName).toSet
       }
     }
 
@@ -107,7 +134,7 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
     } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
 
     orphanTeams.flatMap { (teamNames: Set[String]) =>
-      Logger.info(s"Removing these orphan teams:[${teamNames}]")
+      Logger.info(s"Removing these orphan teams:[$teamNames]")
       persister.deleteTeams(teamNames)
     }
   } recover {
@@ -115,7 +142,6 @@ class GitCompositeDataSource @Inject()(val githubConfig: GithubConfig,
       Logger.error("Could not remove orphan teams from mongo.", e)
       throw e
   }
-
 
 }
 

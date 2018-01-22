@@ -1,6 +1,5 @@
 package uk.gov.hmrc.teamsandrepositories
 
-
 import com.google.inject.{Injector, Key, TypeLiteral}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
@@ -17,11 +16,16 @@ import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
 import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Timestamper}
 
-
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValues with OneServerPerSuite with Eventually {
+class ModuleSpec
+    extends PlaySpec
+    with MockitoSugar
+    with Results
+    with OptionValues
+    with OneServerPerSuite
+    with Eventually {
 
   val testMongoLock = new MongoLock(mock[MongoConnector]) {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
@@ -30,7 +34,7 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
 
   val testTimestamper = new Timestamper
 
-  val mockCacheConfig = mock[CacheConfig]
+  val mockCacheConfig  = mock[CacheConfig]
   val intervalDuration = 100 millisecond
 
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
@@ -38,7 +42,8 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
 
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]
   when(mockGitCompositeDataSource.persistTeamRepoMapping(any())(any())).thenReturn(Future.successful(Nil))
-  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future.successful(Set.empty[String]))
+  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any()))
+    .thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -52,7 +57,6 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
       .overrides(new Module())
       .build()
 
-
   "load DataReloadScheduler eagerly which should result in reload of the cache at the configured intervals" in {
 
     val guiceInjector = app.injector.instanceOf(classOf[Injector])
@@ -64,5 +68,3 @@ class ModuleSpec extends PlaySpec with MockitoSugar with Results with OptionValu
 
   }
 }
-
-

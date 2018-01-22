@@ -9,5 +9,3 @@ import reactivemongo.api.DB
 class MongoConnector @Inject()(application: Application) {
   val db: () => DB = application.injector.instanceOf[ReactiveMongoComponent].mongoConnector.db
 }
-
-

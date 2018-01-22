@@ -42,7 +42,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
         Thread.sleep(50); counter += 1; false
       }
 
-      (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe true
+      (delayedF1 || delayedF2 || delayedF3).futureValue shouldBe true
 
       counter shouldBe 2
     }
@@ -64,12 +64,11 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
         Thread.sleep(50); counter += 1; false
       }
 
-      (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe false
+      (delayedF1 || delayedF2 || delayedF3).futureValue shouldBe false
 
       counter shouldBe 3
     }
   }
-
 
   "FutureOfBoolean &&" should {
     "short circuit if needed" in {
@@ -89,7 +88,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
         Thread.sleep(50); counter += 1; true
       }
 
-      (delayedF1 && delayedF2 && delayedF3 ).futureValue shouldBe false
+      (delayedF1 && delayedF2 && delayedF3).futureValue shouldBe false
 
       counter shouldBe 2
     }
@@ -111,7 +110,7 @@ class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with Def
         Thread.sleep(50); counter += 1; false
       }
 
-      (delayedF1 || delayedF2 || delayedF3 ).futureValue shouldBe false
+      (delayedF1 || delayedF2 || delayedF3).futureValue shouldBe false
 
       counter shouldBe 3
     }
