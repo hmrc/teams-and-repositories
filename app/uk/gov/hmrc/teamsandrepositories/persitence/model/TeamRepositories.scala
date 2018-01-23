@@ -2,13 +2,11 @@ package uk.gov.hmrc.teamsandrepositories.persitence.model
 
 import java.net.URLDecoder
 import java.time.{LocalDateTime, ZoneOffset}
-
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails.determineLanguage
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 
 case class TeamRepositories(teamName: String, repositories: List[GitRepository], updateDate: Long)
@@ -67,10 +65,12 @@ object TeamRepositories {
                   repo.createdAt,
                   repo.lastUpdatedAt,
                   repo.repoType,
-                  repoNameToTeamNamesLookup.getOrElse(repo.name, Seq("TEAM_UNKNOWN"))))
+                  repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN))))
           ))
     }
   }
+
+  val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
   implicit val localDateTimeRead: Reads[LocalDateTime] =
     __.read[Long].map { dateTime =>
@@ -134,10 +134,13 @@ object TeamRepositories {
         GitRepository.repoGroupToRepositoryDetails(
           GitRepository.primaryRepoType(repos.toSeq),
           repos.toSeq,
-          teams.toSeq.sorted,
+          dontShowUnknownTeam(teams.toSeq.sorted),
           ciUrlTemplates)
       case _ => None
     }
+
+  private def dontShowUnknownTeam(teams: Seq[String]): Seq[String] =
+    teams.filterNot(_ == TEAM_UNKNOWN)
 
   def getTeamRepositoryNameList(
     teamRepos: Seq[TeamRepositories],

@@ -1,17 +1,15 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.Instant
-
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
+import java.time.Instant
 import play.api.Logger
+import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
-
-import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class Timestamper {
@@ -66,11 +64,19 @@ class GitCompositeDataSource @Inject()(
         ts.map(_.teamName).foreach(t => Logger.debug(t))
         Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
-        Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
+        val reposWithTeamsF = Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
           getAllRepositoriesForTeam(aTeam, persistedTeams, fullRefreshWithHighApiCall)
             .map(mergeRepositoriesForTeam(aTeam.teamName, _))
             .flatMap(persister.update)
         })
+
+        for {
+          withTeams    <- reposWithTeamsF
+          withoutTeams <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
+        } yield {
+          withTeams :+ withoutTeams
+        }
+
       }
       .map(_.toSeq) recover {
       case e =>
@@ -78,6 +84,23 @@ class GitCompositeDataSource @Inject()(
         throw e
     }
   }
+
+  def getRepositoriesWithoutTeams(persistedReposWithTeams: Seq[TeamRepositories])(
+    implicit ec: ExecutionContext): Future[TeamRepositories] =
+    Future
+      .sequence(dataSources.map(_.getAllRepositories))
+      .map(_.flatten)
+      .map { repos =>
+        val reposWithoutTeams = {
+          val urlsOfPersistedRepos = persistedReposWithTeams.flatMap(_.repositories.map(_.url)).toSet
+          repos.filterNot(r => urlsOfPersistedRepos.contains(r.url))
+        }
+        TeamRepositories(
+          teamName     = TeamRepositories.TEAM_UNKNOWN,
+          repositories = reposWithoutTeams,
+          updateDate   = timestamper.timestampF()
+        )
+      }
 
   private def getAllRepositoriesForTeam(
     aTeam: OneTeamAndItsDataSources,

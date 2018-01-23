@@ -1,27 +1,24 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
-
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
+import java.util.Date
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
-import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import scala.concurrent.Future
 import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, GithubApiClientDecorator, GithubV3RepositoryDataSource, Timestamper}
-
-import scala.concurrent.Future
-import scala.concurrent.Future.successful
 
 class GitCompositeDataSourceSpec
     extends FunSpec
