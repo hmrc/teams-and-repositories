@@ -102,7 +102,7 @@ class GithubV3RepositoryDataSource(
       } flatMap { repos =>
         Future
           .sequence(for {
-            repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
+            repo <- repos; if !githubConfig.hiddenRepositories.contains(repo.name)
           } yield {
             mapRepository(organisation, team, repo, persistedTeams, fullRefreshWithHighApiCall)
           })
