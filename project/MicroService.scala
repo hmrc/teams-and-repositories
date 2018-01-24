@@ -1,3 +1,4 @@
+import play.sbt.PlayImport.PlayKeys
 import play.sbt.PlayScala
 import play.sbt.routes.RoutesKeys.{routesGenerator, _}
 import sbt.Keys._
@@ -19,6 +20,7 @@ trait MicroService {
   lazy val microservice = Project(appName, file("."))
     .enablePlugins(Seq(PlayScala) ++ plugins: _*)
     .settings(playSettings: _*)
+    .settings(PlayKeys.playDefaultPort := 9015)
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)

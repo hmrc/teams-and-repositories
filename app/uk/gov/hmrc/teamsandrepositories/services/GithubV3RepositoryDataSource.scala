@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.codahale.metrics.MetricRegistry
+import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
@@ -26,10 +27,10 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
-
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
+import collection.JavaConverters._
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
 
@@ -101,7 +102,7 @@ class GithubV3RepositoryDataSource(
       } flatMap { repos =>
         Future
           .sequence(for {
-            repo <- repos; if !repo.fork && !githubConfig.hiddenRepositories.contains(repo.name)
+            repo <- repos; if !githubConfig.hiddenRepositories.contains(repo.name)
           } yield {
             mapRepository(organisation, team, repo, persistedTeams, fullRefreshWithHighApiCall)
           })
@@ -115,6 +116,29 @@ class GithubV3RepositoryDataSource(
         throw e
     }
   }
+
+  def getAllRepositories(implicit ec: ExecutionContext): Future[List[GitRepository]] =
+    gh.getOrganisations.map { orgs =>
+      orgs.flatMap { org =>
+        gh.repositoryService
+          .getOrgRepositories(org.login)
+          .asScala
+          .map(toGitRepository)
+          .toList
+      }
+    }
+
+  private def toGitRepository(r: Repository): GitRepository =
+    GitRepository(
+      name           = r.getName,
+      description    = Option(r.getDescription).getOrElse(""),
+      url            = r.getHtmlUrl,
+      createdDate    = r.getCreatedAt.getTime,
+      lastActiveDate = r.getPushedAt.getTime,
+      isInternal     = isInternal,
+      isPrivate      = r.isPrivate,
+      language       = Option(r.getLanguage)
+    )
 
   def getRepositoryDetailsFromGithub(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] =
     for {

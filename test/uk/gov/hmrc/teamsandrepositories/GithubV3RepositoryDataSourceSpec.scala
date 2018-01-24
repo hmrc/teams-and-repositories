@@ -122,37 +122,6 @@ class GithubV3RepositoryDataSourceSpec
 
   "Github v3 Data Source " should {
 
-    "Return a list of teams and repositories, filtering out forks" in new Setup {
-
-      private val hmrcOrg = GhOrganisation("HMRC", 1)
-
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(hmrcOrg)))
-      private val teamA = GhTeam("A", 1)
-
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(teamA)))
-      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
-        GhRepository("A_r", "some description", 1, "url_A", fork   = false, now, now, false, "Scala"),
-        GhRepository("A_r2", "some description", 5, "url_A2", fork = true, now, now, false, "Scala")
-      )))
-
-      val eventualTeamRepositories =
-        dataSource.mapTeam(hmrcOrg, teamA, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
-      eventualTeamRepositories.futureValue shouldBe
-        TeamRepositories(
-          "A",
-          List(
-            GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
-              digitalServiceName = None,
-              language           = Some("Scala"))),
-          timestampF())
-
-    }
-
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
       val internalDataSource =

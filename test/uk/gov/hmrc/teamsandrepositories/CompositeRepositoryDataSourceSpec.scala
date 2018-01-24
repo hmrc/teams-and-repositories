@@ -16,28 +16,24 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
-import java.util.concurrent.Executors
-
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.{eq => eqTo}
-
+import java.util.Date
+import java.util.concurrent.Executors
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
-import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services._
-
-import scala.concurrent.{ExecutionContext, Future}
 
 class CompositeRepositoryDataSourceSpec
     extends WordSpec
@@ -139,6 +135,12 @@ class CompositeRepositoryDataSourceSpec
           timestampF()
         )
 
+      val reposWithoutTeams =
+        List(
+          GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala")),
+          GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"))
+        )
+
       val dataSource         = mock[GithubV3RepositoryDataSource]
       val noEffectDataSource = mock[GithubV3RepositoryDataSource]
 
@@ -158,6 +160,9 @@ class CompositeRepositoryDataSourceSpec
       when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false)))
         .thenReturn(Future.successful(teamBRepositories))
 
+      when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
+      when(noEffectDataSource.getAllRepositories(any())).thenReturn(Future(Nil))
+
       val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, Nil, mockMetrics)
 
       compositeDataSource.persistTeamRepoMapping().futureValue
@@ -166,6 +171,8 @@ class CompositeRepositoryDataSourceSpec
       verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false))
       verify(compositeDataSource.persister).update(teamARepositories)
       verify(compositeDataSource.persister).update(teamBRepositories)
+      verify(compositeDataSource.persister)
+        .update(TeamRepositories(TeamRepositories.TEAM_UNKNOWN, reposWithoutTeams, now))
     }
 
     "persist a team's repositories from all data sources (combine them) with repositories sorted alphabetically by name" in {
@@ -189,6 +196,19 @@ class CompositeRepositoryDataSourceSpec
             GitRepository("repoC3", "Some Description", "url3", now, now, language = Some("Scala"))
           ),
           timestampF()
+        )
+
+      val dataSource1ReposWithoutTeams =
+        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala")))
+
+      val dataSource2ReposWithoutTeams =
+        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala")))
+
+      val unknownTeamRepositories =
+        TeamRepositories(
+          teamName     = TeamRepositories.TEAM_UNKNOWN,
+          repositories = dataSource1ReposWithoutTeams ++ dataSource2ReposWithoutTeams,
+          updateDate   = now
         )
 
       val dataSource1 = mock[GithubV3RepositoryDataSource]
@@ -216,6 +236,9 @@ class CompositeRepositoryDataSourceSpec
       when(dataSource2.mapTeam(eqTo(ghOrganisation2), eqTo(ghTeamAInDataSource2), any(), eqTo(false)))
         .thenReturn(Future.successful(teamARepositoriesInDataSource2))
 
+      when(dataSource1.getAllRepositories(any())).thenReturn(Future(dataSource1ReposWithoutTeams))
+      when(dataSource2.getAllRepositories(any())).thenReturn(Future(dataSource2ReposWithoutTeams))
+
       val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil, mockMetrics)
 
       compositeDataSource.persistTeamRepoMapping().futureValue
@@ -228,6 +251,7 @@ class CompositeRepositoryDataSourceSpec
       verify(compositeDataSource.persister).update(
         teamARepositoriesInDataSource1.copy(repositories = mergedRepositories)
       )
+      verify(compositeDataSource.persister).update(unknownTeamRepositories)
     }
 
     "process teams in the correct order so that the latest updated teams are processed last and teams that have not been processed are first" in {
@@ -253,6 +277,16 @@ class CompositeRepositoryDataSourceSpec
       val ghTeamC        = GhTeam("teamC", 3)
       val ghTeamD        = GhTeam("teamD", 4)
 
+      val reposWithoutTeams =
+        List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala")))
+
+      val unknownTeamRepositories =
+        TeamRepositories(
+          teamName     = TeamRepositories.TEAM_UNKNOWN,
+          repositories = reposWithoutTeams,
+          updateDate   = now
+        )
+
       when(dataSource.getTeamsWithOrgAndDataSourceDetails).thenReturn(
         Future.successful(List(
           TeamAndOrgAndDataSource(ghOrganisation, ghTeamA, dataSource),
@@ -270,6 +304,9 @@ class CompositeRepositoryDataSourceSpec
         .thenReturn(Future.successful(teamCRepositories))
       when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any(), eqTo(false)))
         .thenReturn(Future.successful(teamDRepositories))
+
+      when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
+      when(noEffectDataSource.getAllRepositories(any())).thenReturn(Future(Nil))
 
       // N.B teamD has not been processed (does not exist in db)
       val persistedRepositoriesForOrdering = Seq(
@@ -294,6 +331,7 @@ class CompositeRepositoryDataSourceSpec
       persistenceOrder.verify(compositeDataSource.persister).update(teamARepositories)
       persistenceOrder.verify(compositeDataSource.persister).update(teamCRepositories)
       persistenceOrder.verify(compositeDataSource.persister).update(teamBRepositories)
+      persistenceOrder.verify(compositeDataSource.persister).update(unknownTeamRepositories)
     }
 
   }
