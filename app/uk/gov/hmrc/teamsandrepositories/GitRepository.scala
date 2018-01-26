@@ -110,5 +110,6 @@ object GitRepository {
       }
       .flatMap(_._2)
       .toList
+      .sortBy(_.isInternal)
 
 }
