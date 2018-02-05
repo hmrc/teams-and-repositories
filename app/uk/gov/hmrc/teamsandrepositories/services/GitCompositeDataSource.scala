@@ -6,7 +6,7 @@ import java.time.Instant
 import play.api.Logger
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.githubclient.GithubApiClient
-import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext
+import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
@@ -53,8 +53,7 @@ class GitCompositeDataSource @Inject()(
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
-  def persistTeamRepoMapping(fullRefreshWithHighApiCall: Boolean = false)(
-    implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
+  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeamAndRepos
 
     val sortedByUpdateDate = groupAndOrderTeamsAndTheirDataSources(persistedTeams)
@@ -65,7 +64,7 @@ class GitCompositeDataSource @Inject()(
         Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
         val reposWithTeamsF = Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
-          getAllRepositoriesForTeam(aTeam, persistedTeams, fullRefreshWithHighApiCall)
+          getAllRepositoriesForTeam(aTeam, persistedTeams)
             .map(mergeRepositoriesForTeam(aTeam.teamName, _))
             .flatMap(persister.update)
         })
@@ -102,13 +101,11 @@ class GitCompositeDataSource @Inject()(
         )
       }
 
-  private def getAllRepositoriesForTeam(
-    aTeam: OneTeamAndItsDataSources,
-    persistedTeams: Future[Seq[TeamRepositories]],
-    fullRefreshWithHighApiCall: Boolean)(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  private def getAllRepositoriesForTeam(aTeam: OneTeamAndItsDataSources, persistedTeams: Future[Seq[TeamRepositories]])(
+    implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     Future.sequence(aTeam.teamAndDataSources.map { teamAndDataSource =>
       teamAndDataSource.dataSource
-        .mapTeam(teamAndDataSource.organisation, teamAndDataSource.team, persistedTeams, fullRefreshWithHighApiCall)
+        .mapTeam(teamAndDataSource.organisation, teamAndDataSource.team, persistedTeams)
     })
 
   private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(

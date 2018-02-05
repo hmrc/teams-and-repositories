@@ -25,28 +25,9 @@ import scala.concurrent.duration._
 class CacheConfig @Inject()(configuration: Configuration) {
   private val teamsCacheDurationConfigPath = "cache.teams.duration"
 
-  private val teamsCacheNightlyScheduleTimeConfigPath = "cache.nightly.schedule.time"
-  private val retryDelayBetweenFullRefreshConfigPath  = "cache.nightly.retry.delay"
-
-  private val defaultTimeout = 2 hour
-
-  private val defaultTeamsCacheNightlyScheduleTime = "19:00"
-  private val defaultRetryDelayBetweenFullRefresh  = 30 minutes
+  private val defaultTimeout = 2 hours
 
   def teamsCacheDuration: FiniteDuration =
     configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
-
-  def nightlyInitialDelay: FiniteDuration =
-    configuration
-      .getString(teamsCacheNightlyScheduleTimeConfigPath)
-      .fold(InitialDelayCalculator.getDurationTillExecutionTime(defaultTeamsCacheNightlyScheduleTime)) {
-        InitialDelayCalculator.getDurationTillExecutionTime(_)
-      }
-
-  def retryDelayBetweenFullRefresh: FiniteDuration =
-    configuration
-      .getMilliseconds(retryDelayBetweenFullRefreshConfigPath)
-      .map(_.milliseconds)
-      .getOrElse(defaultRetryDelayBetweenFullRefresh)
 
 }

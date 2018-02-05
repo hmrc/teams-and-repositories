@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
 import java.util.Date
 
 import com.codahale.metrics.{Counter, MetricRegistry}
-import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
@@ -31,6 +29,7 @@ import org.scalatest.time.SpanSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.{GithubV3RepositoryDataSource, TeamAndOrgAndDataSource}
@@ -135,7 +134,7 @@ class GithubV3RepositoryDataSourceSpec
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
       internalDataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -165,7 +164,7 @@ class GithubV3RepositoryDataSourceSpec
       )))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -194,7 +193,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -224,7 +223,7 @@ class GithubV3RepositoryDataSourceSpec
       when(githubClient.repoContainsContent("Procfile", "A_r", "HMRC")(ec)).thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -255,7 +254,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -285,7 +284,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: service")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -315,7 +314,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -350,7 +349,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some(manifestYaml)))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -380,7 +379,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: library")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -410,7 +409,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: somethingelse")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -439,7 +438,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("description: not a type")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -469,7 +468,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -501,7 +500,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -529,7 +528,7 @@ class GithubV3RepositoryDataSourceSpec
         List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -557,7 +556,7 @@ class GithubV3RepositoryDataSourceSpec
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -584,7 +583,7 @@ class GithubV3RepositoryDataSourceSpec
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala"))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -612,7 +611,7 @@ class GithubV3RepositoryDataSourceSpec
         Future.successful(List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -634,13 +633,12 @@ class GithubV3RepositoryDataSourceSpec
       val team = GhTeam("A", 1)
 
       "not be called" when {
-        "fullRefreshWithHighApiCall flag is false" should {
+        "the last updated date from github is the same as the saved one" should {
           "also repo type and digital service name should be copied from the previously persisted record)" in new Setup {
             when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
             when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
 
-            val previousLastSuccessfulScheduledUpdate: Long = 1234l
-            val lastActiveDate: Long                        = 1234l
+            val lastActiveDate: Long = 1234l
             when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
               List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null))))
 
@@ -652,7 +650,7 @@ class GithubV3RepositoryDataSourceSpec
                   "some description",
                   "url_A",
                   now,
-                  now,
+                  lastActiveDate,
                   true,
                   true,
                   RepoType.Library,
@@ -661,7 +659,7 @@ class GithubV3RepositoryDataSourceSpec
               now)
 
             val repositories = dataSource
-              .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)), false)
+              .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
               .futureValue
 
             //verify
@@ -688,13 +686,13 @@ class GithubV3RepositoryDataSourceSpec
       }
 
       "be called" when {
-        "fullRefreshWithHighApiCall flag is true" should {
+        "the last updated date from github is different from the saved one" should {
           "also repo type and digital service name should be obtained from github" in new Setup {
             when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
             when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
 
             when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
-              List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now, true, null))))
+              List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now + 1, true, null))))
 
             private val manifestYaml =
               """
@@ -721,13 +719,8 @@ class GithubV3RepositoryDataSourceSpec
                   None)),
               now)
 
-            private val fullRefreshWithHighApiCall = true
             val repositories = dataSource
-              .mapTeam(
-                org,
-                team,
-                persistedTeams = Future.successful(Seq(persistedTeamRepositories)),
-                fullRefreshWithHighApiCall)
+              .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
               .futureValue
 
             //verify
@@ -739,7 +732,7 @@ class GithubV3RepositoryDataSourceSpec
                   "some description",
                   "url_A",
                   now,
-                  now,
+                  now + 1,
                   isInternal         = false,
                   isPrivate          = true,
                   repoType           = RepoType.Library,
@@ -774,11 +767,7 @@ class GithubV3RepositoryDataSourceSpec
           val persistedTeamRepositories = TeamRepositories("A", Nil, now)
 
           val repositories = dataSource
-            .mapTeam(
-              org,
-              team,
-              persistedTeams             = Future.successful(Seq(persistedTeamRepositories)),
-              fullRefreshWithHighApiCall = false)
+            .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
             .futureValue
 
           //verify
@@ -845,7 +834,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(false))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil), fullRefreshWithHighApiCall = false)
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
         .futureValue(Timeout(1 minute)) shouldBe
         TeamRepositories(
           "A",

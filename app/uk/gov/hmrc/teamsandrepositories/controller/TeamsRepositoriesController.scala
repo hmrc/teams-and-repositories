@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.net.URLDecoder
 import java.time.format.DateTimeFormatter
@@ -23,15 +23,15 @@ import java.util.concurrent.Executors
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
-import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
-import play.api.mvc.{Results, _}
+import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
-import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
+import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -161,7 +161,7 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def reloadCache(fullRefreshWithHighApiCall: Option[Boolean]) = Action {
-    dataReloadScheduler.reload(fullRefreshWithHighApiCall.getOrElse(false))
+    dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }
 
@@ -171,9 +171,6 @@ class TeamsRepositoriesController @Inject()(
 
   private def format(dateTime: LocalDateTime): String =
     DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
-
-  private def format(dateTime: Option[LocalDateTime]): String =
-    dateTime.fold("Not Available")(format)
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)

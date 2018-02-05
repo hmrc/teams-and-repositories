@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import com.codahale.metrics.{Counter, MetricRegistry}
-import com.kenshoo.play.metrics.Metrics
 import java.util.Date
 import java.util.concurrent.Executors
+
+import com.codahale.metrics.{Counter, MetricRegistry}
+import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito
 import org.mockito.Mockito._
@@ -28,12 +29,13 @@ import org.mockito.stubbing.Answer
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
-import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class CompositeRepositoryDataSourceSpec
     extends WordSpec
@@ -113,7 +115,7 @@ class CompositeRepositoryDataSourceSpec
   "persistTeamRepoMapping_new" should {
 
     "persist teams and their repos" in {
-      import BlockingIOExecutionContext._
+      import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
       val teamARepositories =
         TeamRepositories(
@@ -155,9 +157,9 @@ class CompositeRepositoryDataSourceSpec
             TeamAndOrgAndDataSource(ghOrganisation, ghTeamB, dataSource)
           )))
       when(noEffectDataSource.getTeamsWithOrgAndDataSourceDetails).thenReturn(Future.successful(Nil))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
       when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
@@ -165,10 +167,10 @@ class CompositeRepositoryDataSourceSpec
 
       val compositeDataSource = buildCompositeDataSource(dataSource, noEffectDataSource, Nil, mockMetrics)
 
-      compositeDataSource.persistTeamRepoMapping().futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
-      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any(), eqTo(false))
-      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false))
+      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any())
+      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any())
       verify(compositeDataSource.persister).update(teamARepositories)
       verify(compositeDataSource.persister).update(teamBRepositories)
       verify(compositeDataSource.persister)
@@ -176,7 +178,7 @@ class CompositeRepositoryDataSourceSpec
     }
 
     "persist a team's repositories from all data sources (combine them) with repositories sorted alphabetically by name" in {
-      import BlockingIOExecutionContext._
+      import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
       val teamARepositoriesInDataSource1 =
         TeamRepositories(
@@ -231,9 +233,9 @@ class CompositeRepositoryDataSourceSpec
             TeamAndOrgAndDataSource(ghOrganisation2, ghTeamAInDataSource2, dataSource2)
           )))
 
-      when(dataSource1.mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any(), eqTo(false)))
+      when(dataSource1.mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource1))
-      when(dataSource2.mapTeam(eqTo(ghOrganisation2), eqTo(ghTeamAInDataSource2), any(), eqTo(false)))
+      when(dataSource2.mapTeam(eqTo(ghOrganisation2), eqTo(ghTeamAInDataSource2), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource2))
 
       when(dataSource1.getAllRepositories(any())).thenReturn(Future(dataSource1ReposWithoutTeams))
@@ -241,10 +243,10 @@ class CompositeRepositoryDataSourceSpec
 
       val compositeDataSource = buildCompositeDataSource(dataSource1, dataSource2, Nil, mockMetrics)
 
-      compositeDataSource.persistTeamRepoMapping().futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
-      verify(dataSource1).mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any(), eqTo(false))
-      verify(dataSource2).mapTeam(eqTo(ghOrganisation2), eqTo(ghTeamAInDataSource2), any(), eqTo(false))
+      verify(dataSource1).mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any())
+      verify(dataSource2).mapTeam(eqTo(ghOrganisation2), eqTo(ghTeamAInDataSource2), any())
 
       val mergedRepositories =
         (teamARepositoriesInDataSource1.repositories ++ teamARepositoriesInDataSource2.repositories).sortBy(_.name)
@@ -296,13 +298,13 @@ class CompositeRepositoryDataSourceSpec
         )))
       when(noEffectDataSource.getTeamsWithOrgAndDataSourceDetails).thenReturn(Future.successful(Nil))
 
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any()))
         .thenReturn(Future.successful(teamCRepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any(), eqTo(false)))
+      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any()))
         .thenReturn(Future.successful(teamDRepositories))
 
       when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
@@ -320,12 +322,12 @@ class CompositeRepositoryDataSourceSpec
       val mappingTeamsOrder = Mockito.inOrder(dataSource)
       val persistenceOrder  = Mockito.inOrder(compositeDataSource.persister)
 
-      compositeDataSource.persistTeamRepoMapping().futureValue
+      compositeDataSource.persistTeamRepoMapping.futureValue
 
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any(), eqTo(false))
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any(), eqTo(false))
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any(), eqTo(false))
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any(), eqTo(false))
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any())
 
       persistenceOrder.verify(compositeDataSource.persister).update(teamDRepositories)
       persistenceOrder.verify(compositeDataSource.persister).update(teamARepositories)

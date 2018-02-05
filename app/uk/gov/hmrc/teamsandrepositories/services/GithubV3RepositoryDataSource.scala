@@ -56,7 +56,7 @@ class GithubV3RepositoryDataSource(
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry) {
 
-  import uk.gov.hmrc.teamsandrepositories.BlockingIOExecutionContext._
+  import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
   implicit val repositoryFormats     = Json.format[GitRepository]
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
@@ -93,8 +93,7 @@ class GithubV3RepositoryDataSource(
   def mapTeam(
     organisation: GhOrganisation,
     team: GhTeam,
-    persistedTeams: Future[Seq[TeamRepositories]],
-    fullRefreshWithHighApiCall: Boolean): Future[TeamRepositories] = {
+    persistedTeams: Future[Seq[TeamRepositories]]): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.$githubName.repos") {
@@ -104,7 +103,7 @@ class GithubV3RepositoryDataSource(
           .sequence(for {
             repo <- repos; if !githubConfig.hiddenRepositories.contains(repo.name)
           } yield {
-            mapRepository(organisation, team, repo, persistedTeams, fullRefreshWithHighApiCall)
+            mapRepository(organisation, team, repo, persistedTeams)
           })
           .map { (repos: List[GitRepository]) =>
             TeamRepositories(team.name, repositories = repos, timestampF())
@@ -157,14 +156,13 @@ class GithubV3RepositoryDataSource(
     organisation: GhOrganisation,
     team: GhTeam,
     repository: GhRepository,
-    persistedTeamsF: Future[Seq[TeamRepositories]],
-    fullRefreshWithHighApiCall: Boolean): Future[GitRepository] = {
+    persistedTeamsF: Future[Seq[TeamRepositories]]): Future[GitRepository] = {
     val eventualMaybePersistedRepository = persistedTeamsF
       .map(_.find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName)))
       .map(_.flatMap(_.repositories.find(_.name == repository.name)))
 
     eventualMaybePersistedRepository.flatMap {
-      case Some(persistedRepository) if !fullRefreshWithHighApiCall =>
+      case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
         Logger.debug(
           s"Mapping repository (${repository.name}) as ${persistedRepository.repoType} from previously persisted repo")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))

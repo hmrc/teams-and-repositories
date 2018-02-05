@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
+import uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -230,17 +231,19 @@ class TeamsRepositoriesControllerSpec
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController.teams().url mustBe "/api/teams"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.teams().url mustBe "/api/teams"
     }
 
     "have the correct url set up for a team's services" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController
         .repositoriesByTeam("test-team")
         .url mustBe "/api/teams/test-team"
     }
 
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.routes.TeamsRepositoriesController.services().url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController
+        .services()
+        .url mustBe "/api/services"
     }
 
   }
