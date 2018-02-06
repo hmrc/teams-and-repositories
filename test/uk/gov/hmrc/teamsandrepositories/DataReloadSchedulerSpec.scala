@@ -49,6 +49,7 @@ class DataReloadSchedulerSpec
     when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
     when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
 
+    when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(100 millisecond)
     when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
 
     new DataReloadScheduler(

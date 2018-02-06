@@ -37,6 +37,7 @@ class ModuleSpec
   val mockCacheConfig  = mock[CacheConfig]
   val intervalDuration = 100 millisecond
 
+  when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(intervalDuration)
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
 
   val mockGitCompositeDataSource = mock[GitCompositeDataSource]

@@ -23,10 +23,13 @@ import uk.gov.hmrc.teamsandrepositories.services.InitialDelayCalculator
 import scala.concurrent.duration._
 
 class CacheConfig @Inject()(configuration: Configuration) {
-  private val teamsCacheDurationConfigPath = "cache.teams.duration"
+  private val teamsCacheInitialDurationConfigPath = "cache.teams.initialDelay"
+  private val teamsCacheDurationConfigPath        = "cache.teams.duration"
 
   private val defaultTimeout = 2 hours
 
+  def teamsCacheInitialDelay: FiniteDuration =
+    configuration.getMilliseconds(teamsCacheInitialDurationConfigPath).map(_.milliseconds).getOrElse(1 minute)
   def teamsCacheDuration: FiniteDuration =
     configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
 

@@ -21,11 +21,12 @@ class DataReloadScheduler @Inject()(
   cacheConfig: CacheConfig,
   mongoLock: MongoLock)(implicit ec: ExecutionContext) {
 
-  private val cacheDuration = cacheConfig.teamsCacheDuration
+  private val cacheInitialDelay = cacheConfig.teamsCacheInitialDelay
+  private val cacheDuration     = cacheConfig.teamsCacheDuration
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
-  private val scheduledReload = actorSystem.scheduler.schedule(1 minute, cacheDuration) {
+  private val scheduledReload = actorSystem.scheduler.schedule(cacheInitialDelay, cacheDuration) {
     Logger.info("Scheduled teams repository cache reload triggered")
     reload.andThen {
       case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
