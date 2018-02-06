@@ -34,7 +34,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    Logger.debug(
+    Logger.info(
       s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }

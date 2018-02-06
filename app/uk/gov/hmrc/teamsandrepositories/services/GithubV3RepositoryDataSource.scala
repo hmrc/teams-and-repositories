@@ -27,10 +27,11 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
-import collection.JavaConverters._
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
 
@@ -163,10 +164,17 @@ class GithubV3RepositoryDataSource(
 
     eventualMaybePersistedRepository.flatMap {
       case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
-        Logger.debug(
-          s"Mapping repository (${repository.name}) as ${persistedRepository.repoType} from previously persisted repo")
+        Logger.info(
+          s"Team '${team.name}' - Mapping repository (${repository.name}) as ${persistedRepository.repoType} from previously persisted repo")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
-      case _ =>
+      case Some(persistedRepository) =>
+        Logger.info(
+          s"Team '${team.name}' - Full reload of ${repository.name}: " +
+            s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
+            s"github repository last updated -> ${repository.lastActiveDate}")
+        getRepositoryDetailsFromGithub(organisation, repository)
+      case None =>
+        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name}: never persisted before")
         getRepositoryDetailsFromGithub(organisation, repository)
     }
   }

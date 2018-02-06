@@ -53,6 +53,14 @@ class GitCompositeDataSource @Inject()(
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
+  def serialiseFutures[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
+    l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒
+      for {
+        previousResults ← previousFuture
+        next ← fn(next)
+      } yield previousResults :+ next
+    }
+
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
     val persistedTeams: Future[Seq[TeamRepositories]] = persister.getAllTeamAndRepos
 
@@ -63,11 +71,11 @@ class GitCompositeDataSource @Inject()(
         ts.map(_.teamName).foreach(t => Logger.debug(t))
         Logger.debug("^^^^^^ TEAM NAMES ^^^^^^")
 
-        val reposWithTeamsF = Future.sequence(ts.map { aTeam: OneTeamAndItsDataSources =>
+        val reposWithTeamsF: Future[Seq[TeamRepositories]] = serialiseFutures(ts) { aTeam: OneTeamAndItsDataSources =>
           getAllRepositoriesForTeam(aTeam, persistedTeams)
             .map(mergeRepositoriesForTeam(aTeam.teamName, _))
             .flatMap(persister.update)
-        })
+        }
 
         for {
           withTeams    <- reposWithTeamsF

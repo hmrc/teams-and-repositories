@@ -8,6 +8,7 @@ import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
+import scala.concurrent.duration._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -24,7 +25,7 @@ class DataReloadScheduler @Inject()(
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
-  private val scheduledReload = actorSystem.scheduler.schedule(cacheDuration, cacheDuration) {
+  private val scheduledReload = actorSystem.scheduler.schedule(1 minute, cacheDuration) {
     Logger.info("Scheduled teams repository cache reload triggered")
     reload.andThen {
       case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
