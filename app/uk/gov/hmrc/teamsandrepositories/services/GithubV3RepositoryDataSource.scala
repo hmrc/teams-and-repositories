@@ -160,21 +160,21 @@ class GithubV3RepositoryDataSource(
     persistedTeamsF: Future[Seq[TeamRepositories]]): Future[GitRepository] = {
     val eventualMaybePersistedRepository = persistedTeamsF
       .map(_.find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName)))
-      .map(_.flatMap(_.repositories.find(_.name == repository.name)))
+      .map(_.flatMap(_.repositories.find(_.url == repository.htmlUrl)))
 
     eventualMaybePersistedRepository.flatMap {
       case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
-        Logger.info(
-          s"Team '${team.name}' - Mapping repository (${repository.name}) as ${persistedRepository.repoType} from previously persisted repo")
+        Logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
       case Some(persistedRepository) =>
         Logger.info(
-          s"Team '${team.name}' - Full reload of ${repository.name}: " +
+          s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
             s"github repository last updated -> ${repository.lastActiveDate}")
         getRepositoryDetailsFromGithub(organisation, repository)
       case None =>
-        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name}: never persisted before")
+        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github ${if (isInternal) "enterprise"
+        else "open"}: never persisted before")
         getRepositoryDetailsFromGithub(organisation, repository)
     }
   }
