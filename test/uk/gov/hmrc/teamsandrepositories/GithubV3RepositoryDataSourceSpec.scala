@@ -573,6 +573,70 @@ class GithubV3RepositoryDataSourceSpec
         timestampF())
     }
 
+    "Set true owning team if info is found in repository.yaml" in new Setup {
+      private val org = GhOrganisation("HMRC", 1)
+      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
+      private val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
+        List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+
+      val repositoryYamlContents =
+        """
+          owning-teams:
+            - team1
+            - team2
+        """
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+        .thenReturn(Future.successful(Some(repositoryYamlContents)))
+
+      dataSource
+        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .futureValue shouldBe TeamRepositories(
+        "A",
+        List(
+          GitRepository(
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
+            repoType           = RepoType.Other,
+            digitalServiceName = None,
+            owningTeams        = List("team1", "team2"),
+            language           = Some("Scala")
+          )
+        ),
+        timestampF()
+      )
+    }
+
+    "Set owning teams to an empty list if value not specified as a list" in new Setup {
+      private val org = GhOrganisation("HMRC", 1)
+      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
+      private val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
+        List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+
+      val repositoryYamlContents =
+        """
+          owning-teams: not-a-list
+        """
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+        .thenReturn(Future.successful(Some(repositoryYamlContents)))
+
+      private val result =
+        dataSource
+          .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+          .futureValue
+          .repositories
+          .head
+          .owningTeams
+
+      result shouldBe Nil
+    }
+
     "Set isPrivate to true if the repo is private" in new Setup {
 
       private val org = GhOrganisation("HMRC", 1)
@@ -651,12 +715,14 @@ class GithubV3RepositoryDataSourceSpec
                   "url_A",
                   now,
                   lastActiveDate,
-                  true,
-                  true,
+                  isInternal = true,
+                  isPrivate  = true,
                   RepoType.Library,
                   Some("Some Digital Service"),
+                  Nil,
                   None)),
-              now)
+              now
+            )
 
             val repositories = dataSource
               .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
@@ -716,6 +782,7 @@ class GithubV3RepositoryDataSourceSpec
                   true,
                   RepoType.Library,
                   Some("Some Digital Service"),
+                  Nil,
                   None)),
               now)
 

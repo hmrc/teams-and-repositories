@@ -19,6 +19,7 @@ case class GitRepository(
   isPrivate: Boolean                 = false,
   repoType: RepoType                 = RepoType.Other,
   digitalServiceName: Option[String] = None,
+  owningTeams: Seq[String]           = Nil,
   language: Option[String]           = None)
 
 object GitRepository {
@@ -35,6 +36,7 @@ object GitRepository {
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
+        (JsPath \ "owningTeams").readNullable[Seq[String]].map(_.getOrElse(Nil)) and
         (JsPath \ "language").readNullable[String]
     )(apply _)
 
@@ -89,8 +91,9 @@ object GitRepository {
     urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
 
     val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
+    val owningTeams       = primaryRepository.map(_.owningTeams).getOrElse(Nil)
 
-    RepositoryDetails.buildRepositoryDetails(primaryRepository, repositories, teamNames, urlTemplates)
+    RepositoryDetails.buildRepositoryDetails(primaryRepository, repositories, owningTeams, teamNames, urlTemplates)
 
   }
 
