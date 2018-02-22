@@ -208,12 +208,18 @@ object TeamRepositories {
         m + (repoType -> getRepositoryDisplayDetails(repoType))
     }
 
+    val ownedRepos = teamRepositories.repositories.collect {
+      case g: GitRepository if g.owningTeams.contains(teamRepositories.teamName) => g.name
+    }
+
     Team(
       teamRepositories.teamName,
       teamActivityDates.firstActiveDate,
       teamActivityDates.lastActiveDate,
       teamActivityDates.firstServiceCreationDate,
-      Some(repos))
+      Some(repos),
+      ownedRepos
+    )
   }
 
   def getRepositoryToTeamNameList(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {

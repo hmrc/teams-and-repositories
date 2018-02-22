@@ -1384,7 +1384,9 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
       lastActiveDate     = 10,
       repoType           = Service,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      owningTeams        = List("teamName")
+    )
     val repo2 = GitRepository(
       "repo2",
       description,
@@ -1471,7 +1473,8 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
               Service   -> List("repo1", "repo2"),
               Library   -> List("repo3", "repo4"),
               Prototype -> List(),
-              Other     -> List("repo5")))
+              Other     -> List("repo5"))),
+          ownedRepos = List("repo1")
         ),
         Team(
           name                     = "teamNameOther",
@@ -1483,7 +1486,8 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
               Service   -> List(),
               Library   -> List("repo4"),
               Prototype -> List("repo7", "repo8"),
-              Other     -> List("repo5", "repo6")))
+              Other     -> List("repo5", "repo6"))
+          )
         )
       )
     }
