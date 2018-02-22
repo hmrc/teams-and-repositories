@@ -21,17 +21,17 @@ import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
+import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
-
-import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
 
 case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
 
@@ -148,9 +148,10 @@ class GithubV3RepositoryDataSource(
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
       repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
+      owningTeams             = maybeManifestDetails.map(_.owningTeams).getOrElse(Nil)
     } yield {
       Logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      buildGitRepository(repository, repositoryType, maybeDigitalServiceName)
+      buildGitRepository(repository, repositoryType, maybeDigitalServiceName, owningTeams)
     }
 
   private def mapRepository(
@@ -191,7 +192,10 @@ class GithubV3RepositoryDataSource(
   private def parseAppConfigFile(contents: String): Try[Object] =
     Try(new Yaml().load(contents))
 
-  case class ManifestDetails(repositoryType: Option[RepoType], digitalServiceName: Option[String])
+  case class ManifestDetails(
+    repositoryType: Option[RepoType],
+    digitalServiceName: Option[String],
+    owningTeams: Seq[String])
 
   private def getMaybeManifestDetails(repoName: String, manifest: Option[String]): Option[ManifestDetails] = {
     import scala.collection.JavaConverters._
@@ -213,7 +217,14 @@ class GithubV3RepositoryDataSource(
                 case "library" => Some(RepoType.Library)
                 case _         => None
               },
-              config.get("digital-service").map(_.toString)
+              config.get("digital-service").map(_.toString),
+              try {
+                config.getOrElse("owning-teams", Nil).asInstanceOf[java.util.List[String]].asScala.toList
+              } catch {
+                case NonFatal(ex) =>
+                  Logger.warn(s"Unable to get 'owning-teams' from repository.yaml, problems was: ${ex.getMessage}")
+                  Nil
+              }
             ))
         }
       }
@@ -298,7 +309,8 @@ class GithubV3RepositoryDataSource(
   def buildGitRepository(
     repository: GhRepository,
     repositoryType: RepoType,
-    maybeDigitalServiceName: Option[String]): GitRepository =
+    maybeDigitalServiceName: Option[String],
+    owningTeams: Seq[String]): GitRepository =
     GitRepository(
       repository.name,
       description        = repository.description,
@@ -309,6 +321,7 @@ class GithubV3RepositoryDataSource(
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,
+      owningTeams        = owningTeams,
       language           = Option(repository.language)
     )
 

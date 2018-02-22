@@ -20,7 +20,9 @@ case class Team(
   firstActiveDate: Option[Long]          = None,
   lastActiveDate: Option[Long]           = None,
   firstServiceCreationDate: Option[Long] = None,
-  repos: Option[Map[RepoType.Value, Seq[String]]])
+  repos: Option[Map[RepoType.Value, Seq[String]]],
+  ownedRepos: Seq[String] = Nil
+)
 
 object Team {
 

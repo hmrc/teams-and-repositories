@@ -14,6 +14,7 @@ case class RepositoryDetails(
   createdAt: Long,
   lastActive: Long,
   repoType: RepoType.RepoType,
+  owningTeams: Seq[String],
   teamNames: Seq[String],
   githubUrls: Seq[Link],
   ci: Seq[Link]                  = Seq.empty,
@@ -24,6 +25,7 @@ object RepositoryDetails {
   def buildRepositoryDetails(
     primaryRepository: Option[GitRepository],
     allRepositories: Seq[GitRepository],
+    owningTeams: Seq[String],
     teamNames: Seq[String],
     urlTemplates: UrlTemplates): Option[RepositoryDetails] =
     primaryRepository.map { repo =>
@@ -40,6 +42,7 @@ object RepositoryDetails {
         createdDate,
         lastActiveDate,
         repo.repoType,
+        owningTeams,
         teamNames,
         allRepositories.map { repo =>
           Link(githubName(repo.isInternal), githubDisplayName(repo.isInternal), repo.url)
