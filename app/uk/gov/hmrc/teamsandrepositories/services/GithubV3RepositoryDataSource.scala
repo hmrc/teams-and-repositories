@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.codahale.metrics.MetricRegistry
+import java.util
 import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
@@ -219,10 +220,10 @@ class GithubV3RepositoryDataSource(
               },
               config.get("digital-service").map(_.toString),
               try {
-                config.getOrElse("owning-teams", Nil).asInstanceOf[java.util.List[String]].asScala.toList
+                config.getOrElse("owning-teams", new util.ArrayList[String]).asInstanceOf[java.util.List[String]].asScala.toList
               } catch {
                 case NonFatal(ex) =>
-                  Logger.warn(s"Unable to get 'owning-teams' from repository.yaml, problems was: ${ex.getMessage}")
+                  Logger.warn(s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems was: ${ex.getMessage}")
                   Nil
               }
             ))
