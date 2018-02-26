@@ -211,7 +211,7 @@ class GithubV3RepositoryDataSource(
         case Success(yamlMap) => {
           val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
 
-          Some(
+          val manifestDetails =
             ManifestDetails(
               config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
                 case "service" => Some(RepoType.Service)
@@ -220,13 +220,24 @@ class GithubV3RepositoryDataSource(
               },
               config.get("digital-service").map(_.toString),
               try {
-                config.getOrElse("owning-teams", new util.ArrayList[String]).asInstanceOf[java.util.List[String]].asScala.toList
+                config
+                  .getOrElse("owning-teams", new util.ArrayList[String])
+                  .asInstanceOf[java.util.List[String]]
+                  .asScala
+                  .toList
               } catch {
                 case NonFatal(ex) =>
-                  Logger.warn(s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems was: ${ex.getMessage}")
+                  Logger.warn(
+                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems was: ${ex.getMessage}")
                   Nil
               }
-            ))
+            )
+
+          Logger.info(
+            s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $contents"
+          )
+
+          Some(manifestDetails)
         }
       }
     }
