@@ -305,17 +305,14 @@ class GithubV3RepositoryDataSource(
     }
 
   def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
-    GitRepository(
-      name               = repository.name,
-      description        = repository.description,
-      url                = repository.htmlUrl,
-      createdDate        = repository.createdDate,
-      lastActiveDate     = repository.lastActiveDate,
-      isInternal         = this.isInternal,
-      isPrivate          = repository.isPrivate,
-      repoType           = persistedRepository.repoType,
-      digitalServiceName = persistedRepository.digitalServiceName,
-      language           = persistedRepository.language
+    persistedRepository.copy(
+      name           = repository.name,
+      description    = repository.description,
+      url            = repository.htmlUrl,
+      createdDate    = repository.createdDate,
+      lastActiveDate = repository.lastActiveDate,
+      isInternal     = this.isInternal,
+      isPrivate      = repository.isPrivate
     )
 
   def buildGitRepository(
