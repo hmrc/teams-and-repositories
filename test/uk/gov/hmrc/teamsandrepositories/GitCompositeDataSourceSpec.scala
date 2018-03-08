@@ -3,6 +3,7 @@ package uk.gov.hmrc.teamsandrepositories
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import java.util.Date
+
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
@@ -11,8 +12,9 @@ import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.Application
+import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
+
 import scala.concurrent.Future
 import uk.gov.hmrc.githubclient.{GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -89,7 +91,8 @@ class GitCompositeDataSourceSpec
         connector,
         githubClientDecorator,
         testTimestamper,
-        mock[Metrics])
+        mock[Metrics],
+        Configuration())
 
       verify(gitApiOpenConfig).apiUrl
       verify(gitApiOpenConfig).key
@@ -243,7 +246,14 @@ class GitCompositeDataSourceSpec
       }
     })
 
-    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, mockMetrics) {
+    new GitCompositeDataSource(
+      githubConfig,
+      persister,
+      connector,
+      githubClientDecorator,
+      testTimestamper,
+      mockMetrics,
+      Configuration()) {
       override val dataSources: List[GithubV3RepositoryDataSource] = dataSourceList
     }
   }

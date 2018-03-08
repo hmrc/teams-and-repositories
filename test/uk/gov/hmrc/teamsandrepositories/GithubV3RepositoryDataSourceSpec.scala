@@ -56,7 +56,13 @@ class GithubV3RepositoryDataSourceSpec
   trait Setup {
     val githubClient = mock[GithubApiClient]
     val dataSource =
-      new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = false, timestampF, mockRegistry)
+      new GithubV3RepositoryDataSource(
+        githubConfig,
+        githubClient,
+        isInternal = false,
+        timestampF,
+        mockRegistry,
+        List("shared-repository"))
 
     when(githubClient.repoContainsContent(anyString(), anyString(), anyString())(any[ExecutionContext]))
       .thenReturn(Future.successful(false))
@@ -124,7 +130,13 @@ class GithubV3RepositoryDataSourceSpec
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
       val internalDataSource =
-        new GithubV3RepositoryDataSource(githubConfig, githubClient, isInternal = true, timestampF, mockRegistry)
+        new GithubV3RepositoryDataSource(
+          githubConfig,
+          githubClient,
+          isInternal = true,
+          timestampF,
+          mockRegistry,
+          List.empty)
 
       private val org = GhOrganisation("HMRC", 1)
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
@@ -915,6 +927,54 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"))),
           timestampF())
+    }
+
+    "Not try to pull data from github for known shared repositories but still update the lastUpdate date" in new Setup {
+
+      private val org  = GhOrganisation("HMRC", 1)
+      private val team = GhTeam("A", 1)
+      private val githubRepository =
+        GhRepository(
+          name           = "shared-repository",
+          description    = "some description",
+          id             = 1,
+          htmlUrl        = "url_A",
+          fork           = false,
+          createdDate    = 0L,
+          lastActiveDate = now,
+          isPrivate      = false,
+          language       = null
+        )
+
+      when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubRepository)))
+
+      private val repository = GitRepository(
+        name               = "shared-repository",
+        description        = "some description",
+        url                = "url_A",
+        createdDate        = 0L,
+        lastActiveDate     = 0L,
+        repoType           = RepoType.Other,
+        digitalServiceName = None,
+        language           = None
+      )
+
+      dataSource
+        .mapTeam(
+          org,
+          team,
+          persistedTeams = Future.successful(
+            Seq(TeamRepositories(teamName = "A", repositories = List(repository), updateDate = 0L))
+          )
+        )
+        .futureValue shouldBe TeamRepositories(
+        teamName     = "A",
+        repositories = List(repository.copy(lastActiveDate = now)),
+        updateDate   = now
+      )
+
+      verify(githubClient).getReposForTeam(1)(ec)
+      verifyNoMoreInteractions(githubClient)
     }
   }
 }

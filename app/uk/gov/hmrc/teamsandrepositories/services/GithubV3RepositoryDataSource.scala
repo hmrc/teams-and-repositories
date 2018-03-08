@@ -56,7 +56,8 @@ class GithubV3RepositoryDataSource(
   val gh: GithubApiClient,
   val isInternal: Boolean,
   timestampF: () => Long,
-  val defaultMetricsRegistry: MetricRegistry) {
+  val defaultMetricsRegistry: MetricRegistry,
+  repositoriesToIgnore: List[String]) {
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
@@ -168,6 +169,10 @@ class GithubV3RepositoryDataSource(
       case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
         Logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
+      case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
+        Logger.info(s"Team '${team.name}' - Partial reload of ${repository.htmlUrl}")
+        Logger.debug(s"Mapping repository (${repository.name}) as ${RepoType.Other}")
+        Future.successful(buildGitRepository(repository, RepoType.Other, None, persistedRepository.owningTeams))
       case Some(persistedRepository) =>
         Logger.info(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +

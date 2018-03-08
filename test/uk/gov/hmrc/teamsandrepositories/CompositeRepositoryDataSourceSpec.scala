@@ -29,6 +29,7 @@ import org.mockito.stubbing.Answer
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhOrganisation, GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -95,7 +96,9 @@ class CompositeRepositoryDataSourceSpec
         connector,
         githubClientDecorator,
         testTimestamper,
-        mockMetrics)
+        mockMetrics,
+        Configuration()
+      )
 
       verify(gitApiOpenConfig).apiUrl
       verify(gitApiOpenConfig).key
@@ -426,7 +429,14 @@ class CompositeRepositoryDataSourceSpec
       }
     })
 
-    new GitCompositeDataSource(githubConfig, persister, connector, githubClientDecorator, testTimestamper, metrics) {
+    new GitCompositeDataSource(
+      githubConfig,
+      persister,
+      connector,
+      githubClientDecorator,
+      testTimestamper,
+      metrics,
+      Configuration()) {
       override val dataSources: List[GithubV3RepositoryDataSource] = List(dataSource1, dataSource2)
     }
   }

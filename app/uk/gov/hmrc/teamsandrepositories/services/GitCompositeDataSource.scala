@@ -3,7 +3,9 @@ package uk.gov.hmrc.teamsandrepositories.services
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
 import java.time.Instant
-import play.api.Logger
+
+import play.api.{Configuration, Logger}
+
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.githubclient.GithubApiClient
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
@@ -17,15 +19,21 @@ class Timestamper {
 }
 
 @Singleton
-class GitCompositeDataSource @Inject()(
-  val githubConfig: GithubConfig,
-  val persister: TeamsAndReposPersister,
-  val mongoConnector: MongoConnector,
-  val githubApiClientDecorator: GithubApiClientDecorator,
-  val timestamper: Timestamper,
-  val metrics: Metrics) {
+case class GitCompositeDataSource @Inject()(
+  githubConfig: GithubConfig,
+  persister: TeamsAndReposPersister,
+  mongoConnector: MongoConnector,
+  githubApiClientDecorator: GithubApiClientDecorator,
+  timestamper: Timestamper,
+  metrics: Metrics,
+  configuration: Configuration) {
+
+  import scala.collection.JavaConverters._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
+
+  val repositoriesToIgnore: List[String] =
+    configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
 
   val gitApiEnterpriseClient: GithubApiClient =
     githubApiClientDecorator
@@ -37,7 +45,8 @@ class GitCompositeDataSource @Inject()(
       gitApiEnterpriseClient,
       isInternal = true,
       timestamper.timestampF,
-      metrics.defaultRegistry)
+      defaultMetricsRegistry,
+      repositoriesToIgnore)
 
   val gitOpenClient: GithubApiClient =
     githubApiClientDecorator
@@ -49,7 +58,8 @@ class GitCompositeDataSource @Inject()(
       gitOpenClient,
       isInternal = false,
       timestamper.timestampF,
-      metrics.defaultRegistry)
+      defaultMetricsRegistry,
+      repositoriesToIgnore)
 
   val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
 
