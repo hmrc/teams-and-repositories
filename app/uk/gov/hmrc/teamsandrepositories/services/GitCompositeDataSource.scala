@@ -35,19 +35,6 @@ case class GitCompositeDataSource @Inject()(
   val repositoriesToIgnore: List[String] =
     configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
 
-  val gitApiEnterpriseClient: GithubApiClient =
-    githubApiClientDecorator
-      .githubApiClient(githubConfig.githubApiEnterpriseConfig.apiUrl, githubConfig.githubApiEnterpriseConfig.key)
-
-  val enterpriseTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(
-      githubConfig,
-      gitApiEnterpriseClient,
-      isInternal = true,
-      timestamper.timestampF,
-      defaultMetricsRegistry,
-      repositoriesToIgnore)
-
   val gitOpenClient: GithubApiClient =
     githubApiClientDecorator
       .githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
@@ -61,7 +48,7 @@ case class GitCompositeDataSource @Inject()(
       defaultMetricsRegistry,
       repositoriesToIgnore)
 
-  val dataSources = List(enterpriseTeamsRepositoryDataSource, openTeamsRepositoryDataSource)
+  val dataSource: GithubV3RepositoryDataSource = openTeamsRepositoryDataSource
 
   def serialiseFutures[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
     l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒
@@ -104,9 +91,7 @@ case class GitCompositeDataSource @Inject()(
 
   def getRepositoriesWithoutTeams(persistedReposWithTeams: Seq[TeamRepositories])(
     implicit ec: ExecutionContext): Future[TeamRepositories] =
-    Future
-      .sequence(dataSources.map(_.getAllRepositories))
-      .map(_.flatten)
+    dataSource.getAllRepositories
       .map { repos =>
         val reposWithoutTeams = {
           val urlsOfPersistedRepos = persistedReposWithTeams.flatMap(_.repositories.map(_.url)).toSet
@@ -129,11 +114,11 @@ case class GitCompositeDataSource @Inject()(
   private def groupAndOrderTeamsAndTheirDataSources(persistedTeamsF: Future[Seq[TeamRepositories]])(
     implicit ec: ExecutionContext): Future[Seq[OneTeamAndItsDataSources]] =
     (for {
-      teamsAndTheirOrgAndDataSources <- Future.sequence(dataSources.map(ds => ds.getTeamsWithOrgAndDataSourceDetails))
+      teamsAndTheirOrgAndDataSources <- dataSource.getTeamsWithOrgAndDataSourceDetails
       persistedTeams                 <- persistedTeamsF
     } yield {
       val teamNameToSources: Map[String, List[TeamAndOrgAndDataSource]] =
-        teamsAndTheirOrgAndDataSources.flatten.groupBy(_.team.name)
+        teamsAndTheirOrgAndDataSources.groupBy(_.team.name)
       teamNameToSources.map {
         case (teamName, tds) =>
           OneTeamAndItsDataSources(teamName, tds, persistedTeams.find(_.teamName == teamName).fold(0L)(_.updateDate))
