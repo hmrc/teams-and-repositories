@@ -43,15 +43,17 @@ object TeamRepositories {
           case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
         }
 
-    val gitRepositories: Seq[GitRepository] =
+    val gitReposForDigitalService =
       allTeamsAndRepos
         .flatMap(_.repositories)
         .filter(_.digitalServiceName.exists(_.equalsIgnoreCase(digitalServiceName)))
 
     val storedDigitalServiceName: String =
-      gitRepositories.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
+      gitReposForDigitalService.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
 
-    identifyRepositories(gitRepositories) match {
+    gitReposForDigitalService.distinct
+      .map(Repository.create)
+      .sortBy(_.name.toUpperCase) match {
       case Nil => None
       case repos =>
         Some(
@@ -66,7 +68,9 @@ object TeamRepositories {
                   repo.lastUpdatedAt,
                   repo.repoType,
                   repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN))))
-          ))
+          )
+        )
+
     }
   }
 
@@ -100,26 +104,15 @@ object TeamRepositories {
 
     }
 
-  def identifyRepositories(gitRepositories: Seq[GitRepository]): Seq[Repository] =
-    gitRepositories
-      .groupBy(_.name)
-      .map {
-        case (repositoryName, repositories) =>
-          val language: String = RepositoryDetails.determineLanguage(repositories)
-          Repository(
-            repositoryName,
-            repositories.minBy(_.createdDate).createdDate,
-            repositories.maxBy(_.lastActiveDate).lastActiveDate,
-            GitRepository.primaryRepoType(repositories),
-            Some(language)
-          )
-      }
-      .toList
+  // todo(konrad) write unit test
+  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
+    teamRepos
+      .flatMap(_.repositories)
+      .distinct
+      .map(Repository.create)
       .sortBy(_.name.toUpperCase)
 
-  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
-    identifyRepositories(teamRepos.flatMap(_.repositories))
-
+  // todo(konrad) write unit test
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
     repoName: String,

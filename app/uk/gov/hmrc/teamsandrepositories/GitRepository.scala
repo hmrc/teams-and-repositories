@@ -1,14 +1,11 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
-
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import play.api.libs.functional.syntax._
-import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
+import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
 
-//!@ rename to PersistedRepository?
 case class GitRepository(
   name: String,
   description: String,
