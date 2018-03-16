@@ -88,9 +88,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
 
   def deleteTeam(teamName: String): Future[String] =
     withTimerAndCounter("mongo.cleanup") {
-      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map {
-        case _ => teamName
-      }
+      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map(_ => teamName)
     } recover {
       case lastError =>
         logger.error(s"Failed to remove $teamName", lastError)

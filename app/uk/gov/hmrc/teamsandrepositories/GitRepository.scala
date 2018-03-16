@@ -79,24 +79,17 @@ object GitRepository {
   def getLastActiveDate(repos: Seq[GitRepository]): Long =
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
-  def repoGroupToRepositoryDetails(
-    repoType: RepoType,
-    repo: GitRepository,
-    teamNames: Seq[String],
-    urlTemplates: UrlTemplates): RepositoryDetails =
-    RepositoryDetails.buildRepositoryDetails(repo, teamNames, urlTemplates)
-
   def extractRepositoryGroupForType(
     repoType: RepoType.RepoType,
     repositories: Seq[GitRepository]): List[GitRepository] =
     repositories
       .groupBy(_.name)
       .filter {
-        case (name, repos) if repoType == RepoType.Service =>
+        case (_, repos) if repoType == RepoType.Service =>
           repos.exists(x => x.repoType == RepoType.Service)
-        case (name, repos) if repoType == RepoType.Library =>
+        case (_, repos) if repoType == RepoType.Library =>
           !repos.exists(x => x.repoType == RepoType.Service) && repos.exists(x => x.repoType == RepoType.Library)
-        case (name, repos) =>
+        case (_, repos) =>
           !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos
             .exists(x => x.repoType == repoType)
       }

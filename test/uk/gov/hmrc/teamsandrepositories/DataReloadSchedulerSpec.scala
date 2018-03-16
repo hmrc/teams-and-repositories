@@ -1,19 +1,16 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.concurrent.TimeUnit
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
 import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
@@ -21,6 +18,7 @@ import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class DataReloadSchedulerSpec
     extends PlaySpec

@@ -34,21 +34,6 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
   val now         = LocalDateTime.now()
   val nowInMillis = now.toInstant(ZoneOffset.UTC).toEpochMilli
 
-  private val createdDateForDeployable1 = 1
-  private val createdDateForDeployable2 = 2
-  private val createdDateForLib1        = 3
-  private val createdDateForLib2        = 4
-  private val createdDateForLib3        = 5
-
-  private val lastActiveDateForDeployable1 = 10
-  private val lastActiveDateForDeployable2 = 20
-  private val lastActiveDateForLib1        = 30
-  private val lastActiveDateForLib2        = 40
-  private val lastActiveDateForLib3        = 50
-
-  private val createdDateForOther    = 111111123l
-  private val lastActiveDateForOther = 111111124l
-
   private val description = "Some description"
   "getTeamList" should {
 

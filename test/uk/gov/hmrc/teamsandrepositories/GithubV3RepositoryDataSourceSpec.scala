@@ -35,6 +35,7 @@ import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPer
 import uk.gov.hmrc.teamsandrepositories.services.{GithubV3RepositoryDataSource, TeamAndOrgAndDataSource}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class GithubV3RepositoryDataSourceSpec
     extends WordSpec
@@ -854,17 +855,17 @@ class GithubV3RepositoryDataSourceSpec
           //verify
           repositories shouldBe TeamRepositories(
             "A",
-            List(GitRepository(
-              "repo-1",
-              "some description",
-              "url_A",
-              now,
-              lastActiveDate,
-//              isInternal         = false,
-              isPrivate          = true,
-              repoType           = RepoType.Library,
-              digitalServiceName = Some("service-abcd")
-            )),
+            List(
+              GitRepository(
+                "repo-1",
+                "some description",
+                "url_A",
+                now,
+                lastActiveDate,
+                isPrivate          = true,
+                repoType           = RepoType.Library,
+                digitalServiceName = Some("service-abcd")
+              )),
             timestampF()
           )
           verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)

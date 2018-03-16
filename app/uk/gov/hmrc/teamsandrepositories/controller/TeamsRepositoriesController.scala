@@ -169,9 +169,6 @@ class TeamsRepositoriesController @Inject()(
     teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
   }
 
-  private def format(dateTime: LocalDateTime): String =
-    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
-
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
       Json.toJson(

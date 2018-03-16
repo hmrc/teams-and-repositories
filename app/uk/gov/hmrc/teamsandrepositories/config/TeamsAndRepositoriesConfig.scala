@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.config
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 import scala.collection.immutable.ListMap
 
@@ -32,7 +32,7 @@ case class UrlTemplate(name: String, displayName: String, template: String) {
 }
 
 object UrlTemplate {
-  implicit val formats = Json.format[UrlTemplate]
+  implicit val formats: OFormat[UrlTemplate] = Json.format[UrlTemplate]
 }
 
 @Singleton
@@ -41,7 +41,7 @@ class UrlTemplatesProvider @Inject()(configuration: Configuration) {
   val ciUrlTemplates: UrlTemplates = {
     configuration
       .getConfig("url-templates")
-      .map { config =>
+      .map { _ =>
         val openConfigs   = getTemplatesForConfig("ci-open")
         val closedConfigs = getTemplatesForConfig("ci-closed")
         val envConfigs    = getTemplatesForEnvironments

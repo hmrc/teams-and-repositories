@@ -329,29 +329,19 @@ class CompositeRepositoryDataSourceSpec
     val persister             = mock[TeamsAndReposPersister]
     val connector             = mock[MongoConnector]
     val githubClientDecorator = mock[GithubApiClientDecorator]
-
-    val gitApiOpenConfig       = mock[GitApiConfig]
-    val gitApiEnterpriseConfig = mock[GitApiConfig]
+    val gitApiOpenConfig      = mock[GitApiConfig]
 
     when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
-
-    val enterpriseUrl = "enterprise.com"
-    val enterpriseKey = "enterprise.key"
-    when(gitApiEnterpriseConfig.apiUrl).thenReturn(enterpriseUrl)
-    when(gitApiEnterpriseConfig.key).thenReturn(enterpriseKey)
 
     val openUrl = "open.com"
     val openKey = "open.key"
     when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
     when(gitApiOpenConfig.key).thenReturn(openKey)
 
-    val enterpriseGithubClient = mock[GithubApiClient]
-    val openGithubClient       = mock[GithubApiClient]
+    val openGithubClient = mock[GithubApiClient]
 
-    when(githubClientDecorator.githubApiClient(enterpriseUrl, enterpriseKey)).thenReturn(enterpriseGithubClient)
     when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
-    val repositories: Seq[TeamRepositories] = Seq(TeamRepositories("testTeam", Nil, timestampF()))
     when(persister.getAllTeamAndRepos).thenReturn(Future.successful(storedTeamRepositories))
     when(persister.update(any())).thenAnswer(new Answer[Future[TeamRepositories]] {
       override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {

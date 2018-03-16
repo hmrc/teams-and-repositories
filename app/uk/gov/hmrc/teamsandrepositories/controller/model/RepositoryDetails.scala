@@ -22,23 +22,20 @@ case class RepositoryDetails(
   language: String)
 
 object RepositoryDetails {
-  def buildRepositoryDetails(
-    repo: GitRepository,
-    teamNames: Seq[String],
-    urlTemplates: UrlTemplates): RepositoryDetails = {
-
-    val repoDetails = RepositoryDetails(
-      repo.name,
-      repo.description,
-      repo.isPrivate,
-      repo.createdDate,
-      repo.lastActiveDate,
-      repo.repoType,
-      repo.owningTeams,
-      teamNames,
-      Seq(Link("github-com", "GitHub.com", repo.url)),
-      language = repo.language.getOrElse("")
-    )
+  def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
+    val repoDetails =
+      RepositoryDetails(
+        name        = repo.name,
+        description = repo.description,
+        isPrivate   = repo.isPrivate,
+        createdAt   = repo.createdDate,
+        lastActive  = repo.lastActiveDate,
+        repoType    = repo.repoType,
+        owningTeams = repo.owningTeams,
+        teamNames   = teamNames,
+        githubUrls  = Seq(Link("github-com", "GitHub.com", repo.url)),
+        language    = repo.language.getOrElse("")
+      )
 
     if (hasEnvironment(repo)) {
       repoDetails.copy(ci = buildCiUrls(repo, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
@@ -47,16 +44,6 @@ object RepositoryDetails {
     } else {
       repoDetails
     }
-  }
-
-  def determineLanguage(allRepositories: Seq[GitRepository]): String = {
-    val language: String = allRepositories.reverse
-      .foldLeft("")((b, repo) => {
-        val lang = repo.language.getOrElse("")
-        if (lang == "") b
-        else lang
-      })
-    language
   }
 
   private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Service

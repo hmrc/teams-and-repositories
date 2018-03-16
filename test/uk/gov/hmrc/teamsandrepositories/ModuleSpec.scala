@@ -18,6 +18,7 @@ import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Timest
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class ModuleSpec
     extends PlaySpec

@@ -17,16 +17,23 @@ object TeamRepositories {
     createdAt: Long,
     lastUpdatedAt: Long,
     repoType: RepoType.RepoType,
-    teamNames: Seq[String])
+    teamNames: Seq[String]
+  )
 
   object DigitalServiceRepository {
-    implicit val digitalServiceFormat = Json.format[DigitalServiceRepository]
+    implicit val format: OFormat[DigitalServiceRepository] =
+      Json.format[DigitalServiceRepository]
   }
 
-  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[DigitalServiceRepository])
+  case class DigitalService(
+    name: String,
+    lastUpdatedAt: Long,
+    repositories: Seq[DigitalServiceRepository]
+  )
 
   object DigitalService {
-    implicit val digitalServiceFormat = Json.format[DigitalService]
+    implicit val format: OFormat[DigitalService] =
+      Json.format[DigitalService]
   }
 
   def findDigitalServiceDetails(
@@ -90,8 +97,6 @@ object TeamRepositories {
 
   case class RepositoryToTeam(repositoryName: String, teamName: String)
 
-  case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
-
   def getTeamList(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =
     teamRepos.map(_.teamName).map { tn =>
       val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
@@ -129,8 +134,7 @@ object TeamRepositories {
     }
 
     maybeRepo.map { repo =>
-      GitRepository.repoGroupToRepositoryDetails(
-        repoType     = repo.repoType,
+      RepositoryDetails.create(
         repo         = repo,
         teamNames    = teamsOwningRepo.filterNot(_.teamName == TEAM_UNKNOWN).map(_.teamName),
         urlTemplates = ciUrlTemplates
@@ -172,8 +176,7 @@ object TeamRepositories {
           case TeamRepositories(teamName, repos, _) if repos.exists(_.name.equalsIgnoreCase(repo.name)) => teamName
         }
 
-        GitRepository.repoGroupToRepositoryDetails(
-          repoType     = repo.repoType,
+        RepositoryDetails.create(
           repo         = repo,
           teamNames    = teamNames.filterNot(_ == TEAM_UNKNOWN),
           urlTemplates = ciUrlTemplates
@@ -181,12 +184,6 @@ object TeamRepositories {
       }
       .sortBy(_.name.toUpperCase)
   }
-
-  def getRepositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
-    for {
-      teamAndRepositories <- data
-      repositories        <- teamAndRepositories.repositories.groupBy(_.name).values
-    } yield RepositoriesToTeam(repositories, teamAndRepositories.teamName)
 
   def findTeam(teamRepos: Seq[TeamRepositories], teamName: String, repositoriesToIgnore: List[String]): Option[Team] =
     teamRepos

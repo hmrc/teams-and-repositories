@@ -100,12 +100,12 @@ class TeamsRepositoriesControllerSpec
     when(mockTeamsAndRepositories.getAllTeamAndRepos).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
-      new UrlTemplates(
-        Seq(new UrlTemplate("closed", "closed", "$name")),
-        Seq(new UrlTemplate("open", "open", "$name")),
+      UrlTemplates(
+        Seq(UrlTemplate("closed", "closed", "$name")),
+        Seq(UrlTemplate("open", "open", "$name")),
         ListMap(
-          "env1" -> Seq(new UrlTemplate("log1", "log 1", "$name"), new UrlTemplate("mon1", "mon 1", "$name")),
-          "env2" -> Seq(new UrlTemplate("log1", "log 1", "$name"))
+          "env1" -> Seq(UrlTemplate("log1", "log 1", "$name"), UrlTemplate("mon1", "mon 1", "$name")),
+          "env2" -> Seq(UrlTemplate("log1", "log 1", "$name"))
         )
       ))
 
@@ -274,11 +274,10 @@ class TeamsRepositoriesControllerSpec
 
     "Return all repo types belonging to a team" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
-      val timestampHeader = header("x-cache-timestamp", result)
-      val data            = contentAsJson(result).as[Map[String, List[String]]]
+      val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
 
+      val data = contentAsJson(result).as[Map[String, List[String]]]
       data mustBe Map(
         "Service"   -> List("another-repo", "middle-repo"),
         "Library"   -> List("alibrary-repo"),
