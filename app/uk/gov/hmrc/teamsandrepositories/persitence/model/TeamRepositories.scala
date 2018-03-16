@@ -123,24 +123,27 @@ object TeamRepositories {
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
     repoName: String,
-    ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] =
-    teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) {
-      case ((ts, repos), tr) =>
-        if (tr.repositories.exists(_.name.equalsIgnoreCase(repoName)))
-          (ts + tr.teamName, repos ++ tr.repositories.filter(_.name.equalsIgnoreCase(repoName)))
-        else (ts, repos)
-    } match {
-      case (teams, repos) if repos.nonEmpty =>
-        GitRepository.repoGroupToRepositoryDetails(
-          GitRepository.primaryRepoType(repos.toSeq),
-          repos.toSeq,
-          dontShowUnknownTeam(teams.toSeq.sorted),
-          ciUrlTemplates)
-      case _ => None
+    ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+
+    val teamsOwningRepo = teamRepos.filter {
+      case TeamRepositories(_, repos, _) =>
+        repos.exists(_.name.equalsIgnoreCase(repoName))
     }
 
-  private def dontShowUnknownTeam(teams: Seq[String]): Seq[String] =
-    teams.filterNot(_ == TEAM_UNKNOWN)
+    val maybeRepo: Option[GitRepository] = teamsOwningRepo.headOption.flatMap {
+      case TeamRepositories(_, repos, _) =>
+        repos.find(_.name.equalsIgnoreCase(repoName))
+    }
+
+    maybeRepo.map { repo =>
+      GitRepository.repoGroupToRepositoryDetails(
+        repoType     = repo.repoType,
+        repo         = repo,
+        teamNames    = teamsOwningRepo.filterNot(_.teamName == TEAM_UNKNOWN).map(_.teamName),
+        urlTemplates = ciUrlTemplates
+      )
+    }
+  }
 
   def getTeamRepositoryNameList(
     teamRepos: Seq[TeamRepositories],
@@ -162,19 +165,29 @@ object TeamRepositories {
   def getRepositoryDetailsList(
     teamRepos: Seq[TeamRepositories],
     repoType: RepoType,
-    ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] =
-    getRepositoryTeams(teamRepos)
-      .groupBy(_.repositories)
-      .flatMap {
-        case (repositories, teamsAndRepos: Seq[RepositoriesToTeam]) =>
-          GitRepository.repoGroupToRepositoryDetails(
-            repoType,
-            repositories,
-            teamsAndRepos.map(_.teamName),
-            ciUrlTemplates)
+    ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
+
+    val allReposForType =
+      teamRepos
+        .flatMap(_.repositories)
+        .distinct
+        .filter(_.repoType == repoType)
+
+    allReposForType
+      .map { repo =>
+        val teamNames = teamRepos.collect {
+          case TeamRepositories(teamName, repos, _) if repos.exists(_.name.equalsIgnoreCase(repo.name)) => teamName
+        }
+
+        GitRepository.repoGroupToRepositoryDetails(
+          repoType     = repo.repoType,
+          repo         = repo,
+          teamNames    = teamNames.filterNot(_ == TEAM_UNKNOWN),
+          urlTemplates = ciUrlTemplates
+        )
       }
-      .toSeq
       .sortBy(_.name.toUpperCase)
+  }
 
   def getRepositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
     for {

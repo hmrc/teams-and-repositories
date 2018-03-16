@@ -137,7 +137,6 @@ class GithubV3RepositoryDataSource(
       url            = r.getHtmlUrl,
       createdDate    = r.getCreatedAt.getTime,
       lastActiveDate = r.getPushedAt.getTime,
-      isInternal     = isInternal,
       isPrivate      = r.isPrivate,
       language       = Option(r.getLanguage)
     )
@@ -316,7 +315,6 @@ class GithubV3RepositoryDataSource(
       url            = repository.htmlUrl,
       createdDate    = repository.createdDate,
       lastActiveDate = repository.lastActiveDate,
-      isInternal     = this.isInternal,
       isPrivate      = repository.isPrivate
     )
 
@@ -331,7 +329,6 @@ class GithubV3RepositoryDataSource(
       url                = repository.htmlUrl,
       createdDate        = repository.createdDate,
       lastActiveDate     = repository.lastActiveDate,
-      isInternal         = this.isInternal,
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,

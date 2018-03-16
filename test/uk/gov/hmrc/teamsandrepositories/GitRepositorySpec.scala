@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import play.api.libs.json.Json
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
@@ -48,53 +47,13 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
     )
   )
 
-  def enterpriseGithubLink(url: String) = Link("github-enterprise", "Github Enterprise", url)
-
-  def openGithubLink(url: String) = Link("github-com", "GitHub.com", url)
+  def githubLink(url: String) = Link("github-com", "GitHub.com", url)
 
   "repoGroupToRepositoryDetails" should {
 
-    "create links for a closed service" in {
+    "create links for open libraries" in {
 
-      val repos = Seq(
-        GitRepository(
-          "a-frontend",
-          "Some Description",
-          "https://not-open-github/org/a-frontend",
-          now,
-          now,
-          isInternal = true,
-          repoType   = RepoType.Service,
-          language   = Some("Scala")))
-
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
-
-      service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-frontend"))
-      service.get.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
-    }
-
-    "create links for a closed libraries" in {
-
-      val repos = Seq(
-        GitRepository(
-          "a-library",
-          "Some Description",
-          "https://not-open-github/org/a-library",
-          now,
-          now,
-          isInternal = true,
-          repoType   = RepoType.Library,
-          language   = Some("Scala")))
-
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
-
-      service.get.githubUrls shouldBe List(enterpriseGithubLink("https://not-open-github/org/a-library"))
-      service.get.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
-    }
-
-    "create links for a open Libraries" in {
-
-      val repo = Seq(
+      val repo =
         GitRepository(
           "a-library",
           "Some Description",
@@ -102,17 +61,18 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Library,
-          language = Some("Scala")))
+          language = Some("Scala")
+        )
 
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-library"))
-      service.get.ci         shouldBe List(Link("open1", "open 1", "http://open/a-library"))
+      service.githubUrls shouldBe List(githubLink("https://github.com/org/a-library"))
+      service.ci         shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
-    "create links for a open service" in {
+    "create links for open services" in {
 
-      val repo = Seq(
+      val repo =
         GitRepository(
           "a-frontend",
           "Some Description",
@@ -120,17 +80,18 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Service,
-          language = Some("Scala")))
+          language = Some("Scala")
+        )
 
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
-      service.get.ci         shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
+      service.githubUrls shouldBe List(githubLink("https://github.com/org/a-frontend"))
+      service.ci         shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
-    "create links for private libraries on github.com" in {
+    "create links for private libraries" in {
 
-      val repo = Seq(
+      val repo =
         GitRepository(
           "a-library",
           "Some Description",
@@ -139,17 +100,18 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Library,
-          language  = Some("Scala")))
+          language  = Some("Scala")
+        )
 
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-library"))
-      service.get.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
+      service.githubUrls shouldBe List(githubLink("https://github.com/org/a-library"))
+      service.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
     }
 
-    "create links for private services on github.com" in {
+    "create links for private services" in {
 
-      val repo = Seq(
+      val repo =
         GitRepository(
           "a-frontend",
           "Some Description",
@@ -158,34 +120,36 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Service,
-          language  = Some("Scala")))
+          language  = Some("Scala")
+        )
 
       val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe List(openGithubLink("https://github.com/org/a-frontend"))
-      service.get.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
+      service.githubUrls shouldBe List(githubLink("https://github.com/org/a-frontend"))
+      service.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
     }
 
     "create links for each environment" in {
-      val aFrontend = GitRepository(
-        "a-frontend",
-        "Some Description",
-        "https://not-open-github/org/a-frontend",
-        now,
-        now,
-        repoType = RepoType.Service,
-        language = Some("Scala"))
+      val aFrontend =
+        GitRepository(
+          "a-frontend",
+          "Some Description",
+          "https://github.com/org/a-frontend",
+          now,
+          now,
+          repoType = RepoType.Service,
+          language = Some("Scala")
+        )
 
-      val repos = Seq(aFrontend)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, aFrontend, Seq("teamName"), urlTemplates)
 
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      service.environments.size shouldBe 2
 
-      service.get.environments.size shouldBe 2
-
-      service.get.environments.find(_.name == "env1").value shouldBe Environment(
+      service.environments.find(_.name == "env1").value shouldBe Environment(
         "env1",
         List(Link("log1", "log 1", "a-frontend"), Link("mon1", "mon 1", "a-frontend")))
-      service.get.environments.find(_.name == "env2").value shouldBe Environment(
+      service.environments.find(_.name == "env2").value shouldBe Environment(
         "env2",
         List(Link("log1", "log 1", "a-frontend")))
     }
@@ -200,26 +164,14 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Library,
         language = Some("Scala"))
 
-      val repos = Seq(aLibrary)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Library, aLibrary, Seq("teamName"), urlTemplates)
 
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
-
-      service.get.environments shouldBe Seq.empty
+      service.environments shouldBe Seq.empty
     }
 
-    "create github links for both open and internal services if both are present, but only open ci links" in {
-
-      val internalRepo = GitRepository(
-        "a-frontend",
-        "Some Description",
-        "https://not-open-github/org/a-frontend",
-        now,
-        now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Scala"))
-
-      val openRepo = GitRepository(
+    "create github and ci links for open services" in {
+      val repo = GitRepository(
         "a-frontend",
         "Some Description",
         "https://github.com/org/a-frontend",
@@ -228,29 +180,15 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Service,
         language = Some("Scala"))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe Seq(
-        enterpriseGithubLink("https://not-open-github/org/a-frontend"),
-        openGithubLink("https://github.com/org/a-frontend"))
+      service.githubUrls shouldBe Seq(githubLink("https://github.com/org/a-frontend"))
 
-      service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
+      service.ci shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
-    "create github links for both open and internal Libraries if both are present, but only ci-open links" in {
-
-      val internalRepo = GitRepository(
-        "a-library",
-        "Some Description",
-        "https://not-open-github/org/a-library",
-        now,
-        now,
-        isInternal = true,
-        repoType   = RepoType.Library,
-        language   = Some("Scala"))
-
-      val openRepo = GitRepository(
+    "create github and ci links for open libraries" in {
+      val repo = GitRepository(
         "a-library",
         "Some Description",
         "https://github.com/org/a-library",
@@ -259,28 +197,15 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Library,
         language = Some("Scala"))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Library, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe Seq(
-        enterpriseGithubLink("https://not-open-github/org/a-library"),
-        openGithubLink("https://github.com/org/a-library"))
+      service.githubUrls shouldBe Seq(githubLink("https://github.com/org/a-library"))
 
-      service.get.ci shouldBe List(Link("open1", "open 1", "http://open/a-library"))
+      service.ci shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
     "just create github links if not Deployable or Library" in {
-
-      val internalRepo = GitRepository(
-        "a-repo",
-        "Some Description",
-        "https://not-open-github/org/a-repo",
-        now,
-        now,
-        isInternal = true,
-        repoType   = RepoType.Other,
-        language   = Some("Scala"))
-      val openRepo = GitRepository(
+      val repo = GitRepository(
         "a-repo",
         "Some Description",
         "https://github.com/org/a-repo",
@@ -289,32 +214,28 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Other,
         language = Some("Scala"))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Other, repos, Seq("teamName"), urlTemplates)
+      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Other, repo, Seq("teamName"), urlTemplates)
 
-      service.get.githubUrls shouldBe Seq(
-        enterpriseGithubLink("https://not-open-github/org/a-repo"),
-        openGithubLink("https://github.com/org/a-repo"))
+      service.githubUrls shouldBe Seq(githubLink("https://github.com/org/a-repo"))
 
-      service.get.ci           shouldBe Seq.empty
-      service.get.environments shouldBe Seq.empty
+      service.ci           shouldBe Seq.empty
+      service.environments shouldBe Seq.empty
     }
 
-    "Should use available lanugage if only one repo" in {
+    "Should use available language if only one repo" in {
       val internalRepo = GitRepository(
         "a-repo",
         "Some Description",
         "https://not-open-github/org/a-repo",
         now,
         now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Scala"))
+        repoType = RepoType.Service,
+        language = Some("Scala"))
 
-      val repos   = Seq(internalRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, internalRepo, Seq("teamName"), urlTemplates)
 
-      service.get.language shouldBe "Scala"
+      service.language shouldBe "Scala"
     }
 
     "Should take language if open and internal are the same" in {
@@ -324,9 +245,9 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         "https://not-open-github/org/a-repo",
         now,
         now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Scala"))
+        // isInternal = true,
+        repoType = RepoType.Service,
+        language = Some("Scala"))
       val openRepo = GitRepository(
         "a-repo",
         "Some Description",
@@ -336,10 +257,10 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Service,
         language = Some("Scala"))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, internalRepo, Seq("teamName"), urlTemplates)
 
-      service.get.language shouldBe "Scala"
+      service.language shouldBe "Scala"
     }
 
     "Should take non-empty language if open and internal both have values but one is empty" in {
@@ -349,9 +270,9 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         "https://not-open-github/org/a-repo",
         now,
         now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Scala"))
+        // isInternal = true,
+        repoType = RepoType.Service,
+        language = Some("Scala"))
       val openRepo = GitRepository(
         "a-repo",
         "Some Description",
@@ -361,10 +282,10 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Service,
         language = Some(""))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, internalRepo, Seq("teamName"), urlTemplates)
 
-      service.get.language shouldBe "Scala"
+      service.language shouldBe "Scala"
     }
 
     "Should take non-empty language if open and internal both have values but one is None" in {
@@ -374,9 +295,9 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         "https://not-open-github/org/a-repo",
         now,
         now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Scala"))
+        // isInternal = true,
+        repoType = RepoType.Service,
+        language = Some("Scala"))
       val openRepo = GitRepository(
         "a-repo",
         "Some Description",
@@ -386,10 +307,10 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Service,
         language = None)
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, internalRepo, Seq("teamName"), urlTemplates)
 
-      service.get.language shouldBe "Scala"
+      service.language shouldBe "Scala"
     }
 
     "Should take ci-open service name both are present and different" in {
@@ -399,9 +320,9 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         "https://not-open-github/org/a-repo",
         now,
         now,
-        isInternal = true,
-        repoType   = RepoType.Service,
-        language   = Some("Python"))
+        // isInternal = true,
+        repoType = RepoType.Service,
+        language = Some("Python"))
       val openRepo = GitRepository(
         "a-repo",
         "Some Description",
@@ -411,10 +332,10 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         repoType = RepoType.Service,
         language = Some("Scala"))
 
-      val repos   = Seq(internalRepo, openRepo)
-      val service = GitRepository.repoGroupToRepositoryDetails(RepoType.Service, repos, Seq("teamName"), urlTemplates)
+      val service =
+        GitRepository.repoGroupToRepositoryDetails(RepoType.Service, openRepo, Seq("teamName"), urlTemplates)
 
-      service.get.language shouldBe "Scala"
+      service.language shouldBe "Scala"
     }
 
   }
@@ -430,7 +351,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           |"url":"https://not-open-github/org/a-repo",
           |"createdDate":1499417808270,
           |"lastActiveDate":1499417808270,
-          |"isInternal":true,
+          |"// isInternal":true,
           |"repoType":"Other",
           |"updateDate":123,
           |"language":"Scala"}""".stripMargin)
@@ -441,9 +362,9 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         "https://not-open-github/org/a-repo",
         1499417808270L,
         1499417808270L,
-        isInternal = true,
-        repoType   = RepoType.Other,
-        language   = Some("Scala")
+        // isInternal = true,
+        repoType = RepoType.Other,
+        language = Some("Scala")
       )
 
     }

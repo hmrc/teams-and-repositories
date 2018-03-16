@@ -71,7 +71,7 @@ class UrlTemplatesProvider @Inject()(configuration: Configuration) {
           .map { s =>
             readLink(s)
           }
-        envName -> envTemplates.toSeq.flatten
+        envName -> envTemplates.flatten
       }
       .foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, v) => acc + (v._1 -> v._2))
 

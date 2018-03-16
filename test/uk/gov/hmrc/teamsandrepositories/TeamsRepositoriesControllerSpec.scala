@@ -215,16 +215,16 @@ class TeamsRepositoriesControllerSpec
     Seq(
       new TeamRepositories(
         "test-team",
-        List(
-          GitRepository(
-            repoName,
-            "some description",
-            repoUrl,
-            createdDate    = now,
-            lastActiveDate = now,
-            isInternal     = isInternal,
-            repoType       = RepoType.Service,
-            language       = Some("Scala"))),
+        List(GitRepository(
+          repoName,
+          "some description",
+          repoUrl,
+          createdDate    = now,
+          lastActiveDate = now,
+//            isInternal     = isInternal,
+          repoType = RepoType.Service,
+          language = Some("Scala")
+        )),
         System.currentTimeMillis()
       ))
 
@@ -676,57 +676,6 @@ class TeamsRepositoriesControllerSpec
       json.as[JsArray].value.size mustBe 1
     }
 
-    //TODO this should not be a controller test
-    "Treat as one service if an internal and an open repo exist" in {
-      val sourceData =
-        Seq(
-          new TeamRepositories(
-            "test-team",
-            List(
-              GitRepository(
-                "repo-name",
-                "some description",
-                "repo-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                isInternal     = true,
-                repoType       = RepoType.Service,
-                language       = Some("Scala")),
-              GitRepository(
-                "repo-name",
-                "some description",
-                "repo-open-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                isInternal     = false,
-                repoType       = RepoType.Service,
-                language       = Some("Scala"))
-            ),
-            System.currentTimeMillis()
-          ))
-
-      val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.services().apply(FakeRequest("GET", "/services?details=true"))
-
-      val json = contentAsJson(result)
-
-      val jsonData = json.as[JsArray].value
-      jsonData.length mustBe 1
-
-      val first = jsonData.head
-      first.nameField mustBe "repo-name"
-      first.teamNameSeq mustBe Seq("test-team")
-
-      val githubLinks = (first \ "githubUrls").as[JsArray].value
-
-      githubLinks(0).nameField mustBe "github-enterprise"
-      githubLinks(0).urlField mustBe "repo-url"
-
-      githubLinks(1).nameField mustBe "github-com"
-      githubLinks(1).urlField mustBe "repo-open-url"
-
-    }
-
     "return the empty list for repository type if a team does not have it" in {
 
       val sourceData =
@@ -740,18 +689,19 @@ class TeamsRepositoriesControllerSpec
                 "repo-url",
                 createdDate    = now,
                 lastActiveDate = now,
-                isInternal     = true,
-                repoType       = RepoType.Library,
-                language       = Some("Scala")),
+//                isInternal     = true,
+                repoType = RepoType.Library,
+                language = Some("Scala")
+              ),
               GitRepository(
                 "repo-open-name",
                 "some description",
                 "repo-open-url",
                 createdDate    = now,
                 lastActiveDate = now,
-                isInternal     = false,
-                repoType       = RepoType.Library,
-                language       = Some("Scala")
+//                isInternal     = false,
+                repoType = RepoType.Library,
+                language = Some("Scala")
               )
             ),
             System.currentTimeMillis()

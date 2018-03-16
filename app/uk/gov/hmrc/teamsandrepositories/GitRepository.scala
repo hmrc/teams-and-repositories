@@ -15,7 +15,6 @@ case class GitRepository(
   url: String,
   createdDate: Long,
   lastActiveDate: Long,
-  isInternal: Boolean                = false,
   isPrivate: Boolean                 = false,
   repoType: RepoType                 = RepoType.Other,
   digitalServiceName: Option[String] = None,
@@ -32,7 +31,6 @@ object GitRepository {
         (JsPath \ "url").read[String] and
         (JsPath \ "createdDate").read[Long] and
         (JsPath \ "lastActiveDate").read[Long] and
-        (JsPath \ "isInternal").read[Boolean] and
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
@@ -86,16 +84,10 @@ object GitRepository {
 
   def repoGroupToRepositoryDetails(
     repoType: RepoType,
-    repositories: Seq[GitRepository],
+    repo: GitRepository,
     teamNames: Seq[String],
-    urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
-
-    val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
-    val owningTeams       = primaryRepository.map(_.owningTeams).getOrElse(Nil)
-
-    RepositoryDetails.buildRepositoryDetails(primaryRepository, repositories, owningTeams, teamNames, urlTemplates)
-
-  }
+    urlTemplates: UrlTemplates): RepositoryDetails =
+    RepositoryDetails.buildRepositoryDetails(repo, teamNames, urlTemplates)
 
   def extractRepositoryGroupForType(
     repoType: RepoType.RepoType,
@@ -113,6 +105,5 @@ object GitRepository {
       }
       .flatMap(_._2)
       .toList
-      .sortBy(_.isInternal)
 
 }

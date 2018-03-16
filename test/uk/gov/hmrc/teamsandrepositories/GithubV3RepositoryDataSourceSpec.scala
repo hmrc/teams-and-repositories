@@ -157,10 +157,11 @@ class GithubV3RepositoryDataSourceSpec
               "url_A",
               now,
               now,
-              isInternal         = true,
+//              isInternal         = true,
               digitalServiceName = None,
               language           = Some("Scala"))),
-          timestampF())
+          timestampF()
+        )
     }
 
     "Filter out repositories according to the hidden config" in new Setup {
@@ -720,19 +721,19 @@ class GithubV3RepositoryDataSourceSpec
 
             val persistedTeamRepositories = TeamRepositories(
               "A",
-              List(
-                GitRepository(
-                  "repo-1",
-                  "some description",
-                  "url_A",
-                  now,
-                  lastActiveDate,
-                  isInternal = true,
-                  isPrivate  = true,
-                  RepoType.Library,
-                  Some("Some Digital Service"),
-                  Nil,
-                  None)),
+              List(GitRepository(
+                "repo-1",
+                "some description",
+                "url_A",
+                now,
+                lastActiveDate,
+//                  isInternal = true,
+                isPrivate = true,
+                RepoType.Library,
+                Some("Some Digital Service"),
+                Nil,
+                None
+              )),
               now
             )
 
@@ -749,7 +750,7 @@ class GithubV3RepositoryDataSourceSpec
                 "url_A",
                 now,
                 lastActiveDate,
-                isInternal         = false,
+//                isInternal         = false,
                 isPrivate          = true,
                 repoType           = RepoType.Library,
                 digitalServiceName = Some("Some Digital Service")
@@ -790,13 +791,14 @@ class GithubV3RepositoryDataSourceSpec
                   "url_A",
                   now,
                   now,
-                  true,
+//                  true,
                   true,
                   RepoType.Library,
                   Some("Some Digital Service"),
                   Nil,
                   None)),
-              now)
+              now
+            )
 
             val repositories = dataSource
               .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
@@ -805,17 +807,17 @@ class GithubV3RepositoryDataSourceSpec
             //verify
             repositories shouldBe TeamRepositories(
               "A",
-              List(
-                GitRepository(
-                  "repo-1",
-                  "some description",
-                  "url_A",
-                  now,
-                  now + 1,
-                  isInternal         = false,
-                  isPrivate          = true,
-                  repoType           = RepoType.Library,
-                  digitalServiceName = Some("service-abcd"))),
+              List(GitRepository(
+                "repo-1",
+                "some description",
+                "url_A",
+                now,
+                now + 1,
+//                  isInternal         = false,
+                isPrivate          = true,
+                repoType           = RepoType.Library,
+                digitalServiceName = Some("service-abcd")
+              )),
               timestampF()
             )
             verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)
@@ -858,7 +860,7 @@ class GithubV3RepositoryDataSourceSpec
               "url_A",
               now,
               lastActiveDate,
-              isInternal         = false,
+//              isInternal         = false,
               isPrivate          = true,
               repoType           = RepoType.Library,
               digitalServiceName = Some("service-abcd")
