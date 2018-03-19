@@ -54,7 +54,6 @@ object OneTeamAndItsDataSources {
 class GithubV3RepositoryDataSource(
   githubConfig: GithubConfig,
   val gh: GithubApiClient,
-  val isInternal: Boolean,
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore: List[String]) {
@@ -67,16 +66,14 @@ class GithubV3RepositoryDataSource(
   val retries: Int            = 5
   val initialDuration: Double = 50
 
-  def githubName = if (isInternal) "enterprise" else "open"
-
   def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] =
-    withCounter(s"github.$githubName.orgs") {
+    withCounter(s"github.open.orgs") {
       gh.getOrganisations
     } flatMap { orgs =>
       Future
         .sequence(
           orgs.map(org =>
-            withCounter(s"github.$githubName.teams") {
+            withCounter(s"github.open.teams") {
               gh.getTeamsForOrganisation(org.login)
             } map (teams => (org, teams)))
         )
@@ -99,12 +96,12 @@ class GithubV3RepositoryDataSource(
     persistedTeams: Future[Seq[TeamRepositories]]): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
-      withCounter(s"github.$githubName.repos") {
+      withCounter(s"github.open.repos") {
         gh.getReposForTeam(team.id)
       } flatMap { repos =>
         Future
           .sequence(for {
-            repo <- repos; if !githubConfig.hiddenRepositories.contains(repo.name)
+            repo <- repos if !githubConfig.hiddenRepositories.contains(repo.name)
           } yield {
             mapRepository(organisation, team, repo, persistedTeams)
           })
@@ -143,7 +140,7 @@ class GithubV3RepositoryDataSource(
 
   def getRepositoryDetailsFromGithub(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] =
     for {
-      manifest <- withCounter(s"github.$githubName.fileContent") {
+      manifest <- withCounter(s"github.open.fileContent") {
                    gh.getFileContent("repository.yaml", repository.name, organisation.login)
                  }
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
@@ -179,8 +176,7 @@ class GithubV3RepositoryDataSource(
             s"github repository last updated -> ${repository.lastActiveDate}")
         getRepositoryDetailsFromGithub(organisation, repository)
       case None =>
-        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github ${if (isInternal) "enterprise"
-        else "open"}: never persisted before")
+        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
         getRepositoryDetailsFromGithub(organisation, repository)
     }
   }
@@ -232,7 +228,7 @@ class GithubV3RepositoryDataSource(
               } catch {
                 case NonFatal(ex) =>
                   Logger.warn(
-                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems was: ${ex.getMessage}")
+                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
                   Nil
               }
             )
@@ -248,24 +244,17 @@ class GithubV3RepositoryDataSource(
   }
 
   private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] =
-    isPrototype(repo) flatMap { prototype =>
-      if (prototype) {
-        Future.successful(RepoType.Prototype)
-      } else {
-        isDeployable(repo, organisation) flatMap { deployable =>
-          if (deployable) Future.successful(RepoType.Service)
-          else
-            isReleasable(repo, organisation).map { releasable =>
-              if (releasable) RepoType.Library
-              else RepoType.Other
-            }
-        }
+    if (repo.name.endsWith("-prototype")) {
+      Future.successful(RepoType.Prototype)
+    } else {
+      isDeployable(repo, organisation) flatMap { deployable =>
+        if (deployable) Future.successful(RepoType.Service)
+        else
+          isReleasable(repo, organisation).map { releasable =>
+            if (releasable) RepoType.Library
+            else RepoType.Other
+          }
       }
-    }
-
-  private def isPrototype(repo: GhRepository): Future[Boolean] =
-    Future.successful {
-      repo.name.endsWith("-prototype")
     }
 
   private def isReleasable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
@@ -299,12 +288,12 @@ class GithubV3RepositoryDataSource(
   }
 
   private def hasTags(organisation: GhOrganisation, repository: GhRepository) =
-    withCounter(s"github.$githubName.tags") {
+    withCounter(s"github.open.tags") {
       gh.getTags(organisation.login, repository.name)
     } map (_.nonEmpty)
 
   private def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String) =
-    withCounter(s"github.$githubName.containsContent") {
+    withCounter(s"github.open.containsContent") {
       gh.repoContainsContent(path, repo.name, organisation.login)
     }
 

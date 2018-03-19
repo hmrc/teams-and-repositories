@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.lang.System.currentTimeMillis
 import java.time.LocalDateTime
 import java.util.Date
 
@@ -29,7 +30,6 @@ import play.api.mvc.{AnyContentAsEmpty, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
@@ -78,12 +78,9 @@ class TeamsRepositoriesControllerSpec
       .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(
         Map(
-          "github.open.api.host"       -> "http://bla.bla",
-          "github.open.api.user"       -> "",
-          "github.open.api.key"        -> "",
-          "github.enterprise.api.host" -> "http://bla.bla",
-          "github.enterprise.api.user" -> "",
-          "github.enterprise.api.key"  -> ""
+          "github.open.api.host" -> "http://bla.bla",
+          "github.open.api.user" -> "",
+          "github.open.api.key"  -> ""
         )
       )
       .build
@@ -147,7 +144,7 @@ class TeamsRepositoriesControllerSpec
             language           = Some("Scala")
           )
         ),
-        System.currentTimeMillis()
+        currentTimeMillis()
       ),
       new TeamRepositories(
         "another-team",
@@ -203,29 +200,25 @@ class TeamsRepositoriesControllerSpec
             language           = Some("Scala")
           )
         ),
-        System.currentTimeMillis()
+        currentTimeMillis()
       )
     )
 
-  def singleRepoResult(
-    teamName: String    = "test-team",
-    repoName: String    = "repo-name",
-    repoUrl: String     = "repo-url",
-    isInternal: Boolean = true) =
+  def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url") =
     Seq(
       new TeamRepositories(
         "test-team",
-        List(GitRepository(
-          repoName,
-          "some description",
-          repoUrl,
-          createdDate    = now,
-          lastActiveDate = now,
-//            isInternal     = isInternal,
-          repoType = RepoType.Service,
-          language = Some("Scala")
-        )),
-        System.currentTimeMillis()
+        List(
+          GitRepository(
+            name           = repoName,
+            description    = "some description",
+            url            = repoUrl,
+            createdDate    = now,
+            lastActiveDate = now,
+            repoType       = RepoType.Service,
+            language       = Some("Scala")
+          )),
+        currentTimeMillis()
       ))
 
   "Teams controller" should {
@@ -300,7 +293,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           ),
           new TeamRepositories(
             "another-team",
@@ -313,7 +306,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           )
         )
 
@@ -327,52 +320,6 @@ class TeamsRepositoriesControllerSpec
         "Prototype" -> List(),
         "Other"     -> List())
     }
-
-    "not show the same service twice when it has an open and internal source repository" in {
-      val sourceData =
-        Seq(
-          new TeamRepositories(
-            "test-team",
-            List(
-              GitRepository(
-                "repo-name",
-                "some description",
-                "Another-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala")),
-              GitRepository(
-                "repo-name",
-                "some description",
-                "repo-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala")),
-              GitRepository(
-                "aadvark-repo",
-                "some description",
-                "aadvark-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala"))
-            ),
-            System.currentTimeMillis()
-          ))
-
-      val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("test-team").apply(FakeRequest())
-
-      contentAsJson(result)
-        .as[Map[String, List[String]]] mustBe Map(
-        "Service"   -> List("aadvark-repo", "repo-name"),
-        "Library"   -> List(),
-        "Prototype" -> List(),
-        "Other"     -> List()
-      )
-    }
   }
 
   "Retrieving a list of repository details for a team" should {
@@ -381,8 +328,7 @@ class TeamsRepositoriesControllerSpec
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
       val result     = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
 
-      val timestampHeader = header("x-cache-timestamp", result)
-      val data            = contentAsJson(result).as[Team]
+      val data = contentAsJson(result).as[Team]
 
       data.repos.value mustBe Map(
         RepoType.Service   -> List("another-repo", "middle-repo"),
@@ -406,7 +352,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           ),
           TeamRepositories(
             "another-team",
@@ -419,7 +365,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           )
         )
 
@@ -434,54 +380,6 @@ class TeamsRepositoriesControllerSpec
         RepoType.Library   -> List(),
         RepoType.Prototype -> List(),
         RepoType.Other     -> List())
-    }
-
-    "not show the same service twice when it has an open and internal source repository" in {
-      val sourceData =
-        Seq(
-          TeamRepositories(
-            "test-team",
-            List(
-              GitRepository(
-                "repo-name",
-                "some description",
-                "Another-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala")),
-              GitRepository(
-                "repo-name",
-                "some description",
-                "repo-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala")),
-              GitRepository(
-                "aadvark-repo",
-                "some description",
-                "aadvark-url",
-                createdDate    = now,
-                lastActiveDate = now,
-                repoType       = RepoType.Service,
-                language       = Some("Scala"))
-            ),
-            System.currentTimeMillis()
-          ))
-
-      val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesWithDetailsByTeam("test-team").apply(FakeRequest())
-
-      contentAsJson(result)
-        .as[Team]
-        .repos
-        .value mustBe Map(
-        RepoType.Service   -> List("aadvark-repo", "repo-name"),
-        RepoType.Library   -> List(),
-        RepoType.Prototype -> List(),
-        RepoType.Other     -> List()
-      )
     }
   }
 
@@ -626,7 +524,7 @@ class TeamsRepositoriesControllerSpec
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))
             ),
-            System.currentTimeMillis()
+            currentTimeMillis()
           ))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -650,7 +548,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           ),
           TeamRepositories(
             "another-team",
@@ -663,7 +561,7 @@ class TeamsRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"))),
-            System.currentTimeMillis()
+            currentTimeMillis()
           )
         )
 
@@ -676,34 +574,22 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return the empty list for repository type if a team does not have it" in {
-
       val sourceData =
         Seq(
           new TeamRepositories(
             "test-team",
             List(
               GitRepository(
-                "repo-name",
-                "some description",
-                "repo-url",
+                name           = "repo-open-name",
+                description    = "some description",
+                url            = "repo-open-url",
                 createdDate    = now,
                 lastActiveDate = now,
-//                isInternal     = true,
-                repoType = RepoType.Library,
-                language = Some("Scala")
-              ),
-              GitRepository(
-                "repo-open-name",
-                "some description",
-                "repo-open-url",
-                createdDate    = now,
-                lastActiveDate = now,
-//                isInternal     = false,
-                repoType = RepoType.Library,
-                language = Some("Scala")
+                repoType       = RepoType.Library,
+                language       = Some("Scala")
               )
             ),
-            System.currentTimeMillis()
+            currentTimeMillis()
           ))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
@@ -717,7 +603,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "Return an empty list if a team has no repositories" in {
-      val sourceData = Seq(new TeamRepositories("test-team", List(), System.currentTimeMillis()))
+      val sourceData = Seq(new TeamRepositories("test-team", List(), currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
       val result     = controller.repositoriesByTeam("test-team").apply(FakeRequest())
@@ -745,19 +631,6 @@ class TeamsRepositoriesControllerSpec
   }
 
   "Retrieving a service" should {
-
-    "return the internal source control name for an internal repo" in {
-      val controller = controllerWithData(
-        singleRepoResult(repoName = "r1", repoUrl = "ru", isInternal = false),
-        updateTimestamp = updateTimestamp)
-      val result = controller.repositoryDetails("r1").apply(FakeRequest())
-
-      val githubLinks = (contentAsJson(result) \ "githubUrls").as[JsArray].value
-
-      githubLinks.head.nameField mustBe "github-com"
-      githubLinks.head.urlField mustBe "ru"
-    }
-
     "Return a json representation of the service" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
       val result     = controller.repositoryDetails("repo-name").apply(FakeRequest())
@@ -787,7 +660,6 @@ class TeamsRepositoriesControllerSpec
 
       status(result) mustBe 404
     }
-
   }
 
   "Retrieving a list of all repositories" should {
@@ -811,13 +683,10 @@ class TeamsRepositoriesControllerSpec
   }
 
   implicit class RichJsonValue(obj: JsValue) {
-    def string(st: String): String = (obj \ st).as[String]
-
-    def nameField = (obj \ "name").as[String]
-
-    def urlField = (obj \ "url").as[String]
-
-    def teamNameSeq = (obj \ "teamNames").as[Seq[String]]
+    def string(st: String) = (obj \ st).as[String]
+    def nameField          = (obj \ "name").as[String]
+    def urlField           = (obj \ "url").as[String]
+    def teamNameSeq        = (obj \ "teamNames").as[Seq[String]]
   }
 
 }

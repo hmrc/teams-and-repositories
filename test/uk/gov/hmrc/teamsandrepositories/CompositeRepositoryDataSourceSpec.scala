@@ -60,46 +60,6 @@ class CompositeRepositoryDataSourceSpec
 
   import testTimestamper._
 
-  "buildDataSource" should {
-
-    val githubConfig          = mock[GithubConfig]
-    val persister             = mock[TeamsAndReposPersister]
-    val connector             = mock[MongoConnector]
-    val githubClientDecorator = mock[GithubApiClientDecorator]
-
-    "should create the right CompositeRepositoryDataSource" in {
-
-      val gitApiOpenConfig = mock[GitApiConfig]
-
-      when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
-
-      val openUrl = "open.com"
-      val openKey = "open.key"
-      when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
-      when(gitApiOpenConfig.key).thenReturn(openKey)
-
-      val openGithubClient = mock[GithubApiClient]
-      when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
-
-      val compositeRepositoryDataSource =
-        GitCompositeDataSource(
-          githubConfig,
-          persister,
-          connector,
-          githubClientDecorator,
-          testTimestamper,
-          mockMetrics,
-          Configuration()
-        )
-
-      verify(gitApiOpenConfig).apiUrl
-      verify(gitApiOpenConfig).key
-
-      compositeRepositoryDataSource.dataSource shouldBe compositeRepositoryDataSource.openTeamsRepositoryDataSource
-
-    }
-  }
-
   "persistTeamRepoMapping_new" should {
 
     "persist teams and their repos" in {

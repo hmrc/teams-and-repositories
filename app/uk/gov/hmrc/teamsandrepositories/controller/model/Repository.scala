@@ -22,7 +22,7 @@ object Repository {
       language      = gr.language
     )
 
-  implicit val repoDetailsFormat = Json.format[Repository]
+  implicit val format: OFormat[Repository] = Json.format[Repository]
 }
 
 case class Team(

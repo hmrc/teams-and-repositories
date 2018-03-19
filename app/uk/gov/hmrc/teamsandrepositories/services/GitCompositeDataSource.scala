@@ -39,16 +39,14 @@ case class GitCompositeDataSource @Inject()(
     githubApiClientDecorator
       .githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
-  val openTeamsRepositoryDataSource: GithubV3RepositoryDataSource =
+  val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
       githubConfig,
       gitOpenClient,
-      isInternal = false,
       timestamper.timestampF,
       defaultMetricsRegistry,
-      repositoriesToIgnore)
-
-  val dataSource: GithubV3RepositoryDataSource = openTeamsRepositoryDataSource
+      repositoriesToIgnore
+    )
 
   def serialiseFutures[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
     l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒

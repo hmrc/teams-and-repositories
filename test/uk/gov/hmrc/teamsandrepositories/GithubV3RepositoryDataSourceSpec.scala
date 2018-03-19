@@ -57,13 +57,7 @@ class GithubV3RepositoryDataSourceSpec
   trait Setup {
     val githubClient = mock[GithubApiClient]
     val dataSource =
-      new GithubV3RepositoryDataSource(
-        githubConfig,
-        githubClient,
-        isInternal = false,
-        timestampF,
-        mockRegistry,
-        List("shared-repository"))
+      new GithubV3RepositoryDataSource(githubConfig, githubClient, timestampF, mockRegistry, List("shared-repository"))
 
     when(githubClient.repoContainsContent(anyString(), anyString(), anyString())(any[ExecutionContext]))
       .thenReturn(Future.successful(false))
@@ -131,13 +125,7 @@ class GithubV3RepositoryDataSourceSpec
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
       val internalDataSource =
-        new GithubV3RepositoryDataSource(
-          githubConfig,
-          githubClient,
-          isInternal = true,
-          timestampF,
-          mockRegistry,
-          List.empty)
+        new GithubV3RepositoryDataSource(githubConfig, githubClient, timestampF, mockRegistry, List.empty)
 
       private val org = GhOrganisation("HMRC", 1)
       when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
@@ -153,14 +141,14 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
-//              isInternal         = true,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               digitalServiceName = None,
-              language           = Some("Scala"))),
+              language           = Some("Scala")
+            )),
           timestampF()
         )
     }
