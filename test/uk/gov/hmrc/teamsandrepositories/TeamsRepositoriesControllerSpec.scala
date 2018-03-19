@@ -94,7 +94,7 @@ class TeamsRepositoriesControllerSpec
     import scala.collection.JavaConverters._
 
     when(mockConfiguration.getStringList("shared.repositories")).thenReturn(Some(listOfReposToIgnore.asJava))
-    when(mockTeamsAndRepositories.getAllTeamAndRepos).thenReturn(Future.successful(mockedReturnData))
+    when(mockTeamsAndRepositories.getAllTeamsAndRepos).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
       UrlTemplates(

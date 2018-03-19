@@ -14,7 +14,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
-import uk.gov.hmrc.teamsandrepositories.services.{GitCompositeDataSource, Timestamper}
+import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,7 +41,7 @@ class ModuleSpec
   when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(intervalDuration)
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
 
-  val mockGitCompositeDataSource = mock[GitCompositeDataSource]
+  val mockGitCompositeDataSource = mock[PersistingService]
   when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
   when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any()))
     .thenReturn(Future.successful(Set.empty[String]))
@@ -52,7 +52,7 @@ class ModuleSpec
       .overrides(
         bind[CacheConfig].toInstance(mockCacheConfig),
         bind[Timestamper].toInstance(testTimestamper),
-        bind[GitCompositeDataSource].toInstance(mockGitCompositeDataSource),
+        bind[PersistingService].toInstance(mockGitCompositeDataSource),
         bind[MongoLock].toInstance(testMongoLock)
       )
       .overrides(new Module())

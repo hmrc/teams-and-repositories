@@ -31,3 +31,4 @@ tmp
 bin
 /misc/
 local.conf
+nohup*

@@ -48,7 +48,7 @@ class TeamsAndReposPersisterSpec
       when(teamsAndReposPersister.getAllTeamAndRepos)
         .thenReturn(Future.successful(List(teamAndRepositories)))
 
-      val retVal = persister.getAllTeamAndRepos
+      val retVal = persister.getAllTeamsAndRepos
 
       retVal.futureValue shouldBe Seq(teamAndRepositories)
     }

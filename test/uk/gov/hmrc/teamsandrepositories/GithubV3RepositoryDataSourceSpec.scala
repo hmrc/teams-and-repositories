@@ -32,7 +32,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
-import uk.gov.hmrc.teamsandrepositories.services.{GithubV3RepositoryDataSource, TeamAndOrgAndDataSource}
+import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -85,37 +85,23 @@ class GithubV3RepositoryDataSourceSpec
       Future(teamsAndRepositories)(ec)
     }
 
-    override def getAllTeamAndRepos: Future[Seq[TeamRepositories]] =
+    override def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
       Future.successful(Nil)
   }
 
   "Github v3 Data Source getTeamsWithOrgAndDataSourceDetails" should {
     "Return a list of teams and data sources filtering out hidden teams" in new Setup {
-      private val hmrcOrg = GhOrganisation("HMRC", 1)
-      private val ddcnOrg = GhOrganisation("DDCN", 2)
-
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(hmrcOrg, ddcnOrg)))
       private val teamA       = GhTeam("A", 1)
       private val teamB       = GhTeam("B", 2)
-      private val teamC       = GhTeam("C", 3)
-      private val teamD       = GhTeam("D", 4)
       private val hiddenTeam1 = GhTeam("hidden_team1", 5)
-      private val hiddenTeam2 = GhTeam("hidden_team2", 6)
 
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec))
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec))
         .thenReturn(Future.successful(List(teamA, teamB, hiddenTeam1)))
-      when(githubClient.getTeamsForOrganisation("DDCN")(ec))
-        .thenReturn(Future.successful(List(teamC, teamD, hiddenTeam2)))
 
-      val result = dataSource.getTeamsWithOrgAndDataSourceDetails.futureValue
+      val result = dataSource.getTeamsForHmrcOrg.futureValue
 
-      result.size shouldBe 4
-      result      should contain theSameElementsAs Seq(
-        TeamAndOrgAndDataSource(hmrcOrg, teamA, dataSource),
-        TeamAndOrgAndDataSource(hmrcOrg, teamB, dataSource),
-        TeamAndOrgAndDataSource(ddcnOrg, teamC, dataSource),
-        TeamAndOrgAndDataSource(ddcnOrg, teamD, dataSource)
-      )
+      result.size shouldBe 2
+      result      should contain theSameElementsAs Seq(teamA, teamB)
     }
 
   }
@@ -127,15 +113,13 @@ class GithubV3RepositoryDataSourceSpec
       val internalDataSource =
         new GithubV3RepositoryDataSource(githubConfig, githubClient, timestampF, mockRegistry, List.empty)
 
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
       internalDataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -154,19 +138,15 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Filter out repositories according to the hidden config" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
       private val team = GhTeam("A", 1)
-
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(
         GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now, false, "Scala"),
         GhRepository("A_r", "some description", 2, "url_A", false, now, now, false, "Scala")
       )))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -183,19 +163,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set repoType Service if the repository contains an app/application.conf folder" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent("conf/application.conf", "A_r", "HMRC")(ec))
+      when(githubClient.repoContainsContent("conf/application.conf", "A_r", "hmrc")(ec))
         .thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -214,18 +191,15 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set repoType Service if the repository contains a Procfile" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent("Procfile", "A_r", "HMRC")(ec)).thenReturn(Future.successful(true))
+      when(githubClient.repoContainsContent("Procfile", "A_r", "hmrc")(ec)).thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -244,19 +218,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type Service if the repository contains a deploy.properties" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.repoContainsContent(same("deploy.properties"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.repoContainsContent(same("deploy.properties"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(true))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -274,19 +245,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type as Deployable according if the repository.yaml contains a type of 'service'" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some("type: service")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -305,18 +273,16 @@ class GithubV3RepositoryDataSourceSpec
 
     "extract digital service name from repository.yaml" in new Setup {
 
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -334,11 +300,8 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "extract digital service name and repo type from repository.yaml" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
@@ -347,11 +310,11 @@ class GithubV3RepositoryDataSourceSpec
           |digital-service: service-abcd
           |type: service
         """.stripMargin
-      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("repository-xyz"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some(manifestYaml)))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -369,19 +332,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type as Library according if the repository.yaml contains a type of 'library'" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some("type: library")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -399,19 +359,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type as Other if the repository.yaml contains any other value for type" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some("type: somethingelse")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -428,19 +385,16 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type as Other if the repository.yaml does not contain a type" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some("description: not a type")))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -457,20 +411,17 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type Library if not Service and has src/main/scala and has tags" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
-      when(githubClient.repoContainsContent(same("src/main/scala"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getTags("hmrc", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
+      when(githubClient.repoContainsContent(same("src/main/scala"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -489,20 +440,17 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type Library if not Service and has src/main/java and has tags" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
-      when(githubClient.getTags("HMRC", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
-      when(githubClient.repoContainsContent(same("src/main/java"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getTags("hmrc", "A_r")(ec)).thenReturn(Future.successful(List("A_r_tag")))
+      when(githubClient.repoContainsContent(same("src/main/java"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -521,16 +469,13 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type Prototype if the repository name ends in '-prototype'" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -549,16 +494,13 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set type Other if not Service, Library nor Prototype and no repository.yaml file" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -576,10 +518,8 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set true owning team if info is found in repository.yaml" in new Setup {
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
@@ -589,11 +529,11 @@ class GithubV3RepositoryDataSourceSpec
             - team1
             - team2
         """
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some(repositoryYamlContents)))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -614,10 +554,8 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set owning teams to an empty list if value not specified as a list" in new Setup {
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
         List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
@@ -625,12 +563,12 @@ class GithubV3RepositoryDataSourceSpec
         """
           owning-teams: not-a-list
         """
-      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("HMRC"))(same(ec)))
+      when(githubClient.getFileContent(same("repository.yaml"), same("A_r"), same("hmrc"))(same(ec)))
         .thenReturn(Future.successful(Some(repositoryYamlContents)))
 
       private val result =
         dataSource
-          .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+          .mapTeam(team, persistedTeams = Future.successful(Nil))
           .futureValue
           .repositories
           .head
@@ -640,16 +578,13 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set isPrivate to true if the repo is private" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala"))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -669,15 +604,13 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Set language to empty string if null" in new Setup {
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-      private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+      val team = GhTeam("A", 1)
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(
         Future.successful(List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -695,14 +628,12 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "github api for determining the repo type" should {
-      val org  = GhOrganisation("HMRC", 1)
       val team = GhTeam("A", 1)
 
       "not be called" when {
         "the last updated date from github is the same as the saved one" should {
           "also repo type and digital service name should be copied from the previously persisted record)" in new Setup {
-            when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-            when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+            when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
 
             val lastActiveDate: Long = 1234l
             when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
@@ -710,40 +641,40 @@ class GithubV3RepositoryDataSourceSpec
 
             val persistedTeamRepositories = TeamRepositories(
               "A",
-              List(GitRepository(
-                "repo-1",
-                "some description",
-                "url_A",
-                now,
-                lastActiveDate,
-//                  isInternal = true,
-                isPrivate = true,
-                RepoType.Library,
-                Some("Some Digital Service"),
-                Nil,
-                None
-              )),
+              List(
+                GitRepository(
+                  "repo-1",
+                  "some description",
+                  "url_A",
+                  now,
+                  lastActiveDate,
+                  isPrivate = true,
+                  RepoType.Library,
+                  Some("Some Digital Service"),
+                  Nil,
+                  None
+                )),
               now
             )
 
             val repositories = dataSource
-              .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+              .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
               .futureValue
 
             //verify
             repositories shouldBe TeamRepositories(
               "A",
-              List(GitRepository(
-                "repo-1",
-                "some description",
-                "url_A",
-                now,
-                lastActiveDate,
-//                isInternal         = false,
-                isPrivate          = true,
-                repoType           = RepoType.Library,
-                digitalServiceName = Some("Some Digital Service")
-              )),
+              List(
+                GitRepository(
+                  "repo-1",
+                  "some description",
+                  "url_A",
+                  now,
+                  lastActiveDate,
+                  isPrivate          = true,
+                  repoType           = RepoType.Library,
+                  digitalServiceName = Some("Some Digital Service")
+                )),
               timestampF()
             )
             verify(githubClient, never()).getFileContent(any(), any(), any())(any())
@@ -756,8 +687,7 @@ class GithubV3RepositoryDataSourceSpec
       "be called" when {
         "the last updated date from github is different from the saved one" should {
           "also repo type and digital service name should be obtained from github" in new Setup {
-            when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-            when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+            when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
 
             when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
               List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now + 1, true, null))))
@@ -768,7 +698,7 @@ class GithubV3RepositoryDataSourceSpec
                 |type: library
               """.stripMargin
 
-            when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("HMRC"))(same(ec)))
+            when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("hmrc"))(same(ec)))
               .thenReturn(Future.successful(Some(manifestYaml)))
 
             val persistedTeamRepositories = TeamRepositories(
@@ -780,7 +710,6 @@ class GithubV3RepositoryDataSourceSpec
                   "url_A",
                   now,
                   now,
-//                  true,
                   true,
                   RepoType.Library,
                   Some("Some Digital Service"),
@@ -790,26 +719,26 @@ class GithubV3RepositoryDataSourceSpec
             )
 
             val repositories = dataSource
-              .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+              .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
               .futureValue
 
             //verify
             repositories shouldBe TeamRepositories(
               "A",
-              List(GitRepository(
-                "repo-1",
-                "some description",
-                "url_A",
-                now,
-                now + 1,
-//                  isInternal         = false,
-                isPrivate          = true,
-                repoType           = RepoType.Library,
-                digitalServiceName = Some("service-abcd")
-              )),
+              List(
+                GitRepository(
+                  "repo-1",
+                  "some description",
+                  "url_A",
+                  now,
+                  now + 1,
+                  isPrivate          = true,
+                  repoType           = RepoType.Library,
+                  digitalServiceName = Some("service-abcd")
+                )),
               timestampF()
             )
-            verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)
+            verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "hmrc")(ec)
             verify(githubClient, never()).repoContainsContent(any(), any(), any())(any())
           }
         }
@@ -817,10 +746,9 @@ class GithubV3RepositoryDataSourceSpec
 
       "for a new repository" should {
         "also repo type and digital service name should be obtained from github" in new Setup {
-          when(githubClient.getOrganisations(ec)).thenReturn(Future.successful(List(org)))
-          when(githubClient.getTeamsForOrganisation("HMRC")(ec)).thenReturn(Future.successful(List(team)))
+          when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
 
-          val lastActiveDate: Long                  = 1234l
+          val lastActiveDate: Long                  = 1234L
           val previousLastSuccessfulScheduledUpdate = Option.empty[Long]
 
           when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
@@ -831,13 +759,13 @@ class GithubV3RepositoryDataSourceSpec
               |digital-service: service-abcd
               |type: library
             """.stripMargin
-          when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("HMRC"))(same(ec)))
+          when(githubClient.getFileContent(same("repository.yaml"), same("repo-1"), same("hmrc"))(same(ec)))
             .thenReturn(Future.successful(Some(manifestYaml)))
 
           val persistedTeamRepositories = TeamRepositories("A", Nil, now)
 
           val repositories = dataSource
-            .mapTeam(org, team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+            .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
             .futureValue
 
           //verify
@@ -856,7 +784,7 @@ class GithubV3RepositoryDataSourceSpec
               )),
             timestampF()
           )
-          verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "HMRC")(ec)
+          verify(githubClient, times(1)).getFileContent("repository.yaml", "repo-1", "hmrc")(ec)
           verify(githubClient, never()).repoContainsContent(any(), any(), any())(any())
         }
       }
@@ -864,17 +792,8 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Retry up to 5 times in the event of a failed api call" in new Setup {
-
-      private val org = GhOrganisation("HMRC", 1)
-      when(githubClient.getOrganisations(ec))
-        .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
-        .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
-        .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
-        .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
-        .thenReturn(Future.successful(List(org)))
-
       private val team = GhTeam("A", 1)
-      when(githubClient.getTeamsForOrganisation("HMRC")(ec))
+      when(githubClient.getTeamsForOrganisation("hmrc")(ec))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
@@ -889,14 +808,14 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.successful(List(repository)))
 
-      when(githubClient.repoContainsContent("app", "A_r", "HMRC")(ec))
+      when(githubClient.repoContainsContent("app", "A_r", "hmrc")(ec))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.successful(false))
 
-      when(githubClient.repoContainsContent("Procfile", "A_r", "HMRC")(ec))
+      when(githubClient.repoContainsContent("Procfile", "A_r", "hmrc")(ec))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
@@ -904,7 +823,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(false))
 
       dataSource
-        .mapTeam(org, team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Future.successful(Nil))
         .futureValue(Timeout(1 minute)) shouldBe
         TeamRepositories(
           "A",
@@ -921,10 +840,8 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "Not try to pull data from github for known shared repositories but still update the lastUpdate date" in new Setup {
-
-      private val org  = GhOrganisation("HMRC", 1)
-      private val team = GhTeam("A", 1)
-      private val githubRepository =
+      val team = GhTeam("A", 1)
+      val githubRepository =
         GhRepository(
           name           = "shared-repository",
           description    = "some description",
@@ -939,7 +856,7 @@ class GithubV3RepositoryDataSourceSpec
 
       when(githubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(List(githubRepository)))
 
-      private val repository = GitRepository(
+      val repository = GitRepository(
         name               = "shared-repository",
         description        = "some description",
         url                = "url_A",
@@ -952,7 +869,6 @@ class GithubV3RepositoryDataSourceSpec
 
       dataSource
         .mapTeam(
-          org,
           team,
           persistedTeams = Future.successful(
             Seq(TeamRepositories(teamName = "A", repositories = List(repository), updateDate = 0L))

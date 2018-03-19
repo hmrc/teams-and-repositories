@@ -39,7 +39,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamAndRepos: Future[Seq[TeamRepositories]] =
+  def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos
 
   def clearAllData: Future[Boolean] =

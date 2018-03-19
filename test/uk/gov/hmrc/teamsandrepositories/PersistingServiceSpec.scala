@@ -30,15 +30,15 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
-import uk.gov.hmrc.githubclient.{GhOrganisation, GhTeam, GitApiConfig, GithubApiClient}
+import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CompositeRepositoryDataSourceSpec
+class PersistingServiceSpec
     extends WordSpec
     with MockitoSugar
     with ScalaFutures
@@ -93,32 +93,26 @@ class CompositeRepositoryDataSourceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghOrganisation = GhOrganisation("hmrc", 123)
-      val ghTeamA        = GhTeam("teamA", 1)
-      val ghTeamB        = GhTeam("teamB", 2)
+      val ghTeamA = GhTeam("teamA", 1)
+      val ghTeamB = GhTeam("teamB", 2)
 
-      when(dataSource.getTeamsWithOrgAndDataSourceDetails).thenReturn(
-        Future.successful(
-          List(
-            TeamAndOrgAndDataSource(ghOrganisation, ghTeamA, dataSource),
-            TeamAndOrgAndDataSource(ghOrganisation, ghTeamB, dataSource)
-          )))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any()))
+      when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any()))
+      when(dataSource.mapTeam(eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
       when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
 
-      val compositeDataSource = buildCompositeDataSource(dataSource, Nil, mockMetrics)
+      val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
-      compositeDataSource.persistTeamRepoMapping.futureValue
+      persistingService.persistTeamRepoMapping.futureValue
 
-      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any())
-      verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any())
-      verify(compositeDataSource.persister).update(teamARepositories)
-      verify(compositeDataSource.persister).update(teamBRepositories)
-      verify(compositeDataSource.persister)
+      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
+      verify(dataSource).mapTeam(eqTo(ghTeamB), any())
+      verify(persistingService.persister).update(teamARepositories)
+      verify(persistingService.persister).update(teamBRepositories)
+      verify(persistingService.persister)
         .update(TeamRepositories(TeamRepositories.TEAM_UNKNOWN, reposWithoutTeams, now))
     }
 
@@ -145,33 +139,28 @@ class CompositeRepositoryDataSourceSpec
           updateDate   = now
         )
 
-      val dataSource1 = mock[GithubV3RepositoryDataSource]
+      val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghOrganisation1      = GhOrganisation("hmrc", 123)
-      val ghTeamAInDataSource1 = GhTeam("teamA", 1)
+      val ghTeamA = GhTeam("teamA", 1)
 
-      when(dataSource1.getTeamsWithOrgAndDataSourceDetails).thenReturn(
-        Future.successful(
-          List(
-            TeamAndOrgAndDataSource(ghOrganisation1, ghTeamAInDataSource1, dataSource1)
-          )))
+      when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA)))
 
-      when(dataSource1.mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any()))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource1))
 
-      when(dataSource1.getAllRepositories(any())).thenReturn(Future(dataSource1ReposWithoutTeams))
+      when(dataSource.getAllRepositories(any())).thenReturn(Future(dataSource1ReposWithoutTeams))
 
-      val compositeDataSource = buildCompositeDataSource(dataSource1, Nil, mockMetrics)
+      val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
-      compositeDataSource.persistTeamRepoMapping.futureValue
+      persistingService.persistTeamRepoMapping.futureValue
 
-      verify(dataSource1).mapTeam(eqTo(ghOrganisation1), eqTo(ghTeamAInDataSource1), any())
+      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
 
       val mergedRepositories = teamARepositoriesInDataSource1.repositories.sortBy(_.name)
-      verify(compositeDataSource.persister).update(
+      verify(persistingService.persister).update(
         teamARepositoriesInDataSource1.copy(repositories = mergedRepositories)
       )
-      verify(compositeDataSource.persister).update(unknownTeamRepositories)
+      verify(persistingService.persister).update(unknownTeamRepositories)
     }
 
     "process teams in the correct order so that the latest updated teams are processed last and teams that have not been processed are first" in {
@@ -190,11 +179,10 @@ class CompositeRepositoryDataSourceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghOrganisation = GhOrganisation("hmrc", 123)
-      val ghTeamA        = GhTeam("teamA", 1)
-      val ghTeamB        = GhTeam("teamB", 2)
-      val ghTeamC        = GhTeam("teamC", 3)
-      val ghTeamD        = GhTeam("teamD", 4)
+      val ghTeamA = GhTeam("teamA", 1)
+      val ghTeamB = GhTeam("teamB", 2)
+      val ghTeamC = GhTeam("teamC", 3)
+      val ghTeamD = GhTeam("teamD", 4)
 
       val reposWithoutTeams =
         List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala")))
@@ -206,22 +194,13 @@ class CompositeRepositoryDataSourceSpec
           updateDate   = now
         )
 
-      when(dataSource.getTeamsWithOrgAndDataSourceDetails).thenReturn(
-        Future.successful(List(
-          TeamAndOrgAndDataSource(ghOrganisation, ghTeamA, dataSource),
-          TeamAndOrgAndDataSource(ghOrganisation, ghTeamB, dataSource),
-          TeamAndOrgAndDataSource(ghOrganisation, ghTeamC, dataSource),
-          TeamAndOrgAndDataSource(ghOrganisation, ghTeamD, dataSource)
-        )))
+      when(dataSource.getTeamsForHmrcOrg)
+        .thenReturn(Future.successful(List(ghTeamA, ghTeamB, ghTeamC, ghTeamD)))
 
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any()))
-        .thenReturn(Future.successful(teamARepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any()))
-        .thenReturn(Future.successful(teamBRepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any()))
-        .thenReturn(Future.successful(teamCRepositories))
-      when(dataSource.mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any()))
-        .thenReturn(Future.successful(teamDRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any())).thenReturn(Future.successful(teamARepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamB), any())).thenReturn(Future.successful(teamBRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamC), any())).thenReturn(Future.successful(teamCRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamD), any())).thenReturn(Future.successful(teamDRepositories))
 
       when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
 
@@ -231,24 +210,24 @@ class CompositeRepositoryDataSourceSpec
         TeamRepositories("teamC", Nil, updateDate = 2),
         TeamRepositories("teamB", Nil, updateDate = 3))
 
-      val compositeDataSource =
-        buildCompositeDataSource(dataSource, persistedRepositoriesForOrdering, mockMetrics)
+      val persistingService =
+        buildPersistingService(dataSource, persistedRepositoriesForOrdering, mockMetrics)
 
       val mappingTeamsOrder = Mockito.inOrder(dataSource)
-      val persistenceOrder  = Mockito.inOrder(compositeDataSource.persister)
+      val persistenceOrder  = Mockito.inOrder(persistingService.persister)
 
-      compositeDataSource.persistTeamRepoMapping.futureValue
+      persistingService.persistTeamRepoMapping.futureValue
 
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamD), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamA), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamC), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghOrganisation), eqTo(ghTeamB), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamD), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamA), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamC), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamB), any())
 
-      persistenceOrder.verify(compositeDataSource.persister).update(teamDRepositories)
-      persistenceOrder.verify(compositeDataSource.persister).update(teamARepositories)
-      persistenceOrder.verify(compositeDataSource.persister).update(teamCRepositories)
-      persistenceOrder.verify(compositeDataSource.persister).update(teamBRepositories)
-      persistenceOrder.verify(compositeDataSource.persister).update(unknownTeamRepositories)
+      persistenceOrder.verify(persistingService.persister).update(teamDRepositories)
+      persistenceOrder.verify(persistingService.persister).update(teamARepositories)
+      persistenceOrder.verify(persistingService.persister).update(teamCRepositories)
+      persistenceOrder.verify(persistingService.persister).update(teamBRepositories)
+      persistenceOrder.verify(persistingService.persister).update(unknownTeamRepositories)
     }
 
   }
@@ -258,7 +237,7 @@ class CompositeRepositoryDataSourceSpec
     "should remove deleted teams" in {
       val dataSource1 = mock[GithubV3RepositoryDataSource]
 
-      val compositeDataSource = buildCompositeDataSource(dataSource1, Nil, mockMetrics)
+      val persistingService = buildPersistingService(dataSource1, Nil, mockMetrics)
 
       val teamRepositoriesInMongo = Seq(
         TeamRepositories("team-a", Nil, System.currentTimeMillis()),
@@ -267,27 +246,26 @@ class CompositeRepositoryDataSourceSpec
         TeamRepositories("team-d", Nil, System.currentTimeMillis())
       )
 
-      when(compositeDataSource.persister.getAllTeamAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo))
-      when(compositeDataSource.persister.deleteTeams(any()))
+      when(persistingService.persister.getAllTeamsAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo))
+      when(persistingService.persister.deleteTeams(any()))
         .thenReturn(Future.successful(Set("something not important")))
 
-      compositeDataSource.removeOrphanTeamsFromMongo(
+      persistingService.removeOrphanTeamsFromMongo(
         Seq(
           TeamRepositories("team-a", Nil, System.currentTimeMillis()),
           TeamRepositories("team-c", Nil, System.currentTimeMillis())))(scala.concurrent.ExecutionContext.global)
 
-      verify(compositeDataSource.persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
+      verify(persistingService.persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
     }
   }
 
-  private def buildCompositeDataSource(
+  private def buildPersistingService(
     mockedDataSource: GithubV3RepositoryDataSource,
     storedTeamRepositories: Seq[TeamRepositories],
     metrics: Metrics) = {
 
     val githubConfig          = mock[GithubConfig]
     val persister             = mock[TeamsAndReposPersister]
-    val connector             = mock[MongoConnector]
     val githubClientDecorator = mock[GithubApiClientDecorator]
     val gitApiOpenConfig      = mock[GitApiConfig]
 
@@ -302,7 +280,7 @@ class CompositeRepositoryDataSourceSpec
 
     when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
 
-    when(persister.getAllTeamAndRepos).thenReturn(Future.successful(storedTeamRepositories))
+    when(persister.getAllTeamsAndRepos).thenReturn(Future.successful(storedTeamRepositories))
     when(persister.update(any())).thenAnswer(new Answer[Future[TeamRepositories]] {
       override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
         val args = invocation.getArguments()
@@ -310,14 +288,7 @@ class CompositeRepositoryDataSourceSpec
       }
     })
 
-    new GitCompositeDataSource(
-      githubConfig,
-      persister,
-      connector,
-      githubClientDecorator,
-      testTimestamper,
-      metrics,
-      Configuration()) {
+    new PersistingService(githubConfig, persister, githubClientDecorator, testTimestamper, metrics, Configuration()) {
       override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
     }
   }

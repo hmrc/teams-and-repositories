@@ -7,8 +7,7 @@ import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
-import scala.concurrent.duration._
+import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -17,7 +16,7 @@ import scala.util.{Failure, Success}
 class DataReloadScheduler @Inject()(
   actorSystem: ActorSystem,
   applicationLifecycle: ApplicationLifecycle,
-  githubCompositeDataSource: GitCompositeDataSource,
+  persistingService: PersistingService,
   cacheConfig: CacheConfig,
   mongoLock: MongoLock)(implicit ec: ExecutionContext) {
 
@@ -41,7 +40,7 @@ class DataReloadScheduler @Inject()(
   def reload: Future[Seq[TeamRepositories]] =
     mongoLock.tryLock {
       Logger.info(s"Starting mongo update")
-      githubCompositeDataSource.persistTeamRepoMapping
+      persistingService.persistTeamRepoMapping
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>
@@ -52,7 +51,7 @@ class DataReloadScheduler @Inject()(
   def removeDeletedTeams(teamRepositoriesFromGh: Seq[TeamRepositories]) =
     mongoLock.tryLock {
       Logger.debug(s"Starting mongo clean up (removing orphan teams)")
-      githubCompositeDataSource.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
+      persistingService.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
     } map {
       _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
     } map { r =>

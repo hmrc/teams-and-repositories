@@ -109,7 +109,6 @@ object TeamRepositories {
 
     }
 
-  // todo(konrad) write unit test
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
     teamRepos
       .flatMap(_.repositories)
@@ -117,7 +116,6 @@ object TeamRepositories {
       .map(Repository.create)
       .sortBy(_.name.toUpperCase)
 
-  // todo(konrad) write unit test
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
     repoName: String,
