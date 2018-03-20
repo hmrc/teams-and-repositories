@@ -1,26 +1,24 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.concurrent.TimeUnit
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
-import uk.gov.hmrc.teamsandrepositories.services.GitCompositeDataSource
+import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class DataReloadSchedulerSpec
     extends PlaySpec
@@ -44,7 +42,7 @@ class DataReloadSchedulerSpec
   "reload the cache and remove orphan teams at the configured intervals" in {
 
     val mockCacheConfig            = mock[CacheConfig]
-    val mockGitCompositeDataSource = mock[GitCompositeDataSource]
+    val mockGitCompositeDataSource = mock[PersistingService]
 
     when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
     when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
@@ -53,11 +51,11 @@ class DataReloadSchedulerSpec
     when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
 
     new DataReloadScheduler(
-      actorSystem               = app.actorSystem,
-      applicationLifecycle      = app.injector.instanceOf[ApplicationLifecycle],
-      githubCompositeDataSource = mockGitCompositeDataSource,
-      cacheConfig               = mockCacheConfig,
-      mongoLock                 = testMongoLock
+      actorSystem          = app.actorSystem,
+      applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle],
+      persistingService    = mockGitCompositeDataSource,
+      cacheConfig          = mockCacheConfig,
+      mongoLock            = testMongoLock
     )
 
     verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())

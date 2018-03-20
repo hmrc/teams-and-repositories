@@ -39,33 +39,27 @@ class TeamsAndReposPersisterSpec
 
   "TeamsAndReposPersisterSpec" should {
     "delegate to teamsAndReposPersister's update" in {
-
       persister.update(teamAndRepositories)
 
       verify(teamsAndReposPersister).update(teamAndRepositories)
     }
 
     "get the teamRepos and update time together" in {
-      val now = LocalDateTime.now
-
       when(teamsAndReposPersister.getAllTeamAndRepos)
         .thenReturn(Future.successful(List(teamAndRepositories)))
 
-      val retVal = persister.getAllTeamAndRepos
+      val retVal = persister.getAllTeamsAndRepos
 
       retVal.futureValue shouldBe Seq(teamAndRepositories)
     }
 
     "delegate to teamsAndReposPersister for clearAll" in {
-
       persister.clearAllData
 
       verify(teamsAndReposPersister, times(1)).clearAllData
     }
 
     "delegate to teamsAndReposPersister for removing a team in mongo" in {
-      val now = LocalDateTime.now
-
       persister.deleteTeams(Set("team1", "team2"))
 
       verify(teamsAndReposPersister).deleteTeam("team1")

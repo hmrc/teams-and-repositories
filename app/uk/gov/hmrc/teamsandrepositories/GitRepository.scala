@@ -1,21 +1,17 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
-
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import play.api.libs.functional.syntax._
-import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails}
+import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
 
-//!@ rename to PersistedRepository?
 case class GitRepository(
   name: String,
   description: String,
   url: String,
   createdDate: Long,
   lastActiveDate: Long,
-  isInternal: Boolean                = false,
   isPrivate: Boolean                 = false,
   repoType: RepoType                 = RepoType.Other,
   digitalServiceName: Option[String] = None,
@@ -32,7 +28,6 @@ object GitRepository {
         (JsPath \ "url").read[String] and
         (JsPath \ "createdDate").read[Long] and
         (JsPath \ "lastActiveDate").read[Long] and
-        (JsPath \ "isInternal").read[Boolean] and
         (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
@@ -84,35 +79,21 @@ object GitRepository {
   def getLastActiveDate(repos: Seq[GitRepository]): Long =
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
-  def repoGroupToRepositoryDetails(
-    repoType: RepoType,
-    repositories: Seq[GitRepository],
-    teamNames: Seq[String],
-    urlTemplates: UrlTemplates): Option[RepositoryDetails] = {
-
-    val primaryRepository = extractRepositoryGroupForType(repoType, repositories).find(_.repoType == repoType)
-    val owningTeams       = primaryRepository.map(_.owningTeams).getOrElse(Nil)
-
-    RepositoryDetails.buildRepositoryDetails(primaryRepository, repositories, owningTeams, teamNames, urlTemplates)
-
-  }
-
   def extractRepositoryGroupForType(
     repoType: RepoType.RepoType,
     repositories: Seq[GitRepository]): List[GitRepository] =
     repositories
       .groupBy(_.name)
       .filter {
-        case (name, repos) if repoType == RepoType.Service =>
+        case (_, repos) if repoType == RepoType.Service =>
           repos.exists(x => x.repoType == RepoType.Service)
-        case (name, repos) if repoType == RepoType.Library =>
+        case (_, repos) if repoType == RepoType.Library =>
           !repos.exists(x => x.repoType == RepoType.Service) && repos.exists(x => x.repoType == RepoType.Library)
-        case (name, repos) =>
+        case (_, repos) =>
           !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos
             .exists(x => x.repoType == repoType)
       }
       .flatMap(_._2)
       .toList
-      .sortBy(_.isInternal)
 
 }

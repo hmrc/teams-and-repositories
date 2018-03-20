@@ -17,16 +17,23 @@ object TeamRepositories {
     createdAt: Long,
     lastUpdatedAt: Long,
     repoType: RepoType.RepoType,
-    teamNames: Seq[String])
+    teamNames: Seq[String]
+  )
 
   object DigitalServiceRepository {
-    implicit val digitalServiceFormat = Json.format[DigitalServiceRepository]
+    implicit val format: OFormat[DigitalServiceRepository] =
+      Json.format[DigitalServiceRepository]
   }
 
-  case class DigitalService(name: String, lastUpdatedAt: Long, repositories: Seq[DigitalServiceRepository])
+  case class DigitalService(
+    name: String,
+    lastUpdatedAt: Long,
+    repositories: Seq[DigitalServiceRepository]
+  )
 
   object DigitalService {
-    implicit val digitalServiceFormat = Json.format[DigitalService]
+    implicit val format: OFormat[DigitalService] =
+      Json.format[DigitalService]
   }
 
   def findDigitalServiceDetails(
@@ -43,15 +50,17 @@ object TeamRepositories {
           case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
         }
 
-    val gitRepositories: Seq[GitRepository] =
+    val gitReposForDigitalService =
       allTeamsAndRepos
         .flatMap(_.repositories)
         .filter(_.digitalServiceName.exists(_.equalsIgnoreCase(digitalServiceName)))
 
     val storedDigitalServiceName: String =
-      gitRepositories.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
+      gitReposForDigitalService.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
 
-    identifyRepositories(gitRepositories) match {
+    gitReposForDigitalService.distinct
+      .map(Repository.create)
+      .sortBy(_.name.toUpperCase) match {
       case Nil => None
       case repos =>
         Some(
@@ -66,7 +75,9 @@ object TeamRepositories {
                   repo.lastUpdatedAt,
                   repo.repoType,
                   repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN))))
-          ))
+          )
+        )
+
     }
   }
 
@@ -86,8 +97,6 @@ object TeamRepositories {
 
   case class RepositoryToTeam(repositoryName: String, teamName: String)
 
-  case class RepositoriesToTeam(repositories: Seq[GitRepository], teamName: String)
-
   def getTeamList(teamRepos: Seq[TeamRepositories], repositoriesToIgnore: List[String]): Seq[Team] =
     teamRepos.map(_.teamName).map { tn =>
       val repos: Seq[GitRepository] = teamRepos.filter(_.teamName == tn).flatMap(_.repositories)
@@ -100,47 +109,36 @@ object TeamRepositories {
 
     }
 
-  def identifyRepositories(gitRepositories: Seq[GitRepository]): Seq[Repository] =
-    gitRepositories
-      .groupBy(_.name)
-      .map {
-        case (repositoryName, repositories) =>
-          val language: String = RepositoryDetails.determineLanguage(repositories)
-          Repository(
-            repositoryName,
-            repositories.minBy(_.createdDate).createdDate,
-            repositories.maxBy(_.lastActiveDate).lastActiveDate,
-            GitRepository.primaryRepoType(repositories),
-            Some(language)
-          )
-      }
-      .toList
-      .sortBy(_.name.toUpperCase)
-
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
-    identifyRepositories(teamRepos.flatMap(_.repositories))
+    teamRepos
+      .flatMap(_.repositories)
+      .distinct
+      .map(Repository.create)
+      .sortBy(_.name.toUpperCase)
 
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
     repoName: String,
-    ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] =
-    teamRepos.foldLeft((Set.empty[String], Set.empty[GitRepository])) {
-      case ((ts, repos), tr) =>
-        if (tr.repositories.exists(_.name.equalsIgnoreCase(repoName)))
-          (ts + tr.teamName, repos ++ tr.repositories.filter(_.name.equalsIgnoreCase(repoName)))
-        else (ts, repos)
-    } match {
-      case (teams, repos) if repos.nonEmpty =>
-        GitRepository.repoGroupToRepositoryDetails(
-          GitRepository.primaryRepoType(repos.toSeq),
-          repos.toSeq,
-          dontShowUnknownTeam(teams.toSeq.sorted),
-          ciUrlTemplates)
-      case _ => None
+    ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+
+    val teamsOwningRepo = teamRepos.filter {
+      case TeamRepositories(_, repos, _) =>
+        repos.exists(_.name.equalsIgnoreCase(repoName))
     }
 
-  private def dontShowUnknownTeam(teams: Seq[String]): Seq[String] =
-    teams.filterNot(_ == TEAM_UNKNOWN)
+    val maybeRepo: Option[GitRepository] = teamsOwningRepo.headOption.flatMap {
+      case TeamRepositories(_, repos, _) =>
+        repos.find(_.name.equalsIgnoreCase(repoName))
+    }
+
+    maybeRepo.map { repo =>
+      RepositoryDetails.create(
+        repo         = repo,
+        teamNames    = teamsOwningRepo.filterNot(_.teamName == TEAM_UNKNOWN).map(_.teamName),
+        urlTemplates = ciUrlTemplates
+      )
+    }
+  }
 
   def getTeamRepositoryNameList(
     teamRepos: Seq[TeamRepositories],
@@ -162,25 +160,28 @@ object TeamRepositories {
   def getRepositoryDetailsList(
     teamRepos: Seq[TeamRepositories],
     repoType: RepoType,
-    ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] =
-    getRepositoryTeams(teamRepos)
-      .groupBy(_.repositories)
-      .flatMap {
-        case (repositories, teamsAndRepos: Seq[RepositoriesToTeam]) =>
-          GitRepository.repoGroupToRepositoryDetails(
-            repoType,
-            repositories,
-            teamsAndRepos.map(_.teamName),
-            ciUrlTemplates)
-      }
-      .toSeq
-      .sortBy(_.name.toUpperCase)
+    ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
 
-  def getRepositoryTeams(data: Seq[TeamRepositories]): Seq[RepositoriesToTeam] =
-    for {
-      teamAndRepositories <- data
-      repositories        <- teamAndRepositories.repositories.groupBy(_.name).values
-    } yield RepositoriesToTeam(repositories, teamAndRepositories.teamName)
+    val allReposForType =
+      teamRepos
+        .flatMap(_.repositories)
+        .distinct
+        .filter(_.repoType == repoType)
+
+    allReposForType
+      .map { repo =>
+        val teamNames = teamRepos.collect {
+          case TeamRepositories(teamName, repos, _) if repos.exists(_.name.equalsIgnoreCase(repo.name)) => teamName
+        }
+
+        RepositoryDetails.create(
+          repo         = repo,
+          teamNames    = teamNames.filterNot(_ == TEAM_UNKNOWN),
+          urlTemplates = ciUrlTemplates
+        )
+      }
+      .sortBy(_.name.toUpperCase)
+  }
 
   def findTeam(teamRepos: Seq[TeamRepositories], teamName: String, repositoriesToIgnore: List[String]): Option[Team] =
     teamRepos

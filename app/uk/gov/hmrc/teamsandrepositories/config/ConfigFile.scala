@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.config
 import java.nio.file.Path
 
 import scala.io.Source
+import scala.util.control.NonFatal
 
 class ConfigFile(file: Path) {
 
@@ -32,11 +33,9 @@ class ConfigFile(file: Path) {
         .map { case Array(key, value) => key.trim -> value.trim }
         .toMap
     } catch {
-      case e: Exception => {
-        Map.empty
-      }
+      case NonFatal(_) => Map.empty
     }
   }
 
-  def get(path: String) = kvMap.get(path)
+  def get(path: String): Option[String] = kvMap.get(path)
 }

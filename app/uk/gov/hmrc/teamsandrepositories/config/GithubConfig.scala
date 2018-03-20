@@ -22,15 +22,11 @@ import uk.gov.hmrc.githubclient.GitApiConfig
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
   val githubOpenConfigKey               = "github.open.api"
-  val githubEnterpriseConfigKey         = "github.enterprise.api"
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
   val githubHiddenTeamsConfigKey        = "github.hidden.teams"
 
   val githubApiOpenConfig =
     getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".credentials")))
-
-  val githubApiEnterpriseConfig =
-    getGitApiConfig(githubEnterpriseConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".githubenterprise")))
 
   val hiddenRepositories =
     configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)

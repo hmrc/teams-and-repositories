@@ -39,7 +39,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamAndRepos: Future[Seq[TeamRepositories]] =
+  def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos
 
   def clearAllData: Future[Boolean] =
@@ -88,9 +88,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
 
   def deleteTeam(teamName: String): Future[String] =
     withTimerAndCounter("mongo.cleanup") {
-      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map {
-        case _ => teamName
-      }
+      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map(_ => teamName)
     } recover {
       case lastError =>
         logger.error(s"Failed to remove $teamName", lastError)

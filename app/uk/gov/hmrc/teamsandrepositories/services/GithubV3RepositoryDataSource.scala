@@ -34,27 +34,9 @@ import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
-case class TeamNamesTuple(ghNames: Option[Future[Set[String]]] = None, mongoNames: Option[Future[Set[String]]] = None)
-
-case class TeamAndOrgAndDataSource(organisation: GhOrganisation, team: GhTeam, dataSource: GithubV3RepositoryDataSource)
-
-case class OneTeamAndItsDataSources(
-  teamName: String,
-  teamAndDataSources: Seq[TeamAndOrgAndDataSource],
-  updateDate: Long)
-
-object OneTeamAndItsDataSources {
-  def apply(teamAndDataSources: Seq[TeamAndOrgAndDataSource], updateDate: Long): OneTeamAndItsDataSources = {
-    val uniqueTeamNames = teamAndDataSources.map(_.team.name).toSet
-    require(uniqueTeamNames.size == 1, s"All records much belong to the same team! teams:($uniqueTeamNames)")
-    new OneTeamAndItsDataSources(teamAndDataSources.head.team.name, teamAndDataSources, updateDate)
-  }
-}
-
 class GithubV3RepositoryDataSource(
   githubConfig: GithubConfig,
   val gh: GithubApiClient,
-  val isInternal: Boolean,
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore: List[String]) {
@@ -67,46 +49,31 @@ class GithubV3RepositoryDataSource(
   val retries: Int            = 5
   val initialDuration: Double = 50
 
-  def githubName = if (isInternal) "enterprise" else "open"
+  val HMRC_ORG = "hmrc"
 
-  def getTeamsWithOrgAndDataSourceDetails: Future[List[TeamAndOrgAndDataSource]] =
-    withCounter(s"github.$githubName.orgs") {
-      gh.getOrganisations
-    } flatMap { orgs =>
-      Future
-        .sequence(
-          orgs.map(org =>
-            withCounter(s"github.$githubName.teams") {
-              gh.getTeamsForOrganisation(org.login)
-            } map (teams => (org, teams)))
-        )
-        .map(_.map {
-          case (ghOrg, ghTeams) =>
-            val nonHiddenGhTeams = ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
-            nonHiddenGhTeams.map(ghTeam => TeamAndOrgAndDataSource(ghOrg, ghTeam, this))
-
-        })
-        .map(_.flatten) recover {
-        case e =>
-          Logger.error("Could not retrieve teams for organisation list.", e)
-          throw e
+  def getTeamsForHmrcOrg: Future[List[GhTeam]] =
+    withCounter(s"github.open.teams") {
+      gh.getTeamsForOrganisation(HMRC_ORG)
+    }.map { ghTeams =>
+        ghTeams.filter(team => !githubConfig.hiddenTeams.contains(team.name))
       }
-    }
+      .recoverWith {
+        case NonFatal(ex) =>
+          Logger.error("Could not retrieve teams for organisation list.", ex)
+          Future.failed(ex)
+      }
 
-  def mapTeam(
-    organisation: GhOrganisation,
-    team: GhTeam,
-    persistedTeams: Future[Seq[TeamRepositories]]): Future[TeamRepositories] = {
+  def mapTeam(team: GhTeam, persistedTeams: Future[Seq[TeamRepositories]]): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
-      withCounter(s"github.$githubName.repos") {
+      withCounter(s"github.open.repos") {
         gh.getReposForTeam(team.id)
       } flatMap { repos =>
         Future
           .sequence(for {
-            repo <- repos; if !githubConfig.hiddenRepositories.contains(repo.name)
+            repo <- repos if !githubConfig.hiddenRepositories.contains(repo.name)
           } yield {
-            mapRepository(organisation, team, repo, persistedTeams)
+            mapRepository(team, repo, persistedTeams)
           })
           .map { (repos: List[GitRepository]) =>
             TeamRepositories(team.name, repositories = repos, timestampF())
@@ -120,35 +87,31 @@ class GithubV3RepositoryDataSource(
   }
 
   def getAllRepositories(implicit ec: ExecutionContext): Future[List[GitRepository]] =
-    gh.getOrganisations.map { orgs =>
-      orgs.flatMap { org =>
-        gh.repositoryService
-          .getOrgRepositories(org.login)
-          .asScala
-          .map(toGitRepository)
-          .toList
-      }
+    Future {
+      gh.repositoryService
+        .getOrgRepositories(HMRC_ORG)
+        .asScala
+        .map { r: Repository =>
+          GitRepository(
+            name           = r.getName,
+            description    = Option(r.getDescription).getOrElse(""),
+            url            = r.getHtmlUrl,
+            createdDate    = r.getCreatedAt.getTime,
+            lastActiveDate = r.getPushedAt.getTime,
+            isPrivate      = r.isPrivate,
+            language       = Option(r.getLanguage)
+          )
+        }
+        .toList
     }
 
-  private def toGitRepository(r: Repository): GitRepository =
-    GitRepository(
-      name           = r.getName,
-      description    = Option(r.getDescription).getOrElse(""),
-      url            = r.getHtmlUrl,
-      createdDate    = r.getCreatedAt.getTime,
-      lastActiveDate = r.getPushedAt.getTime,
-      isInternal     = isInternal,
-      isPrivate      = r.isPrivate,
-      language       = Option(r.getLanguage)
-    )
-
-  def getRepositoryDetailsFromGithub(organisation: GhOrganisation, repository: GhRepository): Future[GitRepository] =
+  def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
-      manifest <- withCounter(s"github.$githubName.fileContent") {
-                   gh.getFileContent("repository.yaml", repository.name, organisation.login)
+      manifest <- withCounter(s"github.open.fileContent") {
+                   gh.getFileContent("repository.yaml", repository.name, HMRC_ORG)
                  }
       maybeManifestDetails = getMaybeManifestDetails(repository.name, manifest)
-      repositoryType <- identifyRepository(repository, organisation, maybeManifestDetails.flatMap(_.repositoryType))
+      repositoryType <- identifyRepository(repository, maybeManifestDetails.flatMap(_.repositoryType))
       maybeDigitalServiceName = maybeManifestDetails.flatMap(_.digitalServiceName)
       owningTeams             = maybeManifestDetails.map(_.owningTeams).getOrElse(Nil)
     } yield {
@@ -157,7 +120,6 @@ class GithubV3RepositoryDataSource(
     }
 
   private def mapRepository(
-    organisation: GhOrganisation,
     team: GhTeam,
     repository: GhRepository,
     persistedTeamsF: Future[Seq[TeamRepositories]]): Future[GitRepository] = {
@@ -178,20 +140,16 @@ class GithubV3RepositoryDataSource(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
             s"github repository last updated -> ${repository.lastActiveDate}")
-        getRepositoryDetailsFromGithub(organisation, repository)
+        getRepositoryDetailsFromGithub(repository)
       case None =>
-        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github ${if (isInternal) "enterprise"
-        else "open"}: never persisted before")
-        getRepositoryDetailsFromGithub(organisation, repository)
+        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
+        getRepositoryDetailsFromGithub(repository)
     }
   }
 
-  private def identifyRepository(
-    repository: GhRepository,
-    organisation: GhOrganisation,
-    maybeRepoType: Option[RepoType]): Future[RepoType] =
+  private def identifyRepository(repository: GhRepository, maybeRepoType: Option[RepoType]): Future[RepoType] =
     maybeRepoType match {
-      case None                 => getTypeFromGithub(repository, organisation)
+      case None                 => getTypeFromGithub(repository)
       case Some(repositoryType) => Future.successful(repositoryType)
     }
 
@@ -233,7 +191,7 @@ class GithubV3RepositoryDataSource(
               } catch {
                 case NonFatal(ex) =>
                   Logger.warn(
-                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems was: ${ex.getMessage}")
+                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
                   Nil
               }
             )
@@ -248,65 +206,54 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  private def getTypeFromGithub(repo: GhRepository, organisation: GhOrganisation): Future[RepoType] =
-    isPrototype(repo) flatMap { prototype =>
-      if (prototype) {
-        Future.successful(RepoType.Prototype)
-      } else {
-        isDeployable(repo, organisation) flatMap { deployable =>
-          if (deployable) Future.successful(RepoType.Service)
-          else
-            isReleasable(repo, organisation).map { releasable =>
-              if (releasable) RepoType.Library
-              else RepoType.Other
-            }
+  private def getTypeFromGithub(repo: GhRepository): Future[RepoType] =
+    if (repo.name.endsWith("-prototype")) {
+      Future.successful(RepoType.Prototype)
+    } else {
+      isDeployable(repo) flatMap { deployable =>
+        if (deployable) {
+          Future.successful(RepoType.Service)
+        } else {
+          isReleasable(repo).map { releasable =>
+            if (releasable) RepoType.Library else RepoType.Other
+          }
         }
       }
     }
 
-  private def isPrototype(repo: GhRepository): Future[Boolean] =
-    Future.successful {
-      repo.name.endsWith("-prototype")
-    }
-
-  private def isReleasable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
+  private def isReleasable(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
-    def hasSrcMainScala =
-      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/scala"))
-
-    def hasSrcMainJava =
-      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "src/main/java"))
-
-    def containsTags =
-      hasTags(organisation, repo)
+    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/scala"))
+    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/java"))
+    def containsTags    = hasTags(repo)
 
     (hasSrcMainScala || hasSrcMainJava) && containsTags
   }
 
-  private def isDeployable(repo: GhRepository, organisation: GhOrganisation): Future[Boolean] = {
+  private def isDeployable(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "conf/application.conf"))
+      exponentialRetry(retries, initialDuration)(hasPath(repo, "conf/application.conf"))
 
     def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "Procfile"))
+      exponentialRetry(retries, initialDuration)(hasPath(repo, "Procfile"))
 
     def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(organisation, repo, "deploy.properties"))
+      exponentialRetry(retries, initialDuration)(hasPath(repo, "deploy.properties"))
 
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
 
-  private def hasTags(organisation: GhOrganisation, repository: GhRepository) =
-    withCounter(s"github.$githubName.tags") {
-      gh.getTags(organisation.login, repository.name)
+  private def hasTags(repository: GhRepository) =
+    withCounter(s"github.open.tags") {
+      gh.getTags(HMRC_ORG, repository.name)
     } map (_.nonEmpty)
 
-  private def hasPath(organisation: GhOrganisation, repo: GhRepository, path: String) =
-    withCounter(s"github.$githubName.containsContent") {
-      gh.repoContainsContent(path, repo.name, organisation.login)
+  private def hasPath(repo: GhRepository, path: String) =
+    withCounter(s"github.open.containsContent") {
+      gh.repoContainsContent(path, repo.name, HMRC_ORG)
     }
 
   def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
@@ -316,7 +263,6 @@ class GithubV3RepositoryDataSource(
       url            = repository.htmlUrl,
       createdDate    = repository.createdDate,
       lastActiveDate = repository.lastActiveDate,
-      isInternal     = this.isInternal,
       isPrivate      = repository.isPrivate
     )
 
@@ -331,7 +277,6 @@ class GithubV3RepositoryDataSource(
       url                = repository.htmlUrl,
       createdDate        = repository.createdDate,
       lastActiveDate     = repository.lastActiveDate,
-      isInternal         = this.isInternal,
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,

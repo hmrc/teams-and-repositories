@@ -62,7 +62,7 @@ class TeamsRepositoriesController @Inject()(
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
           case None =>
@@ -76,7 +76,7 @@ class TeamsRepositoriesController @Inject()(
   def digitalServiceDetails(digitalServiceName: String) = Action.async {
     val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
           case None =>
@@ -88,21 +88,21 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def services() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         Ok(determineServicesResponse(request, allTeamsAndRepos))
     }
   }
 
   def libraries() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         Ok(determineLibrariesResponse(request, allTeamsAndRepos))
     }
   }
 
   def digitalServices() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         val digitalServices: Seq[String] =
           allTeamsAndRepos
@@ -116,25 +116,25 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def all() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map(allRecords => Ok(Json.toJson(allRecords)))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map(allRecords => Ok(Json.toJson(allRecords)))
   }
 
   def allRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         Ok(Json.toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def teams() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
   def repositoriesByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
           case None    => NotFound
@@ -144,7 +144,7 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
           case None    => NotFound
@@ -154,7 +154,7 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def allTeamsAndRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamAndRepos.map {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
         Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
@@ -168,9 +168,6 @@ class TeamsRepositoriesController @Inject()(
   def clearCache() = Action.async {
     teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
   }
-
-  private def format(dateTime: LocalDateTime): String =
-    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(dateTime, ZoneId.of("GMT")))
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)

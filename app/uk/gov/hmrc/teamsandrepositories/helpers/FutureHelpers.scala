@@ -31,6 +31,14 @@ trait DefaultMetricsRegistry {
 
 object FutureHelpers extends DefaultMetricsRegistry {
 
+  def runFuturesSequentially[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
+    l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒
+      for {
+        previousResults ← previousFuture
+        next ← fn(next)
+      } yield previousResults :+ next
+    }
+
   def withTimerAndCounter[T](name: String)(f: Future[T]) = {
     val t = defaultMetricsRegistry.timer(s"$name.timer").time()
     f.andThen {

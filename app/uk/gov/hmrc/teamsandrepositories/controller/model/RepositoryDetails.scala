@@ -22,60 +22,29 @@ case class RepositoryDetails(
   language: String)
 
 object RepositoryDetails {
-  def buildRepositoryDetails(
-    primaryRepository: Option[GitRepository],
-    allRepositories: Seq[GitRepository],
-    owningTeams: Seq[String],
-    teamNames: Seq[String],
-    urlTemplates: UrlTemplates): Option[RepositoryDetails] =
-    primaryRepository.map { repo =>
-      val sameNameRepos: Seq[GitRepository] = allRepositories.filter(r => r.name == repo.name)
-      val createdDate                       = sameNameRepos.minBy(_.createdDate).createdDate
-      val lastActiveDate                    = sameNameRepos.maxBy(_.lastActiveDate).lastActiveDate
-
-      val language: String = determineLanguage(allRepositories)
-
-      val repoDetails = RepositoryDetails(
-        repo.name,
-        repo.description,
-        repo.isPrivate,
-        createdDate,
-        lastActiveDate,
-        repo.repoType,
-        owningTeams,
-        teamNames,
-        allRepositories.map { repo =>
-          Link(githubName(repo.isInternal), githubDisplayName(repo.isInternal), repo.url)
-        },
-        language = language
+  def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
+    val repoDetails =
+      RepositoryDetails(
+        name        = repo.name,
+        description = repo.description,
+        isPrivate   = repo.isPrivate,
+        createdAt   = repo.createdDate,
+        lastActive  = repo.lastActiveDate,
+        repoType    = repo.repoType,
+        owningTeams = repo.owningTeams,
+        teamNames   = teamNames,
+        githubUrls  = Seq(Link("github-com", "GitHub.com", repo.url)),
+        language    = repo.language.getOrElse("")
       )
 
-      val repositoryForCiUrls: GitRepository = allRepositories.find(!_.isInternal).fold(repo)(identity)
-
-      if (hasEnvironment(repo))
-        repoDetails.copy(
-          ci           = buildCiUrls(repositoryForCiUrls, urlTemplates),
-          environments = buildEnvironmentUrls(repo, urlTemplates))
-      else if (hasBuild(repo))
-        repoDetails.copy(ci = buildCiUrls(repositoryForCiUrls, urlTemplates))
-      else repoDetails
+    if (hasEnvironment(repo)) {
+      repoDetails.copy(ci = buildCiUrls(repo, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
+    } else if (hasBuild(repo)) {
+      repoDetails.copy(ci = buildCiUrls(repo, urlTemplates))
+    } else {
+      repoDetails
     }
-
-  def determineLanguage(allRepositories: Seq[GitRepository]): String = {
-    val language: String = allRepositories
-      .sortBy(x => x.isInternal)
-      .reverse
-      .foldLeft("")((b, repo) => {
-        val lang = repo.language.getOrElse("")
-        if (lang == "") b
-        else lang
-      })
-    language
   }
-
-  private def githubName(isInternal: Boolean) = if (isInternal) "github-enterprise" else "github-com"
-
-  private def githubDisplayName(isInternal: Boolean) = if (isInternal) "Github Enterprise" else "GitHub.com"
 
   private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Service
 
@@ -91,9 +60,10 @@ object RepositoryDetails {
     }.toSeq
 
   private def buildCiUrls(repository: GitRepository, urlTemplates: UrlTemplates): List[Link] =
-    repository.isInternal || repository.isPrivate match {
-      case true  => buildUrls(repository, urlTemplates.ciClosed)
-      case false => buildUrls(repository, urlTemplates.ciOpen)
+    if (repository.isPrivate) {
+      buildUrls(repository, urlTemplates.ciClosed)
+    } else {
+      buildUrls(repository, urlTemplates.ciOpen)
     }
 
   private def buildUrls(repo: GitRepository, templates: Seq[UrlTemplate]) =

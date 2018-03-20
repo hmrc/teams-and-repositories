@@ -18,9 +18,9 @@ package uk.gov.hmrc.teamsandrepositories.config
 
 import com.google.inject.Inject
 import play.api.Configuration
-import uk.gov.hmrc.teamsandrepositories.services.InitialDelayCalculator
 
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class CacheConfig @Inject()(configuration: Configuration) {
   private val teamsCacheInitialDurationConfigPath = "cache.teams.initialDelay"

@@ -24,9 +24,9 @@ object RepoType extends Enumeration {
 
   val Service, Library, Prototype, Other = Value
 
-  implicit val repoType = new Format[RepoType] {
+  implicit val repoType: Format[RepoType] = new Format[RepoType] {
     override def reads(json: JsValue): JsResult[RepoType] = json match {
-      case JsString(s) => {
+      case JsString(s) =>
         try {
           JsSuccess(RepoType.withName(s))
         } catch {
@@ -34,7 +34,6 @@ object RepoType extends Enumeration {
             JsError(
               s"Enumeration expected of type: '${RepoType.getClass}', but it does not appear to contain the value: '$s'")
         }
-      }
       case _ => JsError("String value expected")
     }
 

@@ -61,12 +61,9 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppP
       .configure(Configuration(ConfigFactory.parseString(templatesConfig)))
       .configure(
         Map(
-          "github.open.api.host"       -> "http://bla.bla",
-          "github.open.api.user"       -> "",
-          "github.open.api.key"        -> "",
-          "github.enterprise.api.host" -> "http://bla.bla",
-          "github.enterprise.api.user" -> "",
-          "github.enterprise.api.key"  -> ""
+          "github.open.api.host" -> "http://bla.bla",
+          "github.open.api.user" -> "",
+          "github.open.api.key"  -> ""
         )
       )
       .build()

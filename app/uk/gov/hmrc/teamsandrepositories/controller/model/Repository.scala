@@ -2,7 +2,7 @@ package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.RepoType
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 case class Repository(
   name: String,
@@ -12,7 +12,17 @@ case class Repository(
   language: Option[String])
 
 object Repository {
-  implicit val repoDetailsFormat = Json.format[Repository]
+
+  def create(gr: GitRepository): Repository =
+    Repository(
+      name          = gr.name,
+      createdAt     = gr.createdDate,
+      lastUpdatedAt = gr.lastActiveDate,
+      repoType      = gr.repoType,
+      language      = gr.language
+    )
+
+  implicit val format: OFormat[Repository] = Json.format[Repository]
 }
 
 case class Team(
