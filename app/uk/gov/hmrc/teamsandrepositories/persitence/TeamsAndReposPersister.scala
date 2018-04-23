@@ -17,20 +17,18 @@
 package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
-import org.slf4j.LoggerFactory
 import play.api.Logger
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers.withTimerAndCounter
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
+class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister, futureHelpers: FutureHelpers) {
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
@@ -52,7 +50,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
 }
 
 @Singleton
-class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnector)
+class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnector, futureHelpers: FutureHelpers)
     extends ReactiveRepository[TeamRepositories, BSONObjectID](
       collectionName = "teamsAndRepositories",
       mongo          = mongoConnector.db,
@@ -66,7 +64,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
     )
 
   def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] =
-    withTimerAndCounter("mongo.update") {
+    futureHelpers.withTimerAndCounter("mongo.update") {
       for {
         update <- collection.update(
                    selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
@@ -87,7 +85,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
   def deleteTeam(teamName: String): Future[String] =
-    withTimerAndCounter("mongo.cleanup") {
+    futureHelpers.withTimerAndCounter("mongo.cleanup") {
       collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map(_ => teamName)
     } recover {
       case lastError =>

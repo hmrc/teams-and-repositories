@@ -1,17 +1,15 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
-
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.githubclient.{GhTeam, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers.runFuturesSequentially
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -27,7 +25,8 @@ case class PersistingService @Inject()(
   githubApiClientDecorator: GithubApiClientDecorator,
   timestamper: Timestamper,
   metrics: Metrics,
-  configuration: Configuration) {
+  configuration: Configuration,
+  futureHelpers: FutureHelpers) {
 
   import scala.collection.JavaConverters._
 
@@ -55,7 +54,7 @@ case class PersistingService @Inject()(
 
     val updatedReposWithTeams: Future[Seq[TeamRepositories]] =
       sortedGhTeams.flatMap { teams =>
-        runFuturesSequentially(teams) { ghTeam: GhTeam =>
+        futureHelpers.runFuturesSequentially(teams) { ghTeam: GhTeam =>
           dataSource
             .mapTeam(ghTeam, persistedTeams)
             .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))

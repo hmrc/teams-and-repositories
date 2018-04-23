@@ -17,8 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.util.Date
-
 import com.codahale.metrics.{Counter, MetricRegistry}
+import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
@@ -30,10 +30,10 @@ import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
-
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
@@ -77,7 +77,12 @@ class GithubV3RepositoryDataSourceSpec
 
   val ec = BlockingIOExecutionContext.executionContext
 
-  class StubTeamsAndReposPersister extends TeamsAndReposPersister(mock[MongoTeamsAndRepositoriesPersister]) {
+  private val metrics: Metrics = new Metrics() {
+    override def defaultRegistry = new MetricRegistry
+    override def toJson          = ???
+  }
+
+  class StubTeamsAndReposPersister extends TeamsAndReposPersister(mock[MongoTeamsAndRepositoriesPersister], new FutureHelpers(metrics)) {
     var captor: List[TeamRepositories] = Nil
 
     override def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {

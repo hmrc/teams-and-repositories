@@ -16,28 +16,18 @@
 
 package uk.gov.hmrc.teamsandrepositories.helpers
 
+import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
-import play.api.Play
-
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-// this is copied from service-deployments project
-trait DefaultMetricsRegistry {
-  private val metrics: Metrics = Play.current.injector.instanceOf[Metrics]
-  val defaultMetricsRegistry   = metrics.defaultRegistry
-}
+@Singleton
+class FutureHelpers @Inject()(metrics: Metrics) {
 
-object FutureHelpers extends DefaultMetricsRegistry {
+  val defaultMetricsRegistry: MetricRegistry = metrics.defaultRegistry
 
-  def runFuturesSequentially[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
-    l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒
-      for {
-        previousResults ← previousFuture
-        next ← fn(next)
-      } yield previousResults :+ next
-    }
 
   def withTimerAndCounter[T](name: String)(f: Future[T]) = {
     val t = defaultMetricsRegistry.timer(s"$name.timer").time()
@@ -51,6 +41,16 @@ object FutureHelpers extends DefaultMetricsRegistry {
     }
   }
 
+  def runFuturesSequentially[A, B](l: Iterable[A])(fn: A => Future[B])(implicit ec: ExecutionContext): Future[Seq[B]] =
+    l.foldLeft(Future.successful(List.empty[B])) { (previousFuture, next) ⇒
+      for {
+        previousResults ← previousFuture
+        next ← fn(next)
+      } yield previousResults :+ next
+    }
+}
+
+object FutureHelpers {
   implicit class FutureExtender[A](f: Future[A]) {
     def andAlso(fn: A => Unit): Future[A] =
       f.flatMap { r =>
@@ -91,6 +91,8 @@ object FutureHelpers extends DefaultMetricsRegistry {
       futureList.map(_.filter(fn))
   }
 
+
   def continueOnError[A](f: Future[A]) =
     f.map(Success(_)).recover { case x => Failure(x) }
+
 }
