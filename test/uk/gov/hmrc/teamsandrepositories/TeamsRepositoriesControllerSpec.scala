@@ -409,7 +409,11 @@ class TeamsRepositoriesControllerSpec
 
       val last = resultJson.as[Seq[JsObject]].last
 
-      (last \ "githubUrls").as[JsArray].value.size mustBe 1
+      (last \ "githubUrl").as[JsObject].as[Map[String, String]] mustBe Map(
+        "name" -> "github-com",
+        "displayName" -> "GitHub.com",
+        "url" -> "library-url"
+      )
 
       last.nameField mustBe "library-repo"
       last.teamNameSeq mustBe Seq("test-team")
@@ -438,7 +442,11 @@ class TeamsRepositoriesControllerSpec
 
       val last = resultJson.as[Seq[JsObject]].last
 
-      (last \ "githubUrls").as[JsArray].value.size mustBe 1
+      (last \ "githubUrl").as[JsObject].as[Map[String, String]] mustBe Map(
+        "name" -> "github-com",
+        "displayName" -> "GitHub.com",
+        "url" -> "repo-url"
+      )
 
       last.nameField mustBe "repo-name"
       last.teamNameSeq mustBe Seq("test-team")

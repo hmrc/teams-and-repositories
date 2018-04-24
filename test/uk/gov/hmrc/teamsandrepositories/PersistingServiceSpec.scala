@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories
 
 import java.util.Date
 import java.util.concurrent.Executors
-
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -32,10 +31,10 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.services._
-
 import scala.concurrent.{ExecutionContext, Future}
 
 class PersistingServiceSpec
@@ -288,7 +287,7 @@ class PersistingServiceSpec
       }
     })
 
-    new PersistingService(githubConfig, persister, githubClientDecorator, testTimestamper, metrics, Configuration()) {
+    new PersistingService(githubConfig, persister, githubClientDecorator, testTimestamper, metrics, Configuration(), new FutureHelpers(metrics)) {
       override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
     }
   }

@@ -20,9 +20,8 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.play.OneAppPerSuite
-import play.api.{Application, Configuration}
+import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
-
 import scala.collection.immutable.ListMap
 
 class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {

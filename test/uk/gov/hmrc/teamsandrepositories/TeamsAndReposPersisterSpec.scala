@@ -1,7 +1,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
-
+import com.codahale.metrics.MetricRegistry
+import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
@@ -10,9 +10,9 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.teamsandrepositories.persitence.model.{KeyAndTimestamp, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
-
 import scala.concurrent.Future
 
 class TeamsAndReposPersisterSpec
@@ -35,7 +35,12 @@ class TeamsAndReposPersisterSpec
 
   val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
 
-  val persister = new TeamsAndReposPersister(teamsAndReposPersister)
+  private val metrics: Metrics = new Metrics() {
+    override def defaultRegistry = new MetricRegistry
+    override def toJson          = ???
+  }
+
+  val persister = new TeamsAndReposPersister(teamsAndReposPersister, new FutureHelpers(metrics))
 
   "TeamsAndReposPersisterSpec" should {
     "delegate to teamsAndReposPersister's update" in {
