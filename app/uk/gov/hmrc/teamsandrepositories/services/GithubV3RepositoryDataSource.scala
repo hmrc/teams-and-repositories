@@ -18,10 +18,12 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import com.codahale.metrics.MetricRegistry
 import java.util
+
 import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
+
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -30,6 +32,7 @@ import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
@@ -39,7 +42,8 @@ class GithubV3RepositoryDataSource(
   val gh: GithubApiClient,
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry,
-  repositoriesToIgnore: List[String]) {
+  repositoriesToIgnore: List[String],
+  futureHelpers: FutureHelpers) {
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
@@ -69,15 +73,15 @@ class GithubV3RepositoryDataSource(
       withCounter(s"github.open.repos") {
         gh.getReposForTeam(team.id)
       } flatMap { repos =>
-        Future
-          .sequence(for {
-            repo <- repos if !githubConfig.hiddenRepositories.contains(repo.name)
-          } yield {
-            mapRepository(team, repo, persistedTeams)
-          })
-          .map { (repos: List[GitRepository]) =>
-            TeamRepositories(team.name, repositories = repos, timestampF())
-          }
+        val nonHiddenRepos = repos
+          .filter(repo => !githubConfig.hiddenRepositories.contains(repo.name))
+
+        val updatedRepositories: Future[Seq[GitRepository]] =
+          futureHelpers.runFuturesSequentially(nonHiddenRepos)(repo => mapRepository(team, repo, persistedTeams))
+
+        updatedRepositories.map { (repos: Seq[GitRepository]) =>
+          TeamRepositories(team.name, repositories = repos.toList, timestampF())
+        }
       }
     } recover {
       case e =>

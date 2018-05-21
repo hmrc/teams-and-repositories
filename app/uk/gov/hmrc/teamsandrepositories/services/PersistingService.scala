@@ -45,7 +45,8 @@ case class PersistingService @Inject()(
       gitOpenClient,
       timestamper.timestampF,
       defaultMetricsRegistry,
-      repositoriesToIgnore
+      repositoriesToIgnore,
+      futureHelpers
     )
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
