@@ -56,8 +56,20 @@ class GithubV3RepositoryDataSourceSpec
 
   trait Setup {
     val githubClient = mock[GithubApiClient]
+
+    private val metrics: Metrics = new Metrics() {
+      override def defaultRegistry = new MetricRegistry
+      override def toJson          = ???
+    }
+
     val dataSource =
-      new GithubV3RepositoryDataSource(githubConfig, githubClient, timestampF, mockRegistry, List("shared-repository"))
+      new GithubV3RepositoryDataSource(
+        githubConfig,
+        githubClient,
+        timestampF,
+        mockRegistry,
+        List("shared-repository"),
+        new FutureHelpers(metrics))
 
     when(githubClient.repoContainsContent(anyString(), anyString(), anyString())(any[ExecutionContext]))
       .thenReturn(Future.successful(false))
@@ -82,7 +94,8 @@ class GithubV3RepositoryDataSourceSpec
     override def toJson          = ???
   }
 
-  class StubTeamsAndReposPersister extends TeamsAndReposPersister(mock[MongoTeamsAndRepositoriesPersister], new FutureHelpers(metrics)) {
+  class StubTeamsAndReposPersister
+      extends TeamsAndReposPersister(mock[MongoTeamsAndRepositoriesPersister], new FutureHelpers(metrics)) {
     var captor: List[TeamRepositories] = Nil
 
     override def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
@@ -116,7 +129,13 @@ class GithubV3RepositoryDataSourceSpec
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
       val internalDataSource =
-        new GithubV3RepositoryDataSource(githubConfig, githubClient, timestampF, mockRegistry, List.empty)
+        new GithubV3RepositoryDataSource(
+          githubConfig,
+          githubClient,
+          timestampF,
+          mockRegistry,
+          List.empty,
+          new FutureHelpers(metrics))
 
       private val team = GhTeam("A", 1)
       when(githubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
