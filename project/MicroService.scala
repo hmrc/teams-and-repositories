@@ -30,7 +30,6 @@ trait MicroService {
       parallelExecution in Test := false,
       fork in Test := false,
       targetJvm := "jvm-1.8",
-      retrieveManaged := true,
       routesGenerator := StaticRoutesGenerator
     )
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
