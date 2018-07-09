@@ -28,7 +28,9 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister, futureHelpers: FutureHelpers) {
+class TeamsAndReposPersister @Inject()(
+  mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister,
+  futureHelpers: FutureHelpers) {
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
@@ -46,6 +48,11 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
     Logger.debug(s"Deleting orphan teams: $teamNames")
     Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
+  }
+
+  def deleteRepo(repoName: String): Future[Option[String]] = {
+    Logger.debug(s"Deleting repo: $repoName")
+    mongoTeamsAndReposPersister.deleteRepo(repoName)
   }
 }
 
@@ -91,5 +98,18 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       case lastError =>
         logger.error(s"Failed to remove $teamName", lastError)
         throw new RuntimeException(s"failed to remove $teamName")
+    }
+
+  def deleteRepo(repoName: String): Future[Option[String]] =
+    collection.update(
+      selector = Json.obj(),
+      update   = Json.obj("$pull" -> Json.obj("repositories" -> Json.obj("name" -> repoName))),
+      multi    = true
+    ) map { result =>
+      result.nModified match {
+        case 0     => None
+        case 1     => Some(repoName)
+        case other => throw new RuntimeException(s"Removed $other number of '$repoName' repositories.")
+      }
     }
 }

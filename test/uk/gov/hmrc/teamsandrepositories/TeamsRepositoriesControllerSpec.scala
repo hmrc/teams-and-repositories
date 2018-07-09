@@ -113,9 +113,8 @@ class TeamsRepositoriesControllerSpec
       mockConfiguration,
       mockTeamsAndRepositories) {
 
-      override val repositoriesToIgnore = listOfReposToIgnore
+      override lazy val repositoriesToIgnore = listOfReposToIgnore
     }
-
   }
 
   val defaultData =
@@ -410,9 +409,9 @@ class TeamsRepositoriesControllerSpec
       val last = resultJson.as[Seq[JsObject]].last
 
       (last \ "githubUrl").as[JsObject].as[Map[String, String]] mustBe Map(
-        "name" -> "github-com",
+        "name"        -> "github-com",
         "displayName" -> "GitHub.com",
-        "url" -> "library-url"
+        "url"         -> "library-url"
       )
 
       last.nameField mustBe "library-repo"
@@ -443,9 +442,9 @@ class TeamsRepositoriesControllerSpec
       val last = resultJson.as[Seq[JsObject]].last
 
       (last \ "githubUrl").as[JsObject].as[Map[String, String]] mustBe Map(
-        "name" -> "github-com",
+        "name"        -> "github-com",
         "displayName" -> "GitHub.com",
-        "url" -> "repo-url"
+        "url"         -> "repo-url"
       )
 
       last.nameField mustBe "repo-name"
@@ -687,7 +686,30 @@ class TeamsRepositoriesControllerSpec
         "other-repo",
         "repo-name")
     }
+  }
 
+  "Deleting a repo" should {
+
+    "return OK if the persister return Some" in new Setup {
+
+      val repoName = "repo-name"
+
+      when(mockTeamsAndReposPersister.deleteRepo(repoName)).thenReturn(Future.successful(Some(repoName)))
+
+      val result = controller.deleteRepo(repoName)(FakeRequest())
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.obj("message" -> s"'$repoName' repository removed")
+    }
+
+    "return NOT_FOUND if the persister return None" in new Setup {
+
+      val repoName = "repo-name"
+
+      when(mockTeamsAndReposPersister.deleteRepo(repoName)).thenReturn(Future.successful(None))
+
+      val result = controller.deleteRepo(repoName)(FakeRequest())
+      status(result) mustBe NOT_FOUND
+    }
   }
 
   implicit class RichJsonValue(obj: JsValue) {
@@ -697,4 +719,13 @@ class TeamsRepositoriesControllerSpec
     def teamNameSeq        = (obj \ "teamNames").as[Seq[String]]
   }
 
+  private trait Setup {
+    val controller = new TeamsRepositoriesController(
+      dataReloadScheduler,
+      mockTeamsAndReposPersister,
+      mockUrlTemplateProvider,
+      mockConfiguration,
+      mockTeamsAndRepositories
+    )
+  }
 }

@@ -97,7 +97,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
   }
 
-  "delete" should {
+  "deleteTeam" should {
     "remove all given teams" in {
       val gitRepository1 =
         GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
@@ -130,4 +130,56 @@ class MongoTeamsAndRepositoriesPersisterSpec
     }
   }
 
+  "deleteRepo" should {
+
+    "remove repo with the given name" in {
+      val gitRepository1 =
+        GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository2 =
+        GitRepository("repo-name2", "Desc2", "url2", 3, 4, false, RepoType.Library, language = Some("Scala"))
+      val gitRepository3 =
+        GitRepository("repo-name3", "Desc3", "url3", 3, 4, false, RepoType.Library, language = Some("Scala"))
+
+      val teamAndRepositories1 =
+        TeamRepositories("test-team1", List(gitRepository1, gitRepository2, gitRepository3), System.currentTimeMillis())
+
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+
+      await(mongoTeamsAndReposPersister.deleteRepo(gitRepository2.name)) shouldBe Some(gitRepository2.name)
+
+      val persistedTeam = await(mongoTeamsAndReposPersister.getAllTeamAndRepos).head
+
+      persistedTeam.repositories should contain theSameElementsAs Seq(gitRepository1, gitRepository3)
+    }
+
+    "do nothing if there is no repo with the given name" in {
+      val gitRepository1 =
+        GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
+
+      val teamAndRepositories1 =
+        TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
+
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+
+      await(mongoTeamsAndReposPersister.deleteRepo("non-exisiting-repo")) shouldBe None
+
+      await(mongoTeamsAndReposPersister.getAllTeamAndRepos) shouldBe Seq(teamAndRepositories1)
+    }
+
+    "throw an exception if there are more repos with the given name" in {
+      val gitRepository1 =
+        GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
+      val teamAndRepositories1 =
+        TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+
+      val gitRepository2 =
+        GitRepository("repo-name1", "Desc2", "url2", 1, 2, false, RepoType.Service, language = Some("Scala"))
+      val teamAndRepositories2 =
+        TeamRepositories("test-team2", List(gitRepository2), System.currentTimeMillis())
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories2))
+
+      a[RuntimeException] should be thrownBy await(mongoTeamsAndReposPersister.deleteRepo(gitRepository1.name))
+    }
+  }
 }

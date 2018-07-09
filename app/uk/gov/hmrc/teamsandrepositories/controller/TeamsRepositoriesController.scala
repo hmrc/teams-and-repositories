@@ -52,7 +52,7 @@ class TeamsRepositoriesController @Inject()(
 
   val TimestampHeaderName = "X-Cache-Timestamp"
 
-  val repositoriesToIgnore: List[String] =
+  lazy val repositoriesToIgnore: List[String] =
     configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
 
   implicit val environmentFormats = Json.format[Link]
@@ -167,6 +167,15 @@ class TeamsRepositoriesController @Inject()(
 
   def clearCache() = Action.async {
     teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
+  }
+
+  def deleteRepo(repoName: String) = Action.async {
+    teamsAndReposPersister
+      .deleteRepo(repoName)
+      .map {
+        case Some(removedRepo) => Ok(Json.obj("message" -> s"'$removedRepo' repository removed"))
+        case None              => NotFound
+      }
   }
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =

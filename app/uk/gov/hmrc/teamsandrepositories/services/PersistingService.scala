@@ -113,9 +113,8 @@ case class PersistingService @Inject()(
     import BlockingIOExecutionContext._
 
     val teamNamesFromMongo: Future[Set[String]] = {
-      persister.getAllTeamsAndRepos.map {
-        case (allPersistedTeamAndRepositories) =>
-          allPersistedTeamAndRepositories.map(_.teamName).toSet
+      persister.getAllTeamsAndRepos.map { allPersistedTeamAndRepositories =>
+        allPersistedTeamAndRepositories.map(_.teamName).toSet
       }
     }
 
@@ -125,7 +124,7 @@ case class PersistingService @Inject()(
       mongoTeams <- teamNamesFromMongo
     } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
 
-    orphanTeams.flatMap { (teamNames: Set[String]) =>
+    orphanTeams.flatMap { teamNames: Set[String] =>
       Logger.info(s"Removing these orphan teams:[$teamNames]")
       persister.deleteTeams(teamNames)
     }

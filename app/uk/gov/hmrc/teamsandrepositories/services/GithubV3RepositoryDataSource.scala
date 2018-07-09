@@ -79,7 +79,7 @@ class GithubV3RepositoryDataSource(
         val updatedRepositories: Future[Seq[GitRepository]] =
           futureHelpers.runFuturesSequentially(nonHiddenRepos)(repo => mapRepository(team, repo, persistedTeams))
 
-        updatedRepositories.map { (repos: Seq[GitRepository]) =>
+        updatedRepositories.map { repos: Seq[GitRepository] =>
           TeamRepositories(team.name, repositories = repos.toList, timestampF())
         }
       }

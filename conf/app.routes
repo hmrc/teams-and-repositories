@@ -17,3 +17,4 @@ GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositori
 GET         /api/cache/reload                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.reloadCache(full: Option[Boolean])
 POST        /api/cache/clear                     @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.clearCache
 GET         /api/cache/all                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.all
+DELETE      /api/cache/:repoName                 @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.deleteRepo(repoName: String)
