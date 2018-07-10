@@ -87,10 +87,9 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def services() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        Ok(determineServicesResponse(request, allTeamsAndRepos))
+  def services(serviceNames: List[String]) = Action.async { implicit request =>
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      Ok(determineServicesResponse(request, allTeamsAndRepos))
     }
   }
 

@@ -42,6 +42,9 @@ class TeamsAndReposPersister @Inject()(
   def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos
 
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
+
   def clearAllData: Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
 
@@ -88,6 +91,12 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
     }
 
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
+
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[List[TeamRepositories]] =
+    collection.find(
+      //﻿db.getCollection('teamsAndRepositories').find({"repositories": {$elemMatch: { $or: [{"name" : "alert-config"}, {"name": "Play-ReactiveMongo"}]}}}).count()
+      Json.obj("$elemMatch" -> Json.obj("repositories" -> Json.obj("name" -> repoName))),
+    )
 
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 

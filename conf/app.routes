@@ -5,7 +5,7 @@ GET         /api/teams/:team                     @uk.gov.hmrc.teamsandrepositori
 GET         /api/teams_with_details/:team        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoriesWithDetailsByTeam(team)
 GET         /api/teams_with_repositories         @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allTeamsAndRepositories()
 
-GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services
+GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services(serviceName: List[String])
 GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.libraries
 GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoryDetails(name)
 GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allRepositories
