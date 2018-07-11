@@ -287,7 +287,14 @@ class PersistingServiceSpec
       }
     })
 
-    new PersistingService(githubConfig, persister, githubClientDecorator, testTimestamper, metrics, Configuration(), new FutureHelpers(metrics)) {
+    new PersistingService(
+      githubConfig,
+      persister,
+      githubClientDecorator,
+      testTimestamper,
+      metrics,
+      Configuration(),
+      new FutureHelpers(metrics)) {
       override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
     }
   }

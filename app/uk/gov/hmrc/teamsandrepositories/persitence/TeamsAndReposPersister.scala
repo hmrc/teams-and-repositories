@@ -18,9 +18,10 @@ package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
+import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONObjectID, BSONRegex}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
@@ -41,6 +42,9 @@ class TeamsAndReposPersister @Inject()(
 
   def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos
+
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
 
   def clearAllData: Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
@@ -88,6 +92,13 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
     }
 
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
+
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[List[TeamRepositories]] = {
+    val serviceNamesJson =
+      serviceNames.map(serviceName =>
+        toJsFieldJsValueWrapper(Json.obj("name" -> BSONRegex("^" + serviceName + "$", "i"))))
+    find("repositories" -> Json.obj("$elemMatch" -> Json.obj("$or" -> Json.arr(serviceNamesJson: _*))))
+  }
 
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
