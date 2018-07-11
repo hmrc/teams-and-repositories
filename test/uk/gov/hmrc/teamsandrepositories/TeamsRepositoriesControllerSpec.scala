@@ -755,6 +755,30 @@ class TeamsRepositoriesControllerSpec
     }
   }
 
+  "Deleting a team" should {
+
+    "return OK if the persister return non empty set" in new Setup {
+
+      val teamName = "name"
+
+      when(mockTeamsAndReposPersister.deleteTeams(Set(teamName))).thenReturn(Future.successful(Set(teamName)))
+
+      val result = controller.deleteTeam(teamName)(FakeRequest())
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.obj("message" -> s"'$teamName' team removed")
+    }
+
+    "return NOT_FOUND if the persister return an empty set" in new Setup {
+
+      val teamName = "name"
+
+      when(mockTeamsAndReposPersister.deleteTeams(Set(teamName))).thenReturn(Future.successful(Set.empty[String]))
+
+      val result = controller.deleteTeam(teamName)(FakeRequest())
+      status(result) mustBe NOT_FOUND
+    }
+  }
+
   "Deleting a repo" should {
 
     "return OK if the persister return Some" in new Setup {

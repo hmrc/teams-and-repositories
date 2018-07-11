@@ -36,6 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object BlockingIOExecutionContext {
   implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 }
+
 @Singleton
 class TeamsRepositoriesController @Inject()(
   dataReloadScheduler: DataReloadScheduler,
@@ -166,6 +167,15 @@ class TeamsRepositoriesController @Inject()(
 
   def clearCache() = Action.async {
     teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
+  }
+
+  def deleteTeam(name: String) = Action.async {
+    teamsAndReposPersister
+      .deleteTeams(Set(name))
+      .map {
+        case removed if removed.isEmpty => NotFound
+        case removed                    => Ok(Json.obj("message" -> s"'${removed.mkString(", ")}' team removed"))
+      }
   }
 
   def deleteRepo(repoName: String) = Action.async {
