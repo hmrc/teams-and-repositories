@@ -102,9 +102,6 @@ class GithubV3RepositoryDataSourceSpec
       captor +:= teamsAndRepositories
       Future(teamsAndRepositories)(ec)
     }
-
-    override def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
-      Future.successful(Nil)
   }
 
   "Github v3 Data Source getTeamsWithOrgAndDataSourceDetails" should {

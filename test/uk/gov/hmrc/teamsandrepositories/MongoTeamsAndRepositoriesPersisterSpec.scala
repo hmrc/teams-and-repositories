@@ -1,18 +1,14 @@
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{BeforeAndAfterEach, FunSpec, LoneElement, OptionValues}
-import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest}
+import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
+import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MongoTeamsAndRepositoriesPersisterSpec
@@ -36,7 +32,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
     await(mongoTeamsAndReposPersister.drop)
   }
 
-  "get all" should {
+  "getAllTeamAndRepos" should {
     "be able to add, get all teams and repos and delete everything... Everything!" in {
       val gitRepository1 =
         GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
@@ -57,20 +53,35 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
       val all = await(mongoTeamsAndReposPersister.getAllTeamAndRepos)
 
-      all.size shouldBe 2
-      val result1: TeamRepositories = all(0)
-      val result2: TeamRepositories = all(1)
+      all should contain theSameElementsAs Seq(teamAndRepositories1, teamAndRepositories2)
+    }
+  }
 
-      result1.teamName shouldBe "test-team1"
-      result2.teamName shouldBe "test-team2"
+  "getTeamsAndRepos" should {
+    "return a list of Teams and Repositories for a given list of service names" in {
+      val gitRepository1 =
+        GitRepository("Repo-Name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
+      val gitRepository2 =
+        GitRepository("repo-name2", "Desc2", "url2", 3, 4, false, RepoType.Library, language = Some("Scala"))
+      val teamAndRepositories1 =
+        TeamRepositories("test-team1", List(gitRepository1, gitRepository2), System.currentTimeMillis())
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
 
-      result1.repositories shouldBe List(gitRepository1, gitRepository2)
-      result2.repositories shouldBe List(gitRepository3, gitRepository4)
+      val gitRepository3 =
+        GitRepository("repo-name3", "Desc3", "url3", 1, 2, false, RepoType.Service, language = Some("Scala"))
+      val teamAndRepositories2 =
+        TeamRepositories("test-team2", List(gitRepository3), System.currentTimeMillis())
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories2))
 
-      await(mongoTeamsAndReposPersister.clearAllData)
-      val all2 = await(mongoTeamsAndReposPersister.getAllTeamAndRepos)
+      val gitRepository4 =
+        GitRepository("repo-name4", "Desc4", "url4", 3, 4, false, RepoType.Library, language = Some("Scala"))
+      val teamAndRepositories3 =
+        TeamRepositories("test-team2", List(gitRepository4), System.currentTimeMillis())
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories3))
 
-      all2.size shouldBe 0
+      val result = await(mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4")))
+
+      result should contain theSameElementsAs List(teamAndRepositories1, teamAndRepositories3)
     }
   }
 

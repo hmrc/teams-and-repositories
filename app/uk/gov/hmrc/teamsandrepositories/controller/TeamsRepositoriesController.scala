@@ -17,22 +17,19 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.net.URLDecoder
-import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.concurrent.Executors
-
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
+import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
-
+import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -68,7 +65,7 @@ class TeamsRepositoriesController @Inject()(
           case None =>
             NotFound
           case Some(x: RepositoryDetails) =>
-            Ok(Json.toJson(x))
+            Ok(toJson(x))
         }
     }
   }
@@ -82,13 +79,16 @@ class TeamsRepositoriesController @Inject()(
           case None =>
             NotFound
           case Some(x: DigitalService) =>
-            Ok(Json.toJson(x))
+            Ok(toJson(x))
         }
     }
   }
 
   def services(serviceNames: List[String]) = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+    (serviceNames match {
+      case Nil   => mongoTeamsAndReposPersister.getAllTeamsAndRepos
+      case names => mongoTeamsAndReposPersister.getTeamsAndRepos(names)
+    }) map { allTeamsAndRepos =>
       Ok(determineServicesResponse(request, allTeamsAndRepos))
     }
   }
@@ -110,25 +110,25 @@ class TeamsRepositoriesController @Inject()(
             .distinct
             .sorted
 
-        Ok(Json.toJson(digitalServices))
+        Ok(toJson(digitalServices))
     }
   }
 
   def all() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map(allRecords => Ok(Json.toJson(allRecords)))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map(allRecords => Ok(toJson(allRecords)))
   }
 
   def allRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
-        Ok(Json.toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
+        Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def teams() = Action.async { implicit request =>
     mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
-        Ok(Json.toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
+        Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
@@ -137,7 +137,7 @@ class TeamsRepositoriesController @Inject()(
       case (allTeamsAndRepos) =>
         TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
           case None    => NotFound
-          case Some(x) => Ok(Json.toJson(x.map { case (t, v) => (t.toString, v) }))
+          case Some(x) => Ok(toJson(x.map { case (t, v) => (t.toString, v) }))
         }
     }
   }
@@ -147,7 +147,7 @@ class TeamsRepositoriesController @Inject()(
       case (allTeamsAndRepos) =>
         TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
           case None    => NotFound
-          case Some(x) => Ok(Json.toJson(x))
+          case Some(x) => Ok(toJson(x))
         }
     }
   }
@@ -155,7 +155,7 @@ class TeamsRepositoriesController @Inject()(
   def allTeamsAndRepositories() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
       case (allTeamsAndRepos) =>
-        Ok(Json.toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
+        Ok(toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
@@ -179,16 +179,15 @@ class TeamsRepositoriesController @Inject()(
 
   private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(
-        TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
+      toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
-      Json.toJson(TeamRepositories.getRepositoryToTeamNameList(data))
-    else Json.toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Service))
+      toJson(TeamRepositories.getRepositoryToTeamNameList(data))
+    else
+      toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Service))
 
   private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
     if (request.getQueryString("details").nonEmpty)
-      Json.toJson(
-        TeamRepositories.getRepositoryDetailsList(data, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
+      toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
     else
-      Json.toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Library))
+      toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Library))
 }
