@@ -54,10 +54,8 @@ class TeamsAndReposPersister @Inject()(
     Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
   }
 
-  def deleteRepo(repoName: String): Future[Option[String]] = {
-    Logger.debug(s"Deleting repo: $repoName")
-    mongoTeamsAndReposPersister.deleteRepo(repoName)
-  }
+  def resetLastActiveDate(repoName: String): Future[Option[Int]] =
+    mongoTeamsAndReposPersister.resetLastActiveDate(repoName)
 }
 
 @Singleton
@@ -111,16 +109,15 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
         throw new RuntimeException(s"failed to remove $teamName")
     }
 
-  def deleteRepo(repoName: String): Future[Option[String]] =
+  def resetLastActiveDate(repoName: String): Future[Option[Int]] =
     collection.update(
-      selector = Json.obj(),
-      update   = Json.obj("$pull" -> Json.obj("repositories" -> Json.obj("name" -> repoName))),
+      selector = Json.obj("repositories.name" -> repoName),
+      update   = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
       multi    = true
     ) map { result =>
       result.nModified match {
-        case 0     => None
-        case 1     => Some(repoName)
-        case other => throw new RuntimeException(s"Removed $other number of '$repoName' repositories.")
+        case 0        => None
+        case modified => Some(modified)
       }
     }
 }

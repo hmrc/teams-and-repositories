@@ -60,28 +60,26 @@ class TeamsRepositoriesController @Inject()(
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
-          case None =>
-            NotFound
-          case Some(x: RepositoryDetails) =>
-            Ok(toJson(x))
-        }
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
+        case None =>
+          NotFound
+        case Some(x: RepositoryDetails) =>
+          Ok(toJson(x))
+      }
     }
   }
 
   def digitalServiceDetails(digitalServiceName: String) = Action.async {
     val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
 
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
-          case None =>
-            NotFound
-          case Some(x: DigitalService) =>
-            Ok(toJson(x))
-        }
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
+        case None =>
+          NotFound
+        case Some(x: DigitalService) =>
+          Ok(toJson(x))
+      }
     }
   }
 
@@ -95,23 +93,21 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def libraries() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        Ok(determineLibrariesResponse(request, allTeamsAndRepos))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      Ok(determineLibrariesResponse(request, allTeamsAndRepos))
     }
   }
 
   def digitalServices() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        val digitalServices: Seq[String] =
-          allTeamsAndRepos
-            .flatMap(_.repositories)
-            .flatMap(_.digitalServiceName)
-            .distinct
-            .sorted
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      val digitalServices: Seq[String] =
+        allTeamsAndRepos
+          .flatMap(_.repositories)
+          .flatMap(_.digitalServiceName)
+          .distinct
+          .sorted
 
-        Ok(toJson(digitalServices))
+      Ok(toJson(digitalServices))
     }
   }
 
@@ -120,43 +116,38 @@ class TeamsRepositoriesController @Inject()(
   }
 
   def allRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def teams() = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
   def repositoriesByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
-          case None    => NotFound
-          case Some(x) => Ok(toJson(x.map { case (t, v) => (t.toString, v) }))
-        }
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
+        case None    => NotFound
+        case Some(x) => Ok(toJson(x.map { case (t, v) => (t.toString, v) }))
+      }
     }
   }
 
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
-          case None    => NotFound
-          case Some(x) => Ok(toJson(x))
-        }
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
+        case None    => NotFound
+        case Some(x) => Ok(toJson(x))
+      }
     }
   }
 
   def allTeamsAndRepositories() = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map {
-      case (allTeamsAndRepos) =>
-        Ok(toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
+      Ok(toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
@@ -169,21 +160,12 @@ class TeamsRepositoriesController @Inject()(
     teamsAndReposPersister.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
   }
 
-  def deleteTeam(name: String) = Action.async {
+  def resetLastActiveDate(repoName: String) = Action.async {
     teamsAndReposPersister
-      .deleteTeams(Set(name))
+      .resetLastActiveDate(repoName)
       .map {
-        case removed if removed.isEmpty => NotFound
-        case removed                    => Ok(Json.obj("message" -> s"'${removed.mkString(", ")}' team removed"))
-      }
-  }
-
-  def deleteRepo(repoName: String) = Action.async {
-    teamsAndReposPersister
-      .deleteRepo(repoName)
-      .map {
-        case Some(removedRepo) => Ok(Json.obj("message" -> s"'$removedRepo' repository removed"))
-        case None              => NotFound
+        case Some(modified) => Ok(Json.obj("message" -> s"'$repoName' last active date reset for 1 team(s)"))
+        case None           => NotFound
       }
   }
 

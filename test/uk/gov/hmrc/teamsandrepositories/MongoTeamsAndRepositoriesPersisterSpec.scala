@@ -141,9 +141,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
     }
   }
 
-  "deleteRepo" should {
+  "resetLastActiveDate" should {
 
-    "remove repo with the given name" in {
+    "set repo's lastActiveDate to 0 and return 1 as number of modified records" in {
       val gitRepository1 =
         GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
       val gitRepository2 =
@@ -156,28 +156,18 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
       await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
 
-      await(mongoTeamsAndReposPersister.deleteRepo(gitRepository2.name)) shouldBe Some(gitRepository2.name)
+      await(mongoTeamsAndReposPersister.resetLastActiveDate(gitRepository2.name)) shouldBe Some(1)
 
       val persistedTeam = await(mongoTeamsAndReposPersister.getAllTeamAndRepos).head
 
-      persistedTeam.repositories should contain theSameElementsAs Seq(gitRepository1, gitRepository3)
+      persistedTeam.repositories should contain theSameElementsAs Seq(
+        gitRepository1,
+        gitRepository2.copy(lastActiveDate = 0L),
+        gitRepository3
+      )
     }
 
-    "do nothing if there is no repo with the given name" in {
-      val gitRepository1 =
-        GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
-
-      val teamAndRepositories1 =
-        TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
-
-      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
-
-      await(mongoTeamsAndReposPersister.deleteRepo("non-exisiting-repo")) shouldBe None
-
-      await(mongoTeamsAndReposPersister.getAllTeamAndRepos) shouldBe Seq(teamAndRepositories1)
-    }
-
-    "throw an exception if there are more repos with the given name" in {
+    "set lastActiveDate to 0 of all repos with the given name and return number of modified records" in {
       val gitRepository1 =
         GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
       val teamAndRepositories1 =
@@ -190,7 +180,26 @@ class MongoTeamsAndRepositoriesPersisterSpec
         TeamRepositories("test-team2", List(gitRepository2), System.currentTimeMillis())
       await(mongoTeamsAndReposPersister.insert(teamAndRepositories2))
 
-      a[RuntimeException] should be thrownBy await(mongoTeamsAndReposPersister.deleteRepo(gitRepository1.name))
+      await(mongoTeamsAndReposPersister.resetLastActiveDate(gitRepository1.name)) shouldBe Some(2)
+
+      await(mongoTeamsAndReposPersister.getAllTeamAndRepos) should contain theSameElementsAs Seq(
+        teamAndRepositories1.copy(repositories = List(gitRepository1.copy(lastActiveDate = 0L))),
+        teamAndRepositories2.copy(repositories = List(gitRepository2.copy(lastActiveDate = 0L)))
+      )
+    }
+
+    "do nothing if there is no repo with the given name" in {
+      val gitRepository1 =
+        GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"))
+
+      val teamAndRepositories1 =
+        TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
+
+      await(mongoTeamsAndReposPersister.insert(teamAndRepositories1))
+
+      await(mongoTeamsAndReposPersister.resetLastActiveDate("non-exisiting-repo")) shouldBe None
+
+      await(mongoTeamsAndReposPersister.getAllTeamAndRepos) shouldBe Seq(teamAndRepositories1)
     }
   }
 }

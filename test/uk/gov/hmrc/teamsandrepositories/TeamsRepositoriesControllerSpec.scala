@@ -26,7 +26,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json._
-import play.api.mvc.{AnyContentAsEmpty, Results}
+import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
@@ -751,54 +751,31 @@ class TeamsRepositoriesControllerSpec
         "library-repo",
         "middle-repo",
         "other-repo",
-        "repo-name")
+        "repo-name"
+      )
     }
   }
 
-  "Deleting a team" should {
-
-    "return OK if the persister return non empty set" in new Setup {
-
-      val teamName = "name"
-
-      when(mockTeamsAndReposPersister.deleteTeams(Set(teamName))).thenReturn(Future.successful(Set(teamName)))
-
-      val result = controller.deleteTeam(teamName)(FakeRequest())
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.obj("message" -> s"'$teamName' team removed")
-    }
-
-    "return NOT_FOUND if the persister return an empty set" in new Setup {
-
-      val teamName = "name"
-
-      when(mockTeamsAndReposPersister.deleteTeams(Set(teamName))).thenReturn(Future.successful(Set.empty[String]))
-
-      val result = controller.deleteTeam(teamName)(FakeRequest())
-      status(result) mustBe NOT_FOUND
-    }
-  }
-
-  "Deleting a repo" should {
+  "resetLastActiveDate" should {
 
     "return OK if the persister return Some" in new Setup {
 
       val repoName = "repo-name"
 
-      when(mockTeamsAndReposPersister.deleteRepo(repoName)).thenReturn(Future.successful(Some(repoName)))
+      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1)))
 
-      val result = controller.deleteRepo(repoName)(FakeRequest())
+      val result = controller.resetLastActiveDate(repoName)(FakeRequest())
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.obj("message" -> s"'$repoName' repository removed")
+      contentAsJson(result) mustBe Json.obj("message" -> s"'$repoName' last active date reset for 1 team(s)")
     }
 
     "return NOT_FOUND if the persister return None" in new Setup {
 
       val repoName = "repo-name"
 
-      when(mockTeamsAndReposPersister.deleteRepo(repoName)).thenReturn(Future.successful(None))
+      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(None))
 
-      val result = controller.deleteRepo(repoName)(FakeRequest())
+      val result = controller.resetLastActiveDate(repoName)(FakeRequest())
       status(result) mustBe NOT_FOUND
     }
   }
