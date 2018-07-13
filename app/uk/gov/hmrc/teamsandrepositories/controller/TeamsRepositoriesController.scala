@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.net.URLDecoder
 import java.util.concurrent.Executors
+
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.json.Json.toJson
@@ -30,7 +31,8 @@ import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
-import scala.concurrent.ExecutionContext
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object BlockingIOExecutionContext {
@@ -83,12 +85,20 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def services(serviceNames: List[String]) = Action.async { implicit request =>
-    (serviceNames match {
-      case Nil   => mongoTeamsAndReposPersister.getAllTeamsAndRepos
-      case names => mongoTeamsAndReposPersister.getTeamsAndRepos(names)
-    }) map { allTeamsAndRepos =>
+  def allServices = Action.async { implicit request =>
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos map { allTeamsAndRepos =>
       Ok(determineServicesResponse(request, allTeamsAndRepos))
+    }
+  }
+
+  def services = Action.async(parse.json) { implicit request =>
+    withJsonBody[Set[String]] {
+      case serviceNames if serviceNames.isEmpty =>
+        Future.successful(Ok(determineServicesResponse(request, Nil)))
+      case serviceNames =>
+        mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq) map { teamsAndRepos =>
+          Ok(determineServicesResponse(request, teamsAndRepos))
+        }
     }
   }
 
@@ -169,7 +179,7 @@ class TeamsRepositoriesController @Inject()(
       }
   }
 
-  private def determineServicesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]): JsValue =
+  private def determineServicesResponse[A](request: Request[A], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
       toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
     else if (request.getQueryString("teamDetails").nonEmpty)
