@@ -28,7 +28,6 @@ class FutureHelpers @Inject()(metrics: Metrics) {
 
   val defaultMetricsRegistry: MetricRegistry = metrics.defaultRegistry
 
-
   def withTimerAndCounter[T](name: String)(f: Future[T]) = {
     val t = defaultMetricsRegistry.timer(s"$name.timer").time()
     f.andThen {
@@ -90,7 +89,6 @@ object FutureHelpers {
     def filter[B](fn: A => Boolean)(implicit ec: ExecutionContext): Future[Iterable[A]] =
       futureList.map(_.filter(fn))
   }
-
 
   def continueOnError[A](f: Future[A]) =
     f.map(Success(_)).recover { case x => Failure(x) }

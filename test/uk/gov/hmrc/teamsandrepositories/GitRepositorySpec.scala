@@ -65,7 +65,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci         shouldBe List(Link("open1", "open 1", "http://open/a-library"))
+      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
     "create links for open services" in {
@@ -83,7 +83,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci         shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
+      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
     "create links for private libraries" in {
@@ -102,7 +102,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
+      repoDetails.ci        shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
     }
 
     "create links for private services" in {
@@ -121,7 +121,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci         shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
+      repoDetails.ci        shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
     }
 
     "create links for each environment" in {
@@ -180,7 +180,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci         shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
+      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
     }
 
     "create github and ci links for open libraries" in {
@@ -196,7 +196,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci         shouldBe List(Link("open1", "open 1", "http://open/a-library"))
+      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
     "just create github links if not Deployable or Library" in {
@@ -211,7 +211,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
 
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
-      repoDetails.githubUrl   shouldBe githubLink("https://github.com/org/a-repo")
+      repoDetails.githubUrl    shouldBe githubLink("https://github.com/org/a-repo")
       repoDetails.ci           shouldBe Seq.empty
       repoDetails.environments shouldBe Seq.empty
     }

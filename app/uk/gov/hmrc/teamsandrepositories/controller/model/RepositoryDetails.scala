@@ -8,18 +8,18 @@ case class Environment(name: String, services: Seq[Link])
 case class Link(name: String, displayName: String, url: String)
 
 case class RepositoryDetails(
-                              name: String,
-                              description: String,
-                              isPrivate: Boolean,
-                              createdAt: Long,
-                              lastActive: Long,
-                              repoType: RepoType.RepoType,
-                              owningTeams: Seq[String],
-                              teamNames: Seq[String],
-                              githubUrl: Link,
-                              ci: Seq[Link]                  = Seq.empty,
-                              environments: Seq[Environment] = Seq.empty,
-                              language: String)
+  name: String,
+  description: String,
+  isPrivate: Boolean,
+  createdAt: Long,
+  lastActive: Long,
+  repoType: RepoType.RepoType,
+  owningTeams: Seq[String],
+  teamNames: Seq[String],
+  githubUrl: Link,
+  ci: Seq[Link]                  = Seq.empty,
+  environments: Seq[Environment] = Seq.empty,
+  language: String)
 
 object RepositoryDetails {
   def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
@@ -33,7 +33,7 @@ object RepositoryDetails {
         repoType    = repo.repoType,
         owningTeams = repo.owningTeams,
         teamNames   = teamNames,
-        githubUrl  = Link("github-com", "GitHub.com", repo.url),
+        githubUrl   = Link("github-com", "GitHub.com", repo.url),
         language    = repo.language.getOrElse("")
       )
 
