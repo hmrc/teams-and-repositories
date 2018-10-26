@@ -26,7 +26,7 @@ import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
@@ -101,7 +101,7 @@ class PersistingServiceSpec
       when(dataSource.mapTeam(eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
-      when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
+      when(dataSource.getAllRepositories()).thenReturn(Future(reposWithoutTeams))
 
       val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
@@ -147,7 +147,7 @@ class PersistingServiceSpec
       when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource1))
 
-      when(dataSource.getAllRepositories(any())).thenReturn(Future(dataSource1ReposWithoutTeams))
+      when(dataSource.getAllRepositories()).thenReturn(Future(dataSource1ReposWithoutTeams))
 
       val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
@@ -201,7 +201,7 @@ class PersistingServiceSpec
       when(dataSource.mapTeam(eqTo(ghTeamC), any())).thenReturn(Future.successful(teamCRepositories))
       when(dataSource.mapTeam(eqTo(ghTeamD), any())).thenReturn(Future.successful(teamDRepositories))
 
-      when(dataSource.getAllRepositories(any())).thenReturn(Future(reposWithoutTeams))
+      when(dataSource.getAllRepositories()).thenReturn(Future(reposWithoutTeams))
 
       // N.B teamD has not been processed (does not exist in db)
       val persistedRepositoriesForOrdering = Seq(

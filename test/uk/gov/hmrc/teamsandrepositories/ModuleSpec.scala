@@ -6,8 +6,9 @@ import org.mockito.Mockito
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import org.scalatestplus.play.PlaySpec
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -25,7 +26,7 @@ class ModuleSpec
     with MockitoSugar
     with Results
     with OptionValues
-    with OneServerPerSuite
+    with GuiceOneServerPerSuite
     with Eventually {
 
   val testMongoLock = new MongoLock(mock[MongoConnector]) {

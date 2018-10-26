@@ -24,7 +24,7 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.time.SpanSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import uk.gov.hmrc.githubclient._
@@ -119,6 +119,22 @@ class GithubV3RepositoryDataSourceSpec
       result      should contain theSameElementsAs Seq(teamA, teamB)
     }
 
+  }
+
+  "Github v3 Data Source getAllRepositories" should {
+    "Return a list of teams and data sources filtering out hidden teams" in new Setup {
+      private val now = System.currentTimeMillis()
+      private val repo1 = GhRepository("repo1", "a test repo",       0, "http://github.com/repo1", false, now, now, false, "eng")
+      private val repo2 = GhRepository("repo2", "another test repo", 0, "http://github.com/repo2", false, now, now, false, "eng")
+      when(githubClient.getReposForOrg("hmrc")(ec)).thenReturn(Future.successful(List(repo1, repo2)))
+
+      private val result = dataSource.getAllRepositories().futureValue
+
+      result.size shouldBe 2
+      result      should contain theSameElementsAs List(
+         GitRepository("repo1","a test repo",       "http://github.com/repo1",now,now,false,RepoType.Other,None,List(),Some("eng"))
+        ,GitRepository("repo2","another test repo","http://github.com/repo2",now,now,false,RepoType.Other,None,List(),Some("eng")))
+    }
   }
 
   "Github v3 Data Source " should {

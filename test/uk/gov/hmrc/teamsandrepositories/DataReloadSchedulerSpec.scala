@@ -4,9 +4,10 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import org.scalatestplus.play.PlaySpec
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -25,7 +26,7 @@ class DataReloadSchedulerSpec
     with MockitoSugar
     with Results
     with OptionValues
-    with OneServerPerSuite
+    with GuiceOneServerPerSuite
     with Eventually
     with BeforeAndAfterAll {
 

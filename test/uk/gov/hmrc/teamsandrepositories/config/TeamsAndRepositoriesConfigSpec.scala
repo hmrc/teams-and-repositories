@@ -17,14 +17,15 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
+
 import scala.collection.immutable.ListMap
 
-class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with OneAppPerSuite with MockitoSugar {
+class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
   def templatesConfig: String =
     """
