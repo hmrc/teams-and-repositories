@@ -23,8 +23,9 @@ import java.util.Date
 import akka.actor.ActorSystem
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
@@ -44,7 +45,7 @@ class TeamsRepositoriesControllerSpec
     with MockitoSugar
     with Results
     with OptionValues
-    with OneServerPerSuite
+    with GuiceOneServerPerSuite
     with Eventually {
 
   private val now             = new Date().getTime
@@ -91,9 +92,7 @@ class TeamsRepositoriesControllerSpec
     actorSystem: Option[ActorSystem]  = None,
     updateTimestamp: LocalDateTime): TeamsRepositoriesController = {
 
-    import scala.collection.JavaConverters._
-
-    when(mockConfiguration.getStringList("shared.repositories")).thenReturn(Some(listOfReposToIgnore.asJava))
+    when(mockConfiguration.getOptional[Seq[String]]("shared.repositories")).thenReturn(Some(listOfReposToIgnore))
     when(mockTeamsAndRepositories.getAllTeamsAndRepos).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
@@ -111,7 +110,8 @@ class TeamsRepositoriesControllerSpec
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
       mockConfiguration,
-      mockTeamsAndRepositories) {
+      mockTeamsAndRepositories,
+      stubControllerComponents()) {
 
       override lazy val repositoriesToIgnore = listOfReposToIgnore
     }
@@ -832,7 +832,8 @@ class TeamsRepositoriesControllerSpec
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
       mockConfiguration,
-      mockTeamsAndRepositories
+      mockTeamsAndRepositories,
+      stubControllerComponents()
     )
   }
 }

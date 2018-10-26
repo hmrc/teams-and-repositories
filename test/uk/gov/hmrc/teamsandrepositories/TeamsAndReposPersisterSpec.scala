@@ -5,14 +5,15 @@ import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
+
 import scala.concurrent.Future
 
 class TeamsAndReposPersisterSpec
@@ -24,7 +25,7 @@ class TeamsAndReposPersisterSpec
     with MongoSpecSupport
     with ScalaFutures
     with BeforeAndAfterEach
-    with OneAppPerSuite {
+    with GuiceOneAppPerSuite {
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()

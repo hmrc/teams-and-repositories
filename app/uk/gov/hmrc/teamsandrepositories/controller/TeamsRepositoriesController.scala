@@ -24,7 +24,7 @@ import play.api.Configuration
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
@@ -32,11 +32,11 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object BlockingIOExecutionContext {
-  implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 }
 
 @Singleton
@@ -45,15 +45,15 @@ class TeamsRepositoriesController @Inject()(
   teamsAndReposPersister: TeamsAndReposPersister,
   urlTemplatesProvider: UrlTemplatesProvider,
   configuration: Configuration,
-  mongoTeamsAndReposPersister: TeamsAndReposPersister)
-    extends BaseController {
+  mongoTeamsAndReposPersister: TeamsAndReposPersister,
+  controllerComponents: ControllerComponents)
+    extends BackendController(controllerComponents) {
 
-  import scala.collection.JavaConverters._
 
   val TimestampHeaderName = "X-Cache-Timestamp"
 
   lazy val repositoriesToIgnore: List[String] =
-    configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
+    configuration.getOptional[Seq[String]]("shared.repositories").map(_.toList).getOrElse(List.empty[String])
 
   implicit val environmentFormats = Json.format[Link]
   implicit val linkFormats        = Json.format[Environment]

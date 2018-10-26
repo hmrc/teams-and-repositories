@@ -2,13 +2,14 @@ package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MongoTeamsAndRepositoriesPersisterSpec
@@ -18,7 +19,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
     with ScalaFutures
     with OptionValues
     with BeforeAndAfterEach
-    with OneAppPerSuite {
+    with GuiceOneAppPerSuite {
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()

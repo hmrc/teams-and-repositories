@@ -28,12 +28,10 @@ case class PersistingService @Inject()(
   configuration: Configuration,
   futureHelpers: FutureHelpers) {
 
-  import scala.collection.JavaConverters._
-
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
   val repositoriesToIgnore: List[String] =
-    configuration.getStringList("shared.repositories").fold(List.empty[String])(_.asScala.toList)
+    configuration.getOptional[Seq[String]]("shared.repositories").map(_.toList).getOrElse(List.empty[String])
 
   val gitOpenClient: GithubApiClient =
     githubApiClientDecorator

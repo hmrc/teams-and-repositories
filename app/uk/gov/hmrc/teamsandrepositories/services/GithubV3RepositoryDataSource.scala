@@ -37,6 +37,7 @@ import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
+
 class GithubV3RepositoryDataSource(
   githubConfig: GithubConfig,
   val gh: GithubApiClient,
@@ -90,24 +91,17 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  def getAllRepositories(implicit ec: ExecutionContext): Future[List[GitRepository]] =
-    Future {
-      gh.repositoryService
-        .getOrgRepositories(HMRC_ORG)
-        .asScala
-        .map { r: Repository =>
-          GitRepository(
-            name           = r.getName,
-            description    = Option(r.getDescription).getOrElse(""),
-            url            = r.getHtmlUrl,
-            createdDate    = r.getCreatedAt.getTime,
-            lastActiveDate = r.getPushedAt.getTime,
-            isPrivate      = r.isPrivate,
-            language       = Option(r.getLanguage)
-          )
-        }
-        .toList
+  def getAllRepositories(): Future[List[GitRepository]] = {
+    withCounter(s"github.open.allRepos") {
+      gh.getReposForOrg(HMRC_ORG)
+        .map(repos => repos.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
+    }.recoverWith {
+      case NonFatal(ex) =>
+        Logger.error("Could not retrieve repo list for organisation.", ex)
+        Future.failed(ex)
     }
+  }
+
 
   def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
