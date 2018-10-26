@@ -14,8 +14,7 @@ object AppDependencies {
     "org.yaml"                  % "snakeyaml"           % "1.17",
     "org.apache.httpcomponents" % "httpcore"            % "4.3.2",
     "org.apache.httpcomponents" % "httpclient"          % "4.3.5",
-    "uk.gov.hmrc"               %% "mongo-lock"         % "6.1.0-play-26",
-    "uk.gov.hmrc"               %% "play-reactivemongo" % "6.2.0"
+    "uk.gov.hmrc"               %% "mongo-lock"         % "6.1.0-play-26"
   )
   val test = Seq(
     "uk.gov.hmrc"            %% "bootstrap-play-26"  % bootstrapPlayVersion % Test classifier "tests",
