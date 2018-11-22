@@ -23,7 +23,7 @@ class IntegrationTestSupportController @Inject()(repo: TeamsAndReposPersister,
   }
 
   def clearAll() = Action.async { implicit  request =>
-     repo.clearAllData().map(_=> Ok("Ok"))
+     repo.clearAllData.map(_=> Ok("Ok"))
   }
 
 }
