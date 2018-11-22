@@ -18,34 +18,12 @@ class IntegrationTestSupportController @Inject()(repo: TeamsAndReposPersister,
   def validateJson[A : Reads] = parse.json.validate(
     _.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
-
-  /**
-  POST /test-only/team
-     [{
-         "teamName" : "StubbingTeam",
-         "repositories" : [
-             {
-                 "name" : "stub-frontend",
-                 "description" : "",
-                 "url" : "https://github.com/hmrc/stub-frontend",
-                 "createdDate" : 1456326530000,
-                 "lastActiveDate" : 1541071695000,
-                 "isPrivate" : false,
-                 "repoType" : "Service",
-                 "digitalServiceName" : "Testing",
-                 "owningTeams" : [],
-                 "language" : "Scala"
-             }
-         ],
-         "updateDate" : 1542202914078
-     }]
-    */
   def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
-    Future.sequence( request.body.map(repo.update) ).map(_ => Ok("Done"))
+    Future.sequence( request.body.map(repo.update) ).map { _ => Ok("Done") }
   }
 
-  def clearAll() = Action.async { implicit request =>
-    repo.clearAllData.map(_ => Ok("Done"))
+  def clearAll() = Action.async { implicit  request =>
+     repo.clearAllData().map(_=> Ok("Ok"))
   }
 
 }
