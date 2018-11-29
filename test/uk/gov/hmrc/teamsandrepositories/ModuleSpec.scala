@@ -41,6 +41,7 @@ class ModuleSpec
 
   when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(intervalDuration)
   when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
+  when(mockCacheConfig.teamsCacheReloadEnabled).thenReturn(true)
 
   val mockGitCompositeDataSource = mock[PersistingService]
   when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))

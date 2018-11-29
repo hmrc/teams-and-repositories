@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
+
+import java.io.File
+
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
@@ -25,23 +28,25 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
   val githubHiddenTeamsConfigKey        = "github.hidden.teams"
 
-  val githubApiOpenConfig =
-    getGitApiConfig(githubOpenConfigKey).getOrElse(GitApiConfig.fromFile(gitPath(".credentials")))
+  val host = configuration.getOptional[String](s"$githubOpenConfigKey.host")
+  val user = configuration.getOptional[String](s"$githubOpenConfigKey.user")
+  val key = configuration.getOptional[String](s"$githubOpenConfigKey.key")
+
+  val githubApiOpenConfig: GitApiConfig =
+    (user, key, host) match {
+      case (Some(u), Some(k), Some(h)) => GitApiConfig(u, k, h)
+      case (None, None, None) if new File(gitPath(".credentials")).exists() => GitApiConfig.fromFile(gitPath(".credentials"))
+      case _ => GitApiConfig("user_not_set", "key_not_set", "https://hostnotset.com")
+    }
 
   val hiddenRepositories =
-    configuration.getString(githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+    configuration.getOptional[String](githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
   val hiddenTeams =
-    configuration.getString(githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+    configuration.getOptional[String](githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
 
   private def gitPath(gitFolder: String): String =
     s"${System.getProperty("user.home")}/.github/$gitFolder"
 
-  private def getGitApiConfig(base: String): Option[GitApiConfig] =
-    for {
-      host <- configuration.getString(s"$base.host")
-      user <- configuration.getString(s"$base.user")
-      key  <- configuration.getString(s"$base.key")
-    } yield GitApiConfig(user, key, host)
 
 }

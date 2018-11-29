@@ -20,18 +20,23 @@ class DataReloadScheduler @Inject()(
   cacheConfig: CacheConfig,
   mongoLock: MongoLock)(implicit ec: ExecutionContext) {
 
+  private val cacheReloadEnabled = cacheConfig.teamsCacheReloadEnabled
   private val cacheInitialDelay = cacheConfig.teamsCacheInitialDelay
   private val cacheDuration     = cacheConfig.teamsCacheDuration
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
 
   private val scheduledReload = actorSystem.scheduler.schedule(cacheInitialDelay, cacheDuration) {
-    Logger.info("Scheduled teams repository cache reload triggered")
-    reload.andThen {
-      case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
-        removeDeletedTeams(teamRepositoriesFromGh)
-      case Failure(t) =>
-        throw new RuntimeException("Failed to reload and persist teams and repository data from gitub", t)
+    if (cacheReloadEnabled) {
+        Logger.info("Scheduled teams repository cache reload triggered")
+        reload.andThen {
+          case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
+            removeDeletedTeams(teamRepositoriesFromGh)
+          case Failure(t) =>
+            throw new RuntimeException("Failed to reload and persist teams and repository data from gitub", t)
+        }
+      } else {
+          Logger.info("Scheduled teams repository cache reload is disable.  You can enable it by setting cache.teams.reloadEnabled=true")
     }
   }
 

@@ -50,6 +50,7 @@ class DataReloadSchedulerSpec
 
     when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(100 millisecond)
     when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
+    when(mockCacheConfig.teamsCacheReloadEnabled).thenReturn(true)
 
     new DataReloadScheduler(
       actorSystem          = app.actorSystem,
@@ -61,5 +62,30 @@ class DataReloadSchedulerSpec
 
     verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
     verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
+  }
+
+  "reloading the cache" should {
+    "be disabled" in {
+      val mockCacheConfig = mock[CacheConfig]
+      val mockGitCompositeDataSource = mock[PersistingService]
+
+      when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
+      when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
+
+      when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(100 millisecond)
+      when(mockCacheConfig.teamsCacheDuration).thenReturn(100 millisecond)
+      when(mockCacheConfig.teamsCacheReloadEnabled).thenReturn(false)
+
+      new DataReloadScheduler(
+        actorSystem = app.actorSystem,
+        applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle],
+        persistingService = mockGitCompositeDataSource,
+        cacheConfig = mockCacheConfig,
+        mongoLock = testMongoLock
+      )
+
+      verify(mockGitCompositeDataSource, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
+      verify(mockGitCompositeDataSource, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
+    }
   }
 }
