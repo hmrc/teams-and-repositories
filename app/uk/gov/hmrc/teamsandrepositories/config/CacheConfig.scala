@@ -23,14 +23,14 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class CacheConfig @Inject()(configuration: Configuration) {
-  private val teamsCacheInitialDurationConfigPath = "cache.teams.initialDelay"
-  private val teamsCacheDurationConfigPath        = "cache.teams.duration"
-
   private val defaultTimeout = 2 hours
 
+  def teamsCacheReloadEnabled: Boolean = configuration.getOptional[Boolean]("cache.teams.reloadEnabled").getOrElse(false)
+
   def teamsCacheInitialDelay: FiniteDuration =
-    configuration.getMilliseconds(teamsCacheInitialDurationConfigPath).map(_.milliseconds).getOrElse(1 minute)
+    configuration.getOptional[Long]("cache.teams.initialDelay").map(_.milliseconds).getOrElse(1 minute)
+
   def teamsCacheDuration: FiniteDuration =
-    configuration.getMilliseconds(teamsCacheDurationConfigPath).map(_.milliseconds).getOrElse(defaultTimeout)
+    configuration.getOptional[Long]("cache.teams.duration").map(_.milliseconds).getOrElse(defaultTimeout)
 
 }
