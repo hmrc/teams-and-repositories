@@ -65,26 +65,20 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       mongo          = mongoConnector.db,
       domainFormat   = TeamRepositories.formats) {
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(
+  override def indexes: Seq[Index] =
       Seq(
-        collection.indexesManager.ensure(Index(Seq("teamName" -> IndexType.Hashed), name = Some("teamNameIdx")))
-      )
-    )
+        Index(
+          Seq("teamName" -> IndexType.Hashed),
+          name = Some("teamNameIdx")))
 
   def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] =
     futureHelpers.withTimerAndCounter("mongo.update") {
-      for {
-        update <- collection.update(
-                   selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
-                   update   = teamAndRepos,
-                   upsert   = true)
-      } yield
-        update match {
-          case _ =>
-            teamAndRepos
-        }
-    } recover {
+        collection.update(
+            selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
+            update   = teamAndRepos,
+            upsert   = true)
+          .map(_ => teamAndRepos)
+    }.recover {
       case lastError =>
         throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
     }
@@ -102,8 +96,10 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
 
   def deleteTeam(teamName: String): Future[String] =
     futureHelpers.withTimerAndCounter("mongo.cleanup") {
-      collection.remove(selector = Json.obj("teamName" -> Json.toJson(teamName))).map(_ => teamName)
-    } recover {
+      collection
+        .remove(selector = Json.obj("teamName" -> Json.toJson(teamName)))
+        .map(_ => teamName)
+    }.recover {
       case lastError =>
         logger.error(s"Failed to remove $teamName", lastError)
         throw new RuntimeException(s"failed to remove $teamName")
@@ -114,7 +110,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       selector = Json.obj("repositories.name" -> repoName),
       update   = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
       multi    = true
-    ) map { result =>
+    ).map { result =>
       result.nModified match {
         case 0        => None
         case modified => Some(modified)
