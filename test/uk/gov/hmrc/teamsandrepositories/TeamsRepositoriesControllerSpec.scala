@@ -419,9 +419,9 @@ class TeamsRepositoriesControllerSpec
       ciDetails.size mustBe 1
 
       ciDetails(0).as[JsObject].as[Map[String, String]] mustBe Map(
-        "name"        -> "open",
-        "displayName" -> "open",
-        "url"         -> "library-repo")
+        "name"        -> "Build",
+        "displayName" -> "Build",
+        "url"         -> "https://build.tax.service.gov.uk/job/test-team/job/library-repo")
     }
   }
 
