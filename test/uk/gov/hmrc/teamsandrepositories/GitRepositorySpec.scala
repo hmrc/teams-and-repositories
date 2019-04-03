@@ -29,18 +29,6 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
   val now = DateTimeUtils.now.getMillis
 
   val urlTemplates = UrlTemplates(
-    ciOpen = Seq(
-      UrlTemplate(
-        name        = "open1",
-        displayName = "open 1",
-        template    = "http://open/$name"
-      )),
-    ciClosed = Seq(
-      UrlTemplate(
-        name        = "closed1",
-        displayName = "closed 1",
-        template    = "http://closed/$name"
-      )),
     environments = ListMap(
       "env1" -> Seq(new UrlTemplate("log1", "log 1", "$name"), new UrlTemplate("mon1", "mon 1", "$name")),
       "env2" -> Seq(new UrlTemplate("log1", "log 1", "$name"))
