@@ -292,7 +292,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
           System.currentTimeMillis()
         ))
 
-      TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap())) shouldBe defined
+      TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap())) shouldBe defined
     }
     "find a repository where the name has a different case" in {
 
@@ -316,7 +316,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
         ))
 
       val Some(repositoryDetails) =
-        TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(Seq(), Seq(), ListMap()))
+        TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(ListMap()))
 
       repositoryDetails.name       shouldBe "repo1"
       repositoryDetails.repoType   shouldBe Library
@@ -361,7 +361,7 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
         )
       )
 
-      val result = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(Seq(), Seq(), ListMap()))
+      val result = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap()))
       result shouldBe None
     }
 

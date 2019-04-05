@@ -22,10 +22,7 @@ import play.api.libs.json.{Json, OFormat}
 
 import scala.collection.immutable.ListMap
 
-case class UrlTemplates(
-  ciClosed: Seq[UrlTemplate],
-  ciOpen: Seq[UrlTemplate],
-  environments: ListMap[String, Seq[UrlTemplate]])
+case class UrlTemplates(environments: ListMap[String, Seq[UrlTemplate]])
 
 case class UrlTemplate(name: String, displayName: String, template: String) {
   def url(serviceName: String) = template.replace("$name", serviceName)
@@ -38,23 +35,12 @@ object UrlTemplate {
 @Singleton
 class UrlTemplatesProvider @Inject()(configuration: Configuration) {
 
-  val ciUrlTemplates: UrlTemplates = {
-    configuration
-      .getConfig("url-templates")
-      .map { _ =>
-        val openConfigs   = getTemplatesForConfig("ci-open")
-        val closedConfigs = getTemplatesForConfig("ci-closed")
-        val envConfigs    = getTemplatesForEnvironments
-
-        UrlTemplates(closedConfigs, openConfigs, envConfigs)
-      }
-      .getOrElse(throw new RuntimeException("no url-templates config found"))
-  }
+  val ciUrlTemplates: UrlTemplates = UrlTemplates(getTemplatesForEnvironments())
 
   private def urlTemplates =
     configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
 
-  private def getTemplatesForEnvironments: ListMap[String, Seq[UrlTemplate]] = {
+  private def getTemplatesForEnvironments(): ListMap[String, Seq[UrlTemplate]] = {
     val configs = urlTemplates
       .getConfigSeq("envrionments")
       .getOrElse(throw new RuntimeException("incorrect environment configuration"))
@@ -75,15 +61,6 @@ class UrlTemplatesProvider @Inject()(configuration: Configuration) {
       }
       .foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, v) => acc + (v._1 -> v._2))
 
-  }
-
-  private def getTemplatesForConfig(path: String) = {
-    val configs = urlTemplates.getConfigSeq(path)
-    require(configs.exists(_.nonEmpty), s"no $path config found")
-
-    configs.get.flatMap { config =>
-      readLink(config)
-    }.distinct
   }
 
   private def readLink(config: Configuration): Option[UrlTemplate] =

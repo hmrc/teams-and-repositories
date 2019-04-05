@@ -29,18 +29,6 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
   val now = DateTimeUtils.now.getMillis
 
   val urlTemplates = UrlTemplates(
-    ciOpen = Seq(
-      UrlTemplate(
-        name        = "open1",
-        displayName = "open 1",
-        template    = "http://open/$name"
-      )),
-    ciClosed = Seq(
-      UrlTemplate(
-        name        = "closed1",
-        displayName = "closed 1",
-        template    = "http://closed/$name"
-      )),
     environments = ListMap(
       "env1" -> Seq(new UrlTemplate("log1", "log 1", "$name"), new UrlTemplate("mon1", "mon 1", "$name")),
       "env2" -> Seq(new UrlTemplate("log1", "log 1", "$name"))
@@ -50,43 +38,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
   def githubLink(url: String) = Link("github-com", "GitHub.com", url)
 
   "repoGroupToRepositoryDetails" should {
-    "create links for open libraries" in {
-      val repo =
-        GitRepository(
-          "a-library",
-          "Some Description",
-          "https://github.com/org/a-library",
-          now,
-          now,
-          repoType = RepoType.Library,
-          language = Some("Scala")
-        )
-
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
-
-      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-library"))
-    }
-
-    "create links for open services" in {
-      val repo =
-        GitRepository(
-          "a-frontend",
-          "Some Description",
-          "https://github.com/org/a-frontend",
-          now,
-          now,
-          repoType = RepoType.Service,
-          language = Some("Scala")
-        )
-
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
-
-      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
-    }
-
-    "create links for private libraries" in {
+    "create links for libraries" in {
       val repo =
         GitRepository(
           "a-library",
@@ -99,18 +51,82 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           language  = Some("Scala")
         )
 
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
+      val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci        shouldBe List(Link("closed1", "closed 1", "http://closed/a-library"))
+      repoDetails.ci        shouldBe List(Link("Build", "Build", "https://build.tax.service.gov.uk/job/a-team/job/a-library"))
     }
 
-    "create links for private services" in {
+    "create ci links for libraries belonging to multiple teams" in {
       val repo =
         GitRepository(
-          "a-frontend",
+          "a-library",
           "Some Description",
-          "https://github.com/org/a-frontend",
+          "https://github.com/org/a-library",
+          now,
+          now,
+          isPrivate = true,
+          repoType  = RepoType.Library,
+          language  = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
+
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
+      repoDetails.ci shouldBe List(
+        Link("a-team Build", "a-team Build", "https://build.tax.service.gov.uk/job/a-team/job/a-library"),
+        Link(
+          "another-team Build",
+          "another-team Build",
+          "https://build.tax.service.gov.uk/job/another-team/job/a-library")
+      )
+    }
+
+    "not create ci links for libraries without a team" in {
+      val repo =
+        GitRepository(
+          "a-library",
+          "Some Description",
+          "https://github.com/org/a-library",
+          now,
+          now,
+          isPrivate = true,
+          repoType  = RepoType.Library,
+          language  = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
+
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
+      repoDetails.ci        shouldBe List()
+    }
+
+    "url encode ci links with spaces correctly" in {
+      val repo =
+        GitRepository(
+          "a-library",
+          "Some Description",
+          "https://github.com/org/a-library",
+          now,
+          now,
+          isPrivate = true,
+          repoType  = RepoType.Library,
+          language  = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(repo, Seq("a team"), urlTemplates)
+
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
+      repoDetails.ci shouldBe List(
+        Link("Build", "Build", "https://build.tax.service.gov.uk/job/a%20team/job/a-library"))
+    }
+
+    "create links for services" in {
+      val repo =
+        GitRepository(
+          "a-service",
+          "Some Description",
+          "https://github.com/org/a-service",
           now,
           now,
           isPrivate = true,
@@ -118,10 +134,88 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
           language  = Some("Scala")
         )
 
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
+      val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
 
-      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci        shouldBe List(Link("closed1", "closed 1", "http://closed/a-frontend"))
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-service")
+      repoDetails.ci        shouldBe List(Link("Build", "Build", "https://build.tax.service.gov.uk/job/a-team/job/a-service"))
+    }
+
+    "create ci links for services belonging to multiple teams" in {
+      val repo =
+        GitRepository(
+          "a-service",
+          "Some Description",
+          "https://github.com/org/a-service",
+          now,
+          now,
+          isPrivate = true,
+          repoType  = RepoType.Service,
+          language  = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
+
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-service")
+      repoDetails.ci shouldBe List(
+        Link("a-team Build", "a-team Build", "https://build.tax.service.gov.uk/job/a-team/job/a-service"),
+        Link(
+          "another-team Build",
+          "another-team Build",
+          "https://build.tax.service.gov.uk/job/another-team/job/a-service")
+      )
+    }
+
+    "not create ci links for services without a team" in {
+      val repo =
+        GitRepository(
+          "a-service",
+          "Some Description",
+          "https://github.com/org/a-service",
+          now,
+          now,
+          isPrivate = true,
+          repoType  = RepoType.Service,
+          language  = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
+
+      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-service")
+      repoDetails.ci        shouldBe List()
+    }
+
+    "not create ci links for prototype repositories" in {
+      val aLibrary =
+        GitRepository(
+          "a-prototype",
+          "Some Description",
+          "https://not-open-github/org/a-library",
+          now,
+          now,
+          repoType = RepoType.Prototype,
+          language = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
+
+      repoDetails.ci shouldBe Seq.empty
+    }
+
+    "not create ci links for other type of repositories" in {
+      val aLibrary =
+        GitRepository(
+          "a-other",
+          "Some Description",
+          "https://not-open-github/org/a-library",
+          now,
+          now,
+          repoType = RepoType.Other,
+          language = Some("Scala")
+        )
+
+      val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
+
+      repoDetails.ci shouldBe Seq.empty
     }
 
     "create links for each environment" in {
@@ -148,7 +242,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
         List(Link("log1", "log 1", "a-frontend")))
     }
 
-    "do not create environment links for libraries" in {
+    "not create environment links for libraries" in {
       val aLibrary =
         GitRepository(
           "a-library",
@@ -163,40 +257,6 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
 
       repoDetails.environments shouldBe Seq.empty
-    }
-
-    "create github and ci links for open services" in {
-      val repo =
-        GitRepository(
-          "a-frontend",
-          "Some Description",
-          "https://github.com/org/a-frontend",
-          now,
-          now,
-          repoType = RepoType.Service,
-          language = Some("Scala")
-        )
-
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
-
-      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-frontend")
-      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-frontend"))
-    }
-
-    "create github and ci links for open libraries" in {
-      val repo = GitRepository(
-        "a-library",
-        "Some Description",
-        "https://github.com/org/a-library",
-        now,
-        now,
-        repoType = RepoType.Library,
-        language = Some("Scala"))
-
-      val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
-
-      repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
-      repoDetails.ci        shouldBe List(Link("open1", "open 1", "http://open/a-library"))
     }
 
     "just create github links if not Deployable or Library" in {

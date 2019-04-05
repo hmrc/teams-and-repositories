@@ -1,7 +1,12 @@
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
-import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
+import java.net.URI
+
+import play.api.Logger
+import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+
+import scala.util.{Failure, Success, Try}
 
 case class Environment(name: String, services: Seq[Link])
 
@@ -37,18 +42,13 @@ object RepositoryDetails {
         language    = repo.language.getOrElse("")
       )
 
-    if (hasEnvironment(repo)) {
-      repoDetails.copy(ci = buildCiUrls(repo, urlTemplates), environments = buildEnvironmentUrls(repo, urlTemplates))
-    } else if (hasBuild(repo)) {
-      repoDetails.copy(ci = buildCiUrls(repo, urlTemplates))
-    } else {
-      repoDetails
+    repo.repoType match {
+      case RepoType.Service =>
+        repoDetails.copy(ci = buildCiUrls(repoDetails), environments = buildEnvironmentUrls(repo, urlTemplates))
+      case RepoType.Library => repoDetails.copy(ci = buildCiUrls(repoDetails))
+      case _                => repoDetails
     }
   }
-
-  private def hasEnvironment(repo: GitRepository): Boolean = repo.repoType == RepoType.Service
-
-  private def hasBuild(repo: GitRepository): Boolean = repo.repoType == RepoType.Library
 
   private def buildEnvironmentUrls(repository: GitRepository, urlTemplates: UrlTemplates): Seq[Environment] =
     urlTemplates.environments.map {
@@ -59,14 +59,27 @@ object RepositoryDetails {
         Environment(name, links)
     }.toSeq
 
-  private def buildCiUrls(repository: GitRepository, urlTemplates: UrlTemplates): List[Link] =
-    if (repository.isPrivate) {
-      buildUrls(repository, urlTemplates.ciClosed)
-    } else {
-      buildUrls(repository, urlTemplates.ciOpen)
-    }
+  private def buildCiUrls(repo: RepositoryDetails): Seq[Link] = repo.teamNames match {
+    case Seq(teamName) => buildCiUrl("Build", "Build", teamName, repo.name).toSeq
+    case teamNames =>
+      teamNames.flatMap(teamName => {
+        val name = s"$teamName Build"
+        buildCiUrl(name, name, teamName, repo.name)
+      })
+  }
 
-  private def buildUrls(repo: GitRepository, templates: Seq[UrlTemplate]) =
-    templates.map(t => Link(t.name, t.displayName, t.url(repo.name))).toList
+  private def buildCiUrl(
+    linkName: String,
+    linkDisplayName: String,
+    jobTeamName: String,
+    repoName: String): Option[Link] =
+    Try {
+      new URI("https", "build.tax.service.gov.uk", s"/job/$jobTeamName/job/$repoName", null).toASCIIString
+    } match {
+      case Success(url) => Some(Link(linkName, linkDisplayName, url))
+      case Failure(throwable) =>
+        Logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
+        None
+    }
 
 }

@@ -16,49 +16,18 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import com.typesafe.config.ConfigFactory
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.collection.immutable.ListMap
 
 class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
-  def templatesConfig: String =
-    """
-        |{url-templates : {
-        |  ci-closed : [
-        |    {
-        |      name: "ci-closed1"
-        |      display-name: "closed 1"
-        |      url: "http://closed1/$name"
-        |    },
-        |    {
-        |      name: "ci-closed2"
-        |      display-name: "closed 2"
-        |      url: "http://closed2/$name"
-        |    }]
-        |  ci-open : [
-        |    {
-        |      name: "ci-open1"
-        |      display-name: "open 1"
-        |      url: "http://open1/$name"
-        |    },
-        |    {
-        |      name: "ci-open2"
-        |      display-name: "open 2"
-        |      url: "http://open2/$name"
-        |    }]
-        |}}
-      """.stripMargin
-
   implicit override lazy val app =
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule])
-      .configure(Configuration(ConfigFactory.parseString(templatesConfig)))
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
@@ -73,12 +42,6 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with GuiceOn
 
       val conf                    = new UrlTemplatesProvider(app.configuration)
       val templates: UrlTemplates = conf.ciUrlTemplates
-      templates.ciClosed shouldBe Seq(
-        UrlTemplate("ci-closed1", "closed 1", "http://closed1/$name"),
-        UrlTemplate("ci-closed2", "closed 2", "http://closed2/$name"))
-      templates.ciOpen shouldBe Seq(
-        UrlTemplate("ci-open1", "open 1", "http://open1/$name"),
-        UrlTemplate("ci-open2", "open 2", "http://open2/$name"))
       templates.environments.toList should contain theSameElementsInOrderAs ListMap(
         "env1" -> Seq(
           UrlTemplate("ser1", "ser 1", "http://ser1/$name"),

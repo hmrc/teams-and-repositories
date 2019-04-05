@@ -97,8 +97,6 @@ class TeamsRepositoriesControllerSpec
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
       UrlTemplates(
-        Seq(UrlTemplate("closed", "closed", "$name")),
-        Seq(UrlTemplate("open", "open", "$name")),
         ListMap(
           "env1" -> Seq(UrlTemplate("log1", "log 1", "$name"), UrlTemplate("mon1", "mon 1", "$name")),
           "env2" -> Seq(UrlTemplate("log1", "log 1", "$name"))
@@ -419,9 +417,9 @@ class TeamsRepositoriesControllerSpec
       ciDetails.size mustBe 1
 
       ciDetails(0).as[JsObject].as[Map[String, String]] mustBe Map(
-        "name"        -> "open",
-        "displayName" -> "open",
-        "url"         -> "library-repo")
+        "name"        -> "Build",
+        "displayName" -> "Build",
+        "url"         -> "https://build.tax.service.gov.uk/job/test-team/job/library-repo")
     }
   }
 
@@ -818,13 +816,10 @@ class TeamsRepositoriesControllerSpec
   private trait Setup {
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
       UrlTemplates(
-        Seq(UrlTemplate("closed", "closed", "$name")),
-        Seq(UrlTemplate("open", "open", "$name")),
         ListMap(
           "env1" -> Seq(UrlTemplate("log1", "log 1", "$name"), UrlTemplate("mon1", "mon 1", "$name")),
           "env2" -> Seq(UrlTemplate("log1", "log 1", "$name"))
-        )
-      )
+        ))
     )
 
     val controller = new TeamsRepositoriesController(
