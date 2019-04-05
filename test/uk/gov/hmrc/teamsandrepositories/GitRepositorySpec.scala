@@ -82,7 +82,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       )
     }
 
-    "not create ci links for libraries belonging to no teams" in {
+    "not create ci links for libraries without a team" in {
       val repo =
         GitRepository(
           "a-library",
@@ -165,7 +165,7 @@ class GitRepositorySpec extends WordSpec with Matchers with OptionValues {
       )
     }
 
-    "not create ci links for services belonging to no teams" in {
+    "not create ci links for services without a team" in {
       val repo =
         GitRepository(
           "a-service",
