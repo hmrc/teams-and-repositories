@@ -2,10 +2,11 @@ package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.net.URI
 
+import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class Environment(name: String, services: Seq[Link])
 
@@ -72,8 +73,13 @@ object RepositoryDetails {
     linkDisplayName: String,
     jobTeamName: String,
     repoName: String): Option[Link] =
-    Try(
+    Try {
       new URI("https", "build.tax.service.gov.uk", s"/job/$jobTeamName/job/$repoName", null).toASCIIString
-    ).toOption.map(url => Link(linkName, linkDisplayName, url))
+    } match {
+      case Success(url) => Some(Link(linkName, linkDisplayName, url))
+      case Failure(throwable) =>
+        Logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
+        None
+    }
 
 }
