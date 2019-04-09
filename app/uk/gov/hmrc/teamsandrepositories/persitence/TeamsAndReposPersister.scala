@@ -66,22 +66,22 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       domainFormat   = TeamRepositories.formats) {
 
   override def indexes: Seq[Index] =
-    Seq(
-      Index(
-        Seq("teamName" -> IndexType.Hashed),
-        name = Some("teamNameIdx")))
+    Seq(Index(Seq("teamName" -> IndexType.Hashed), name = Some("teamNameIdx")))
 
   def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] =
-    futureHelpers.withTimerAndCounter("mongo.update") {
-        collection.update(
+    futureHelpers
+      .withTimerAndCounter("mongo.update") {
+        collection
+          .update(
             selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
             update   = teamAndRepos,
             upsert   = true)
           .map(_ => teamAndRepos)
-    }.recover {
-      case lastError =>
-        throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
-    }
+      }
+      .recover {
+        case lastError =>
+          throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
+      }
 
   def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
 
@@ -95,25 +95,30 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
   def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
   def deleteTeam(teamName: String): Future[String] =
-    futureHelpers.withTimerAndCounter("mongo.cleanup") {
-      collection
-        .remove(selector = Json.obj("teamName" -> Json.toJson(teamName)))
-        .map(_ => teamName)
-    }.recover {
-      case lastError =>
-        logger.error(s"Failed to remove $teamName", lastError)
-        throw new RuntimeException(s"failed to remove $teamName")
-    }
+    futureHelpers
+      .withTimerAndCounter("mongo.cleanup") {
+        collection
+          .delete()
+          .one(q = Json.obj("teamName" -> Json.toJson(teamName)))
+          .map(_ => teamName)
+      }
+      .recover {
+        case lastError =>
+          logger.error(s"Failed to remove $teamName", lastError)
+          throw new RuntimeException(s"failed to remove $teamName")
+      }
 
   def resetLastActiveDate(repoName: String): Future[Option[Int]] =
-    collection.update(
-      selector = Json.obj("repositories.name" -> repoName),
-      update   = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
-      multi    = true
-    ).map { result =>
-      result.nModified match {
-        case 0        => None
-        case modified => Some(modified)
+    collection
+      .update(
+        selector = Json.obj("repositories.name" -> repoName),
+        update   = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
+        multi    = true
+      )
+      .map { result =>
+        result.nModified match {
+          case 0        => None
+          case modified => Some(modified)
+        }
       }
-    }
 }

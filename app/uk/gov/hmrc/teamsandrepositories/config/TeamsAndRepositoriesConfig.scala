@@ -25,7 +25,7 @@ import scala.collection.immutable.ListMap
 case class UrlTemplates(environments: ListMap[String, Seq[UrlTemplate]])
 
 case class UrlTemplate(name: String, displayName: String, template: String) {
-  def url(serviceName: String) = template.replace("$name", serviceName)
+  def url(serviceName: String): String = template.replace("$name", serviceName)
 }
 
 object UrlTemplate {
@@ -35,38 +35,22 @@ object UrlTemplate {
 @Singleton
 class UrlTemplatesProvider @Inject()(configuration: Configuration) {
 
-  val ciUrlTemplates: UrlTemplates = UrlTemplates(getTemplatesForEnvironments())
+  val ciUrlTemplates: UrlTemplates = UrlTemplates(retrieveTemplatesForEnvironments())
 
-  private def urlTemplates =
-    configuration.getConfig("url-templates").getOrElse(throw new RuntimeException("no url-templates config found"))
+  private def retrieveTemplatesForEnvironments(): ListMap[String, Seq[UrlTemplate]] = {
+    val envConfigs = configuration.get[Seq[Configuration]]("url-templates.envrionments")
 
-  private def getTemplatesForEnvironments(): ListMap[String, Seq[UrlTemplate]] = {
-    val configs = urlTemplates
-      .getConfigSeq("envrionments")
-      .getOrElse(throw new RuntimeException("incorrect environment configuration"))
-
-    configs
-      .map { cf =>
-        val envName = cf
-          .getString("name")
-          .getOrElse(throw new RuntimeException("incorrect environment configuration"))
-
-        val envTemplates = cf
-          .getConfigSeq("services")
-          .getOrElse(throw new RuntimeException("incorrect environment configuration"))
-          .map { s =>
-            readLink(s)
-          }
-        envName -> envTemplates.flatten
-      }
-      .foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, v) => acc + (v._1 -> v._2))
-
+    envConfigs.foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, envConfig) => {
+      val envName      = envConfig.get[String]("name")
+      val envTemplates = envConfig.get[Seq[Configuration]]("services").flatMap(readLink)
+      acc + (envName -> envTemplates)
+    })
   }
 
   private def readLink(config: Configuration): Option[UrlTemplate] =
     for {
-      name        <- config.getString("name")
-      displayName <- config.getString("display-name")
-      url         <- config.getString("url")
+      name        <- config.getOptional[String]("name")
+      displayName <- config.getOptional[String]("display-name")
+      url         <- config.getOptional[String]("url")
     } yield UrlTemplate(name, displayName, url)
 }
