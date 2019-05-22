@@ -268,6 +268,40 @@ class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
       result.map(_.createdAt)     shouldBe List(timestamp, timestamp)
       result.map(_.lastUpdatedAt) shouldBe List(timestamp, timestamp)
     }
+
+  }
+
+  "getAllRepositories" should {
+
+    "deduplicate results" in {
+      val teams = Seq(TeamRepositories(
+        "team1",
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        System.currentTimeMillis()),
+      TeamRepositories(
+        "team2",
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        System.currentTimeMillis()))
+
+      val res = TeamRepositories.getAllRepositories(teams)
+
+      res.length shouldBe 1
+    }
+
+    "deduplicate results when there is a last modified mismatch" in {
+      val teams = Seq(TeamRepositories(
+        "team1",
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        System.currentTimeMillis()),
+        TeamRepositories(
+          "team2",
+          List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp-1000, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+          System.currentTimeMillis()))
+
+      val res = TeamRepositories.getAllRepositories(teams)
+
+      res.length shouldBe 1
+    }
   }
 
   "findRepositoryDetails" should {

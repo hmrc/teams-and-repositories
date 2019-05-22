@@ -112,8 +112,10 @@ object TeamRepositories {
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
     teamRepos
       .flatMap(_.repositories)
-      .distinct
+      .groupBy(_.name)
+      .map { case (_ , v) => v.maxBy(_.lastActiveDate) }
       .map(Repository.create)
+      .toSeq
       .sortBy(_.name.toUpperCase)
 
   def findRepositoryDetails(
