@@ -24,7 +24,10 @@ class MongoTeamsAndRepositoriesPersisterSpec
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[Module])
-      .configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories"))
+      .configure(Map(
+        "mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories",
+        "metrics.jvm" -> false)
+      )
       .build()
 
   val mongoTeamsAndReposPersister = app.injector.instanceOf(classOf[MongoTeamsAndRepositoriesPersister])
