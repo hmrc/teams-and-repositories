@@ -16,22 +16,25 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import com.google.inject.Inject
+import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
-class CacheConfig @Inject()(configuration: Configuration) {
-  private val defaultTimeout = 2 hours
+class CacheConfigSpec extends WordSpec with Matchers {
 
-  def getDuration(key: String): Option[FiniteDuration] =
-    configuration.getOptional[FiniteDuration](key)
-
-  def teamsCacheReloadEnabled: Boolean = configuration.getOptional[Boolean]("cache.teams.reloadEnabled").getOrElse(false)
-
-  def teamsCacheInitialDelay: FiniteDuration = getDuration("cache.teams.initialDelay").getOrElse(1 minute)
-
-  def teamsCacheDuration: FiniteDuration = getDuration("cache.teams.duration").getOrElse(defaultTimeout)
+  "cache config" should {
+    "load the config" in {
+      val cacheConfig =
+        new CacheConfig(Configuration(
+          "cache.teams.reloadEnabled" -> "true",
+          "cache.teams.initialDelay" -> "5.minutes",
+          "cache.teams.duration" -> "5.minutes"
+        ))
+      cacheConfig.teamsCacheReloadEnabled shouldBe true
+      cacheConfig.teamsCacheInitialDelay shouldBe 5.minutes
+      cacheConfig.teamsCacheDuration shouldBe 5.minutes
+    }
+  }
 
 }

@@ -58,6 +58,7 @@ class ModuleSpec
         bind[MongoLock].toInstance(testMongoLock)
       )
       .overrides(new Module())
+      .configure("metrics.jvm" -> false)
       .build()
 
   "load DataReloadScheduler eagerly which should result in reload of the cache at the configured intervals" in {

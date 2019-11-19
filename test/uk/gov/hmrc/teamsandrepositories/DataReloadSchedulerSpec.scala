@@ -33,6 +33,7 @@ class DataReloadSchedulerSpec
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
+      .configure("metrics.jvm" -> false)
       .build()
 
   val testMongoLock = new MongoLock(mock[MongoConnector]) {

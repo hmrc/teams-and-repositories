@@ -30,6 +30,7 @@ class TeamsAndReposPersisterSpec
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
+      .configure("metrics.jvm" -> false)
       .build()
 
   private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]
