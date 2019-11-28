@@ -12,6 +12,7 @@ GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositori
 GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allRepositories
 GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServiceDetails(name)
 GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServices
+GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 
 
 # admin

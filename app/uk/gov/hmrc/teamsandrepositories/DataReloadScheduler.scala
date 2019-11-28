@@ -33,7 +33,7 @@ class DataReloadScheduler @Inject()(
           case Success(teamRepositoriesFromGh: Seq[TeamRepositories]) =>
             removeDeletedTeams(teamRepositoriesFromGh)
           case Failure(t) =>
-            throw new RuntimeException("Failed to reload and persist teams and repository data from gitub", t)
+            throw new RuntimeException("Failed to reload and persist teams and repository data from github", t)
         }
       } else {
           Logger.info("Scheduled teams repository cache reload is disable.  You can enable it by setting cache.teams.reloadEnabled=true")
