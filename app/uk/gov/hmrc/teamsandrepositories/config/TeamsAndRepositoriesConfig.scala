@@ -25,7 +25,7 @@ import scala.collection.immutable.ListMap
 case class UrlTemplates(environments: ListMap[String, Seq[UrlTemplate]])
 
 case class UrlTemplate(name: String, displayName: String, template: String) {
-  def url(serviceName: String): String = template.replace("$name", serviceName)
+  def url(serviceName: String): String = template.replace(s"$$name", serviceName)
 }
 
 object UrlTemplate {

@@ -13,4 +13,8 @@
 
 POST       /test-only/team            @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addTeams
 DELETE     /test-only/team            @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearAll
+
+POST       /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addJenkinsLinks
+DELETE     /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearJenkins
+
 ->         /                          prod.Routes
