@@ -5,10 +5,10 @@ import play.api.libs.json._
 case class BuildJob(service: String, jenkinsURL: String)
 
 object BuildJob {
-  implicit val formats: OFormat[BuildJob] =
+  val mongoFormats: OFormat[BuildJob] =
     Json.format[BuildJob]
 
-  implicit val apiWriter: Writes[BuildJob] = new Writes[BuildJob] {
+  val apiWriter: Writes[BuildJob] = new Writes[BuildJob] {
     override def writes(o: BuildJob): JsValue = Json.obj("service" -> o.service, "jenkinsURL" -> o.jenkinsURL)
   }
 

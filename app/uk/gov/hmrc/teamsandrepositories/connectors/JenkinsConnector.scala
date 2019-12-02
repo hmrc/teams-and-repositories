@@ -12,8 +12,8 @@ import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
@@ -46,49 +46,41 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
   }
 
    def findBuildJobRoot(): Future[Seq[JenkinsJob]] = {
-    findBuildJobs(config.baseUrl).map(root => JenkinsConnector.parse(root, findBuildJobs))
+     findBuildJobs(config.baseUrl).flatMap(root => JenkinsConnector.parse(root, findBuildJobs))
   }
 }
 
 object JenkinsConnector {
-  private def isFolder(job: JenkinsJob): Boolean = {
+  private def isFolder(job: JenkinsJob): Boolean =
     job._class == "com.cloudbees.hudson.plugins.folder.Folder"
-  }
 
-  private def isFolderOrProject(job: JenkinsJob): Boolean = {
-    job._class == "com.cloudbees.hudson.plugins.folder.Folder" || job._class == "hudson.model.FreeStyleProject"
-  }
+  private def isProject(job: JenkinsJob): Boolean =
+    job._class == "hudson.model.FreeStyleProject"
 
-  def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot]): Seq[JenkinsJob] = {
+  import cats.implicits._
 
-    var jobs = root.jobs.filter(isFolderOrProject)
-
-    while (jobs.exists(isFolder)) {
-      val folder = jobs.find(isFolder)
-
-      folder.foreach( f => {
-        val res = Await.result(findBuildJobsFunction(f.url), Duration(20, "seconds"))
-        jobs = res.jobs.filter(isFolderOrProject) ++ jobs.filterNot(_ == f)
-      })
-    }
-
-    jobs
+  def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot]): Future[Seq[JenkinsJob]] = {
+    root.jobs.toList.traverse {
+      case job if isFolder(job)  => findBuildJobsFunction(job.url).flatMap(parse(_, findBuildJobsFunction))
+      case job if isProject(job) => Future(Seq(job))
+      case _                     => Future(Seq.empty)
+    }.map(_.flatten)
   }
 }
 
 case class JenkinsRoot (_class: String, jobs: Seq[JenkinsJob])
 
-case class JenkinsJob(_class: String, displayName: String, url: String)
+case class JenkinsJob (_class: String, displayName: String, url: String)
 
 object JenkinsApiReads {
-  implicit val jenkinsRootReader: Reads[JenkinsRoot] = (
-    (JsPath \ "_class").read[String] and
-      (JsPath \ "jobs").lazyRead(Reads.seq[JenkinsJob])
-  )(JenkinsRoot.apply _)
+  implicit val jenkinsRootReader: Reads[JenkinsRoot] =
+    ( (__ \ "_class").read[String]
+    ~ (__ \ "jobs"  ).lazyRead(Reads.seq[JenkinsJob])
+    ) (JenkinsRoot.apply _)
 
-  implicit val jenkinsJobReader: Reads[JenkinsJob] = (
-    (JsPath \ "_class").read[String] and
-      (JsPath \ "name").read[String] and
-      (JsPath \ "url").read[String]
-    )(JenkinsJob.apply _)
+  implicit val jenkinsJobReader: Reads[JenkinsJob] =
+    ( (__ \ "_class").read[String]
+    ~ (__ \ "name").read[String]
+    ~ (__ \ "url").read[String]
+    ) (JenkinsJob.apply _)
 }

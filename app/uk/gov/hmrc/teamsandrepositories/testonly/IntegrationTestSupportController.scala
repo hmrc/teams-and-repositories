@@ -16,6 +16,8 @@ class IntegrationTestSupportController @Inject()(teamsRepo: TeamsAndReposPersist
                                                  futureHelpers: FutureHelpers,
                                                  cc: ControllerComponents) extends BackendController(cc) {
 
+  private implicit val mongoFormats: Reads[BuildJob] = BuildJob.mongoFormats
+
   def validateJson[A : Reads] = parse.json.validate(
     _.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 

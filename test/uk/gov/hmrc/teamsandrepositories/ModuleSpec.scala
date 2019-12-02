@@ -3,18 +3,19 @@ package uk.gov.hmrc.teamsandrepositories
 import com.google.inject.{Injector, Key, TypeLiteral}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
-import org.mockito.Mockito.{verify, when}
+import org.mockito.Mockito.{verify, when, _}
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import uk.gov.hmrc.teamsandrepositories.config.CacheConfig
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoConnector, MongoLock}
+import reactivemongo.api.DB
+import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
@@ -29,21 +30,24 @@ class ModuleSpec
     with GuiceOneServerPerSuite
     with Eventually {
 
-  val testMongoLock = new MongoLock(mock[MongoConnector]) {
+  def mockDB: () => DB = () => mock[DB]
+
+  val testMongoLock: MongoLock = new MongoLock(mockDB, "testLock") {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
       body.map(Some(_))
   }
 
   val testTimestamper = new Timestamper
 
-  val mockCacheConfig  = mock[CacheConfig]
-  val intervalDuration = 100 millisecond
+  val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
+  val intervalDuration: FiniteDuration = 100 millisecond
 
-  when(mockCacheConfig.teamsCacheInitialDelay).thenReturn(intervalDuration)
-  when(mockCacheConfig.teamsCacheDuration).thenReturn(intervalDuration)
-  when(mockCacheConfig.teamsCacheReloadEnabled).thenReturn(true)
+  when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
-  val mockGitCompositeDataSource = mock[PersistingService]
+  val mockGitCompositeDataSource: PersistingService = mock[PersistingService]
+
   when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
   when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any()))
     .thenReturn(Future.successful(Set.empty[String]))
@@ -52,7 +56,7 @@ class ModuleSpec
     new GuiceApplicationBuilder()
       .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .overrides(
-        bind[CacheConfig].toInstance(mockCacheConfig),
+        bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
         bind[Timestamper].toInstance(testTimestamper),
         bind[PersistingService].toInstance(mockGitCompositeDataSource),
         bind[MongoLock].toInstance(testMongoLock)

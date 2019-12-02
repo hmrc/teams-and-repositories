@@ -1,11 +1,12 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsSuccess, Json}
 
 import scala.concurrent.Future
 
-class JenkinsConnectorSpec extends WordSpec with Matchers {
+class JenkinsConnectorSpec extends WordSpec with Matchers with ScalaFutures {
   import JenkinsApiReads._
 
   "JenkinsJob" should {
@@ -90,7 +91,7 @@ class JenkinsConnectorSpec extends WordSpec with Matchers {
       val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("hudson.model.FreeStyleProject", "def", "https://jenkins/job/abc/job/def/"),
         JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "xyz", "https://jenkins/job/abc/job/xyz/")))
 
-      val res = JenkinsConnector.parse(mockRoot, mockLookup)
+      val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
       res.head._class shouldBe "hudson.model.FreeStyleProject"
@@ -101,7 +102,7 @@ class JenkinsConnectorSpec extends WordSpec with Matchers {
 
       val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456")))
 
-      val res = JenkinsConnector.parse(mockRoot, mockLookup)
+      val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
       res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123")
@@ -115,7 +116,7 @@ class JenkinsConnectorSpec extends WordSpec with Matchers {
 
       val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456")))
 
-      val res = JenkinsConnector.parse(mockRoot, mockLookup)
+      val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
       res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123")
@@ -129,7 +130,7 @@ class JenkinsConnectorSpec extends WordSpec with Matchers {
 
       val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456")))
 
-      val res = JenkinsConnector.parse(mockRoot, mockLookup)
+      val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
       res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123")

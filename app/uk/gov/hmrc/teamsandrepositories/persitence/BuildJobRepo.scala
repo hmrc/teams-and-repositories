@@ -20,7 +20,7 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
   extends ReactiveRepository[BuildJob, BSONObjectID] (
     collectionName = "jenkinsLinks",
     mongo          = mongoConnector.db,
-    domainFormat   = BuildJob.formats) {
+    domainFormat   = BuildJob.mongoFormats) {
 
   override def indexes: Seq[Index] =
     Seq(Index(Seq("service" -> IndexType.Hashed), name = Some("serviceIdx")))
@@ -34,8 +34,8 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
     collection
       .update(
         selector = Json.obj("service" -> buildJob.service),
-        update = Json.obj("$set" -> Json.obj("jenkinsURL" -> buildJob.jenkinsURL)),
-        upsert = true
+        update   = Json.obj("$set" -> Json.obj("jenkinsURL" -> buildJob.jenkinsURL)),
+        upsert   = true
       )
   }
 

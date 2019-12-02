@@ -4,44 +4,31 @@ import akka.actor.ActorSystem
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
-import reactivemongo.api.commands.UpdateWriteResult
-import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
+import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class JenkinsScheduler @Inject()(
-                                  actorSystem: ActorSystem,
-                                  applicationLifecycle: ApplicationLifecycle,
-                                  jenkinsService: JenkinsService,
-                                  config: JenkinsConfig,
-                                  mongoLock: MongoLock
-                                )(implicit ec: ExecutionContext) {
+class JenkinsScheduler @Inject()(jenkinsService: JenkinsService,
+                                 config: SchedulerConfigs,
+                                 mongoLocks: MongoLocks)(
+                                 implicit actorSystem: ActorSystem,
+                                 applicationLifecycle: ApplicationLifecycle)
+extends SchedulerUtils {
 
-  private val scheduledReload = actorSystem.scheduler.schedule(config.initialDelay, config.reloadDuration) {
-    if (config.reloadEnabled) {
-      Logger.info("Scheduled update of jenkins links triggered")
-      reload.recover {
-        case ex: Throwable => Logger.error("Failed to update jenkins links", ex)
-      }
-    }
-    else {
-      Logger.info("Jenkins reload scheduler is disabled. You can enable it by setting jenkins.reloadEnabled=true")
-    }
+  implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  import ExecutionContext.Implicits.global
+
+  scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, mongoLocks.jenkinsLock) {
+    for {
+      _ <- jenkinsService.updateBuildJobs()
+      _ =  Logger.info("Finished updating Build Jobs")
+    } yield ()
   }
 
-  private def reload: Future[Seq[UpdateWriteResult]] = {
-    mongoLock.tryLock {
-      Logger.info("Starting mongo update")
-      jenkinsService.updateBuildJobs()
-    } map {
-      _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLock.lockId}"))
-    } map { r =>
-      Logger.info("Mongo update complete")
-      r
-    }
-
-  }
 }
