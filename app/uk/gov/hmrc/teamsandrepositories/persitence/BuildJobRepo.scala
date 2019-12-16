@@ -39,8 +39,6 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
       )
   }
 
-  def update(buildJobs: Seq[BuildJob]): Future[Seq[UpdateWriteResult]] = {
-    Future.sequence(buildJobs.map(build => updateOne(build)))
-  }
-
+  def update(buildJobs: Seq[BuildJob]): Future[Seq[UpdateWriteResult]] =
+    Future.traverse(buildJobs)(updateOne)
 }
