@@ -56,7 +56,7 @@ class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUti
   val dataReloadScheduler = SchedulerConfig(
       configuration
     , enabledKey      = "cache.teams.reloadEnabled"
-    , frequencyKey    = "cache.teams.initialDelay"
-    , initialDelayKey = "cache.teams.duration"
+    , frequencyKey    = "cache.teams.duration"
+    , initialDelayKey = "cache.teams.initialDelay"
     )
 }
