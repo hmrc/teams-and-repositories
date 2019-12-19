@@ -30,7 +30,7 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
 
     val authorizationHeader: Option[Authorization] = {
       val authorizationValue =
-        s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.password}".getBytes("UTF-8"))}"
+        s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
       Some(Authorization(authorizationValue))
     }
 
