@@ -11,10 +11,14 @@ import scala.util.control.NonFatal
 
 trait SchedulerUtils {
   def schedule(
-              label          : String,
-              schedulerConfig: SchedulerConfig
-              )(f: => Future[Unit]
-  )(implicit actorSystem: ActorSystem, applicationLifecycle: ApplicationLifecycle, ec: ExecutionContext): Unit =
+      label          : String
+    , schedulerConfig: SchedulerConfig
+    )(f: => Future[Unit]
+    )( implicit
+       actorSystem         : ActorSystem
+     , applicationLifecycle: ApplicationLifecycle
+     , ec                  : ExecutionContext
+     ): Unit =
     if (schedulerConfig.enabled) {
       val initialDelay = schedulerConfig.initialDelay()
       val frequency    = schedulerConfig.frequency()
@@ -32,11 +36,15 @@ trait SchedulerUtils {
     }
 
   def scheduleWithLock(
-                        label            : String
-                        , schedulerConfig: SchedulerConfig
-                        , lock           : MongoLock
-                      )(f: => Future[Unit]
-                      )(implicit actorSystem: ActorSystem, applicationLifecycle: ApplicationLifecycle, ec: ExecutionContext): Unit =
+      label          : String
+    , schedulerConfig: SchedulerConfig
+    , lock           : MongoLock
+    )(f: => Future[Unit]
+    )( implicit
+       actorSystem         : ActorSystem
+     , applicationLifecycle: ApplicationLifecycle
+     , ec                  : ExecutionContext
+     ): Unit =
     schedule(label, schedulerConfig) {
       lock.tryLock(f).map {
         case Some(_) => Logger.debug(s"$label finished - releasing lock")
@@ -48,4 +56,3 @@ trait SchedulerUtils {
 }
 
 object SchedulerUtils extends SchedulerUtils
-

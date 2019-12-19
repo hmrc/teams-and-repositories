@@ -45,9 +45,11 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
       }
   }
 
-   def findBuildJobRoot(): Future[Seq[JenkinsJob]] = {
-     findBuildJobs(config.baseUrl).flatMap(root => JenkinsConnector.parse(root, findBuildJobs))
-  }
+   def findBuildJobRoot(): Future[Seq[JenkinsJob]] =
+     for {
+       root <- findBuildJobs(config.baseUrl)
+       res  <- JenkinsConnector.parse(root, findBuildJobs)
+     } yield res
 }
 
 object JenkinsConnector {
@@ -68,7 +70,7 @@ object JenkinsConnector {
   }
 }
 
-case class JenkinsRoot (_class: String, jobs: Seq[JenkinsJob])
+case class JenkinsRoot(_class: String, jobs: Seq[JenkinsJob])
 
 case class JenkinsJob (_class: String, displayName: String, url: String)
 
@@ -76,11 +78,11 @@ object JenkinsApiReads {
   implicit val jenkinsRootReader: Reads[JenkinsRoot] =
     ( (__ \ "_class").read[String]
     ~ (__ \ "jobs"  ).lazyRead(Reads.seq[JenkinsJob])
-    ) (JenkinsRoot.apply _)
+    )(JenkinsRoot.apply _)
 
   implicit val jenkinsJobReader: Reads[JenkinsJob] =
     ( (__ \ "_class").read[String]
-    ~ (__ \ "name").read[String]
-    ~ (__ \ "url").read[String]
-    ) (JenkinsJob.apply _)
+    ~ (__ \ "name"  ).read[String]
+    ~ (__ \ "url"   ).read[String]
+    )(JenkinsJob.apply _)
 }

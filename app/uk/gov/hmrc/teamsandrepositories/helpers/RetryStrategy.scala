@@ -23,21 +23,22 @@ import play.api.Logger
 import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.duration.{Duration, DurationInt}
 
 object RetryStrategy {
 
-  private def delay[T](delay: Double)(eventualT: => Future[T]): Future[T] = {
+  private def delay[T](delay: Duration)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     new Timer().schedule(new TimerTask {
       override def run() = promise.completeWith(eventualT)
-    }, delay.toLong)
+    }, delay.toMillis)
 
     promise.future
   }
 
-  def exponentialRetry[T](times: Int, duration: Double = 10)(f: => Future[T])(
+  def exponentialRetry[T](times: Int, duration: Duration = 10.millis)(f: => Future[T])(
     implicit executor: ExecutionContext): Future[T] =
-    f recoverWith {
+    f.recoverWith {
       case e: APIRateLimitExceededException =>
         Logger.error(s"API rate limit is reached (at retry:$times)", e)
         Future.failed(e)

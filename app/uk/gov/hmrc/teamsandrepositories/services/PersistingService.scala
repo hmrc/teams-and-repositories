@@ -48,33 +48,28 @@ case class PersistingService @Inject()(
     )
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
-    val persistedTeams = persister.getAllTeamsAndRepos
-    val sortedGhTeams  = teamsOrderedByUpdateDate(persistedTeams)
-
-    val updatedReposWithTeams: Future[Seq[TeamRepositories]] =
-      sortedGhTeams.flatMap { teams =>
-        futureHelpers.runFuturesSequentially(teams) { ghTeam: GhTeam =>
-          dataSource
-            .mapTeam(ghTeam, persistedTeams)
-            .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
-            .flatMap(persister.update)
-        }
-      }
-
+    val persistedTeamsF = persister.getAllTeamsAndRepos
     (for {
-      withTeams    <- updatedReposWithTeams
-      withoutTeams <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
-    } yield {
-      withTeams :+ withoutTeams
-    }).recoverWith {
+       sortedGhTeams   <- teamsOrderedByUpdateDate(persistedTeamsF)
+       withTeams       <- Future.traverse(sortedGhTeams) { ghTeam =>
+                            dataSource
+                              .mapTeam(ghTeam, persistedTeamsF)
+                              .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
+                              .flatMap(persister.update)
+                          }
+       withoutTeams    <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
+     } yield withTeams :+ withoutTeams
+    ).recoverWith {
       case NonFatal(ex) =>
         Logger.error("Could not persist to teams repo.", ex)
         Future.failed(ex)
     }
   }
 
-  def getRepositoriesWithoutTeams(persistedReposWithTeams: Seq[TeamRepositories])(
-    implicit ec: ExecutionContext): Future[TeamRepositories] =
+  def getRepositoriesWithoutTeams(
+      persistedReposWithTeams: Seq[TeamRepositories]
+    )( implicit ec: ExecutionContext
+    ): Future[TeamRepositories] =
     dataSource.getAllRepositories
       .map { repos =>
         val reposWithoutTeams = {
@@ -88,8 +83,10 @@ case class PersistingService @Inject()(
         )
       }
 
-  private def teamsOrderedByUpdateDate(persistedTeamsF: Future[Seq[TeamRepositories]])(
-    implicit ec: ExecutionContext): Future[List[GhTeam]] =
+  private def teamsOrderedByUpdateDate(
+      persistedTeamsF: Future[Seq[TeamRepositories]]
+    )( implicit ec: ExecutionContext
+    ): Future[List[GhTeam]] =
     for {
       ghTeams        <- dataSource.getTeamsForHmrcOrg
       persistedTeams <- persistedTeamsF
@@ -105,33 +102,25 @@ case class PersistingService @Inject()(
         }
     }
 
-  def removeOrphanTeamsFromMongo(teamRepositoriesFromGh: Seq[TeamRepositories])(
-    implicit ec: ExecutionContext): Future[Set[String]] = {
-
+  def removeOrphanTeamsFromMongo(
+       teamRepositoriesFromGh: Seq[TeamRepositories]
+    )( implicit ec: ExecutionContext
+    ): Future[Set[String]] = {
     import BlockingIOExecutionContext._
 
-    val teamNamesFromMongo: Future[Set[String]] = {
-      persister.getAllTeamsAndRepos.map { allPersistedTeamAndRepositories =>
-        allPersistedTeamAndRepositories.map(_.teamName).toSet
-      }
-    }
+    for {
+      mongoTeams      <- persister.getAllTeamsAndRepos.map(_.map(_.teamName).toSet)
+      teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
+      orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
+      _               =  Logger.info(s"Removing these orphan teams:[$orphanTeams]")
+      deleted         <- persister.deleteTeams(orphanTeams)
+    } yield deleted
 
-    val teamNamesFromGh = teamRepositoriesFromGh.map(_.teamName)
-
-    val orphanTeams: Future[Set[String]] = for {
-      mongoTeams <- teamNamesFromMongo
-    } yield mongoTeams.filterNot(teamNamesFromGh.toSet)
-
-    orphanTeams.flatMap { teamNames: Set[String] =>
-      Logger.info(s"Removing these orphan teams:[$teamNames]")
-      persister.deleteTeams(teamNames)
-    }
-  } recover {
+  }.recover {
     case e =>
       Logger.error("Could not remove orphan teams from mongo.", e)
       throw e
   }
-
 }
 
 @Singleton

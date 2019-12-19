@@ -51,7 +51,7 @@ class TeamsAndReposPersister @Inject()(
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
     Logger.debug(s"Deleting orphan teams: $teamNames")
-    Future.sequence(teamNames.map(mongoTeamsAndReposPersister.deleteTeam))
+    Future.traverse(teamNames)(mongoTeamsAndReposPersister.deleteTeam)
   }
 
   def resetLastActiveDate(repoName: String): Future[Option[Int]] =

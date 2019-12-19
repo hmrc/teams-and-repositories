@@ -22,19 +22,18 @@ class IntegrationTestSupportController @Inject()(teamsRepo: TeamsAndReposPersist
     _.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
-    Future.sequence( request.body.map(teamsRepo.update) ).map { _ => Ok("Done") }
+    Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
   }
 
-  def clearAll() = Action.async { implicit  request =>
-     teamsRepo.clearAllData.map(_=> Ok("Ok"))
+  def clearAll() = Action.async { implicit request =>
+     teamsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 
   def addJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
-    jenkinsRepo.update(request.body).map { _ => Ok("Done")}
+    jenkinsRepo.update(request.body).map(_ => Ok("Done"))
   }
 
   def clearJenkins() = Action.async { implicit request =>
     jenkinsRepo.removeAll().map(_ => Ok("Ok"))
   }
-
 }

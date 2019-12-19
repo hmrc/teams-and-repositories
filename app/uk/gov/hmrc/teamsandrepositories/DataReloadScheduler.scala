@@ -15,10 +15,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DataReloadScheduler @Inject()(
-                                     persistingService: PersistingService,
-                                     config: SchedulerConfigs,
-                                     mongoLocks: MongoLocks)(implicit actorSystem: ActorSystem,
-                        applicationLifecycle: ApplicationLifecycle) extends SchedulerUtils {
+     persistingService: PersistingService
+   , config           : SchedulerConfigs
+   , mongoLocks       : MongoLocks
+   )( implicit
+      actorSystem         : ActorSystem
+    , applicationLifecycle: ApplicationLifecycle
+    ) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -37,11 +40,9 @@ class DataReloadScheduler @Inject()(
     mongoLocks.dataReloadLock.tryLock {
       Logger.info(s"Starting mongo update")
       persistingService.persistTeamRepoMapping
-    } map {
-      _.getOrElse(throw new RuntimeException(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}"))
-    } map { r =>
+    }.map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
+     .map { r =>
       Logger.info(s"mongo update completed")
       r
     }
-
 }
