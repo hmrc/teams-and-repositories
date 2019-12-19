@@ -59,7 +59,7 @@ class GithubV3RepositoryDataSource(
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
       gh.getTeamsForOrganisation(HMRC_ORG)
-    }.map(_.filter(team => !githubConfig.hiddenTeams.contains(team.name)))
+    }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
           Logger.error("Could not retrieve teams for organisation list.", ex)
@@ -73,7 +73,7 @@ class GithubV3RepositoryDataSource(
         gh.getReposForTeam(team.id)
       }.flatMap { repos =>
         val nonHiddenRepos = repos
-          .filter(repo => !githubConfig.hiddenRepositories.contains(repo.name))
+          .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
 
         val updatedRepositories: Future[Seq[GitRepository]] =
           Future.traverse(nonHiddenRepos)(repo => mapRepository(team, repo, persistedTeams))
