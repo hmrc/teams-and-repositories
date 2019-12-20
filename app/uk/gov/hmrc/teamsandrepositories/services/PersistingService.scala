@@ -1,6 +1,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
+import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
@@ -51,11 +52,12 @@ case class PersistingService @Inject()(
     val persistedTeamsF = persister.getAllTeamsAndRepos
     (for {
        sortedGhTeams   <- teamsOrderedByUpdateDate(persistedTeamsF)
-       withTeams       <- Future.traverse(sortedGhTeams) { ghTeam =>
+       withTeams       <- sortedGhTeams.foldLeftM(Seq.empty[TeamRepositories]){ case (acc, ghTeam) =>
                             dataSource
                               .mapTeam(ghTeam, persistedTeamsF)
                               .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
                               .flatMap(persister.update)
+                              .map(acc :+ _)
                           }
        withoutTeams    <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
      } yield withTeams :+ withoutTeams

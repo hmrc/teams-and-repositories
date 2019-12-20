@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
+import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import java.util
-
 import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
-
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -76,7 +75,10 @@ class GithubV3RepositoryDataSource(
           .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
 
         val updatedRepositories: Future[Seq[GitRepository]] =
-          Future.traverse(nonHiddenRepos)(repo => mapRepository(team, repo, persistedTeams))
+          nonHiddenRepos.foldLeftM(Seq.empty[GitRepository]){ case (acc, repo) =>
+            mapRepository(team, repo, persistedTeams)
+              .map(acc :+ _)
+          }
 
         updatedRepositories.map { repos =>
           TeamRepositories(team.name, repositories = repos.toList, timestampF())
