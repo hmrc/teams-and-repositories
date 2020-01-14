@@ -41,10 +41,15 @@ trait SchedulerUtils {
       Logger.info(s"Enabling $label scheduler, running every $frequency (after initial delay $initialDelay)")
       val cancellable =
         actorSystem.scheduler.schedule(initialDelay, frequency) {
-          Logger.info(s"Running $label scheduler")
-          f.recover {
-            case e => Logger.error(s"$label interrupted because: ${e.getMessage}", e)
-          }
+          val start = System.currentTimeMillis
+          Logger.info(s"Scheduler $label started")
+          f.map { res =>
+            Logger.info(s"Scheduler $label finished - took ${System.currentTimeMillis - start} millis")
+            res
+           }
+           .recover {
+            case e => Logger.error(s"$label interrupted after ${System.currentTimeMillis - start} millis because: ${e.getMessage}", e)
+           }
         }
       applicationLifecycle.addStopHook(() => Future(cancellable.cancel()))
     } else {
