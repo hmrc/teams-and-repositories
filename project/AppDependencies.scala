@@ -10,7 +10,7 @@ object AppDependencies {
   val compile = Seq(
     ws,
     "uk.gov.hmrc"            %% "bootstrap-play-26" % bootstrapPlayVersion,
-    "uk.gov.hmrc"            %% "github-client"     % "2.11.0",
+    "uk.gov.hmrc"            %% "github-client"     % "2.12.0",
     "org.yaml"               % "snakeyaml"          % "1.17",
     "uk.gov.hmrc"            %% "mongo-lock"        % "6.10.0-play-26",
     "org.typelevel"          %% "cats-core"         % "2.0.0"
