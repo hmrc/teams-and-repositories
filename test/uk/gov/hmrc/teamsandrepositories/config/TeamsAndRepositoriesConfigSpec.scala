@@ -42,15 +42,13 @@ class TeamsAndRepositoriesConfigSpec extends WordSpec with Matchers with GuiceOn
       val conf                    = new UrlTemplatesProvider(app.configuration)
       val templates: UrlTemplates = conf.ciUrlTemplates
       templates.environments.toList should contain theSameElementsInOrderAs ListMap(
-        "env1" -> Seq(
+        "Development" -> Seq(
           UrlTemplate("ser1", "ser 1", "http://ser1/$name"),
           UrlTemplate("ser2", "ser 2", "http://ser2/$name")),
-        "env2" -> Seq(
+        "Staging" -> Seq(
           UrlTemplate("ser1", "ser 1", "http://ser1/$name"),
           UrlTemplate("ser2", "ser 2", "http://ser2/$name"))
       ).toList
     }
-
   }
-
 }
