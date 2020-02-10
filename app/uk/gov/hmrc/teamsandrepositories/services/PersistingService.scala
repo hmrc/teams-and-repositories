@@ -26,6 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -39,6 +40,7 @@ class Timestamper {
 case class PersistingService @Inject()(
   githubConfig: GithubConfig,
   persister: TeamsAndReposPersister,
+  githubConnector: GithubConnector,
   githubApiClientDecorator: GithubApiClientDecorator,
   timestamper: Timestamper,
   metrics: Metrics,
@@ -56,12 +58,13 @@ case class PersistingService @Inject()(
 
   val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
-      githubConfig,
-      gitOpenClient,
-      timestamper.timestampF,
-      defaultMetricsRegistry,
-      repositoriesToIgnore,
-      futureHelpers
+      githubConfig           = githubConfig,
+      githubApiClient        = gitOpenClient,
+      githubConnector        = githubConnector,
+      timestampF             = timestamper.timestampF,
+      defaultMetricsRegistry = defaultMetricsRegistry,
+      repositoriesToIgnore   = repositoriesToIgnore,
+      futureHelpers          = futureHelpers
     )
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {

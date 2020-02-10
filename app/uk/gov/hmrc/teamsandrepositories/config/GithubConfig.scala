@@ -48,5 +48,5 @@ class GithubConfig @Inject()(configuration: Configuration) {
   private def gitPath(gitFolder: String): String =
     s"${System.getProperty("user.home")}/.github/$gitFolder"
 
-
+  val rawUrl = configuration.get[String]("github.open.api.rawurl")
 }

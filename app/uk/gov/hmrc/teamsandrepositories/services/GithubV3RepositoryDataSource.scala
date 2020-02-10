@@ -31,6 +31,7 @@ import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -39,7 +40,8 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 class GithubV3RepositoryDataSource(
   githubConfig: GithubConfig,
-  val gh: GithubApiClient,
+  val githubApiClient: GithubApiClient,
+  githubConnector: GithubConnector,
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore: List[String],
@@ -57,7 +59,7 @@ class GithubV3RepositoryDataSource(
 
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      gh.getTeamsForOrganisation(HMRC_ORG)
+      githubApiClient.getTeamsForOrganisation(HMRC_ORG)
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
@@ -69,7 +71,7 @@ class GithubV3RepositoryDataSource(
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.open.repos") {
-        gh.getReposForTeam(team.id)
+        githubApiClient.getReposForTeam(team.id)
       }.flatMap { repos =>
         val nonHiddenRepos = repos
           .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
@@ -93,7 +95,7 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] = {
     withCounter(s"github.open.allRepos") {
-      gh.getReposForOrg(HMRC_ORG)
+      githubApiClient.getReposForOrg(HMRC_ORG)
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
@@ -105,9 +107,7 @@ class GithubV3RepositoryDataSource(
 
   def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
-      manifest                <- withCounter(s"github.open.fileContent") {
-                                   gh.getFileContent("repository.yaml", repository.name, HMRC_ORG)
-                                 }
+      manifest                <- githubConnector.getFileContent(repository.name, "repository.yaml")
       maybeManifestDetails    =  getMaybeManifestDetails(repository.name, manifest)
       repositoryType          <- identifyRepository(repository, maybeManifestDetails.flatMap(_.repositoryType))
       maybeDigitalServiceName =  maybeManifestDetails.flatMap(_.digitalServiceName)
@@ -234,26 +234,29 @@ class GithubV3RepositoryDataSource(
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "conf/application.conf"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "conf/application.conf"))
 
     def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "Procfile"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "Procfile"))
 
     def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "deploy.properties"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "deploy.properties"))
 
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
 
   private def hasTags(repository: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
-      gh.getTags(HMRC_ORG, repository.name)
+      githubApiClient.getTags(HMRC_ORG, repository.name)
     }.map(_.nonEmpty)
 
   private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {
-      gh.repoContainsContent(path, repo.name, HMRC_ORG)
+      githubApiClient.repoContainsContent(path, repo.name, HMRC_ORG)
     }
+
+  private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
+    githubConnector.getFileContent(repo.name, path).map(_.isDefined)
 
   def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
     persistedRepository.copy(
