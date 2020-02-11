@@ -167,7 +167,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
       internalDataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -196,7 +196,7 @@ class GithubV3RepositoryDataSourceSpec
         )))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -224,7 +224,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -254,7 +254,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
           "A",
@@ -284,7 +284,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -313,7 +313,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: service")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -343,7 +343,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -375,7 +375,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some(manifestYaml)))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -404,7 +404,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: library")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -433,7 +433,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("type: somethingelse")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -461,7 +461,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some("description: not a type")))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -491,7 +491,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -523,7 +523,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(true))
 
       val repositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -550,7 +550,7 @@ class GithubV3RepositoryDataSourceSpec
           List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -577,7 +577,7 @@ class GithubV3RepositoryDataSourceSpec
           List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
 
       val repositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -612,7 +612,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(Some(repositoryYamlContents)))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
         "A",
         List(
@@ -649,7 +649,7 @@ class GithubV3RepositoryDataSourceSpec
 
       private val result =
         dataSource
-          .mapTeam(team, persistedTeams = Future.successful(Nil))
+          .mapTeam(team, persistedTeams = Nil)
           .futureValue
           .repositories
           .head
@@ -667,7 +667,7 @@ class GithubV3RepositoryDataSourceSpec
           List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala"))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -695,7 +695,7 @@ class GithubV3RepositoryDataSourceSpec
           List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null))))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue
       repositories shouldBe TeamRepositories(
         "A",
@@ -745,7 +745,7 @@ class GithubV3RepositoryDataSourceSpec
             )
 
             val repositories = dataSource
-              .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+              .mapTeam(team, persistedTeams = Seq(persistedTeamRepositories))
               .futureValue
 
             //verify
@@ -807,7 +807,7 @@ class GithubV3RepositoryDataSourceSpec
             )
 
             val repositories = dataSource
-              .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+              .mapTeam(team, persistedTeams = Seq(persistedTeamRepositories))
               .futureValue
 
             //verify
@@ -855,7 +855,7 @@ class GithubV3RepositoryDataSourceSpec
           val persistedTeamRepositories = TeamRepositories("A", Nil, now)
 
           val repositories = dataSource
-            .mapTeam(team, persistedTeams = Future.successful(Seq(persistedTeamRepositories)))
+            .mapTeam(team, persistedTeams = Seq(persistedTeamRepositories))
             .futureValue
 
           //verify
@@ -912,7 +912,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(None))
 
       dataSource
-        .mapTeam(team, persistedTeams = Future.successful(Nil))
+        .mapTeam(team, persistedTeams = Nil)
         .futureValue(Timeout(1 minute)) shouldBe
         TeamRepositories(
           "A",
@@ -960,9 +960,7 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(
           team,
-          persistedTeams = Future.successful(
-            Seq(TeamRepositories(teamName = "A", repositories = List(repository), updateDate = 0L))
-          )
+          persistedTeams = Seq(TeamRepositories(teamName = "A", repositories = List(repository), updateDate = 0L))
         )
         .futureValue shouldBe TeamRepositories(
         teamName     = "A",

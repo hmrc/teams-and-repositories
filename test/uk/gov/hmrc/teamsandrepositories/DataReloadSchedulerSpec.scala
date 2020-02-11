@@ -67,48 +67,49 @@ class DataReloadSchedulerSpec
 
   "reload the cache and remove orphan teams at the configured intervals" in {
 
-    val mockSchedulerConfigs       = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
-    val mockGitCompositeDataSource = mock[PersistingService]
+    val mockSchedulerConfigs  = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
+    val mockPersistingService = mock[PersistingService]
 
-    when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
-    when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
+    when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
+    when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
 
     when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(100 millisecond)
     when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(100 millisecond)
     when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
     new DataReloadScheduler(
-      persistingService    = mockGitCompositeDataSource,
+      persistingService    = mockPersistingService,
       config               = mockSchedulerConfigs,
       mongoLocks           = testMongoLocks
     )(actorSystem          = app.actorSystem,
-      applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle])
+      applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
+    )
 
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
+    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
+    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
   }
 
   "reloading the cache" should {
     "be disabled" in {
-      val mockSchedulerConfigs       = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
-      val mockGitCompositeDataSource = mock[PersistingService]
+      val mockSchedulerConfigs  = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
+      val mockPersistingService = mock[PersistingService]
 
-      when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
-      when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
+      when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
+      when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
 
       when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(100 millisecond)
       when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(100 millisecond)
       when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(false)
 
       new DataReloadScheduler(
-        persistingService    = mockGitCompositeDataSource,
+        persistingService    = mockPersistingService,
         config               = mockSchedulerConfigs,
         mongoLocks           = testMongoLocks
       )(actorSystem          = app.actorSystem,
         applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle])
 
-      verify(mockGitCompositeDataSource, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
-      verify(mockGitCompositeDataSource, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
+      verify(mockPersistingService, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
+      verify(mockPersistingService, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
     }
   }
 }

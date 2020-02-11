@@ -62,10 +62,10 @@ class ModuleSpec
   when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
-  val mockGitCompositeDataSource: PersistingService = mock[PersistingService]
+  val mockPersistingService: PersistingService = mock[PersistingService]
 
-  when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
-  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any()))
+  when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
+  when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any()))
     .thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
@@ -74,7 +74,7 @@ class ModuleSpec
       .overrides(
         bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
         bind[Timestamper].toInstance(testTimestamper),
-        bind[PersistingService].toInstance(mockGitCompositeDataSource),
+        bind[PersistingService].toInstance(mockPersistingService),
         bind[MongoLock].toInstance(testMongoLock)
       )
       .overrides(new Module())
@@ -88,7 +88,6 @@ class ModuleSpec
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
-
+    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
   }
 }

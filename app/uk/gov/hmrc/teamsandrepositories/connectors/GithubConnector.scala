@@ -16,13 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import java.util.concurrent.Executors
-
-import com.google.common.io.BaseEncoding
 import javax.inject.Inject
-import play.api.Logger
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
