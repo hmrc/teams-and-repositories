@@ -16,21 +16,22 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.actor.ActorSystem
-import com.google.inject.{Inject, Singleton}
-import play.api.Logger
-import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.http.HeaderCarrier
 import com.kenshoo.play.metrics.Metrics
-import com.codahale.metrics.Gauge
+import javax.inject.{Inject, Singleton}
+import play.api.inject.ApplicationLifecycle
+import play.modules.reactivemongo.ReactiveMongoComponent
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
+import uk.gov.hmrc.metrix.MetricOrchestrator
+import uk.gov.hmrc.metrix.domain.MetricSource
+import uk.gov.hmrc.metrix.persistence.MongoMetricRepository
 
 import scala.concurrent.{ExecutionContext, Future}
+
 
 @Singleton
 class GithubRatelimitMetricsScheduler @Inject()(
@@ -38,26 +39,32 @@ class GithubRatelimitMetricsScheduler @Inject()(
    , config         : SchedulerConfigs
    , mongoLocks     : MongoLocks
    , metrics        : Metrics
+   , mongo          : ReactiveMongoComponent
    )( implicit
       actorSystem         : ActorSystem
     , applicationLifecycle: ApplicationLifecycle
+    , ec                  : ExecutionContext
     ) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  import ExecutionContext.Implicits.global
+  val source: MetricSource =
+    new MetricSource {
+      def metrics(implicit ec: ExecutionContext): Future[Map[String, Int]] =
+        for {
+          remaining <- githubConnector.getRateLimitMetrics.map(_.remaining)
+        } yield Map("github.ratelimit.remaining" -> remaining)
+    }
 
-  val atomicRef = new AtomicReference[Option[RateLimitMetrics]]()
-  metrics.defaultRegistry.register(s"github.ratelimit.remaining", RateLimitGuage(atomicRef))
+  val metricOrchestrator = new MetricOrchestrator(
+    metricSources     = List(source)
+  , lock              = mongoLocks.metrixLock
+  , metricRepository  = new MongoMetricRepository()(mongo.mongoConnector.db)
+  , metricRegistry    = metrics.defaultRegistry
+  )
 
-  scheduleWithLock("Github Ratelimit metrics", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
-    for {
-      rateLimitMetrics <- githubConnector.getRateLimitMetrics
-    } yield atomicRef.set(Some(rateLimitMetrics))
+  schedule("Github Ratelimit metrics", config.metrixScheduler) {
+    metricOrchestrator.attemptToUpdateAndRefreshMetrics()
+      .map(_ => ())
   }
-}
-
-case class RateLimitGuage(atomicRef: AtomicReference[Option[RateLimitMetrics]]) extends Gauge[Int] {
-  override def getValue: Int =
-    atomicRef.get().map(_.remaining).getOrElse(0)
 }

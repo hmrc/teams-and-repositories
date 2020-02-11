@@ -23,11 +23,11 @@ import uk.gov.hmrc.teamsandrepositories.helpers.ConfigUtils
 import scala.concurrent.duration.FiniteDuration
 
 case class SchedulerConfig(
-                            enabledKey  : String
-                            , enabled     : Boolean
-                            , frequency   : () => FiniteDuration
-                            , initialDelay: () => FiniteDuration
-                          )
+    enabledKey  : String
+  , enabled     : Boolean
+  , frequency   : () => FiniteDuration
+  , initialDelay: () => FiniteDuration
+  )
 
 object SchedulerConfig {
   import ConfigUtils._
@@ -74,5 +74,12 @@ class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUti
     , enabledKey      = "cache.teams.reloadEnabled"
     , frequencyKey    = "cache.teams.duration"
     , initialDelayKey = "cache.teams.initialDelay"
+    )
+
+  val metrixScheduler = SchedulerConfig(
+      configuration
+    , enabledKey      = "scheduler.metrix.reloadEnabled"
+    , frequencyKey    = "scheduler.metrix.frequency"
+    , initialDelayKey = "scheduler.metrix.initialDelay"
     )
 }

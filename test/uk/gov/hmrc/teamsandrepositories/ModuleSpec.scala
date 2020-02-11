@@ -31,7 +31,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import reactivemongo.api.DB
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
+import uk.gov.hmrc.teamsandrepositories.persitence.LockKeeper
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
@@ -48,7 +48,7 @@ class ModuleSpec
 
   def mockDB: () => DB = () => mock[DB]
 
-  val testMongoLock: MongoLock = new MongoLock(mockDB, "testLock") {
+  val testLockKeeper: LockKeeper = new LockKeeper(mockDB, "testLock") {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
       body.map(Some(_))
   }
@@ -75,7 +75,7 @@ class ModuleSpec
         bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
         bind[Timestamper].toInstance(testTimestamper),
         bind[PersistingService].toInstance(mockPersistingService),
-        bind[MongoLock].toInstance(testMongoLock)
+        bind[LockKeeper].toInstance(testLockKeeper)
       )
       .overrides(new Module())
       .configure("metrics.jvm" -> false)

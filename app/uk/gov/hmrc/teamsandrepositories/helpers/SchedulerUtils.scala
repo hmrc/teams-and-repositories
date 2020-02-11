@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfig
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
+import uk.gov.hmrc.lock.LockKeeper
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -59,7 +59,7 @@ trait SchedulerUtils {
   def scheduleWithLock(
       label          : String
     , schedulerConfig: SchedulerConfig
-    , lock           : MongoLock
+    , lock           : LockKeeper
     )(f: => Future[Unit]
     )( implicit
        actorSystem         : ActorSystem

@@ -31,7 +31,7 @@ import play.api.mvc.Results
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoLock, MongoLocks}
+import uk.gov.hmrc.teamsandrepositories.persitence.{LockKeeper, MongoLocks}
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,13 +56,13 @@ class DataReloadSchedulerSpec
 
   def mockDB: () => DB = () => mock[DB]
 
-  val testMongoLock: MongoLock = new MongoLock(mockDB, "testLock") {
+  val testMongoLock: LockKeeper = new LockKeeper(mockDB, "testLock") {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
       body.map(t => Some(t))
   }
 
   val testMongoLocks: MongoLocks = new MongoLocks(mock[ReactiveMongoComponent](RETURNS_DEEP_STUBS)) {
-    override val dataReloadLock: MongoLock = testMongoLock
+    override val dataReloadLock: LockKeeper = testMongoLock
   }
 
   "reload the cache and remove orphan teams at the configured intervals" in {

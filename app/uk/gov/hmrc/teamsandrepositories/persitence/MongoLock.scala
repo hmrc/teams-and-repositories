@@ -20,20 +20,23 @@ import com.google.inject.{Inject, Singleton}
 import org.joda.time.Duration
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
-import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
+import uk.gov.hmrc.lock.{LockMongoRepository, LockRepository}
 
-class MongoLock(db: () => DB, lockId_ : String) extends LockKeeper {
-  override def repo: LockRepository = LockMongoRepository(db)
+case class LockKeeper(db: () => DB, lockId: String) extends uk.gov.hmrc.lock.LockKeeper {
+  override val repo                 : LockRepository = LockMongoRepository(db)
+  override val forceLockReleaseAfter: Duration       = Duration.standardMinutes(20)
+}
 
-  override def lockId: String = lockId_
-
-  override val forceLockReleaseAfter: Duration = Duration.standardMinutes(20)
+case class ExclusiveTimePeriodLock(db: () => DB, lockId: String) extends uk.gov.hmrc.lock.ExclusiveTimePeriodLock {
+  override val repo       : LockRepository = LockMongoRepository(db)
+  override val holdLockFor: Duration       = Duration.standardMinutes(20)
 }
 
 @Singleton
 class MongoLocks @Inject()(mongo: ReactiveMongoComponent) {
   private val db = mongo.mongoConnector.db
 
-  val dataReloadLock = new MongoLock(db, "data-reload-lock")
-  val jenkinsLock    = new MongoLock(db, "jenkins-lock")
+  val dataReloadLock = LockKeeper(db, "data-reload-lock")
+  val jenkinsLock    = LockKeeper(db, "jenkins-lock")
+  val metrixLock     = ExclusiveTimePeriodLock(db, "metrix-lock")
 }

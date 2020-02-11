@@ -23,6 +23,6 @@ class Module() extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[DataReloadScheduler]).asEagerSingleton()
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
+    bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
   }
-
 }
