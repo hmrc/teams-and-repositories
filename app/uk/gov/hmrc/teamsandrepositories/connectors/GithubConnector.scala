@@ -17,6 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import javax.inject.Inject
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{Reads, __}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
@@ -32,4 +34,22 @@ class GithubConnector @Inject()(githubConfig: GithubConfig, http: HttpClient)(im
     http.GET[Option[HttpResponse]](url = s"${githubConfig.rawUrl}/hmrc/$repoName/master/$path")
       .map(_.map(_.body))
   }
+
+  def getRateLimitMetrics: Future[RateLimitMetrics] = {
+    implicit val hc = HeaderCarrier()
+    implicit val rlmr = RateLimitMetrics.reads
+    http.GET[RateLimitMetrics](url = s"${githubConfig.rawUrl}/rate_limit")
+  }
+}
+
+case class RateLimitMetrics(limit: Int, remaining: Int, reset: Int)
+
+object RateLimitMetrics {
+  val reads: Reads[RateLimitMetrics] =
+    Reads.at(__ \ "rate")(
+      ( (__ \ "limit"    ).read[Int]
+      ~ (__ \ "remaining").read[Int]
+      ~ (__ \ "reset"    ).read[Int]
+      )(RateLimitMetrics.apply _)
+    )
 }
