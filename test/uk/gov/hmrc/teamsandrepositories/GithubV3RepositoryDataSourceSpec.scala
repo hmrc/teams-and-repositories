@@ -145,7 +145,7 @@ class GithubV3RepositoryDataSourceSpec
     }
   }
 
-  "Github v3 Data Source " should {
+ "Github v3 Data Source " ignore /* TODO reenable when switch back to GithubConnector to get file content// should */ {
 
     "Set internal = true if the DataSource is marked as internal" in new Setup {
 
