@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-
 import java.io.File
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
+
+
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
   val host = configuration.getOptional[String]("github.open.api.host")

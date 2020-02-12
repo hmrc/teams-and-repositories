@@ -22,13 +22,14 @@ import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 import uk.gov.hmrc.metrix.MetricOrchestrator
 import uk.gov.hmrc.metrix.domain.MetricSource
 import uk.gov.hmrc.metrix.persistence.MongoMetricRepository
+import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
+import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,6 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GithubRatelimitMetricsScheduler @Inject()(
      githubConnector: GithubConnector
    , config         : SchedulerConfigs
+   , githubConfig   : GithubConfig
    , mongoLocks     : MongoLocks
    , metrics        : Metrics
    , mongo          : ReactiveMongoComponent
@@ -52,8 +54,9 @@ class GithubRatelimitMetricsScheduler @Inject()(
     new MetricSource {
       def metrics(implicit ec: ExecutionContext): Future[Map[String, Int]] =
         for {
-          remaining <- githubConnector.getRateLimitMetrics.map(_.remaining)
-        } yield Map("github.ratelimit.remaining" -> remaining)
+          githubApiConfig <- Future.successful(githubConfig.githubApiOpenConfig)
+          remaining       <- githubConnector.getRateLimitMetrics(githubApiConfig).map(_.remaining)
+        } yield Map(s"github.ratelimit.${githubApiConfig.user}.rate.remaining" -> remaining)
     }
 
   val metricOrchestrator = new MetricOrchestrator(
