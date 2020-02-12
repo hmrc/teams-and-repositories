@@ -36,19 +36,19 @@ trait SchedulerUtils {
      , ec                  : ExecutionContext
      ): Unit =
     if (schedulerConfig.enabled) {
-      val initialDelay = schedulerConfig.initialDelay()
-      val frequency    = schedulerConfig.frequency()
-      Logger.info(s"Enabling $label scheduler, running every $frequency (after initial delay $initialDelay)")
+      val initialDelay = schedulerConfig.initialDelay
+      val interval     = schedulerConfig.interval
+      Logger.info(s"Enabling $label scheduler, running every $interval (after initial delay $initialDelay)")
       val cancellable =
-        actorSystem.scheduler.schedule(initialDelay, frequency) {
+        actorSystem.scheduler.schedule(initialDelay, interval) {
           val start = System.currentTimeMillis
           Logger.info(s"Scheduler $label started")
           f.map { res =>
-            Logger.info(s"Scheduler $label finished - took ${System.currentTimeMillis - start} millis")
-            res
+             Logger.info(s"Scheduler $label finished - took ${System.currentTimeMillis - start} millis")
+             res
            }
            .recover {
-            case e => Logger.error(s"$label interrupted after ${System.currentTimeMillis - start} millis because: ${e.getMessage}", e)
+             case e => Logger.error(s"$label interrupted after ${System.currentTimeMillis - start} millis because: ${e.getMessage}", e)
            }
         }
       applicationLifecycle.addStopHook(() => Future(cancellable.cancel()))

@@ -73,8 +73,8 @@ class DataReloadSchedulerSpec
     when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
     when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
 
-    when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(100 millisecond)
-    when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(100 millisecond)
+    when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(100 millisecond)
+    when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(100 millisecond)
     when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
     new DataReloadScheduler(
@@ -97,8 +97,8 @@ class DataReloadSchedulerSpec
       when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
       when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
 
-      when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(100 millisecond)
-      when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(100 millisecond)
+      when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(100 millisecond)
+      when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(100 millisecond)
       when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(false)
 
       new DataReloadScheduler(

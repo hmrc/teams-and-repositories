@@ -58,8 +58,8 @@ class ModuleSpec
   val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
   val intervalDuration: FiniteDuration = 100 millisecond
 
-  when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(intervalDuration)
-  when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
   val mockPersistingService: PersistingService = mock[PersistingService]
