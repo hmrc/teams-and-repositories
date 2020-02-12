@@ -19,8 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import javax.inject.Inject
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, __}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
@@ -29,13 +29,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class GithubConnector @Inject()(githubConfig: GithubConfig, http: HttpClient)(implicit ec: ExecutionContext) {
 
   def getFileContent(repoName: String, path: String): Future[Option[String]] = {
-    implicit val hc = HeaderCarrier().withExtraHeaders("Authorization" -> s"token ${githubConfig.githubApiOpenConfig.key}")
+    implicit val hc = HeaderCarrier(authorization = Some(Authorization(s"token ${githubConfig.githubApiOpenConfig.key}")))
     http.GET[Option[HttpResponse]](url = s"${githubConfig.rawUrl}/hmrc/$repoName/master/$path")
       .map(_.map(_.body))
   }
 
   def getRateLimitMetrics: Future[RateLimitMetrics] = {
-    implicit val hc = HeaderCarrier()
+    implicit val hc = HeaderCarrier(authorization = Some(Authorization(s"token ${githubConfig.githubApiOpenConfig.key}")))
     implicit val rlmr = RateLimitMetrics.reads
     http.GET[RateLimitMetrics](url = s"${githubConfig.url}/rate_limit")
   }
