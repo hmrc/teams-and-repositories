@@ -106,10 +106,7 @@ class GithubV3RepositoryDataSource(
 
   def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
-      optManifest     <- // TODO switch to githubConnector // githubConnector.getFileContent(repository.name, "repository.yaml")
-                         withCounter(s"github.open.fileContent") {
-                           githubApiClient.getFileContent("repository.yaml", repository.name, HMRC_ORG)
-                         }
+      optManifest     <- githubConnector.getFileContent(repository.name, "repository.yaml")
       manifestDetails =  optManifest.flatMap(parseManifest(repository.name, _))
                            .getOrElse(ManifestDetails(None, None, Nil))
       repositoryType  <- manifestDetails.repositoryType match {
@@ -252,8 +249,7 @@ class GithubV3RepositoryDataSource(
     }
 
   private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
-    // TODO switch to githubConnector // githubConnector.getFileContent(repo.name, path).map(_.isDefined)
-    hasPath(repo, path)
+    githubConnector.getFileContent(repo.name, path).map(_.isDefined)
 
   def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
     persistedRepository.copy(
