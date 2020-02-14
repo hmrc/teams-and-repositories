@@ -31,6 +31,7 @@ import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -39,7 +40,8 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 class GithubV3RepositoryDataSource(
   githubConfig: GithubConfig,
-  val gh: GithubApiClient,
+  val githubApiClient: GithubApiClient,
+  githubConnector: GithubConnector,
   timestampF: () => Long,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore: List[String],
@@ -57,7 +59,7 @@ class GithubV3RepositoryDataSource(
 
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      gh.getTeamsForOrganisation(HMRC_ORG)
+      githubApiClient.getTeamsForOrganisation(HMRC_ORG)
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
@@ -65,11 +67,11 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  def mapTeam(team: GhTeam, persistedTeams: Future[Seq[TeamRepositories]]): Future[TeamRepositories] = {
+  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
     Logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.open.repos") {
-        gh.getReposForTeam(team.id)
+        githubApiClient.getReposForTeam(team.id)
       }.flatMap { repos =>
         val nonHiddenRepos = repos
           .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
@@ -93,7 +95,7 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] = {
     withCounter(s"github.open.allRepos") {
-      gh.getReposForOrg(HMRC_ORG)
+      githubApiClient.getReposForOrg(HMRC_ORG)
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
@@ -102,31 +104,31 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-
   def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
-      manifest                <- withCounter(s"github.open.fileContent") {
-                                   gh.getFileContent("repository.yaml", repository.name, HMRC_ORG)
-                                 }
-      maybeManifestDetails    =  getMaybeManifestDetails(repository.name, manifest)
-      repositoryType          <- identifyRepository(repository, maybeManifestDetails.flatMap(_.repositoryType))
-      maybeDigitalServiceName =  maybeManifestDetails.flatMap(_.digitalServiceName)
-      owningTeams             =  maybeManifestDetails.map(_.owningTeams).getOrElse(Nil)
+      optManifest     <- githubConnector.getFileContent(repository.name, "repository.yaml")
+      manifestDetails =  optManifest.flatMap(parseManifest(repository.name, _))
+                           .getOrElse(ManifestDetails(None, None, Nil))
+      repositoryType  <- manifestDetails.repositoryType match {
+                           case None                 => getTypeFromGithub(repository)
+                           case Some(repositoryType) => Future.successful(repositoryType)
+                         }
     } yield {
       Logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      buildGitRepository(repository, repositoryType, maybeDigitalServiceName, owningTeams)
+      buildGitRepository(repository, repositoryType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
     }
 
   private def mapRepository(
-    team           : GhTeam,
-    repository     : GhRepository,
-    persistedTeamsF: Future[Seq[TeamRepositories]]
+    team          : GhTeam,
+    repository    : GhRepository,
+    persistedTeams: Seq[TeamRepositories]
     ): Future[GitRepository] = {
-    val eventualMaybePersistedRepository = persistedTeamsF
-      .map(_.find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName)))
-      .map(_.flatMap(_.repositories.find(_.url == repository.htmlUrl)))
+    val optPersistedRepository =
+      persistedTeams
+        .find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName))
+        .flatMap(_.repositories.find(_.url == repository.htmlUrl))
 
-    eventualMaybePersistedRepository.flatMap {
+    optPersistedRepository match {
       case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
         Logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
@@ -146,12 +148,6 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  private def identifyRepository(repository: GhRepository, maybeRepoType: Option[RepoType]): Future[RepoType] =
-    maybeRepoType match {
-      case None                 => getTypeFromGithub(repository)
-      case Some(repositoryType) => Future.successful(repositoryType)
-    }
-
   private def parseAppConfigFile(contents: String): Try[Object] =
     Try(new Yaml().load(contents))
 
@@ -160,48 +156,45 @@ class GithubV3RepositoryDataSource(
     digitalServiceName: Option[String],
     owningTeams: Seq[String])
 
-  private def getMaybeManifestDetails(repoName: String, manifest: Option[String]): Option[ManifestDetails] = {
+  private def parseManifest(repoName: String, manifest: String): Option[ManifestDetails] = {
     import scala.collection.JavaConverters._
 
-    manifest.flatMap { contents =>
-      parseAppConfigFile(contents) match {
-        case Failure(exception) => {
-          Logger.warn(
-            s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
-          None
-        }
-        case Success(yamlMap) => {
-          val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+    parseAppConfigFile(manifest) match {
+      case Failure(exception) =>
+        Logger.warn(
+          s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+        None
 
-          val manifestDetails =
-            ManifestDetails(
-              config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-                case "service" => Some(RepoType.Service)
-                case "library" => Some(RepoType.Library)
-                case _         => None
-              },
-              config.get("digital-service").map(_.toString),
-              try {
-                config
-                  .getOrElse("owning-teams", new util.ArrayList[String])
-                  .asInstanceOf[java.util.List[String]]
-                  .asScala
-                  .toList
-              } catch {
-                case NonFatal(ex) =>
-                  Logger.warn(
-                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
-                  Nil
-              }
-            )
+      case Success(yamlMap) =>
+        val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
 
-          Logger.info(
-            s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $contents"
+        val manifestDetails =
+          ManifestDetails(
+            repositoryType     = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+                                   case "service" => Some(RepoType.Service)
+                                   case "library" => Some(RepoType.Library)
+                                   case _         => None
+                                 },
+            digitalServiceName = config.get("digital-service").map(_.toString),
+            owningTeams        = try {
+                                   config
+                                     .getOrElse("owning-teams", new util.ArrayList[String])
+                                     .asInstanceOf[java.util.List[String]]
+                                     .asScala
+                                     .toList
+                                 } catch {
+                                   case NonFatal(ex) =>
+                                     Logger.warn(
+                                       s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
+                                     Nil
+                                 }
           )
 
-          Some(manifestDetails)
-        }
-      }
+        Logger.info(
+          s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
+        )
+
+        Some(manifestDetails)
     }
   }
 
@@ -234,26 +227,29 @@ class GithubV3RepositoryDataSource(
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "conf/application.conf"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "conf/application.conf"))
 
     def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "Procfile"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "Procfile"))
 
     def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(hasPath(repo, "deploy.properties"))
+      exponentialRetry(retries, initialDuration)(hasFile(repo, "deploy.properties"))
 
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
 
   private def hasTags(repository: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
-      gh.getTags(HMRC_ORG, repository.name)
+      githubApiClient.getTags(HMRC_ORG, repository.name)
     }.map(_.nonEmpty)
 
   private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {
-      gh.repoContainsContent(path, repo.name, HMRC_ORG)
+      githubApiClient.repoContainsContent(path, repo.name, HMRC_ORG)
     }
+
+  private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
+    githubConnector.getFileContent(repo.name, path).map(_.isDefined)
 
   def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
     persistedRepository.copy(

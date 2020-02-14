@@ -31,7 +31,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import reactivemongo.api.DB
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLock
+import uk.gov.hmrc.teamsandrepositories.persitence.LockKeeper
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
@@ -48,7 +48,7 @@ class ModuleSpec
 
   def mockDB: () => DB = () => mock[DB]
 
-  val testMongoLock: MongoLock = new MongoLock(mockDB, "testLock") {
+  val testLockKeeper: LockKeeper = new LockKeeper(mockDB, "testLock") {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
       body.map(Some(_))
   }
@@ -58,14 +58,14 @@ class ModuleSpec
   val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
   val intervalDuration: FiniteDuration = 100 millisecond
 
-  when(mockSchedulerConfigs.dataReloadScheduler.initialDelay()).thenReturn(intervalDuration)
-  when(mockSchedulerConfigs.dataReloadScheduler.frequency()).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(intervalDuration)
+  when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
-  val mockGitCompositeDataSource: PersistingService = mock[PersistingService]
+  val mockPersistingService: PersistingService = mock[PersistingService]
 
-  when(mockGitCompositeDataSource.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
-  when(mockGitCompositeDataSource.removeOrphanTeamsFromMongo(any())(any()))
+  when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
+  when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any()))
     .thenReturn(Future.successful(Set.empty[String]))
 
   implicit override lazy val app: Application =
@@ -74,8 +74,8 @@ class ModuleSpec
       .overrides(
         bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
         bind[Timestamper].toInstance(testTimestamper),
-        bind[PersistingService].toInstance(mockGitCompositeDataSource),
-        bind[MongoLock].toInstance(testMongoLock)
+        bind[PersistingService].toInstance(mockPersistingService),
+        bind[LockKeeper].toInstance(testLockKeeper)
       )
       .overrides(new Module())
       .configure("metrics.jvm" -> false)
@@ -88,7 +88,6 @@ class ModuleSpec
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockGitCompositeDataSource, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
-
+    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
   }
 }

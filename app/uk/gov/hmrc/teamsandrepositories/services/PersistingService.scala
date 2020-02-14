@@ -26,6 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -39,6 +40,7 @@ class Timestamper {
 case class PersistingService @Inject()(
   githubConfig: GithubConfig,
   persister: TeamsAndReposPersister,
+  githubConnector: GithubConnector,
   githubApiClientDecorator: GithubApiClientDecorator,
   timestamper: Timestamper,
   metrics: Metrics,
@@ -56,33 +58,33 @@ case class PersistingService @Inject()(
 
   val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
-      githubConfig,
-      gitOpenClient,
-      timestamper.timestampF,
-      defaultMetricsRegistry,
-      repositoriesToIgnore,
-      futureHelpers
+      githubConfig           = githubConfig,
+      githubApiClient        = gitOpenClient,
+      githubConnector        = githubConnector,
+      timestampF             = timestamper.timestampF,
+      defaultMetricsRegistry = defaultMetricsRegistry,
+      repositoriesToIgnore   = repositoriesToIgnore,
+      futureHelpers          = futureHelpers
     )
 
-  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] = {
-    val persistedTeamsF = persister.getAllTeamsAndRepos
+  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     (for {
-       sortedGhTeams   <- teamsOrderedByUpdateDate(persistedTeamsF)
-       withTeams       <- sortedGhTeams.foldLeftM(Seq.empty[TeamRepositories]){ case (acc, ghTeam) =>
-                            dataSource
-                              .mapTeam(ghTeam, persistedTeamsF)
-                              .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
-                              .flatMap(persister.update)
-                              .map(acc :+ _)
-                          }
-       withoutTeams    <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
+       persistedTeams <- persister.getAllTeamsAndRepos
+       sortedGhTeams  <- teamsOrderedByUpdateDate(persistedTeams)
+       withTeams      <- sortedGhTeams.foldLeftM(Seq.empty[TeamRepositories]){ case (acc, ghTeam) =>
+                           dataSource
+                             .mapTeam(ghTeam, persistedTeams)
+                             .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
+                             .flatMap(persister.update)
+                             .map(acc :+ _)
+                         }
+       withoutTeams   <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
      } yield withTeams :+ withoutTeams
     ).recoverWith {
       case NonFatal(ex) =>
         Logger.error("Could not persist to teams repo.", ex)
         Future.failed(ex)
     }
-  }
 
   def getRepositoriesWithoutTeams(
       persistedReposWithTeams: Seq[TeamRepositories]
@@ -102,23 +104,18 @@ case class PersistingService @Inject()(
       }
 
   private def teamsOrderedByUpdateDate(
-      persistedTeamsF: Future[Seq[TeamRepositories]]
+      persistedTeams: Seq[TeamRepositories]
     )( implicit ec: ExecutionContext
     ): Future[List[GhTeam]] =
-    for {
-      ghTeams        <- dataSource.getTeamsForHmrcOrg
-      persistedTeams <- persistedTeamsF
-    } yield {
-      ghTeams
-        .map { ghTeam =>
-          val updateDate = persistedTeams.find(_.teamName == ghTeam.name).fold(0L)(_.updateDate)
-          (updateDate, ghTeam)
-        }
-        .sortBy(_._1)
-        .map {
-          case (_, team) => team
-        }
-    }
+      dataSource.getTeamsForHmrcOrg
+        .map(
+          _.map { ghTeam =>
+            val updateDate = persistedTeams.find(_.teamName == ghTeam.name).fold(0L)(_.updateDate)
+            (updateDate, ghTeam)
+          }
+          .sortBy(_._1)
+          .map(_._2)
+        )
 
   def removeOrphanTeamsFromMongo(
        teamRepositoriesFromGh: Seq[TeamRepositories]

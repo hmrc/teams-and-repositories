@@ -31,6 +31,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -263,39 +264,39 @@ class PersistingServiceSpec
     storedTeamRepositories: Seq[TeamRepositories],
     metrics: Metrics) = {
 
-    val githubConfig          = mock[GithubConfig]
-    val persister             = mock[TeamsAndReposPersister]
-    val githubClientDecorator = mock[GithubApiClientDecorator]
-    val gitApiOpenConfig      = mock[GitApiConfig]
+    val mockGithubConfig          = mock[GithubConfig]
+    val mockPersister             = mock[TeamsAndReposPersister]
+    val mockGithubConnector       = mock[GithubConnector]
+    val mockGithubClientDecorator = mock[GithubApiClientDecorator]
+    val mockGithubApiClient       = mock[GithubApiClient]
+    val gitApiConfig              = GitApiConfig(user = "", key = "open.key", apiUrl = "open.com")
 
-    when(githubConfig.githubApiOpenConfig).thenReturn(gitApiOpenConfig)
+    when(mockGithubConfig.githubApiOpenConfig)
+      .thenReturn(gitApiConfig)
 
-    val openUrl = "open.com"
-    val openKey = "open.key"
-    when(gitApiOpenConfig.apiUrl).thenReturn(openUrl)
-    when(gitApiOpenConfig.key).thenReturn(openKey)
+    when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
+      .thenReturn(mockGithubApiClient)
 
-    val openGithubClient = mock[GithubApiClient]
-
-    when(githubClientDecorator.githubApiClient(openUrl, openKey)).thenReturn(openGithubClient)
-
-    when(persister.getAllTeamsAndRepos).thenReturn(Future.successful(storedTeamRepositories))
-    when(persister.update(any())).thenAnswer(new Answer[Future[TeamRepositories]] {
+    when(mockPersister.getAllTeamsAndRepos).thenReturn(Future.successful(storedTeamRepositories))
+    when(mockPersister.update(any())).thenAnswer(new Answer[Future[TeamRepositories]] {
       override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
         val args = invocation.getArguments()
         Future.successful(args(0).asInstanceOf[TeamRepositories])
       }
     })
 
+
     new PersistingService(
-      githubConfig,
-      persister,
-      githubClientDecorator,
-      testTimestamper,
-      metrics,
-      Configuration(),
-      new FutureHelpers(metrics)) {
-      override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
-    }
+      githubConfig             = mockGithubConfig,
+      persister                = mockPersister,
+      githubConnector          = mockGithubConnector,
+      githubApiClientDecorator = mockGithubClientDecorator,
+      timestamper              = testTimestamper,
+      metrics                  = metrics,
+      configuration            = Configuration(),
+      futureHelpers            = new FutureHelpers(metrics)
+      ) {
+        override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
+      }
   }
 }

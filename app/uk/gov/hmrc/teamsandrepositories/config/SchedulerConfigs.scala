@@ -23,11 +23,11 @@ import uk.gov.hmrc.teamsandrepositories.helpers.ConfigUtils
 import scala.concurrent.duration.FiniteDuration
 
 case class SchedulerConfig(
-                            enabledKey  : String
-                            , enabled     : Boolean
-                            , frequency   : () => FiniteDuration
-                            , initialDelay: () => FiniteDuration
-                          )
+    enabledKey  : String
+  , enabled     : Boolean
+  , interval    : FiniteDuration
+  , initialDelay: FiniteDuration
+  )
 
 object SchedulerConfig {
   import ConfigUtils._
@@ -35,27 +35,27 @@ object SchedulerConfig {
   def apply(
         configuration: Configuration
       , enabledKey   : String
-      , frequency    : => FiniteDuration
-      , initialDelay : => FiniteDuration
+      , interval     : FiniteDuration
+      , initialDelay : FiniteDuration
       ): SchedulerConfig =
     SchedulerConfig(
         enabledKey
       , enabled      = configuration.get[Boolean](enabledKey)
-      , frequency    = () => frequency
-      , initialDelay = () => initialDelay
+      , interval     = interval
+      , initialDelay = initialDelay
       )
 
   def apply(
         configuration  : Configuration
       , enabledKey     : String
-      , frequencyKey   : String
+      , intervalKey    : String
       , initialDelayKey: String
       ): SchedulerConfig =
     SchedulerConfig(
         enabledKey
       , enabled      = configuration.get[Boolean](enabledKey)
-      , frequency    = () => getDuration(configuration, frequencyKey)
-      , initialDelay = () => getDuration(configuration, initialDelayKey)
+      , interval     = getDuration(configuration, intervalKey)
+      , initialDelay = getDuration(configuration, initialDelayKey)
       )
 }
 
@@ -65,14 +65,21 @@ class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUti
   val jenkinsScheduler = SchedulerConfig(
       configuration
     , enabledKey      = "cache.jenkins.reloadEnabled"
-    , frequencyKey    = "cache.jenkins.duration"
+    , intervalKey     = "cache.jenkins.duration"
     , initialDelayKey = "cache.jenkins.initialDelay"
     )
 
   val dataReloadScheduler = SchedulerConfig(
       configuration
     , enabledKey      = "cache.teams.reloadEnabled"
-    , frequencyKey    = "cache.teams.duration"
+    , intervalKey     = "cache.teams.duration"
     , initialDelayKey = "cache.teams.initialDelay"
+    )
+
+  val metrixScheduler = SchedulerConfig(
+      configuration
+    , enabledKey      = "scheduler.metrix.enabled"
+    , intervalKey     = "scheduler.metrix.interval"
+    , initialDelayKey = "scheduler.metrix.initialDelay"
     )
 }

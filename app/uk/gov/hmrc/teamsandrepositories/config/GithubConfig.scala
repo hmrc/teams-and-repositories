@@ -16,21 +16,18 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-
 import java.io.File
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
+
+
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  val githubOpenConfigKey               = "github.open.api"
-  val githubHiddenRepositoriesConfigKey = "github.hidden.repositories"
-  val githubHiddenTeamsConfigKey        = "github.hidden.teams"
-
-  val host = configuration.getOptional[String](s"$githubOpenConfigKey.host")
-  val user = configuration.getOptional[String](s"$githubOpenConfigKey.user")
-  val key = configuration.getOptional[String](s"$githubOpenConfigKey.key")
+  val host = configuration.getOptional[String]("github.open.api.host")
+  val user = configuration.getOptional[String]("github.open.api.user")
+  val key  = configuration.getOptional[String]("github.open.api.key")
 
   val githubApiOpenConfig: GitApiConfig =
     (user, key, host) match {
@@ -39,14 +36,18 @@ class GithubConfig @Inject()(configuration: Configuration) {
       case _ => GitApiConfig("user_not_set", "key_not_set", "https://hostnotset.com")
     }
 
-  val hiddenRepositories =
-    configuration.getOptional[String](githubHiddenRepositoriesConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+  val hiddenRepositories: List[String] =
+    configuration.getOptional[String]("github.hidden.repositories")
+      .fold(List.empty[String])(_.split(",").toList)
 
-  val hiddenTeams =
-    configuration.getOptional[String](githubHiddenTeamsConfigKey).fold(List.empty[String])(x => x.split(",").toList)
+  val hiddenTeams: List[String] =
+    configuration.getOptional[String]("github.hidden.teams")
+      .fold(List.empty[String])(_.split(",").toList)
 
   private def gitPath(gitFolder: String): String =
     s"${System.getProperty("user.home")}/.github/$gitFolder"
 
 
+  val url    = configuration.get[String]("github.open.api.url")
+  val rawUrl = configuration.get[String]("github.open.api.rawurl")
 }
