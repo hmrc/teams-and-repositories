@@ -75,7 +75,7 @@ class GithubRatelimitMetricsScheduler @Inject()(
   schedule("Github Ratelimit metrics", schedulerConfig.metrixScheduler) {
     metricOrchestrator
       .attemptToUpdateAndRefreshMetrics(
-        skipReportingOn = persistedMetric => !metricsDefinitions.contains(persistedMetric.name) // it would be better if old metrics were deleted from store...
+        skipReportingOn = persistedMetric => !metricsDefinitions.contains(persistedMetric.name)
       )
       .map(_ => ())
   }

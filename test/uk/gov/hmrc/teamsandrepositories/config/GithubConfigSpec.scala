@@ -33,10 +33,10 @@ class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
       , "github.open.api.user"   -> "user1"
       , "github.open.api.key"    -> "token1"
 
-      , "githubtokens.1.username" -> "user1"
-      , "githubtokens.1.token"    -> "token1"
-      , "githubtokens.2.username" -> "user2"
-      , "githubtokens.2.token"    -> "token2"
+      , "ratemetrics.githubtokens.1.username" -> "user1"
+      , "ratemetrics.githubtokens.1.token"    -> "token1"
+      , "ratemetrics.githubtokens.2.username" -> "user2"
+      , "ratemetrics.githubtokens.2.token"    -> "token2"
       ))
 
       githubConfig.url shouldBe "https://api.github.com"
@@ -50,8 +50,8 @@ class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
           f"""|
             |github.open.api.url     = "https://api.github.com"
             |github.open.api.rawurl  = "http://localhost:8461/github/raw"
-            |githubtokens.1.username = $${?github.open.api.user}
-            |githubtokens.1.token    = $${?github.open.api.key}
+            |ratemetrics.githubtokens.1.username = $${?github.open.api.user}
+            |ratemetrics.githubtokens.1.token    = $${?github.open.api.key}
             """.stripMargin
         ).resolve
       val githubConfig = new GithubConfig(new Configuration(config))
@@ -67,8 +67,8 @@ class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
             |github.open.api.rawurl  = "http://localhost:8461/github/raw"
             |github.open.api.user    = user1
             |github.open.api.key     = token1
-            |githubtokens.1.username = $${?github.open.api.user}
-            |githubtokens.1.token    = $${?github.open.api.key}
+            |ratemetrics.githubtokens.1.username = $${?github.open.api.user}
+            |ratemetrics.githubtokens.1.token    = $${?github.open.api.key}
             """.stripMargin
         ).resolve
       val githubConfig = new GithubConfig(new Configuration(config))

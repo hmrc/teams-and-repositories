@@ -55,7 +55,7 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val rawUrl = configuration.get[String]("github.open.api.rawurl")
 
   val tokens: List[(String, String)] =
-    configuration.get[ConfigList]("githubtokens").asScala.toList
+    configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
       .map(cv => new Configuration(cv.asInstanceOf[ConfigObject].toConfig))
       .flatMap { config =>
         for {
