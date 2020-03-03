@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import akka.actor.ActorSystem
+import cats.implicits._
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
@@ -50,13 +51,18 @@ class GithubRatelimitMetricsScheduler @Inject()(
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  val metricsDefinitions: Map[String, () => Future[Int]] = {
+    val githubApiConfig = githubConfig.githubApiOpenConfig
+    Map(
+      s"github.token.${githubApiConfig.user}.rate.remaining" ->
+        {() => githubConnector.getRateLimitMetrics(githubApiConfig).map(_.remaining)}
+    )
+  }
+
   val source: MetricSource =
     new MetricSource {
       def metrics(implicit ec: ExecutionContext): Future[Map[String, Int]] =
-        for {
-          githubApiConfig <- Future.successful(githubConfig.githubApiOpenConfig)
-          remaining       <- githubConnector.getRateLimitMetrics(githubApiConfig).map(_.remaining)
-        } yield Map(s"github.ratelimit.${githubApiConfig.user}.rate.remaining" -> remaining)
+        metricsDefinitions.toList.traverse { case (k, f) => f().map(i => (k, i)) }.map(_.toMap)
     }
 
   val metricOrchestrator = new MetricOrchestrator(
@@ -67,7 +73,10 @@ class GithubRatelimitMetricsScheduler @Inject()(
   )
 
   schedule("Github Ratelimit metrics", config.metrixScheduler) {
-    metricOrchestrator.attemptToUpdateAndRefreshMetrics()
+    metricOrchestrator
+      .attemptToUpdateAndRefreshMetrics(
+        skipReportingOn = persistedMetric => !metricsDefinitions.contains(persistedMetric.name) // it would be better if old metrics were deleted from store...
+      )
       .map(_ => ())
   }
 }
