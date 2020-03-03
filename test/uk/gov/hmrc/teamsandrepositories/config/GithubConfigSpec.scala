@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
+import com.typesafe.config.ConfigFactory
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
@@ -26,7 +27,7 @@ class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
 
   "GithubConfig" should {
     "parse config correctly" in {
-      val config = new GithubConfig(Configuration(
+      val githubConfig = new GithubConfig(Configuration(
         "github.open.api.url"    -> "https://api.github.com"
       , "github.open.api.rawurl" -> "http://localhost:8461/github/raw"
       , "github.open.api.user"   -> "user1"
@@ -38,9 +39,41 @@ class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
       , "githubtokens.2.token"    -> "token2"
       ))
 
-      config.url shouldBe "https://api.github.com"
-      config.rawUrl shouldBe "http://localhost:8461/github/raw"
-      config.tokens shouldBe List("user1" -> "token1", "user2" -> "token2")
+      githubConfig.url shouldBe "https://api.github.com"
+      githubConfig.rawUrl shouldBe "http://localhost:8461/github/raw"
+      githubConfig.tokens shouldBe List("user1" -> "token1", "user2" -> "token2")
+    }
+
+    "handle undefined open api credentials" in {
+      val config =
+        ConfigFactory.parseString(
+          f"""|
+            |github.open.api.url     = "https://api.github.com"
+            |github.open.api.rawurl  = "http://localhost:8461/github/raw"
+            |githubtokens.1.username = $${?github.open.api.user}
+            |githubtokens.1.token    = $${?github.open.api.key}
+            """.stripMargin
+        ).resolve
+      val githubConfig = new GithubConfig(new Configuration(config))
+
+      githubConfig.tokens shouldBe Nil
+    }
+
+    "infer token config from open api credentials" in {
+      val config =
+        ConfigFactory.parseString(
+          f"""|
+            |github.open.api.url     = "https://api.github.com"
+            |github.open.api.rawurl  = "http://localhost:8461/github/raw"
+            |github.open.api.user    = user1
+            |github.open.api.key     = token1
+            |githubtokens.1.username = $${?github.open.api.user}
+            |githubtokens.1.token    = $${?github.open.api.key}
+            """.stripMargin
+        ).resolve
+      val githubConfig = new GithubConfig(new Configuration(config))
+
+      githubConfig.tokens shouldBe List("user1" -> "token1")
     }
   }
 }
