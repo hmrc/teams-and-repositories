@@ -26,10 +26,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.metrix.MetricOrchestrator
 import uk.gov.hmrc.metrix.domain.MetricSource
 import uk.gov.hmrc.metrix.persistence.MongoMetricRepository
-import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class GithubRatelimitMetricsScheduler @Inject()(
      githubConnector: GithubConnector
-   , config         : SchedulerConfigs
+   , schedulerConfig: SchedulerConfigs
    , githubConfig   : GithubConfig
    , mongoLocks     : MongoLocks
    , metrics        : Metrics
@@ -51,12 +50,13 @@ class GithubRatelimitMetricsScheduler @Inject()(
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+
+
   val metricsDefinitions: Map[String, () => Future[Int]] = {
-    val githubApiConfig = githubConfig.githubApiOpenConfig
-    Map(
-      s"github.token.${githubApiConfig.user}.rate.remaining" ->
-        {() => githubConnector.getRateLimitMetrics(githubApiConfig).map(_.remaining)}
-    )
+    githubConfig.tokens.map { case (username, token) =>
+      s"github.token.${username}.rate.remaining" ->
+        {() => githubConnector.getRateLimitMetrics(token).map(_.remaining)}
+    }.toMap
   }
 
   val source: MetricSource =
@@ -72,7 +72,7 @@ class GithubRatelimitMetricsScheduler @Inject()(
   , metricRegistry    = metrics.defaultRegistry
   )
 
-  schedule("Github Ratelimit metrics", config.metrixScheduler) {
+  schedule("Github Ratelimit metrics", schedulerConfig.metrixScheduler) {
     metricOrchestrator
       .attemptToUpdateAndRefreshMetrics(
         skipReportingOn = persistedMetric => !metricsDefinitions.contains(persistedMetric.name) // it would be better if old metrics were deleted from store...

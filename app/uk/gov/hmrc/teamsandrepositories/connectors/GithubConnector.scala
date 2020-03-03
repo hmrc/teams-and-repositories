@@ -35,8 +35,8 @@ class GithubConnector @Inject()(githubConfig: GithubConfig, http: HttpClient)(im
       .map(_.map(_.body))
   }
 
-  def getRateLimitMetrics(githubApiConfig: GitApiConfig): Future[RateLimitMetrics] = {
-    implicit val hc = HeaderCarrier(authorization = Some(Authorization(s"token ${githubApiConfig.key}")))
+  def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
+    implicit val hc = HeaderCarrier(authorization = Some(Authorization(s"token $token")))
     implicit val rlmr = RateLimitMetrics.reads
     http.GET[RateLimitMetrics](url = s"${githubConfig.url}/rate_limit")
   }
