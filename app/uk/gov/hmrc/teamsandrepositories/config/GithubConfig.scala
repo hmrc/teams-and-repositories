@@ -19,15 +19,18 @@ package uk.gov.hmrc.teamsandrepositories.config
 import java.io.File
 
 import com.google.inject.{Inject, Singleton}
+import com.typesafe.config.{ConfigList, ConfigObject}
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.GitApiConfig
+
+import scala.collection.JavaConverters._
 
 
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  val host = configuration.getOptional[String]("github.open.api.host")
-  val user = configuration.getOptional[String]("github.open.api.user")
-  val key  = configuration.getOptional[String]("github.open.api.key")
+  private val host = configuration.getOptional[String]("github.open.api.host")
+  private val user = configuration.getOptional[String]("github.open.api.user")
+  private val key  = configuration.getOptional[String]("github.open.api.key")
 
   val githubApiOpenConfig: GitApiConfig =
     (user, key, host) match {
@@ -50,4 +53,14 @@ class GithubConfig @Inject()(configuration: Configuration) {
 
   val url    = configuration.get[String]("github.open.api.url")
   val rawUrl = configuration.get[String]("github.open.api.rawurl")
+
+  val tokens: List[(String, String)] =
+    configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
+      .map(cv => new Configuration(cv.asInstanceOf[ConfigObject].toConfig))
+      .flatMap { config =>
+        for {
+          username <- config.getOptional[String]("username")
+          token    <- config.getOptional[String]("token")
+        } yield (username, token)
+      }
 }
