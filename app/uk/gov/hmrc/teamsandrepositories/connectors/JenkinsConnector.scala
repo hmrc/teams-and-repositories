@@ -28,7 +28,6 @@ import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -78,6 +77,7 @@ object JenkinsConnector {
   import cats.implicits._
 
   def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot]): Future[Seq[JenkinsJob]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
     root.jobs.toList.traverse {
       case job if isFolder(job)  => findBuildJobsFunction(job.url).flatMap(parse(_, findBuildJobsFunction))
       case job if isProject(job) => Future(Seq(job))
