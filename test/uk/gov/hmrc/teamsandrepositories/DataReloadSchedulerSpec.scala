@@ -58,7 +58,7 @@ class DataReloadSchedulerSpec
 
   val testMongoLock: LockKeeper = new LockKeeper(mockDB, "testLock") {
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-      body.map(t => Some(t))
+      body.map(t => Some(t))(ec)
   }
 
   val testMongoLocks: MongoLocks = new MongoLocks(mock[ReactiveMongoComponent](RETURNS_DEEP_STUBS)) {
