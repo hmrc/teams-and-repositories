@@ -17,12 +17,13 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class FutureExtrasSpec extends WordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
+class FutureExtrasSpec extends AnyWordSpec with Matchers with ScalaFutures with DefaultPatienceConfig {
 
   "FutureOfBoolean ||" should {
     "short circuit if needed" in {

@@ -17,12 +17,13 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsSuccess, Json}
 
 import scala.concurrent.Future
 
-class JenkinsConnectorSpec extends WordSpec with Matchers with ScalaFutures {
+class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
   import JenkinsApiReads._
 
   "JenkinsJob" should {

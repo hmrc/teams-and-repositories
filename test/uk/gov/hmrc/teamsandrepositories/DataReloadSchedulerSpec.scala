@@ -20,9 +20,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
-import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
@@ -40,7 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class DataReloadSchedulerSpec
-    extends PlaySpec
+    extends AnyWordSpec
     with MockitoSugar
     with Results
     with OptionValues

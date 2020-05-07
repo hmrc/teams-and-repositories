@@ -26,8 +26,9 @@ import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -39,7 +40,7 @@ import uk.gov.hmrc.teamsandrepositories.services._
 import scala.concurrent.{ExecutionContext, Future}
 
 class PersistingServiceSpec
-    extends WordSpec
+    extends AnyWordSpec
     with MockitoSugar
     with ScalaFutures
     with Matchers

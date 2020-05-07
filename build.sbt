@@ -12,3 +12,4 @@ lazy val microservice = Project(appName, file("."))
   .settings(libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test)
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(scalaVersion := "2.12.10")
+

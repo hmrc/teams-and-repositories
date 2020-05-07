@@ -18,12 +18,13 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.LocalDateTime
 
-import org.scalatest.{FreeSpec, Matchers}
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class InitialDelayCalculatorSpec extends FreeSpec with Matchers {
+class InitialDelayCalculatorSpec extends AnyFreeSpec with Matchers {
 
   "getMillisTillExecutionTime" - {
     "should calculate the next execution time" - {

@@ -48,13 +48,15 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
 
   def updateOne(buildJob: BuildJob): Future[UpdateWriteResult] = {
     collection
-      .update(
-        selector = Json.obj("service" -> buildJob.service),
-        update   = Json.obj("$set" -> Json.obj("jenkinsURL" -> buildJob.jenkinsURL)),
-        upsert   = true
+      .update(ordered=false)
+      .one(
+        q      = Json.obj("service" -> buildJob.service),
+        u      = Json.obj("$set" -> Json.obj("jenkinsURL" -> buildJob.jenkinsURL)),
+        upsert = true
       )
   }
 
   def update(buildJobs: Seq[BuildJob]): Future[Seq[UpdateWriteResult]] =
     Future.traverse(buildJobs)(updateOne)
+
 }

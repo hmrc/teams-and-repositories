@@ -17,13 +17,12 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 
-import scala.collection.immutable.ListMap
-
-class GithubConfigSpec extends WordSpec with Matchers with MockitoSugar {
+class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
 
   "GithubConfig" should {
     "parse config correctly" in {

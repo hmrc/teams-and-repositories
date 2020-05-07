@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -27,7 +28,7 @@ import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.Future
 
-class JenkinsControllerSpec extends PlaySpec with Results with MockitoSugar {
+class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with MockitoSugar {
 
   val mockJenkinsService = mock[JenkinsService]
 

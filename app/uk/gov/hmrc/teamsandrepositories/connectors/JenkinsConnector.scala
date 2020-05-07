@@ -37,6 +37,8 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
 
   implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
 
+  private val logger = Logger(this.getClass)
+
   private val buildsUrl: String = "api/json?tree=jobs[name,url]"
 
   private def findBuildJobs(url: String): Future[JenkinsRoot] = {
@@ -55,7 +57,7 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
       .GET[JenkinsRoot](s"$url$buildsUrl")
       .recoverWith {
         case NonFatal(ex) =>
-          Logger.error(s"An error occurred when connecting to $url$buildsUrl: ${ex.getMessage}", ex)
+          logger.error(s"An error occurred when connecting to $url$buildsUrl: ${ex.getMessage}", ex)
           Future.failed(ex)
       }
   }

@@ -22,7 +22,9 @@ import org.mockito.Mockito
 import org.mockito.Mockito.{verify, when, _}
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
@@ -39,7 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class ModuleSpec
-    extends PlaySpec
+  extends AnyWordSpec
+    with Matchers
     with MockitoSugar
     with Results
     with OptionValues

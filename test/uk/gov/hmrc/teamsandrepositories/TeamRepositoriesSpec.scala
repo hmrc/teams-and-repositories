@@ -19,7 +19,9 @@ package uk.gov.hmrc.teamsandrepositories
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.Date
 
-import org.scalatest.{Matchers, OptionValues, WordSpec}
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
@@ -28,7 +30,7 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.{Digit
 
 import scala.collection.immutable.ListMap
 
-class TeamRepositoriesSpec extends WordSpec with Matchers with OptionValues {
+class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
   val timestamp   = new Date().getTime
   val now         = LocalDateTime.now()

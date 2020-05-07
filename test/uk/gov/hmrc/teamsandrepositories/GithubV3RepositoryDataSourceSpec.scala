@@ -17,16 +17,20 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.util.Date
+
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.{any, anyString}
+
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.time.SpanSugar
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
+
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
@@ -35,11 +39,12 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class GithubV3RepositoryDataSourceSpec
-    extends WordSpec
+    extends AnyWordSpec
     with ScalaFutures
     with Matchers
     with DefaultPatienceConfig
@@ -53,7 +58,7 @@ class GithubV3RepositoryDataSourceSpec
   val mockRegistry = mock[MetricRegistry]
   val mockCounter  = mock[Counter]
 
-  when(mockRegistry.counter(ArgumentMatchers.any())).thenReturn(mockCounter)
+  when(mockRegistry.counter(any())).thenReturn(mockCounter)
 
   trait Setup {
     val mockGithubClient    = mock[GithubApiClient]

@@ -17,19 +17,22 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class MongoTeamsAndRepositoriesPersisterSpec
-    extends UnitSpec
+    extends AnyWordSpec
+    with Matchers
     with LoneElement
     with MongoSpecSupport
     with ScalaFutures
@@ -48,8 +51,12 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
   val mongoTeamsAndReposPersister = app.injector.instanceOf(classOf[MongoTeamsAndRepositoriesPersister])
 
+  def await[T](f: Future[T]) : T = {
+    f.futureValue
+  }
+
   override def beforeEach() {
-    await(mongoTeamsAndReposPersister.drop)
+    mongoTeamsAndReposPersister.drop.futureValue
   }
 
   "getAllTeamAndRepos" should {

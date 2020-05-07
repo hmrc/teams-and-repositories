@@ -43,6 +43,9 @@ case class RepositoryDetails(
   language: String)
 
 object RepositoryDetails {
+
+  private val logger = Logger(this.getClass)
+
   def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
     val repoDetails =
       RepositoryDetails(
@@ -94,7 +97,7 @@ object RepositoryDetails {
     } match {
       case Success(url) => Some(Link(linkName, linkDisplayName, url))
       case Failure(throwable) =>
-        Logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
+        logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
         None
     }
 
