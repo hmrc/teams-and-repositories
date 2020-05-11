@@ -26,16 +26,20 @@ import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class TeamsAndReposPersister @Inject()(
   mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister,
   futureHelpers: FutureHelpers) {
+
+  private val logger = Logger(this.getClass)
+
   val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
 
   def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
-    Logger.info(
+    logger.info(
       s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
@@ -50,7 +54,7 @@ class TeamsAndReposPersister @Inject()(
     mongoTeamsAndReposPersister.clearAllData
 
   def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
-    Logger.debug(s"Deleting orphan teams: $teamNames")
+    logger.debug(s"Deleting orphan teams: $teamNames")
     Future.traverse(teamNames)(mongoTeamsAndReposPersister.deleteTeam)
   }
 
@@ -72,10 +76,11 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
     futureHelpers
       .withTimerAndCounter("mongo.update") {
         collection
-          .update(
-            selector = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
-            update   = teamAndRepos,
-            upsert   = true)
+          .update(ordered = false)
+          .one(
+            q      = Json.obj("teamName" -> Json.toJson(teamAndRepos.teamName)),
+            u      = teamAndRepos,
+            upsert = true)
           .map(_ => teamAndRepos)
       }
       .recover {
@@ -110,10 +115,11 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
 
   def resetLastActiveDate(repoName: String): Future[Option[Int]] =
     collection
-      .update(
-        selector = Json.obj("repositories.name" -> repoName),
-        update   = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
-        multi    = true
+      .update(ordered=false)
+      .one(
+        q     = Json.obj("repositories.name" -> repoName),
+        u     = Json.obj("$set" -> Json.obj("repositories.$.lastActiveDate" -> 0L)),
+        multi = true
       )
       .map { result =>
         result.nModified match {

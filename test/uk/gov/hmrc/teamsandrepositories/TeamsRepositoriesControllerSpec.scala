@@ -23,7 +23,9 @@ import java.util.Date
 import akka.actor.ActorSystem
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json._
@@ -41,7 +43,8 @@ import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 
 class TeamsRepositoriesControllerSpec
-    extends PlaySpec
+    extends AnyWordSpec
+    with Matchers
     with MockitoSugar
     with Results
     with OptionValues

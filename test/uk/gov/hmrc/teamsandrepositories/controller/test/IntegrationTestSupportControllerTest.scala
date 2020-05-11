@@ -15,11 +15,11 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.controller.test
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
-class IntegrationTestSupportControllerTest extends WordSpec {
+class IntegrationTestSupportControllerTest extends AnyWordSpec {
 
   "Integration Controller" should {
 
@@ -50,17 +50,6 @@ class IntegrationTestSupportControllerTest extends WordSpec {
         case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
         case JsError(_) => println("not found")
       }
-
-
     }
-
-
-
-
   }
-
-
-
-
-
 }

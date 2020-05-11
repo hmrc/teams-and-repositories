@@ -27,6 +27,8 @@ import scala.concurrent.duration.{Duration, DurationInt}
 
 object RetryStrategy {
 
+  private val logger = Logger(this.getClass)
+
   private def delay[T](delay: Duration)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     new Timer().schedule(new TimerTask {
@@ -40,12 +42,12 @@ object RetryStrategy {
     implicit executor: ExecutionContext): Future[T] =
     f.recoverWith {
       case e: APIRateLimitExceededException =>
-        Logger.error(s"API rate limit is reached (at retry:$times)", e)
+        logger.error(s"API rate limit is reached (at retry:$times)", e)
         Future.failed(e)
 
       case e if times > 0 =>
-        Logger.error("error making request Retrying :", e)
-        Logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
+        logger.error("error making request Retrying :", e)
+        logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
         delay(duration) {
           exponentialRetry(times - 1, duration * 2)(f)
         }

@@ -5,26 +5,26 @@ object AppDependencies {
   import play.core.PlayVersion.current
   import play.sbt.PlayImport._
 
-  val bootstrapPlayVersion = "0.46.0"
-
   val compile = Seq(
     ws,
-    "uk.gov.hmrc"            %% "bootstrap-play-26" % bootstrapPlayVersion,
-    "uk.gov.hmrc"            %% "github-client"     % "2.12.0",
-    "org.yaml"               % "snakeyaml"          % "1.17",
-    "uk.gov.hmrc"            %% "mongo-lock"        % "6.18.0-play-26",
-    "uk.gov.hmrc"            %% "metrix"            % "4.1.0-play-26",
-    "org.typelevel"          %% "cats-core"         % "2.0.0"
+    "uk.gov.hmrc"            %% "bootstrap-backend-play-27"  % "2.6.0",
+    "uk.gov.hmrc"            %% "github-client"              % "2.12.0",
+    "org.yaml"               % "snakeyaml"                   % "1.17",
+    "uk.gov.hmrc"            %% "mongo-lock"                 % "6.21.0-play-27",
+    "uk.gov.hmrc"            %% "metrix"                     % "4.4.0-play-27",
+    "uk.gov.hmrc"            %% "simple-reactivemongo"       % "7.26.0-play-27",
+    "org.typelevel"          %% "cats-core"                  % "2.0.0"
   )
   val test = Seq(
-    "uk.gov.hmrc"            %% "bootstrap-play-26"  % bootstrapPlayVersion % Test classifier "tests",
-    "uk.gov.hmrc"            %% "hmrctest"           % "3.9.0-play-26"      % Test,
-    "org.scalatest"          %% "scalatest"          % "3.0.5"              % Test,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2"              % Test,
-    "org.pegdown"            % "pegdown"             % "1.5.0"              % Test,
-    "com.typesafe.play"      %% "play-test"          % current              % Test,
-    "uk.gov.hmrc"            %% "reactivemongo-test" % "4.16.0-play-26"     % Test,
-    "com.github.tomakehurst" % "wiremock"            % "1.58"               % Test,
-    "org.mockito"            % "mockito-core"        % "2.3.5"              % Test
+    "com.typesafe.play"      %% "play-test"                % current          % Test,
+    "org.scalatest"          %% "scalatest"                % "3.1.1"          % Test,
+    "org.scalatestplus.play" %% "scalatestplus-play"       % "4.0.3"          % Test,
+    "org.scalatestplus"      %% "scalatestplus-mockito"    % "1.0.0-M2"       % Test,
+    "org.scalatest"          %% "scalatest-mustmatchers"   % "3.2.0-M4"       % Test,
+    "org.mockito"            %% "mockito-scala"            % "1.5.11"         % Test,
+    "org.mockito"            %% "mockito-scala-scalatest"  % "1.5.11"         % Test,
+    "com.vladsch.flexmark"   %  "flexmark-all"             % "0.35.10"        % Test, // replaces pegdown for newer scalatest
+    "com.github.tomakehurst" % "wiremock"                  % "1.58"           % Test,
+    "uk.gov.hmrc"            %% "reactivemongo-test"       % "4.19.0-play-27" % Test
   )
 }

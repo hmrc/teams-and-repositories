@@ -16,18 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
+import java.util
+
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
-import java.util
-import org.eclipse.egit.github.core.Repository
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
-import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.{Duration, DurationInt}
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.RepoType._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -36,6 +31,11 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+
+import scala.concurrent.Future
+import scala.concurrent.duration.{Duration, DurationInt}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 
 class GithubV3RepositoryDataSource(
@@ -48,6 +48,8 @@ class GithubV3RepositoryDataSource(
   futureHelpers: FutureHelpers) {
 
   import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
+
+  private val logger = Logger(this.getClass)
 
   implicit val repositoryFormats     = Json.format[GitRepository]
   implicit val teamRepositoryFormats = Json.format[TeamRepositories]
@@ -63,12 +65,12 @@ class GithubV3RepositoryDataSource(
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
-          Logger.error("Could not retrieve teams for organisation list.", ex)
+          logger.error("Could not retrieve teams for organisation list.", ex)
           Future.failed(ex)
       }
 
   def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
-    Logger.debug(s"Mapping team (${team.name})")
+    logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.open.repos") {
         githubApiClient.getReposForTeam(team.id)
@@ -88,7 +90,7 @@ class GithubV3RepositoryDataSource(
       }
     }.recover {
       case e =>
-        Logger.error("Could not map teams with organisations.", e)
+        logger.error("Could not map teams with organisations.", e)
         throw e
     }
   }
@@ -99,7 +101,7 @@ class GithubV3RepositoryDataSource(
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
-        Logger.error("Could not retrieve repo list for organisation.", ex)
+        logger.error("Could not retrieve repo list for organisation.", ex)
         Future.failed(ex)
     }
   }
@@ -114,7 +116,7 @@ class GithubV3RepositoryDataSource(
                            case Some(repositoryType) => Future.successful(repositoryType)
                          }
     } yield {
-      Logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
+      logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
       buildGitRepository(repository, repositoryType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
     }
 
@@ -130,20 +132,20 @@ class GithubV3RepositoryDataSource(
 
     optPersistedRepository match {
       case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
-        Logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
+        logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
-        Logger.info(s"Team '${team.name}' - Partial reload of ${repository.htmlUrl}")
-        Logger.debug(s"Mapping repository (${repository.name}) as ${RepoType.Other}")
+        logger.info(s"Team '${team.name}' - Partial reload of ${repository.htmlUrl}")
+        logger.debug(s"Mapping repository (${repository.name}) as ${RepoType.Other}")
         Future.successful(buildGitRepository(repository, RepoType.Other, None, persistedRepository.owningTeams))
       case Some(persistedRepository) =>
-        Logger.info(
+        logger.info(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
             s"github repository last updated -> ${repository.lastActiveDate}")
         getRepositoryDetailsFromGithub(repository)
       case None =>
-        Logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
+        logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
         getRepositoryDetailsFromGithub(repository)
     }
   }
@@ -161,7 +163,7 @@ class GithubV3RepositoryDataSource(
 
     parseAppConfigFile(manifest) match {
       case Failure(exception) =>
-        Logger.warn(
+        logger.warn(
           s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
         None
 
@@ -184,13 +186,13 @@ class GithubV3RepositoryDataSource(
                                      .toList
                                  } catch {
                                    case NonFatal(ex) =>
-                                     Logger.warn(
+                                     logger.warn(
                                        s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
                                      Nil
                                  }
           )
 
-        Logger.info(
+        logger.info(
           s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
         )
 

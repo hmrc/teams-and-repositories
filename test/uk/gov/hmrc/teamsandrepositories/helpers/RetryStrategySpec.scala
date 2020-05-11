@@ -17,13 +17,14 @@
 package uk.gov.hmrc.teamsandrepositories.helpers
 
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.{FreeSpec, Matchers}
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.should.Matchers
 import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class RetryStrategySpec extends FreeSpec with Matchers with ScalaFutures with IntegrationPatience {
+class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with IntegrationPatience {
 
   class DummyThrower() {
 

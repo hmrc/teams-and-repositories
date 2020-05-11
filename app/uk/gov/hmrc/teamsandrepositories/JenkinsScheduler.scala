@@ -38,12 +38,14 @@ extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  private val logger = Logger(this.getClass)
+
   import ExecutionContext.Implicits.global
 
   scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, mongoLocks.jenkinsLock) {
     for {
       _ <- jenkinsService.updateBuildJobs()
-      _ =  Logger.info("Finished updating Build Jobs")
+      _ =  logger.info("Finished updating Build Jobs")
     } yield ()
   }
 

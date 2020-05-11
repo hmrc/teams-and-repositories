@@ -47,6 +47,8 @@ case class PersistingService @Inject()(
   configuration: Configuration,
   futureHelpers: FutureHelpers) {
 
+  private val logger = Logger(this.getClass)
+
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
   val repositoriesToIgnore: List[String] =
@@ -82,7 +84,7 @@ case class PersistingService @Inject()(
      } yield withTeams :+ withoutTeams
     ).recoverWith {
       case NonFatal(ex) =>
-        Logger.error("Could not persist to teams repo.", ex)
+        logger.error("Could not persist to teams repo.", ex)
         Future.failed(ex)
     }
 
@@ -127,13 +129,13 @@ case class PersistingService @Inject()(
       mongoTeams      <- persister.getAllTeamsAndRepos.map(_.map(_.teamName).toSet)
       teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
       orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
-      _               =  Logger.info(s"Removing these orphan teams:[$orphanTeams]")
+      _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
       deleted         <- persister.deleteTeams(orphanTeams)
     } yield deleted
 
   }.recover {
     case e =>
-      Logger.error("Could not remove orphan teams from mongo.", e)
+      logger.error("Could not remove orphan teams from mongo.", e)
       throw e
   }
 }

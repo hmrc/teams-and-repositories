@@ -41,24 +41,26 @@ class DataReloadScheduler @Inject()(
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  private val logger = Logger(this.getClass)
+
   import ExecutionContext.Implicits.global
 
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {
       teamRepositoriesFromGh <- persistingService.persistTeamRepoMapping
-      _ =  Logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
+      _ =  logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
       _ <- persistingService.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
-      _ =  Logger.info("Finished removing orphan Teams")
+      _ =  logger.info("Finished removing orphan Teams")
     } yield ()
   }
 
   def reload: Future[Seq[TeamRepositories]] =
     mongoLocks.dataReloadLock.tryLock {
-      Logger.info(s"Starting mongo update")
+      logger.info(s"Starting mongo update")
       persistingService.persistTeamRepoMapping
     }.map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
      .map { r =>
-      Logger.info(s"mongo update completed")
+      logger.info(s"mongo update completed")
       r
     }
 }
