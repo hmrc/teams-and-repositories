@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import java.util.concurrent.Executors
-
 import com.google.common.io.BaseEncoding
 import javax.inject.Inject
 import play.api.Logger
@@ -35,13 +33,11 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
 
   import JenkinsApiReads._
 
-  implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-
   private val logger = Logger(this.getClass)
 
   private val buildsUrl: String = "api/json?tree=jobs[name,url]"
 
-  private def findBuildJobs(url: String): Future[JenkinsRoot] = {
+  private def findBuildJobs(url: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
     // Prevents Server-Side Request Forgery
     assert(url.startsWith(config.baseUrl), s"$url was requested for invalid host")
 
@@ -62,7 +58,7 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
       }
   }
 
-   def findBuildJobRoot(): Future[Seq[JenkinsJob]] =
+   def findBuildJobRoot()(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] =
      for {
        root <- findBuildJobs(config.baseUrl)
        res  <- JenkinsConnector.parse(root, findBuildJobs)
@@ -78,8 +74,7 @@ object JenkinsConnector {
 
   import cats.implicits._
 
-  def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot]): Future[Seq[JenkinsJob]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
+  def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot])(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] = {
     root.jobs.toList.traverse {
       case job if isFolder(job)  => findBuildJobsFunction(job.url).flatMap(parse(_, findBuildJobsFunction))
       case job if isProject(job) => Future(Seq(job))

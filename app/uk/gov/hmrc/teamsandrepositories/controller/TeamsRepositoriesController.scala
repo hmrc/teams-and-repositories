@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.net.URLDecoder
-import java.util.concurrent.Executors
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
@@ -32,12 +31,7 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.{DataReloadScheduler, RepoType}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-
-object BlockingIOExecutionContext {
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
-}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TeamsRepositoriesController @Inject()(
@@ -46,8 +40,9 @@ class TeamsRepositoriesController @Inject()(
   urlTemplatesProvider: UrlTemplatesProvider,
   configuration: Configuration,
   mongoTeamsAndReposPersister: TeamsAndReposPersister,
-  controllerComponents: ControllerComponents)
-    extends BackendController(controllerComponents) {
+  controllerComponents: ControllerComponents
+)(implicit ec: ExecutionContext
+) extends BackendController(controllerComponents) {
 
 
   val TimestampHeaderName = "X-Cache-Timestamp"

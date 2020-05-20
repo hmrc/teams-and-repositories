@@ -25,7 +25,6 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -38,7 +37,6 @@ import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 class ModuleSpec
   extends AnyWordSpec

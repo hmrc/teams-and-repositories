@@ -24,13 +24,15 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.{BuildJobRepo, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.{BuildJob, TeamRepositories}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class IntegrationTestSupportController @Inject()(teamsRepo: TeamsAndReposPersister,
-                                                 jenkinsRepo: BuildJobRepo,
-                                                 futureHelpers: FutureHelpers,
-                                                 cc: ControllerComponents) extends BackendController(cc) {
+class IntegrationTestSupportController @Inject()(
+  teamsRepo    : TeamsAndReposPersister,
+  jenkinsRepo  : BuildJobRepo,
+  futureHelpers: FutureHelpers,
+  cc           : ControllerComponents
+)(implicit ec: ExecutionContext
+) extends BackendController(cc) {
 
   private implicit val mongoFormats: Reads[BuildJob] = BuildJob.mongoFormats
 

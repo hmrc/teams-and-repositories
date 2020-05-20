@@ -23,6 +23,8 @@ import play.api.libs.json.{JsSuccess, Json}
 
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
   import JenkinsApiReads._
 

@@ -27,8 +27,7 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class TeamsAndReposPersister @Inject()(
   mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister,
@@ -36,29 +35,27 @@ class TeamsAndReposPersister @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  val teamsAndRepositoriesTimestampKeyName = "teamsAndRepositories.updated"
-
-  def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
+  def update(teamsAndRepositories: TeamRepositories)(implicit ec: ExecutionContext): Future[TeamRepositories] = {
     logger.info(
       s"Updating team record: ${teamsAndRepositories.teamName} (${teamsAndRepositories.repositories.size} repos)")
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamsAndRepos: Future[Seq[TeamRepositories]] =
+  def getAllTeamsAndRepos(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos
 
-  def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
+  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
 
-  def clearAllData: Future[Boolean] =
+  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
 
-  def deleteTeams(teamNames: Set[String]): Future[Set[String]] = {
+  def deleteTeams(teamNames: Set[String])(implicit ec: ExecutionContext): Future[Set[String]] = {
     logger.debug(s"Deleting orphan teams: $teamNames")
     Future.traverse(teamNames)(mongoTeamsAndReposPersister.deleteTeam)
   }
 
-  def resetLastActiveDate(repoName: String): Future[Option[Int]] =
+  def resetLastActiveDate(repoName: String)(implicit ec: ExecutionContext): Future[Option[Int]] =
     mongoTeamsAndReposPersister.resetLastActiveDate(repoName)
 }
 
@@ -72,7 +69,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
   override def indexes: Seq[Index] =
     Seq(Index(Seq("teamName" -> IndexType.Hashed), name = Some("teamNameIdx")))
 
-  def update(teamAndRepos: TeamRepositories): Future[TeamRepositories] =
+  def update(teamAndRepos: TeamRepositories)(implicit ec: ExecutionContext): Future[TeamRepositories] =
     futureHelpers
       .withTimerAndCounter("mongo.update") {
         collection
@@ -88,18 +85,20 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
           throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
       }
 
-  def getAllTeamAndRepos: Future[List[TeamRepositories]] = findAll()
+  def getAllTeamAndRepos(implicit ec: ExecutionContext): Future[List[TeamRepositories]] =
+    findAll()
 
-  def getTeamsAndRepos(serviceNames: Seq[String]): Future[List[TeamRepositories]] = {
+  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
     val serviceNamesJson =
       serviceNames.map(serviceName =>
         toJsFieldJsValueWrapper(Json.obj("name" -> BSONRegex("^" + serviceName + "$", "i"))))
     find("repositories" -> Json.obj("$elemMatch" -> Json.obj("$or" -> Json.arr(serviceNamesJson: _*))))
   }
 
-  def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
+  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
+    super.removeAll().map(_.ok)
 
-  def deleteTeam(teamName: String): Future[String] =
+  def deleteTeam(teamName: String)(implicit ec: ExecutionContext): Future[String] =
     futureHelpers
       .withTimerAndCounter("mongo.cleanup") {
         collection
@@ -113,7 +112,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
           throw new RuntimeException(s"failed to remove $teamName")
       }
 
-  def resetLastActiveDate(repoName: String): Future[Option[Int]] =
+  def resetLastActiveDate(repoName: String)(implicit ec: ExecutionContext): Future[Option[Int]] =
     collection
       .update(ordered=false)
       .one(

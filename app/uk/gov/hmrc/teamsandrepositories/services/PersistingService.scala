@@ -23,7 +23,6 @@ import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.githubclient.{GhTeam, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
@@ -38,14 +37,15 @@ class Timestamper {
 
 @Singleton
 case class PersistingService @Inject()(
-  githubConfig: GithubConfig,
-  persister: TeamsAndReposPersister,
-  githubConnector: GithubConnector,
+  githubConfig            : GithubConfig,
+  persister               : TeamsAndReposPersister,
+  githubConnector         : GithubConnector,
   githubApiClientDecorator: GithubApiClientDecorator,
-  timestamper: Timestamper,
-  metrics: Metrics,
-  configuration: Configuration,
-  futureHelpers: FutureHelpers) {
+  timestamper             : Timestamper,
+  metrics                 : Metrics,
+  configuration           : Configuration,
+  futureHelpers           : FutureHelpers
+) {
 
   private val logger = Logger(this.getClass)
 
@@ -122,22 +122,19 @@ case class PersistingService @Inject()(
   def removeOrphanTeamsFromMongo(
        teamRepositoriesFromGh: Seq[TeamRepositories]
     )( implicit ec: ExecutionContext
-    ): Future[Set[String]] = {
-    import BlockingIOExecutionContext._
-
-    for {
-      mongoTeams      <- persister.getAllTeamsAndRepos.map(_.map(_.teamName).toSet)
-      teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
-      orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
-      _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
-      deleted         <- persister.deleteTeams(orphanTeams)
-    } yield deleted
-
-  }.recover {
-    case e =>
-      logger.error("Could not remove orphan teams from mongo.", e)
-      throw e
-  }
+    ): Future[Set[String]] =
+    (for {
+       mongoTeams      <- persister.getAllTeamsAndRepos.map(_.map(_.teamName).toSet)
+       teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
+       orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
+       _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
+       deleted         <- persister.deleteTeams(orphanTeams)
+     } yield deleted
+    ).recover {
+      case e =>
+        logger.error("Could not remove orphan teams from mongo.", e)
+        throw e
+    }
 }
 
 @Singleton

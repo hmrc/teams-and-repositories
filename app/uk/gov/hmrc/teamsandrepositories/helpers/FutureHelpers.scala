@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -28,7 +27,7 @@ class FutureHelpers @Inject()(metrics: Metrics) {
 
   val defaultMetricsRegistry: MetricRegistry = metrics.defaultRegistry
 
-  def withTimerAndCounter[T](name: String)(f: Future[T]) = {
+  def withTimerAndCounter[T](name: String)(f: Future[T])(implicit ec: ExecutionContext) = {
     val t = defaultMetricsRegistry.timer(s"$name.timer").time()
     f.andThen {
       case Success(_) =>

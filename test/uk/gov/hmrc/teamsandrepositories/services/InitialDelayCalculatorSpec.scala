@@ -22,7 +22,6 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
 class InitialDelayCalculatorSpec extends AnyFreeSpec with Matchers {
 

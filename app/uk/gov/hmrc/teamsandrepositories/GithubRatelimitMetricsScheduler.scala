@@ -45,12 +45,11 @@ class GithubRatelimitMetricsScheduler @Inject()(
    )( implicit
       actorSystem         : ActorSystem
     , applicationLifecycle: ApplicationLifecycle
-    , ec                  : ExecutionContext
     ) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-
+  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   val metricsDefinitions: Map[String, () => Future[Int]] = {
     githubConfig.tokens.map { case (username, token) =>

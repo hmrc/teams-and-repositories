@@ -26,7 +26,6 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json._
 import play.api.mvc.Results
@@ -41,6 +40,8 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TeamsRepositoriesControllerSpec
     extends AnyWordSpec

@@ -16,22 +16,22 @@
 
 package uk.gov.hmrc.teamsandrepositories.helpers
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object FutureExtras {
 
   implicit class FutureOfBoolean(f: Future[Boolean]) {
 
-    def ||(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (bv) Future.successful(bv)
-      else f1
-    }
+    def ||(f1: => Future[Boolean])(implicit ec: ExecutionContext): Future[Boolean] =
+      f.flatMap {
+        case true => Future.successful(true)
+        case _    => f1
+      }
 
-    def &&(f1: => Future[Boolean]): Future[Boolean] = f.flatMap { bv =>
-      if (!bv) Future.successful(bv)
-      else f1
-    }
+    def &&(f1: => Future[Boolean])(implicit ec: ExecutionContext): Future[Boolean] =
+      f.flatMap {
+        case false => Future.successful(false)
+        case _     => f1
+      }
   }
-
 }

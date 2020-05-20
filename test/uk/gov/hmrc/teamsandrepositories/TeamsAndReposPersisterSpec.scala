@@ -33,6 +33,8 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class TeamsAndReposPersisterSpec
     extends AnyWordSpec

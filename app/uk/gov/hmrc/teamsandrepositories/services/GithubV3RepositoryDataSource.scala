@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.util
+import java.util.concurrent.Executors
 
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
@@ -32,22 +32,23 @@ import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 
 class GithubV3RepositoryDataSource(
-  githubConfig: GithubConfig,
-  val githubApiClient: GithubApiClient,
-  githubConnector: GithubConnector,
-  timestampF: () => Long,
+  githubConfig              : GithubConfig,
+  val githubApiClient       : GithubApiClient,
+  githubConnector           : GithubConnector,
+  timestampF                : () => Long,
   val defaultMetricsRegistry: MetricRegistry,
-  repositoriesToIgnore: List[String],
-  futureHelpers: FutureHelpers) {
+  repositoriesToIgnore      : List[String],
+  futureHelpers             : FutureHelpers
+) {
 
-  import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
+  implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
   private val logger = Logger(this.getClass)
 
@@ -180,7 +181,7 @@ class GithubV3RepositoryDataSource(
             digitalServiceName = config.get("digital-service").map(_.toString),
             owningTeams        = try {
                                    config
-                                     .getOrElse("owning-teams", new util.ArrayList[String])
+                                     .getOrElse("owning-teams", new java.util.ArrayList[String])
                                      .asInstanceOf[java.util.List[String]]
                                      .asScala
                                      .toList
