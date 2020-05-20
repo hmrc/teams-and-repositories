@@ -103,7 +103,7 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def digitalServices() = Action.async { implicit request =>
+  def digitalServices() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
       val digitalServices: Seq[String] =
         allTeamsAndRepos
@@ -126,7 +126,7 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def teams() = Action.async { implicit request =>
+  def teams() = Action.async {
     mongoTeamsAndReposPersister.getAllTeamsAndRepos.map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
     }

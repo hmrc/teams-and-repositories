@@ -27,6 +27,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MongoTeamsAndRepositoriesPersisterSpec
@@ -38,6 +39,8 @@ class MongoTeamsAndRepositoriesPersisterSpec
     with OptionValues
     with BeforeAndAfterEach
     with GuiceOneAppPerSuite {
+
+  override implicit val patienceConfig = PatienceConfig(timeout = 30.seconds, interval = 100.millis)
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()

@@ -43,7 +43,7 @@ class IntegrationTestSupportController @Inject()(
     Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
   }
 
-  def clearAll() = Action.async { implicit request =>
+  def clearAll() = Action.async {
      teamsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 
@@ -51,7 +51,7 @@ class IntegrationTestSupportController @Inject()(
     jenkinsRepo.update(request.body).map(_ => Ok("Done"))
   }
 
-  def clearJenkins() = Action.async { implicit request =>
+  def clearJenkins() = Action.async {
     jenkinsRepo.removeAll().map(_ => Ok("Ok"))
   }
 }

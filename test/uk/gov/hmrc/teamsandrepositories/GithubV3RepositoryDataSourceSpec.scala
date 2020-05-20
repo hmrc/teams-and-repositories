@@ -836,8 +836,7 @@ class GithubV3RepositoryDataSourceSpec
           when(mockGithubClient.getTeamsForOrganisation("hmrc")(ec))
             .thenReturn(Future.successful(List(team)))
 
-          val lastActiveDate: Long                  = 1234L
-          val previousLastSuccessfulScheduledUpdate = Option.empty[Long]
+          val lastActiveDate: Long = 1234L
 
           when(mockGithubClient.getReposForTeam(1)(ec))
             .thenReturn(Future.successful(

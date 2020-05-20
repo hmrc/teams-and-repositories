@@ -34,7 +34,7 @@ class JenkinsController @Inject()(
 
   private implicit val apiWriter: Writes[BuildJob] = BuildJob.apiWriter
 
-  def lookup(service: String): Action[AnyContent] = Action.async { implicit request =>
+  def lookup(service: String): Action[AnyContent] = Action.async {
     for {
       findService <- jenkinsService.findByService(service)
       result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NoContent)

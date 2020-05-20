@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 
 import java.util.{Timer, TimerTask}
 
-import org.slf4j.LoggerFactory
 import play.api.Logger
 import uk.gov.hmrc.githubclient.APIRateLimitExceededException
 
