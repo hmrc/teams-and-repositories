@@ -20,7 +20,6 @@ import javax.inject.Inject
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, __}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.githubclient.GitApiConfig
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig

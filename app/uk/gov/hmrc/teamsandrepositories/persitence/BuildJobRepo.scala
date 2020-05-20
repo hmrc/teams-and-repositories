@@ -24,12 +24,9 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-
-import scala.concurrent.ExecutionContext.Implicits.global
 import reactivemongo.play.json.ImplicitBSONHandlers._
 
-
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
@@ -41,12 +38,11 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
   override def indexes: Seq[Index] =
     Seq(Index(Seq("service" -> IndexType.Hashed), name = Some("serviceIdx")))
 
+  def findByService(service: String)(implicit ec: ExecutionContext): Future[Option[BuildJob]] =
+    find("service" -> service)
+      .map(_.headOption)
 
-  def findByService(service: String): Future[Option[BuildJob]] = {
-    find("service" -> service).map(_.headOption)
-  }
-
-  def updateOne(buildJob: BuildJob): Future[UpdateWriteResult] = {
+  def updateOne(buildJob: BuildJob)(implicit ec: ExecutionContext): Future[UpdateWriteResult] = {
     collection
       .update(ordered=false)
       .one(
@@ -56,7 +52,6 @@ class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
       )
   }
 
-  def update(buildJobs: Seq[BuildJob]): Future[Seq[UpdateWriteResult]] =
+  def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateWriteResult]] =
     Future.traverse(buildJobs)(updateOne)
-
 }

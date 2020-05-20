@@ -21,8 +21,7 @@ import java.util.Date
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{any, anyString}
-
+import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
@@ -30,18 +29,15 @@ import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
-import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 class GithubV3RepositoryDataSourceSpec
     extends AnyWordSpec
@@ -80,6 +76,7 @@ class GithubV3RepositoryDataSourceSpec
         futureHelpers          = new FutureHelpers(metrics)
       )
 
+    val ec = dataSource.ec
 
     when(mockGithubClient.repoContainsContent(anyString(), anyString(), anyString())(any[ExecutionContext]))
       .thenReturn(Future.successful(false))
@@ -99,8 +96,6 @@ class GithubV3RepositoryDataSourceSpec
 
   val githubConfig: GithubConfig = mock[GithubConfig]
 
-  val ec = BlockingIOExecutionContext.executionContext
-
   private val metrics: Metrics = new Metrics() {
     override def defaultRegistry = new MetricRegistry
     override def toJson          = ???
@@ -110,9 +105,9 @@ class GithubV3RepositoryDataSourceSpec
       extends TeamsAndReposPersister(mock[MongoTeamsAndRepositoriesPersister], new FutureHelpers(metrics)) {
     var captor: List[TeamRepositories] = Nil
 
-    override def update(teamsAndRepositories: TeamRepositories): Future[TeamRepositories] = {
+    override def update(teamsAndRepositories: TeamRepositories)(implicit ec: ExecutionContext): Future[TeamRepositories] = {
       captor +:= teamsAndRepositories
-      Future(teamsAndRepositories)(ec)
+      Future.successful(teamsAndRepositories)
     }
   }
 
@@ -130,7 +125,6 @@ class GithubV3RepositoryDataSourceSpec
       result.size shouldBe 2
       result      should contain theSameElementsAs Seq(teamA, teamB)
     }
-
   }
 
   "Github v3 Data Source getAllRepositories" should {
@@ -166,9 +160,9 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       private val team = GhTeam("A", 1)
-      when(mockGithubClient.getTeamsForOrganisation("hmrc")(ec))
+      when(mockGithubClient.getTeamsForOrganisation(eqTo("hmrc"))(any()))
         .thenReturn(Future.successful(List(team)))
-      when(mockGithubClient.getReposForTeam(1)(ec))
+      when(mockGithubClient.getReposForTeam(1)(internalDataSource.ec))
         .thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
 
       internalDataSource
@@ -842,8 +836,7 @@ class GithubV3RepositoryDataSourceSpec
           when(mockGithubClient.getTeamsForOrganisation("hmrc")(ec))
             .thenReturn(Future.successful(List(team)))
 
-          val lastActiveDate: Long                  = 1234L
-          val previousLastSuccessfulScheduledUpdate = Option.empty[Long]
+          val lastActiveDate: Long = 1234L
 
           when(mockGithubClient.getReposForTeam(1)(ec))
             .thenReturn(Future.successful(

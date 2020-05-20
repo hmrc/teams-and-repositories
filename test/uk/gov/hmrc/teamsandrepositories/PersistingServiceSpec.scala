@@ -39,6 +39,8 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.services._
 import scala.concurrent.{ExecutionContext, Future}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class PersistingServiceSpec
     extends AnyWordSpec
     with MockitoSugar
@@ -64,8 +66,6 @@ class PersistingServiceSpec
   "persistTeamRepoMapping_new" should {
 
     "persist teams and their repos" in {
-      import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
-
       val teamARepositories =
         TeamRepositories(
           "teamA",
@@ -118,8 +118,6 @@ class PersistingServiceSpec
     }
 
     "persist a team's repositories sorted alphabetically by name" in {
-      import uk.gov.hmrc.teamsandrepositories.controller.BlockingIOExecutionContext._
-
       val teamARepositoriesInDataSource1 =
         TeamRepositories(
           "teamA",
@@ -230,7 +228,6 @@ class PersistingServiceSpec
       persistenceOrder.verify(persistingService.persister).update(teamBRepositories)
       persistenceOrder.verify(persistingService.persister).update(unknownTeamRepositories)
     }
-
   }
 
   "removeOrphanTeamsFromMongo" should {
@@ -247,8 +244,9 @@ class PersistingServiceSpec
         TeamRepositories("team-d", Nil, System.currentTimeMillis())
       )
 
-      when(persistingService.persister.getAllTeamsAndRepos).thenReturn(Future.successful(teamRepositoriesInMongo))
-      when(persistingService.persister.deleteTeams(any()))
+      when(persistingService.persister.getAllTeamsAndRepos(any()))
+        .thenReturn(Future.successful(teamRepositoriesInMongo))
+      when(persistingService.persister.deleteTeams(any())(any()))
         .thenReturn(Future.successful(Set("something not important")))
 
       persistingService.removeOrphanTeamsFromMongo(
@@ -278,13 +276,15 @@ class PersistingServiceSpec
     when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
       .thenReturn(mockGithubApiClient)
 
-    when(mockPersister.getAllTeamsAndRepos).thenReturn(Future.successful(storedTeamRepositories))
-    when(mockPersister.update(any())).thenAnswer(new Answer[Future[TeamRepositories]] {
-      override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
-        val args = invocation.getArguments()
-        Future.successful(args(0).asInstanceOf[TeamRepositories])
-      }
-    })
+    when(mockPersister.getAllTeamsAndRepos(any()))
+      .thenReturn(Future.successful(storedTeamRepositories))
+  when(mockPersister.update(any())(any()))
+      .thenAnswer(new Answer[Future[TeamRepositories]] {
+        override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
+          val args = invocation.getArguments()
+          Future.successful(args(0).asInstanceOf[TeamRepositories])
+        }
+      })
 
 
     new PersistingService(

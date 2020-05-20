@@ -22,18 +22,17 @@ import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.persitence.BuildJobRepo
 import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 @Singleton
 class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector){
 
-  def findByService(service: String): Future[Option[BuildJob]] = {
+  def findByService(service: String)(implicit ec: ExecutionContext): Future[Option[BuildJob]] = {
     repo.findByService(service)
   }
 
-  def updateBuildJobs(): Future[Seq[UpdateWriteResult]] = {
+  def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateWriteResult]] = {
     for {
       res <- jenkinsConnector.findBuildJobRoot()
       buildJobs = res.map(build => BuildJob(build.displayName, build.url))

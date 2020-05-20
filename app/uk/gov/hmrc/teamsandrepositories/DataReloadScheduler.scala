@@ -43,7 +43,7 @@ class DataReloadScheduler @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  import ExecutionContext.Implicits.global
+  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {

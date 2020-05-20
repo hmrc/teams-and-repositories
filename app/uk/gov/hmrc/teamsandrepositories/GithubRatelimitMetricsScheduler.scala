@@ -29,7 +29,7 @@ import uk.gov.hmrc.metrix.persistence.MongoMetricRepository
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -45,12 +45,11 @@ class GithubRatelimitMetricsScheduler @Inject()(
    )( implicit
       actorSystem         : ActorSystem
     , applicationLifecycle: ApplicationLifecycle
-    , ec                  : ExecutionContext
     ) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-
+  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   val metricsDefinitions: Map[String, () => Future[Int]] = {
     githubConfig.tokens.map { case (username, token) =>

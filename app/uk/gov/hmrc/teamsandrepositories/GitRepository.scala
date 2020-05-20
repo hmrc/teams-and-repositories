@@ -19,8 +19,6 @@ package uk.gov.hmrc.teamsandrepositories
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
-import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
 
 case class GitRepository(
   name: String,

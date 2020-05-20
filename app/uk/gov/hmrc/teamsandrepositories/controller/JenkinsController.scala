@@ -23,19 +23,21 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class JenkinsController @Inject()(jenkinsService: JenkinsService, cc: ControllerComponents)
-  extends BackendController(cc) {
+class JenkinsController @Inject()(
+  jenkinsService: JenkinsService,
+  cc            : ControllerComponents
+)(implicit ec: ExecutionContext
+) extends BackendController(cc) {
 
   private implicit val apiWriter: Writes[BuildJob] = BuildJob.apiWriter
 
-  def lookup(service: String): Action[AnyContent] = Action.async { implicit request =>
+  def lookup(service: String): Action[AnyContent] = Action.async {
     for {
       findService <- jenkinsService.findByService(service)
       result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NoContent)
     } yield result
-
   }
 }

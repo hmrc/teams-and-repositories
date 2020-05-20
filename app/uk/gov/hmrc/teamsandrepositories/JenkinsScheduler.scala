@@ -29,18 +29,20 @@ import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class JenkinsScheduler @Inject()(jenkinsService: JenkinsService,
-                                 config: SchedulerConfigs,
-                                 mongoLocks: MongoLocks)(
-                                 implicit actorSystem: ActorSystem,
-                                 applicationLifecycle: ApplicationLifecycle)
-extends SchedulerUtils {
+class JenkinsScheduler @Inject()(
+  jenkinsService: JenkinsService,
+  config        : SchedulerConfigs,
+  mongoLocks    : MongoLocks
+)(implicit
+  actorSystem         : ActorSystem,
+  applicationLifecycle: ApplicationLifecycle
+) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val logger = Logger(this.getClass)
 
-  import ExecutionContext.Implicits.global
+  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, mongoLocks.jenkinsLock) {
     for {
@@ -48,5 +50,4 @@ extends SchedulerUtils {
       _ =  logger.info("Finished updating Build Jobs")
     } yield ()
   }
-
 }
