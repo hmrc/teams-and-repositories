@@ -41,11 +41,11 @@ class TeamsAndReposPersister @Inject()(
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamsAndRepos(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
-    mongoTeamsAndReposPersister.getAllTeamAndRepos
+  def getAllTeamsAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getAllTeamAndRepos(archived)
 
-  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
-    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
+  def getTeamsAndRepos(serviceNames: Seq[String], archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames, archived)
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
@@ -57,6 +57,7 @@ class TeamsAndReposPersister @Inject()(
 
   def resetLastActiveDate(repoName: String)(implicit ec: ExecutionContext): Future[Option[Int]] =
     mongoTeamsAndReposPersister.resetLastActiveDate(repoName)
+
 }
 
 @Singleton
@@ -85,14 +86,16 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
           throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
       }
 
-  def getAllTeamAndRepos(implicit ec: ExecutionContext): Future[List[TeamRepositories]] =
-    findAll()
+  def getAllTeamAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
+    findAll().map(withArchivedRepositoryFiltering(_, archived))
+  }
 
-  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
+  def getTeamsAndRepos(serviceNames: Seq[String], archived: Option[Boolean])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
     val serviceNamesJson =
       serviceNames.map(serviceName =>
         toJsFieldJsValueWrapper(Json.obj("name" -> BSONRegex("^" + serviceName + "$", "i"))))
     find("repositories" -> Json.obj("$elemMatch" -> Json.obj("$or" -> Json.arr(serviceNamesJson: _*))))
+      .map(withArchivedRepositoryFiltering(_, archived))
   }
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
@@ -126,4 +129,13 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
           case modified => Some(modified)
         }
       }
+
+  private def withArchivedRepositoryFiltering(teamsAndRepos: List[TeamRepositories],
+                                              archived: Option[Boolean]): List[TeamRepositories] =
+    archived.map { a =>
+      teamsAndRepos.map { teamAndRepo =>
+        teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.archived == a))
+      }
+    }.getOrElse(teamsAndRepos)
+
 }

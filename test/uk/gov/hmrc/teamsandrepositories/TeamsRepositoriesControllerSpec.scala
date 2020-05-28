@@ -98,7 +98,7 @@ class TeamsRepositoriesControllerSpec
     updateTimestamp: LocalDateTime): TeamsRepositoriesController = {
 
     when(mockConfiguration.getOptional[Seq[String]]("shared.repositories")).thenReturn(Some(listOfReposToIgnore))
-    when(mockTeamsAndRepositories.getAllTeamsAndRepos).thenReturn(Future.successful(mockedReturnData))
+    when(mockTeamsAndRepositories.getAllTeamsAndRepos(None)).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
       UrlTemplates(
@@ -133,7 +133,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForService1,
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           ),
           GitRepository(
             "library-repo",
@@ -143,7 +144,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForLib1,
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-3"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           )
         ),
         currentTimeMillis()
@@ -159,7 +161,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForService2,
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-1"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           ),
           GitRepository(
             "middle-repo",
@@ -169,7 +172,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForService3,
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           ),
           GitRepository(
             "alibrary-repo",
@@ -179,7 +183,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForLib2,
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-1"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           ),
           GitRepository(
             "CATO-prototype",
@@ -189,7 +194,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForLib2,
             repoType           = RepoType.Prototype,
             digitalServiceName = Some("digital-service-2"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           ),
           GitRepository(
             "other-repo",
@@ -199,7 +205,8 @@ class TeamsRepositoriesControllerSpec
             lastActiveDate     = lastActiveDateForLib2,
             repoType           = RepoType.Other,
             digitalServiceName = Some("digital-service-1"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           )
         ),
         currentTimeMillis()
@@ -218,7 +225,8 @@ class TeamsRepositoriesControllerSpec
             createdDate    = now,
             lastActiveDate = now,
             repoType       = RepoType.Service,
-            language       = Some("Scala")
+            language       = Some("Scala"),
+            archived       = false
           )),
         currentTimeMillis()
       ))
@@ -231,12 +239,12 @@ class TeamsRepositoriesControllerSpec
 
     "have the correct url set up for a team's services" in {
       uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController
-        .repositoriesByTeam("test-team")
+        .repositoriesByTeam("test-team", None)
         .url mustBe "/api/teams/test-team"
     }
 
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services.url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services(None).url mustBe "/api/services"
     }
 
   }
@@ -256,7 +264,7 @@ class TeamsRepositoriesControllerSpec
 
     "Return a json representation of the data" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result     = controller.digitalServices().apply(FakeRequest())
+      val result     = controller.digitalServices(None).apply(FakeRequest())
 
       val digitalServices = contentAsJson(result).as[JsArray].value
       digitalServices.map(_.as[String]) mustBe Seq("digital-service-1", "digital-service-2", "digital-service-3")
@@ -268,7 +276,7 @@ class TeamsRepositoriesControllerSpec
     "Return all repo types belonging to a team" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
 
-      val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
+      val result = controller.repositoriesByTeam("another-team", None).apply(FakeRequest())
 
       val data = contentAsJson(result).as[Map[String, List[String]]]
       data mustBe Map(
@@ -292,7 +300,8 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           ),
           new TeamRepositories(
@@ -305,13 +314,14 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           )
         )
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("another-team").apply(FakeRequest())
+      val result     = controller.repositoriesByTeam("another-team", None).apply(FakeRequest())
 
       contentAsJson(result)
         .as[Map[String, List[String]]] mustBe Map(
@@ -326,7 +336,7 @@ class TeamsRepositoriesControllerSpec
 
     "Return all repo types belonging to a team" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+      val result     = controller.repositoriesWithDetailsByTeam("another-team", None).apply(FakeRequest())
 
       val data = contentAsJson(result).as[Team]
 
@@ -351,7 +361,8 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           ),
           TeamRepositories(
@@ -364,13 +375,14 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           )
         )
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+      val result     = controller.repositoriesWithDetailsByTeam("another-team", None).apply(FakeRequest())
 
       contentAsJson(result)
         .as[Team]
@@ -387,7 +399,7 @@ class TeamsRepositoriesControllerSpec
 
     "return a name and dates list of all the libraries" in {
       val controller   = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result       = controller.libraries()(FakeRequest())
+      val result       = controller.libraries(None)(FakeRequest())
       val resultJson   = contentAsJson(result)
       val libraryNames = resultJson.as[Seq[Repository]]
       libraryNames.map(_.name) mustBe List("alibrary-repo", "library-repo")
@@ -400,7 +412,7 @@ class TeamsRepositoriesControllerSpec
     "Return a json representation of the data when request has a details query parameter" in {
       val controller = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
 
-      val result = controller.libraries().apply(FakeRequest("GET", "/libraries?details=true"))
+      val result = controller.libraries(None).apply(FakeRequest("GET", "/libraries?details=true"))
 
       val resultJson = contentAsJson(result)
 
@@ -431,10 +443,10 @@ class TeamsRepositoriesControllerSpec
   "GET /api/services" should {
 
     "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos)
+      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.allServices(FakeRequest("GET", "/services?details=true"))
+      val result = controller.allServices(None)(FakeRequest("GET", "/services?details=true"))
 
       val resultJson = contentAsJson(result)
 
@@ -470,10 +482,10 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return service -> team mappings for all services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos)
+      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.allServices(FakeRequest("GET", "/services?teamDetails=true"))
+      val result = controller.allServices(None)(FakeRequest("GET", "/services?teamDetails=true"))
 
       val data = contentAsJson(result).as[Map[String, Seq[String]]]
 
@@ -489,10 +501,10 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos)
+      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.allServices(FakeRequest())
+      val result = controller.allServices(None)(FakeRequest())
 
       val serviceList = contentAsJson(result).as[Seq[Repository]]
       serviceList.map(_.name) mustBe Seq("another-repo", "middle-repo", "repo-name")
@@ -520,7 +532,8 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala")),
+                language       = Some("Scala"),
+                archived       = false),
               GitRepository(
                 "repo-name",
                 "some description",
@@ -528,7 +541,8 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala")),
+                language       = Some("Scala"),
+                archived       = false),
               GitRepository(
                 "aadvark-repo",
                 "some description",
@@ -536,13 +550,14 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))
+                language       = Some("Scala"),
+                archived       = false)
             ),
             currentTimeMillis()
           ))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.allServices(FakeRequest())
+      val result     = controller.allServices(None)(FakeRequest())
 
       contentAsJson(result).as[List[Repository]].map(_.name) mustBe List("aadvark-repo", "Another-repo", "repo-name")
     }
@@ -561,7 +576,8 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           ),
           TeamRepositories(
@@ -574,13 +590,14 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
-                language       = Some("Scala"))),
+                language       = Some("Scala"),
+                archived       = false)),
             currentTimeMillis()
           )
         )
 
       val controller = controllerWithData(data, updateTimestamp = updateTimestamp)
-      val result     = controller.allServices(FakeRequest())
+      val result     = controller.allServices(None)(FakeRequest())
 
       val json = contentAsJson(result)
 
@@ -600,14 +617,15 @@ class TeamsRepositoriesControllerSpec
                 createdDate    = now,
                 lastActiveDate = now,
                 repoType       = RepoType.Library,
-                language       = Some("Scala")
+                language       = Some("Scala"),
+                archived       = false
               )
             ),
             currentTimeMillis()
           ))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result     = controller.repositoriesByTeam("test-team", None).apply(FakeRequest())
 
       val json = contentAsJson(result)
 
@@ -620,7 +638,7 @@ class TeamsRepositoriesControllerSpec
       val sourceData = Seq(new TeamRepositories("test-team", List(), currentTimeMillis()))
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result     = controller.repositoriesByTeam("test-team", None).apply(FakeRequest())
 
       val json = contentAsJson(result)
 
@@ -638,7 +656,7 @@ class TeamsRepositoriesControllerSpec
       val sourceData = Seq.empty[TeamRepositories]
 
       val controller = controllerWithData(sourceData, updateTimestamp = updateTimestamp)
-      val result     = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result     = controller.repositoriesByTeam("test-team", None).apply(FakeRequest())
 
       status(result) mustBe 404
     }
@@ -647,11 +665,11 @@ class TeamsRepositoriesControllerSpec
   "POST /api/services" should {
 
     "return a json representation of services with the given names sorted alphabetically when the request has a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2")))
+      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2"), None))
         .thenReturn(Future.successful(defaultData))
 
       val result =
-        controller.services(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
+        controller.services(None)(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
 
       val resultJson = contentAsJson(result)
 
@@ -687,10 +705,10 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return service -> team mappings for selected services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("service1")))
+      when(mockTeamsAndRepositories.getTeamsAndRepos(List("service1"), None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
+      val result = controller.services(None)(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
 
       val data = contentAsJson(result).as[Map[String, Seq[String]]]
 
@@ -707,7 +725,7 @@ class TeamsRepositoriesControllerSpec
 
     "return an empty map if no service names given" in new Setup {
 
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
+      val result = controller.services(None)(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
 
       val data = contentAsJson(result).as[Map[String, Seq[String]]]
 
@@ -715,10 +733,10 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2")))
+      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2"), None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.services(FakeRequest().withBody(Json.arr("repo1", "repo2")))
+      val result = controller.services(None)(FakeRequest().withBody(Json.arr("repo1", "repo2")))
 
       val serviceList = contentAsJson(result).as[Seq[Repository]]
       serviceList.map(_.name) mustBe Seq("another-repo", "middle-repo", "repo-name")
@@ -772,7 +790,7 @@ class TeamsRepositoriesControllerSpec
     "return all the repositories" in {
 
       val controller   = controllerWithData(defaultData, updateTimestamp = updateTimestamp)
-      val result       = controller.allRepositories()(FakeRequest())
+      val result       = controller.allRepositories(None)(FakeRequest())
       val resultJson   = contentAsJson(result)
       val repositories = resultJson.as[Seq[Repository]]
       repositories.map(_.name) mustBe List(

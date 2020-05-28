@@ -30,7 +30,8 @@ case class GitRepository(
   repoType: RepoType                 = RepoType.Other,
   digitalServiceName: Option[String] = None,
   owningTeams: Seq[String]           = Nil,
-  language: Option[String]           = None)
+  language: Option[String]           = None,
+  archived: Boolean                  = false)
 
 object GitRepository {
 
@@ -46,7 +47,8 @@ object GitRepository {
         (JsPath \ "repoType").read[RepoType] and
         (JsPath \ "digitalServiceName").readNullable[String] and
         (JsPath \ "owningTeams").readNullable[Seq[String]].map(_.getOrElse(Nil)) and
-        (JsPath \ "language").readNullable[String]
+        (JsPath \ "language").readNullable[String] and
+        (JsPath \ "archived").readNullable[Boolean].map(_.getOrElse(false))
     )(apply _)
 
     val writes = Json.writes[GitRepository]

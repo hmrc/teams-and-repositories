@@ -70,8 +70,8 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repo1", "Some Description", "url1", now, now, language = Some("Scala")),
-            GitRepository("repo2", "Some Description", "url2", now, now, language = Some("Scala"))
+            GitRepository("repo1", "Some Description", "url1", now, now, language = Some("Scala"), archived = false),
+            GitRepository("repo2", "Some Description", "url2", now, now, language = Some("Scala"), archived = false)
           ),
           timestampF()
         )
@@ -80,16 +80,16 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamB",
           List(
-            GitRepository("repo3", "Some Description", "url3", now, now, language = Some("Scala")),
-            GitRepository("repo4", "Some Description", "url4", now, now, language = Some("Scala"))
+            GitRepository("repo3", "Some Description", "url3", now, now, language = Some("Scala"), archived = false),
+            GitRepository("repo4", "Some Description", "url4", now, now, language = Some("Scala"), archived = false)
           ),
           timestampF()
         )
 
       val reposWithoutTeams =
         List(
-          GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala")),
-          GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"))
+          GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false),
+          GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false)
         )
 
       val dataSource = mock[GithubV3RepositoryDataSource]
@@ -122,14 +122,14 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repoB2", "Some Description", "urlB2", now, now, language = Some("Scala")),
-            GitRepository("repoA1", "Some Description", "urlA1", now, now, language = Some("Scala"))
+            GitRepository("repoB2", "Some Description", "urlB2", now, now, language = Some("Scala"), archived = false),
+            GitRepository("repoA1", "Some Description", "urlA1", now, now, language = Some("Scala"), archived = false)
           ),
           timestampF()
         )
 
       val dataSource1ReposWithoutTeams =
-        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala")))
+        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false))
 
       val unknownTeamRepositories =
         TeamRepositories(
@@ -168,7 +168,7 @@ class PersistingServiceSpec
       def buildTeamRepositories(teamName: String, repoName: String, url: String) =
         TeamRepositories(
           teamName,
-          List(GitRepository(repoName, "Some Description", url, now, now, language = Some("Scala"))),
+          List(GitRepository(repoName, "Some Description", url, now, now, language = Some("Scala"), archived = false)),
           timestampF())
 
       val teamARepositories = buildTeamRepositories("teamA", "repo1", "url1")
@@ -184,7 +184,7 @@ class PersistingServiceSpec
       val ghTeamD = GhTeam("teamD", 4)
 
       val reposWithoutTeams =
-        List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala")))
+        List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false))
 
       val unknownTeamRepositories =
         TeamRepositories(
@@ -244,7 +244,7 @@ class PersistingServiceSpec
         TeamRepositories("team-d", Nil, System.currentTimeMillis())
       )
 
-      when(persistingService.persister.getAllTeamsAndRepos(any()))
+      when(persistingService.persister.getAllTeamsAndRepos(any())(any()))
         .thenReturn(Future.successful(teamRepositoriesInMongo))
       when(persistingService.persister.deleteTeams(any())(any()))
         .thenReturn(Future.successful(Set("something not important")))
@@ -276,7 +276,7 @@ class PersistingServiceSpec
     when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
       .thenReturn(mockGithubApiClient)
 
-    when(mockPersister.getAllTeamsAndRepos(any()))
+    when(mockPersister.getAllTeamsAndRepos(any())(any()))
       .thenReturn(Future.successful(storedTeamRepositories))
   when(mockPersister.update(any())(any()))
       .thenAnswer(new Answer[Future[TeamRepositories]] {

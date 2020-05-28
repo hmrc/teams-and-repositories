@@ -279,7 +279,8 @@ class GithubV3RepositoryDataSource(
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,
       owningTeams        = owningTeams,
-      language           = Option(repository.language)
+      language           = Option(repository.language),
+      archived           = repository.archived
     )
 
   def withCounter[T](name: String)(f: Future[T]) =
