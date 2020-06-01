@@ -130,6 +130,9 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
         }
       }
 
+  // We need to filter after retrieving from Mongo as unfortunately a Mongo projection
+  // using $elemMatch will only return the first matching item in an array, not
+  // all matching items
   private def withArchivedRepositoryFiltering(teamsAndRepos: List[TeamRepositories],
                                               archived: Option[Boolean]): List[TeamRepositories] =
     archived.map { a =>
