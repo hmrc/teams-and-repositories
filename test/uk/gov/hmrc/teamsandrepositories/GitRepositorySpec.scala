@@ -305,7 +305,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           |"lastActiveDate":1499417808270,
           |"repoType":"Other",
           |"updateDate":123,
-          |"language":"Scala"}""".stripMargin)
+          |"language":"Scala",
+          |"archived": false}""".stripMargin)
         )
         .get shouldBe GitRepository(
         "a-repo",

@@ -31,7 +31,7 @@ case class GitRepository(
   digitalServiceName: Option[String] = None,
   owningTeams: Seq[String]           = Nil,
   language: Option[String]           = None,
-  archived: Boolean                  = false)
+  archived: Boolean)
 
 object GitRepository {
 
@@ -48,7 +48,7 @@ object GitRepository {
         (JsPath \ "digitalServiceName").readNullable[String] and
         (JsPath \ "owningTeams").readNullable[Seq[String]].map(_.getOrElse(Nil)) and
         (JsPath \ "language").readNullable[String] and
-        (JsPath \ "archived").readNullable[Boolean].map(_.getOrElse(false))
+        (JsPath \ "archived").read[Boolean]
     )(apply _)
 
     val writes = Json.writes[GitRepository]
