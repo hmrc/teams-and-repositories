@@ -48,7 +48,7 @@ object GitRepository {
         (JsPath \ "digitalServiceName").readNullable[String] and
         (JsPath \ "owningTeams").readNullable[Seq[String]].map(_.getOrElse(Nil)) and
         (JsPath \ "language").readNullable[String] and
-        (JsPath \ "archived").read[Boolean]
+        (JsPath \ "archived").readNullable[Boolean].map(_.getOrElse(false))
     )(apply _)
 
     val writes = Json.writes[GitRepository]

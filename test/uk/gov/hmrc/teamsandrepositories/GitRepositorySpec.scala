@@ -306,7 +306,36 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           |"repoType":"Other",
           |"updateDate":123,
           |"language":"Scala",
-          |"archived": false}""".stripMargin)
+          |"archived": true}""".stripMargin)
+        )
+        .get shouldBe GitRepository(
+        "a-repo",
+        "Some Description",
+        "https://not-open-github/org/a-repo",
+        1499417808270L,
+        1499417808270L,
+        // isInternal = true,
+        repoType = RepoType.Other,
+        language = Some("Scala"),
+        archived = true
+      )
+
+    }
+
+    "read an object without the archived field" in {
+
+      GitRepository.gitRepositoryFormats
+        .reads(
+          Json.parse("""
+                       |{"name":"a-repo",
+                       |"description":"Some Description",
+                       |"url":"https://not-open-github/org/a-repo",
+                       |"createdDate":1499417808270,
+                       |"lastActiveDate":1499417808270,
+                       |"repoType":"Other",
+                       |"updateDate":123,
+                       |"language":"Scala"
+                       |}""".stripMargin)
         )
         .get shouldBe GitRepository(
         "a-repo",
