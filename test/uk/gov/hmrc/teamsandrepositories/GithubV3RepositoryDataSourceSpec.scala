@@ -130,8 +130,8 @@ class GithubV3RepositoryDataSourceSpec
   "Github v3 Data Source getAllRepositories" should {
     "Return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val now = System.currentTimeMillis()
-      private val repo1 = GhRepository("repo1", "a test repo",       0, "http://github.com/repo1", false, now, now, false, "eng")
-      private val repo2 = GhRepository("repo2", "another test repo", 0, "http://github.com/repo2", false, now, now, false, "eng")
+      private val repo1 = GhRepository("repo1", "a test repo",       0, "http://github.com/repo1", false, now, now, false, "eng", false)
+      private val repo2 = GhRepository("repo2", "another test repo", 0, "http://github.com/repo2", false, now, now, false, "eng", archived =false)
       when(mockGithubClient.getReposForOrg("hmrc")(ec))
         .thenReturn(Future.successful(List(repo1, repo2)))
 
@@ -139,8 +139,8 @@ class GithubV3RepositoryDataSourceSpec
 
       result.size shouldBe 2
       result      should contain theSameElementsAs List(
-         GitRepository("repo1","a test repo",       "http://github.com/repo1",now,now,false,RepoType.Other,None,List(),Some("eng"))
-        ,GitRepository("repo2","another test repo","http://github.com/repo2",now,now,false,RepoType.Other,None,List(),Some("eng")))
+         GitRepository("repo1","a test repo",       "http://github.com/repo1",now,now,false,RepoType.Other,None,List(),Some("eng"), archived = false)
+        ,GitRepository("repo2","another test repo","http://github.com/repo2",now,now,false,RepoType.Other,None,List(),Some("eng"), archived = false))
     }
   }
 
@@ -163,7 +163,7 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubClient.getTeamsForOrganisation(eqTo("hmrc"))(any()))
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(internalDataSource.ec))
-        .thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+        .thenReturn(Future.successful(List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       internalDataSource
         .mapTeam(team, persistedTeams = Nil)
@@ -178,7 +178,8 @@ class GithubV3RepositoryDataSourceSpec
               createdDate        = now,
               lastActiveDate     = now,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           timestampF()
         )
@@ -190,8 +191,8 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(List(
-          GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now, false, "Scala"),
-          GhRepository("A_r", "some description", 2, "url_A", false, now, now, false, "Scala")
+          GhRepository("hidden_repo1", "some description", 1, "url_A", false, now, now, false, "Scala", false),
+          GhRepository("A_r", "some description", 2, "url_A", false, now, now, false, "Scala", false)
         )))
 
       dataSource
@@ -207,7 +208,8 @@ class GithubV3RepositoryDataSourceSpec
               now,
               now,
               digitalServiceName = None,
-              language           = Some("Scala"))),
+              language           = Some("Scala"),
+              archived           = false)),
           timestampF())
     }
 
@@ -217,7 +219,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "conf/application.conf"))
         .thenReturn(Future.successful(Some("")))
@@ -236,7 +238,8 @@ class GithubV3RepositoryDataSourceSpec
               now,
               repoType           = RepoType.Service,
               digitalServiceName = None,
-              language           = Some("Scala"))),
+              language           = Some("Scala"),
+              archived           = false)),
           timestampF()
         )
     }
@@ -247,7 +250,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "Procfile"))
         .thenReturn(Future.successful(Some("")))
@@ -266,7 +269,8 @@ class GithubV3RepositoryDataSourceSpec
               now,
               repoType           = RepoType.Service,
               digitalServiceName = None,
-              language           = Some("Scala"))),
+              language           = Some("Scala"),
+              archived           = false)),
           timestampF()
         )
     }
@@ -277,7 +281,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "deploy.properties"))
         .thenReturn(Future.successful(Some("")))
@@ -295,7 +299,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Service,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -306,7 +311,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "repository.yaml"))
         .thenReturn(Future.successful(Some("type: service")))
@@ -324,7 +329,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Service,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -336,7 +342,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("repository-xyz", "repository.yaml"))
         .thenReturn(Future.successful(Some("digital-service: service-abcd")))
@@ -354,7 +360,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Other,
             digitalServiceName = Some("service-abcd"),
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -363,7 +370,7 @@ class GithubV3RepositoryDataSourceSpec
       val team = GhTeam("A", 1)
       when(mockGithubClient.getTeamsForOrganisation("hmrc")(ec)).thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec)).thenReturn(Future.successful(
-        List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+        List(GhRepository("repository-xyz", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       private val manifestYaml =
         """
@@ -386,7 +393,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Service,
             digitalServiceName = Some("service-abcd"),
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -397,7 +405,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "repository.yaml"))
         .thenReturn(Future.successful(Some("type: library")))
@@ -415,7 +423,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Library,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -426,7 +435,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "repository.yaml"))
         .thenReturn(Future.successful(Some("type: somethingelse")))
@@ -444,7 +453,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Other,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF())
     }
 
@@ -454,7 +464,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       when(mockGithubConnector.getFileContent("A_r", "repository.yaml"))
         .thenReturn(Future.successful(Some("description: not a type")))
@@ -472,7 +482,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Other,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF())
     }
 
@@ -482,7 +493,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       when(mockGithubClient.getTags("hmrc", "A_r")(ec))
         .thenReturn(Future.successful(List("A_r_tag")))
@@ -503,7 +514,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Library,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -514,7 +526,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       when(mockGithubClient.getTags("hmrc", "A_r")(ec))
         .thenReturn(Future.successful(List("A_r_tag")))
@@ -535,7 +547,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Library,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -546,7 +559,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("CATO-prototype", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       val repositories = dataSource
         .mapTeam(team, persistedTeams = Nil)
@@ -562,7 +575,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Prototype,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -573,7 +587,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false))))
 
       val repositories = dataSource
         .mapTeam(team, persistedTeams = Nil)
@@ -589,7 +603,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             repoType           = RepoType.Other,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF())
     }
 
@@ -599,7 +614,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       val repositoryYamlContents =
         """
@@ -624,7 +639,8 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Other,
             digitalServiceName = None,
             owningTeams        = List("team1", "team2"),
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           )
         ),
         timestampF()
@@ -637,7 +653,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", fork = false, now, now, false, "Scala", false))))
 
       val repositoryYamlContents =
         """
@@ -663,7 +679,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala"))))
+          List(GhRepository("A_r", "some description", 1, "url_A", false, now, now, true, "Scala", false))))
 
       val repositories: TeamRepositories = dataSource
         .mapTeam(team, persistedTeams = Nil)
@@ -680,7 +696,8 @@ class GithubV3RepositoryDataSourceSpec
             isPrivate          = true,
             repoType           = RepoType.Other,
             digitalServiceName = None,
-            language           = Some("Scala"))),
+            language           = Some("Scala"),
+            archived           = false)),
         timestampF()
       )
     }
@@ -691,7 +708,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(team)))
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.successful(
-          List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null))))
+          List(GhRepository("Pete_r", "some description", 1, "url_A", false, now, now, true, null, false))))
 
       val repositories: TeamRepositories = dataSource
         .mapTeam(team, persistedTeams = Nil)
@@ -707,7 +724,8 @@ class GithubV3RepositoryDataSourceSpec
             now,
             isPrivate          = true,
             repoType           = RepoType.Other,
-            digitalServiceName = None)),
+            digitalServiceName = None,
+            archived           = false)),
         timestampF())
     }
 
@@ -723,7 +741,7 @@ class GithubV3RepositoryDataSourceSpec
             val lastActiveDate: Long = 1234l
             when(mockGithubClient.getReposForTeam(1)(ec))
               .thenReturn(Future.successful(
-                List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null))))
+                List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null, false))))
 
             val persistedTeamRepositories = TeamRepositories(
               "A",
@@ -738,7 +756,8 @@ class GithubV3RepositoryDataSourceSpec
                   RepoType.Library,
                   Some("Some Digital Service"),
                   Nil,
-                  None
+                  None,
+                  false
                 )),
               now
             )
@@ -759,7 +778,8 @@ class GithubV3RepositoryDataSourceSpec
                   lastActiveDate,
                   isPrivate          = true,
                   repoType           = RepoType.Library,
-                  digitalServiceName = Some("Some Digital Service")
+                  digitalServiceName = Some("Some Digital Service"),
+                  archived           = false
                 )),
               timestampF()
             )
@@ -777,7 +797,7 @@ class GithubV3RepositoryDataSourceSpec
 
             when(mockGithubClient.getReposForTeam(1)(ec))
               .thenReturn(Future.successful(
-                List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now + 1, true, null))))
+                List(GhRepository("repo-1", "some description", 1, "url_A", false, now, now + 1, true, null, false))))
 
             private val manifestYaml =
               """
@@ -801,7 +821,8 @@ class GithubV3RepositoryDataSourceSpec
                   RepoType.Library,
                   Some("Some Digital Service"),
                   Nil,
-                  None)),
+                  None,
+                  false)),
               now
             )
 
@@ -821,7 +842,8 @@ class GithubV3RepositoryDataSourceSpec
                   now + 1,
                   isPrivate          = true,
                   repoType           = RepoType.Library,
-                  digitalServiceName = Some("service-abcd")
+                  digitalServiceName = Some("service-abcd"),
+                  archived           = false
                 )),
               timestampF()
             )
@@ -840,7 +862,7 @@ class GithubV3RepositoryDataSourceSpec
 
           when(mockGithubClient.getReposForTeam(1)(ec))
             .thenReturn(Future.successful(
-              List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null))))
+              List(GhRepository("repo-1", "some description", 1, "url_A", false, now, lastActiveDate, true, null, false))))
 
           private val manifestYaml =
             """
@@ -868,7 +890,8 @@ class GithubV3RepositoryDataSourceSpec
                 lastActiveDate,
                 isPrivate          = true,
                 repoType           = RepoType.Library,
-                digitalServiceName = Some("service-abcd")
+                digitalServiceName = Some("service-abcd"),
+                archived           = false
               )),
             timestampF()
           )
@@ -887,7 +910,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.successful(List(team)))
 
-      private val repository = GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala")
+      private val repository = GhRepository("A_r", "some description", 1, "url_A", false, now, now, false, "Scala", false)
       when(mockGithubClient.getReposForTeam(1)(ec))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
         .thenReturn(Future.failed(new RuntimeException("testing retry logic")))
@@ -922,7 +945,8 @@ class GithubV3RepositoryDataSourceSpec
               now,
               now,
               digitalServiceName = None,
-              language           = Some("Scala"))),
+              language           = Some("Scala"),
+              archived           = false)),
           timestampF())
     }
 
@@ -938,7 +962,8 @@ class GithubV3RepositoryDataSourceSpec
           createdDate    = 0L,
           lastActiveDate = now,
           isPrivate      = false,
-          language       = null
+          language       = null,
+          archived     = false
         )
 
       when(mockGithubClient.getReposForTeam(1)(ec))
@@ -952,7 +977,8 @@ class GithubV3RepositoryDataSourceSpec
         lastActiveDate     = 0L,
         repoType           = RepoType.Other,
         digitalServiceName = None,
-        language           = None
+        language           = None,
+        archived           = false
       )
 
       dataSource

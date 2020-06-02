@@ -50,7 +50,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Library,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -69,7 +70,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Library,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -94,7 +96,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Library,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -113,7 +116,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Library,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a team"), urlTemplates)
@@ -133,7 +137,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Service,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -152,7 +157,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Service,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -177,7 +183,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           isPrivate = true,
           repoType  = RepoType.Service,
-          language  = Some("Scala")
+          language  = Some("Scala"),
+          archived  = false
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -195,7 +202,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Prototype,
-          language = Some("Scala")
+          language = Some("Scala"),
+          archived = false
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -212,7 +220,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Other,
-          language = Some("Scala")
+          language = Some("Scala"),
+          archived = false
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -229,7 +238,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Service,
-          language = Some("Scala")
+          language = Some("Scala"),
+          archived = false
         )
 
       val repoDetails = RepositoryDetails.create(aFrontend, Seq("teamName"), urlTemplates)
@@ -253,7 +263,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           now,
           now,
           repoType = RepoType.Library,
-          language = Some("Scala")
+          language = Some("Scala"),
+          archived = false
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -269,7 +280,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
         now,
         now,
         repoType = RepoType.Other,
-        language = Some("Scala"))
+        language = Some("Scala"),
+        archived = false)
 
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 
@@ -293,7 +305,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           |"lastActiveDate":1499417808270,
           |"repoType":"Other",
           |"updateDate":123,
-          |"language":"Scala"}""".stripMargin)
+          |"language":"Scala",
+          |"archived": true}""".stripMargin)
         )
         .get shouldBe GitRepository(
         "a-repo",
@@ -303,7 +316,37 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
         1499417808270L,
         // isInternal = true,
         repoType = RepoType.Other,
-        language = Some("Scala")
+        language = Some("Scala"),
+        archived = true
+      )
+
+    }
+
+    "read an object without the archived field" in {
+
+      GitRepository.gitRepositoryFormats
+        .reads(
+          Json.parse("""
+                       |{"name":"a-repo",
+                       |"description":"Some Description",
+                       |"url":"https://not-open-github/org/a-repo",
+                       |"createdDate":1499417808270,
+                       |"lastActiveDate":1499417808270,
+                       |"repoType":"Other",
+                       |"updateDate":123,
+                       |"language":"Scala"
+                       |}""".stripMargin)
+        )
+        .get shouldBe GitRepository(
+        "a-repo",
+        "Some Description",
+        "https://not-open-github/org/a-repo",
+        1499417808270L,
+        1499417808270L,
+        // isInternal = true,
+        repoType = RepoType.Other,
+        language = Some("Scala"),
+        archived = false
       )
 
     }

@@ -50,7 +50,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val oldDeployableRepo = GitRepository(
         "repo2",
         "some desc",
@@ -60,7 +61,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = false,
         repoType           = Service,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val newDeployableRepo = GitRepository(
         "repo3",
         "some desc",
@@ -70,7 +72,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val oldOtherRepoWithLatestActiveDate = GitRepository(
         "repo1",
         description,
@@ -80,7 +83,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = true,
         repoType           = Other,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
 
       val teams = Seq(
         TeamRepositories("teamNameChicken", List(newDeployableRepo, oldestLibraryRepo), System.currentTimeMillis()),
@@ -118,7 +122,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val oldDeployableRepo = GitRepository(
         "repo2",
         "some desc",
@@ -128,7 +133,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val newLibraryRepo = GitRepository(
         "repo1",
         "some desc",
@@ -138,7 +144,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val newDeployableRepo = GitRepository(
         "repo2",
         "some desc",
@@ -148,7 +155,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
-        language           = Some("Scala"))
+        language           = Some("Scala"),
+        archived           = false)
       val newIgnoreRepo = GitRepository(
         "ignoreRepo",
         "some desc",
@@ -158,7 +166,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         // isInternal         = false,
         repoType           = Service,
         digitalServiceName = None,
-        language           = Some("Scala")
+        language           = Some("Scala"),
+        archived           = false
       )
 
       val teams = Seq(
@@ -208,7 +217,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo2",
@@ -219,7 +229,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo1",
@@ -230,7 +241,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Other,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo3",
@@ -241,7 +253,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -258,7 +271,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -278,11 +292,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "deduplicate results" in {
       val teams = Seq(TeamRepositories(
         "team1",
-        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"), archived = false)),
         System.currentTimeMillis()),
       TeamRepositories(
         "team2",
-        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"), archived = false)),
         System.currentTimeMillis()))
 
       val res = TeamRepositories.getAllRepositories(teams)
@@ -293,11 +307,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "deduplicate results when there is a last modified mismatch" in {
       val teams = Seq(TeamRepositories(
         "team1",
-        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+        List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp, repoType = Library, digitalServiceName = None, language = Some("Scala"), archived = false)),
         System.currentTimeMillis()),
         TeamRepositories(
           "team2",
-          List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp-1000, repoType = Library, digitalServiceName = None, language = Some("Scala"))),
+          List(GitRepository("repo1", "some desc", "", createdDate = timestamp, lastActiveDate = timestamp-1000, repoType = Library, digitalServiceName = None, language = Some("Scala"), archived = false)),
           System.currentTimeMillis()))
 
       val res = TeamRepositories.getAllRepositories(teams)
@@ -322,7 +336,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -345,7 +360,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -374,7 +390,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -391,7 +408,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Other,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -419,7 +437,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo2",
@@ -430,7 +449,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo1",
@@ -441,7 +461,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Other,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo3",
@@ -452,7 +473,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -469,7 +491,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -499,7 +522,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = false,
               repoType           = Service,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo2",
@@ -510,7 +534,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -527,7 +552,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo3",
@@ -538,7 +564,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -555,7 +582,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo3",
@@ -566,7 +594,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -583,7 +612,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             ),
             GitRepository(
               "repo4",
@@ -594,7 +624,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()
@@ -623,7 +654,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       // isInternal         = false,
       repoType           = Service,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val newDeployableRepo = GitRepository(
       "repo1",
       description,
@@ -633,7 +665,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       // isInternal         = true,
       repoType           = Service,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val newLibraryRepo = GitRepository(
       "repo1",
       description,
@@ -643,7 +676,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       // isInternal         = true,
       repoType           = Library,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val newOtherRepo = GitRepository(
       "repo1",
       description,
@@ -653,7 +687,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       // isInternal         = true,
       repoType           = Other,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val sharedRepo = GitRepository(
       "sharedRepo1",
       description,
@@ -663,7 +698,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       // isInternal         = true,
       repoType           = Other,
       digitalServiceName = None,
-      language           = Some("Scala")
+      language           = Some("Scala"),
+      archived           = false
     )
 
     val teams = Seq(
@@ -680,7 +716,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
             // isInternal         = true,
             repoType           = Library,
             digitalServiceName = None,
-            language           = Some("Scala")
+            language           = Some("Scala"),
+            archived           = false
           )),
         System.currentTimeMillis()
       )
@@ -726,7 +763,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -770,7 +808,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -814,7 +853,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
-              language           = Some("Scala")
+              language           = Some("Scala"),
+              archived           = false
             )),
           System.currentTimeMillis()
         )
@@ -855,7 +895,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Service,
       digitalServiceName = None,
       language           = Some("Scala"),
-      owningTeams        = List("teamName")
+      owningTeams        = List("teamName"),
+      archived           = false
     )
     val repo2 = GitRepository(
       "repo2",
@@ -865,7 +906,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 10,
       repoType           = Service,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
 
     val repo3 = GitRepository(
       "repo3",
@@ -875,7 +917,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 20,
       repoType           = Library,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val repo4 = GitRepository(
       "repo4",
       description,
@@ -884,7 +927,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 20,
       repoType           = Library,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
 
     val repo5 = GitRepository(
       "repo5",
@@ -894,7 +938,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 30,
       repoType           = Other,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val repo6 = GitRepository(
       "repo6",
       description,
@@ -903,7 +948,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 30,
       repoType           = Other,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
 
     val repo7 = GitRepository(
       "repo7",
@@ -913,7 +959,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 40,
       repoType           = Prototype,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
     val repo8 = GitRepository(
       "repo8",
       description,
@@ -922,7 +969,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       lastActiveDate     = 40,
       repoType           = Prototype,
       digitalServiceName = None,
-      language           = Some("Scala"))
+      language           = Some("Scala"),
+      archived           = false)
 
     val teams = Seq(
       TeamRepositories("teamName", List(repo1, repo2, repo3, repo4, repo5), System.currentTimeMillis()),
@@ -977,7 +1025,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           lastActiveDate     = nowInMillis,
           repoType           = Library,
           digitalServiceName = Some(digitalServiceName),
-          language           = Some("Scala")
+          language           = Some("Scala"),
+          archived           = false
         )
 
       val mostRecentTimestamp = repo1.lastActiveDate + 1
@@ -1041,7 +1090,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "n/a",
               createdDate        = timestamp,
               lastActiveDate     = nowInMillis,
-              digitalServiceName = Some("DigitalService1")
+              digitalServiceName = Some("DigitalService1"),
+              archived           = false
             )
           ),
           System.currentTimeMillis()

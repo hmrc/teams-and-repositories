@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories
 import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -53,7 +54,7 @@ class TeamsAndReposPersisterSpec
       .configure("metrics.jvm" -> false)
       .build()
 
-  private val teamsAndReposPersister = mock[MongoTeamsAndRepositoriesPersister]
+  private val mongoTeamsAndRepositoriesPersister = mock[MongoTeamsAndRepositoriesPersister]
 
   val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
 
@@ -62,35 +63,35 @@ class TeamsAndReposPersisterSpec
     override def toJson          = ???
   }
 
-  val persister = new TeamsAndReposPersister(teamsAndReposPersister, new FutureHelpers(metrics))
+  val persister = new TeamsAndReposPersister(mongoTeamsAndRepositoriesPersister, new FutureHelpers(metrics))
 
-  "TeamsAndReposPersisterSpec" should {
-    "delegate to teamsAndReposPersister's update" in {
+  "TeamsAndReposPersister" should {
+    "delegate to MongoTeamsAndReposPersister's update" in {
       persister.update(teamAndRepositories)
 
-      verify(teamsAndReposPersister).update(teamAndRepositories)
+      verify(mongoTeamsAndRepositoriesPersister).update(teamAndRepositories)
     }
 
     "get the teamRepos and update time together" in {
-      when(teamsAndReposPersister.getAllTeamAndRepos)
+      when(mongoTeamsAndRepositoriesPersister.getAllTeamAndRepos(None))
         .thenReturn(Future.successful(List(teamAndRepositories)))
 
-      val retVal = persister.getAllTeamsAndRepos
+      val retVal = persister.getAllTeamsAndRepos(None)
 
       retVal.futureValue shouldBe Seq(teamAndRepositories)
     }
 
-    "delegate to teamsAndReposPersister for clearAll" in {
+    "delegate to MongoTeamsAndReposPersister for clearAll" in {
       persister.clearAllData
 
-      verify(teamsAndReposPersister, times(1)).clearAllData
+      verify(mongoTeamsAndRepositoriesPersister, times(1)).clearAllData
     }
 
-    "delegate to teamsAndReposPersister for removing a team in mongo" in {
+    "delegate to MongoTeamsAndReposPersister for removing a team in mongo" in {
       persister.deleteTeams(Set("team1", "team2"))
 
-      verify(teamsAndReposPersister).deleteTeam("team1")
-      verify(teamsAndReposPersister).deleteTeam("team2")
+      verify(mongoTeamsAndRepositoriesPersister).deleteTeam("team1")
+      verify(mongoTeamsAndRepositoriesPersister).deleteTeam("team2")
     }
   }
 }

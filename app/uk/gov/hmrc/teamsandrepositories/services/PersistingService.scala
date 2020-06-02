@@ -71,7 +71,7 @@ case class PersistingService @Inject()(
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     (for {
-       persistedTeams <- persister.getAllTeamsAndRepos
+       persistedTeams <- persister.getAllTeamsAndRepos(None)
        sortedGhTeams  <- teamsOrderedByUpdateDate(persistedTeams)
        withTeams      <- sortedGhTeams.foldLeftM(Seq.empty[TeamRepositories]){ case (acc, ghTeam) =>
                            dataSource
@@ -124,7 +124,7 @@ case class PersistingService @Inject()(
     )( implicit ec: ExecutionContext
     ): Future[Set[String]] =
     (for {
-       mongoTeams      <- persister.getAllTeamsAndRepos.map(_.map(_.teamName).toSet)
+       mongoTeams      <- persister.getAllTeamsAndRepos(None).map(_.map(_.teamName).toSet)
        teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
        orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
        _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
