@@ -6,7 +6,7 @@ GET         /api/teams_with_details/:team        @uk.gov.hmrc.teamsandrepositori
 GET         /api/teams_with_repositories         @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allTeamsAndRepositories(archived: Option[Boolean])
 
 GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allServices(archived: Option[Boolean])
-POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services(archived: Option[Boolean])
+POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services
 GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.libraries(archived: Option[Boolean])
 GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoryDetails(name)
 GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allRepositories(archived: Option[Boolean])
