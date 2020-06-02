@@ -86,12 +86,12 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def services(archived: Option[Boolean]) = Action.async(parse.json) { implicit request =>
+  def services = Action.async(parse.json) { implicit request =>
     withJsonBody[Set[String]] {
       case serviceNames if serviceNames.isEmpty =>
         Future.successful(Ok(determineServicesResponse(request, Nil)))
       case serviceNames =>
-        mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq, archived) map { teamsAndRepos =>
+        mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq, archived = None) map { teamsAndRepos =>
           Ok(determineServicesResponse(request, teamsAndRepos))
         }
     }

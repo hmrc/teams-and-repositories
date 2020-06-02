@@ -244,7 +244,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services(None).url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services.url mustBe "/api/services"
     }
 
   }
@@ -669,7 +669,7 @@ class TeamsRepositoriesControllerSpec
         .thenReturn(Future.successful(defaultData))
 
       val result =
-        controller.services(None)(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
+        controller.services(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
 
       val resultJson = contentAsJson(result)
 
@@ -708,7 +708,7 @@ class TeamsRepositoriesControllerSpec
       when(mockTeamsAndRepositories.getTeamsAndRepos(List("service1"), None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.services(None)(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
+      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
 
       val data = contentAsJson(result).as[Map[String, Seq[String]]]
 
@@ -725,7 +725,7 @@ class TeamsRepositoriesControllerSpec
 
     "return an empty map if no service names given" in new Setup {
 
-      val result = controller.services(None)(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
+      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
 
       val data = contentAsJson(result).as[Map[String, Seq[String]]]
 
@@ -736,7 +736,7 @@ class TeamsRepositoriesControllerSpec
       when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2"), None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.services(None)(FakeRequest().withBody(Json.arr("repo1", "repo2")))
+      val result = controller.services(FakeRequest().withBody(Json.arr("repo1", "repo2")))
 
       val serviceList = contentAsJson(result).as[Seq[Repository]]
       serviceList.map(_.name) mustBe Seq("another-repo", "middle-repo", "repo-name")
