@@ -261,7 +261,8 @@ class GithubV3RepositoryDataSource(
       url            = repository.htmlUrl,
       createdDate    = repository.createdDate,
       lastActiveDate = repository.lastActiveDate,
-      isPrivate      = repository.isPrivate
+      isPrivate      = repository.isPrivate,
+      archived       = repository.archived
     )
 
   def buildGitRepository(
