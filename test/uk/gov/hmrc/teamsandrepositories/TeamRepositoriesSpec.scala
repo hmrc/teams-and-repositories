@@ -1066,14 +1066,16 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           createdAt     = repo1.createdDate,
           lastUpdatedAt = repo1.lastActiveDate,
           repoType      = repo1.repoType,
-          teamNames     = Seq("team1", "team3")
+          teamNames     = Seq("team1", "team3"),
+          archived      = false
         ),
         DigitalServiceRepository(
           name          = repo2.name,
           createdAt     = repo2.createdDate,
           lastUpdatedAt = repo2.lastActiveDate,
           repoType      = repo2.repoType,
-          teamNames     = Seq("team1", "team3", "team4")
+          teamNames     = Seq("team1", "team3", "team4"),
+          archived      = false
         )
       )
       result.value.lastUpdatedAt shouldBe mostRecentTimestamp

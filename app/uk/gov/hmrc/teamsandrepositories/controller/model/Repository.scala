@@ -25,7 +25,9 @@ case class Repository(
   createdAt: Long,
   lastUpdatedAt: Long,
   repoType: RepoType.RepoType,
-  language: Option[String])
+  language: Option[String],
+  archived: Boolean
+                     )
 
 object Repository {
 
@@ -35,7 +37,8 @@ object Repository {
       createdAt     = gr.createdDate,
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
-      language      = gr.language
+      language      = gr.language,
+      archived      = gr.archived
     )
 
   implicit val format: OFormat[Repository] = Json.format[Repository]

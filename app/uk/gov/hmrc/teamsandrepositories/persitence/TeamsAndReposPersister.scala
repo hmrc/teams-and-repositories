@@ -44,8 +44,8 @@ class TeamsAndReposPersister @Inject()(
   def getAllTeamsAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos(archived)
 
-  def getTeamsAndRepos(serviceNames: Seq[String], archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
-    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames, archived)
+  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+    mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     mongoTeamsAndReposPersister.clearAllData
@@ -87,15 +87,24 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
       }
 
   def getAllTeamAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
-    findAll().map(withArchivedRepositoryFiltering(_, archived))
+    // We need to filter after retrieving from Mongo as unfortunately a Mongo projection
+    // using $elemMatch will only return the first matching item in an array, not
+    // all matching items
+    findAll().map { unfilteredTeamsAndRepos =>
+      archived match {
+        case None    => unfilteredTeamsAndRepos
+        case Some(a) => unfilteredTeamsAndRepos.map { teamAndRepo =>
+          teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.archived == a))
+        }
+      }
+    }
   }
 
-  def getTeamsAndRepos(serviceNames: Seq[String], archived: Option[Boolean])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
+  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[List[TeamRepositories]] = {
     val serviceNamesJson =
       serviceNames.map(serviceName =>
         toJsFieldJsValueWrapper(Json.obj("name" -> BSONRegex("^" + serviceName + "$", "i"))))
     find("repositories" -> Json.obj("$elemMatch" -> Json.obj("$or" -> Json.arr(serviceNamesJson: _*))))
-      .map(withArchivedRepositoryFiltering(_, archived))
   }
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
@@ -129,16 +138,5 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoConnector: MongoConnecto
           case modified => Some(modified)
         }
       }
-
-  // We need to filter after retrieving from Mongo as unfortunately a Mongo projection
-  // using $elemMatch will only return the first matching item in an array, not
-  // all matching items
-  private def withArchivedRepositoryFiltering(teamsAndRepos: List[TeamRepositories],
-                                              archived: Option[Boolean]): List[TeamRepositories] =
-    archived.map { a =>
-      teamsAndRepos.map { teamAndRepo =>
-        teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.archived == a))
-      }
-    }.getOrElse(teamsAndRepos)
 
 }

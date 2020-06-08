@@ -80,8 +80,8 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def allServices(archived: Option[Boolean]) = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived) map { allTeamsAndRepos =>
+  def allServices = Action.async { implicit request =>
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None) map { allTeamsAndRepos =>
       Ok(determineServicesResponse(request, allTeamsAndRepos))
     }
   }
@@ -91,20 +91,20 @@ class TeamsRepositoriesController @Inject()(
       case serviceNames if serviceNames.isEmpty =>
         Future.successful(Ok(determineServicesResponse(request, Nil)))
       case serviceNames =>
-        mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq, archived = None) map { teamsAndRepos =>
+        mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq) map { teamsAndRepos =>
           Ok(determineServicesResponse(request, teamsAndRepos))
         }
     }
   }
 
-  def libraries(archived: Option[Boolean]) = Action.async { implicit request =>
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def libraries = Action.async { implicit request =>
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(determineLibrariesResponse(request, allTeamsAndRepos))
     }
   }
 
-  def digitalServices(archived: Option[Boolean]) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def digitalServices = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       val digitalServices: Seq[String] =
         allTeamsAndRepos
           .flatMap(_.repositories)
@@ -116,8 +116,8 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def all(archived: Option[Boolean]) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map(allRecords => Ok(toJson(allRecords)))
+  def all = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map(allRecords => Ok(toJson(allRecords)))
   }
 
   def allRepositories(archived: Option[Boolean]) = Action.async {
@@ -126,14 +126,14 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def teams() = Action.async {
+  def teams = Action.async {
     mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
-  def repositoriesByTeam(teamName: String, archived: Option[Boolean]) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def repositoriesByTeam(teamName: String) = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
         case None    => NotFound
         case Some(x) => Ok(toJson(x.map { case (t, v) => (t.toString, v) }))
@@ -141,8 +141,8 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def repositoriesWithDetailsByTeam(teamName: String, archived: Option[Boolean]) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
         case None    => NotFound
         case Some(x) => Ok(toJson(x))
@@ -150,8 +150,8 @@ class TeamsRepositoriesController @Inject()(
     }
   }
 
-  def allTeamsAndRepositories(archived: Option[Boolean]) = Action.async {
-    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def allTeamsAndRepositories = Action.async {
+    mongoTeamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }

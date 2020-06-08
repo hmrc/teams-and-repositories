@@ -132,39 +132,8 @@ class MongoTeamsAndRepositoriesPersisterSpec
       mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
       mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
 
-      val result = mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4"), None).futureValue
+      val result = mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4")).futureValue
       result should contain theSameElementsAs List(teamAndRepositories1, teamAndRepositories3)
-    }
-
-    "return only un-archived repositories when archived is false" in {
-      val updateDate = System.currentTimeMillis()
-      val teamAndRepositoriesWithArchived =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
-
-      mongoTeamsAndReposPersister.insert(teamAndRepositoriesWithArchived).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
-
-      val result = mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4"), Some(false)).futureValue
-      result should contain theSameElementsAs List(
-        TeamRepositories("test-team1", List(gitRepository1), updateDate),
-        teamAndRepositories3
-      )
-    }
-
-    "return only archived repositories when archived is true" in {
-      val updateDate = System.currentTimeMillis()
-      val teamAndRepositoriesWithArchived =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
-
-      mongoTeamsAndReposPersister.insert(teamAndRepositoriesWithArchived).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
-
-      val result = mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4"), Some(true)).futureValue
-      result should contain theSameElementsAs List(
-        TeamRepositories("test-team1", List(gitRepositoryArchived), updateDate),
-        teamAndRepositories3.copy(repositories = List()))
     }
   }
 

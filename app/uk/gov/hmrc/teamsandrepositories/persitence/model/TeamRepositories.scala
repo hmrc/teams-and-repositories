@@ -33,7 +33,8 @@ object TeamRepositories {
     createdAt: Long,
     lastUpdatedAt: Long,
     repoType: RepoType.RepoType,
-    teamNames: Seq[String]
+    teamNames: Seq[String],
+    archived: Boolean
   )
 
   object DigitalServiceRepository {
@@ -90,7 +91,9 @@ object TeamRepositories {
                   repo.createdAt,
                   repo.lastUpdatedAt,
                   repo.repoType,
-                  repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN))))
+                  repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
+                  repo.archived
+                ))
           )
         )
 
