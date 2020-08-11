@@ -10,9 +10,9 @@ object AppDependencies {
     "uk.gov.hmrc"            %% "bootstrap-backend-play-27"  % "2.6.0",
     "uk.gov.hmrc"            %% "github-client"              % "2.14.0",
     "org.yaml"               % "snakeyaml"                   % "1.17",
-    "uk.gov.hmrc"            %% "mongo-lock"                 % "6.21.0-play-27",
-    "uk.gov.hmrc"            %% "metrix"                     % "4.4.0-play-27",
-    "uk.gov.hmrc"            %% "simple-reactivemongo"       % "7.26.0-play-27",
+    "uk.gov.hmrc"            %% "mongo-lock"                 % "6.23.0-play-27",
+    "uk.gov.hmrc"            %% "metrix"                     % "4.7.0-play-27",
+    "uk.gov.hmrc"            %% "simple-reactivemongo"       % "7.30.0-play-27",
     "org.typelevel"          %% "cats-core"                  % "2.0.0"
   )
   val test = Seq(
@@ -25,6 +25,6 @@ object AppDependencies {
     "org.mockito"            %% "mockito-scala-scalatest"  % "1.5.11"         % Test,
     "com.vladsch.flexmark"   %  "flexmark-all"             % "0.35.10"        % Test, // replaces pegdown for newer scalatest
     "com.github.tomakehurst" % "wiremock"                  % "1.58"           % Test,
-    "uk.gov.hmrc"            %% "reactivemongo-test"       % "4.19.0-play-27" % Test
+    "uk.gov.hmrc"            %% "reactivemongo-test"       % "4.21.0-play-27" % Test
   )
 }
