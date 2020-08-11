@@ -23,7 +23,7 @@ import play.api.Configuration
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
