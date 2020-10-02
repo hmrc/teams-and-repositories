@@ -16,13 +16,43 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import akka.actor.ActorSystem
 import com.google.inject.AbstractModule
+import com.typesafe.config.Config
+import javax.inject.{Inject, Singleton}
+import play.api.Configuration
+import play.api.libs.ws.{WSClient, WSProxyServer}
+import uk.gov.hmrc.http.HttpClient
+import uk.gov.hmrc.http.hooks.HttpHook
+import uk.gov.hmrc.play.audit.http.HttpAuditing
+import uk.gov.hmrc.play.http.ws.{WSHttp, WSProxy, WSProxyConfiguration}
 
 class Module() extends AbstractModule {
-
   override def configure(): Unit = {
     bind(classOf[DataReloadScheduler]).asEagerSingleton()
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
     bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
   }
+}
+
+class HttpClientModule extends AbstractModule {
+  override def configure(): Unit = {
+    bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
+  }
+}
+
+@Singleton
+class DefaultHttpClient @Inject()(
+  config: Configuration,
+  val httpAuditing: HttpAuditing,
+  override val wsClient: WSClient,
+  override protected val actorSystem: ActorSystem
+) extends uk.gov.hmrc.http.HttpClient with WSHttp with WSProxy {
+
+  override lazy val configuration: Option[Config] = Option(config.underlying)
+
+  override val hooks: Seq[HttpHook] = Seq(httpAuditing.AuditingHook)
+
+  override def wsProxyServer: Option[WSProxyServer] =
+    WSProxyConfiguration(configPrefix = "proxy", configuration = config)
 }
