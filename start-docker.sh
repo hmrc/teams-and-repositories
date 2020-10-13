@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
-export AGENT_URL="https://artefacts.tax.service.gov.uk/artifactory/hmrc-releases-local/uk/gov/hmrc/jvm-bobby/0.1.0/jvm-bobby-0.2.0-assembly.jar"
+export AGENT_VERSION=0.2.0
+export AGENT_URL="https://artefacts.tax.service.gov.uk/artifactory/hmrc-releases-local/uk/gov/hmrc/jvm-bobby/${AGENT_VERSION}/jvm-bobby-${AGENT_VERSION}-assembly.jar"
 curl --location --noproxy "discoverd" --retry 5 "${AGENT_URL}" -o "agent.jar"
 export JAVA_OPTS="$JAVA_OPTS -javaagent:${PWD}/agent.jar"
 
