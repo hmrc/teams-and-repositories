@@ -34,6 +34,9 @@ class Module() extends AbstractModule {
   override def configure(): Unit = {
 
     logger.info(s"APPLICATION-HOME=${sys.env.getOrElse("application.home", "NOT SET")}")
+    logger.info(s"USER-HOME=${sys.props.getOrElse("user.home", "NOT SET")}")
+    logger.info(s"USER-DIR=${sys.props.getOrElse("user.dir", "NOT SET")}")
+    logger.info(s"ALL-ENV-KEYS=[${sys.env.keySet.mkString(",")}]")
 
     bind(classOf[DataReloadScheduler]).asEagerSingleton()
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
