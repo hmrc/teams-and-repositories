@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import com.google.inject.AbstractModule
 import com.typesafe.config.Config
 import javax.inject.{Inject, Singleton}
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSProxyServer}
 import uk.gov.hmrc.http.HttpClient
 import uk.gov.hmrc.http.hooks.HttpHook
@@ -28,16 +28,7 @@ import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.http.ws.{WSHttp, WSProxy, WSProxyConfiguration}
 
 class Module() extends AbstractModule {
-
-  private val logger = Logger(this.getClass)
-
   override def configure(): Unit = {
-
-    logger.info(s"APPLICATION-HOME=${sys.env.getOrElse("application.home", "NOT SET")}")
-    logger.info(s"USER-HOME=${sys.props.getOrElse("user.home", "NOT SET")}")
-    logger.info(s"USER-DIR=${sys.props.getOrElse("user.dir", "NOT SET")}")
-    logger.info(s"ALL-ENV-KEYS=[${sys.env.keySet.mkString(",")}]")
-
     bind(classOf[DataReloadScheduler]).asEagerSingleton()
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
     bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
