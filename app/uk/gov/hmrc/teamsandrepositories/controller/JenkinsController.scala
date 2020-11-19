@@ -37,7 +37,7 @@ class JenkinsController @Inject()(
   def lookup(service: String): Action[AnyContent] = Action.async {
     for {
       findService <- jenkinsService.findByService(service)
-      result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NoContent)
+      result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NotFound)
     } yield result
   }
 }

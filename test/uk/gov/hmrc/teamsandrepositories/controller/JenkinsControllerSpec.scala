@@ -44,12 +44,12 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
       bodyText mustBe """{"service":"foo","jenkinsURL":"http://bar/job/api/"}"""
     }
 
-    "return a no content when no matches found" in {
+    "return a not found when no matches found" in {
       when(mockJenkinsService.findByService("bar")) thenReturn Future.successful(None)
 
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("bar").apply(FakeRequest())
-      status(result) mustBe 204
+      status(result) mustBe 404
     }
   }
 }
