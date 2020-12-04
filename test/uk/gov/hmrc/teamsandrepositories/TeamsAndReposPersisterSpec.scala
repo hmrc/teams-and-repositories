@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import com.codahale.metrics.MetricRegistry
-import com.kenshoo.play.metrics.Metrics
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatest.concurrent.ScalaFutures
@@ -27,14 +25,11 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
 
 class TeamsAndReposPersisterSpec
     extends AnyWordSpec
@@ -42,7 +37,6 @@ class TeamsAndReposPersisterSpec
     with OptionValues
     with MockitoSugar
     with LoneElement
-    with MongoSpecSupport
     with ScalaFutures
     with BeforeAndAfterEach
     with GuiceOneAppPerSuite {
@@ -57,12 +51,7 @@ class TeamsAndReposPersisterSpec
 
   val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
 
-  private val metrics: Metrics = new Metrics() {
-    override def defaultRegistry = new MetricRegistry
-    override def toJson          = ???
-  }
-
-  val persister = new TeamsAndReposPersister(mongoTeamsAndRepositoriesPersister, new FutureHelpers(metrics))
+  val persister = new TeamsAndReposPersister(mongoTeamsAndRepositoriesPersister)
 
   "TeamsAndReposPersister" should {
     "delegate to MongoTeamsAndReposPersister's update" in {

@@ -16,19 +16,20 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.{LocalDateTime, ZoneOffset}
+
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
-import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.collection.immutable.ListMap
 
 class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
-  val now = DateTimeUtils.now.getMillis
+  val now = System.currentTimeMillis()
 
   val urlTemplates = UrlTemplates(
     environments = ListMap(

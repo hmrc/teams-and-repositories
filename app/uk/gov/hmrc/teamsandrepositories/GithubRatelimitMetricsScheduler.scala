@@ -21,11 +21,9 @@ import cats.implicits._
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.metrix.MetricOrchestrator
-import uk.gov.hmrc.metrix.domain.MetricSource
-import uk.gov.hmrc.metrix.persistence.MongoMetricRepository
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository, PersistedMetric}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
@@ -33,28 +31,30 @@ import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 @Singleton
 class GithubRatelimitMetricsScheduler @Inject()(
-     githubConnector: GithubConnector
-   , schedulerConfig: SchedulerConfigs
-   , githubConfig   : GithubConfig
-   , mongoLocks     : MongoLocks
-   , metrics        : Metrics
-   , mongo          : ReactiveMongoComponent
-   )( implicit
-      actorSystem         : ActorSystem
-    , applicationLifecycle: ApplicationLifecycle
-    ) extends SchedulerUtils {
+  githubConnector: GithubConnector,
+  schedulerConfig: SchedulerConfigs,
+  githubConfig: GithubConfig,
+  mongoLocks: MongoLocks,
+  metrics: Metrics,
+  mongoComponent: MongoComponent
+)(
+  implicit
+  actorSystem: ActorSystem,
+  applicationLifecycle: ApplicationLifecycle)
+    extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   val metricsDefinitions: Map[String, () => Future[Int]] = {
-    githubConfig.tokens.map { case (username, token) =>
-      s"github.token.${username}.rate.remaining" ->
-        {() => githubConnector.getRateLimitMetrics(token).map(_.remaining)}
+    githubConfig.tokens.map {
+      case (username, token) =>
+        s"github.token.$username.rate.remaining" -> { () =>
+          githubConnector.getRateLimitMetrics(token).map(_.remaining)
+        }
     }.toMap
   }
 
@@ -65,16 +65,17 @@ class GithubRatelimitMetricsScheduler @Inject()(
     }
 
   val metricOrchestrator = new MetricOrchestrator(
-    metricSources     = List(source)
-  , lock              = mongoLocks.metrixLock
-  , metricRepository  = new MongoMetricRepository()(mongo.mongoConnector.db)
-  , metricRegistry    = metrics.defaultRegistry
+    metricSources    = List(source),
+    lockService      = mongoLocks.metrixLock,
+    metricRepository = new MongoMetricRepository(mongoComponent),
+    metricRegistry   = metrics.defaultRegistry
   )
 
   schedule("Github Ratelimit metrics", schedulerConfig.metrixScheduler) {
     metricOrchestrator
-      .attemptToUpdateAndRefreshMetrics(
-        skipReportingOn = persistedMetric => !metricsDefinitions.contains(persistedMetric.name)
+      .attemptMetricRefresh(
+        skipReportingFor =
+          Option((persistedMetric: PersistedMetric) => !metricsDefinitions.contains(persistedMetric.name))
       )
       .map(_ => ())
   }

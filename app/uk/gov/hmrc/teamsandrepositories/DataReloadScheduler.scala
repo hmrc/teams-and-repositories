@@ -31,13 +31,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DataReloadScheduler @Inject()(
-     persistingService: PersistingService
-   , config           : SchedulerConfigs
-   , mongoLocks       : MongoLocks
-   )( implicit
-      actorSystem         : ActorSystem
-    , applicationLifecycle: ApplicationLifecycle
-    ) extends SchedulerUtils {
+  persistingService: PersistingService,
+  config: SchedulerConfigs,
+  mongoLocks: MongoLocks
+)(
+  implicit
+  actorSystem: ActorSystem,
+  applicationLifecycle: ApplicationLifecycle)
+    extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -48,19 +49,21 @@ class DataReloadScheduler @Inject()(
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {
       teamRepositoriesFromGh <- persistingService.persistTeamRepoMapping
-      _ =  logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
+      _ = logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
       _ <- persistingService.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
-      _ =  logger.info("Finished removing orphan Teams")
+      _ = logger.info("Finished removing orphan Teams")
     } yield ()
   }
 
   def reload: Future[Seq[TeamRepositories]] =
-    mongoLocks.dataReloadLock.tryLock {
-      logger.info(s"Starting mongo update")
-      persistingService.persistTeamRepoMapping
-    }.map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
-     .map { r =>
-      logger.info(s"mongo update completed")
-      r
-    }
+    mongoLocks.dataReloadLock
+      .attemptLockWithRelease {
+        logger.info(s"Starting mongo update")
+        persistingService.persistTeamRepoMapping
+      }
+      .map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
+      .map { r =>
+        logger.info(s"mongo update completed")
+        r
+      }
 }

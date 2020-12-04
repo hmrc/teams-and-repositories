@@ -27,24 +27,23 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.{BuildJob, TeamReposito
 import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
-  teamsRepo    : TeamsAndReposPersister,
-  jenkinsRepo  : BuildJobRepo,
+  teamsRepo: TeamsAndReposPersister,
+  jenkinsRepo: BuildJobRepo,
   futureHelpers: FutureHelpers,
-  cc           : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc) {
 
   private implicit val mongoFormats: Reads[BuildJob] = BuildJob.mongoFormats
 
-  def validateJson[A : Reads] = parse.json.validate(
-    _.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
+  def validateJson[A: Reads] = parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
     Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
   }
 
   def clearAll() = Action.async {
-     teamsRepo.clearAllData.map(_ => Ok("Ok"))
+    teamsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 
   def addJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
@@ -52,6 +51,6 @@ class IntegrationTestSupportController @Inject()(
   }
 
   def clearJenkins() = Action.async {
-    jenkinsRepo.removeAll().map(_ => Ok("Ok"))
+    jenkinsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 }

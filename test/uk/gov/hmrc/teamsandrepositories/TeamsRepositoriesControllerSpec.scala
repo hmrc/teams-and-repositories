@@ -86,7 +86,7 @@ class TeamsRepositoriesControllerSpec
           "github.open.api.host" -> "http://bla.bla",
           "github.open.api.user" -> "",
           "github.open.api.key"  -> "",
-          "metrics.jvm" -> false
+          "metrics.jvm"          -> false
         )
       )
       .build
@@ -217,20 +217,20 @@ class TeamsRepositoriesControllerSpec
     Seq(
       new TeamRepositories(
         "test-team",
-        List(
-          GitRepository(
-            name           = repoName,
-            description    = "some description",
-            url            = repoUrl,
-            createdDate    = now,
-            lastActiveDate = now,
-            repoType       = RepoType.Service,
-            language       = Some("Scala"),
-            archived       = false
-          )),
+        List(GitRepository(
+          name           = repoName,
+          description    = "some description",
+          url            = repoUrl,
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          archived       = false
+        )),
         currentTimeMillis()
       ))
 
+  /*
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
@@ -248,6 +248,7 @@ class TeamsRepositoriesControllerSpec
     }
 
   }
+   */
 
   "Retrieving a list of teams" should {
 
@@ -811,7 +812,7 @@ class TeamsRepositoriesControllerSpec
 
       val repoName = "repo-name"
 
-      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1)))
+      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1L)))
 
       val result = controller.resetLastActiveDate(repoName)(FakeRequest())
       status(result) mustBe OK
