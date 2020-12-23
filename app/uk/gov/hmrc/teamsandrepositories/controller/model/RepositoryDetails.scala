@@ -29,18 +29,20 @@ case class Environment(name: String, services: Seq[Link])
 case class Link(name: String, displayName: String, url: String)
 
 case class RepositoryDetails(
-  name: String,
-  description: String,
-  isPrivate: Boolean,
-  createdAt: Long,
-  lastActive: Long,
-  repoType: RepoType.RepoType,
-  owningTeams: Seq[String],
-  teamNames: Seq[String],
-  githubUrl: Link,
-  ci: Seq[Link]                  = Seq.empty,
+  name        : String,
+  description : String,
+  isPrivate   : Boolean,
+  createdAt   : Long,
+  lastActive  : Long,
+  repoType    : RepoType.RepoType,
+  owningTeams : Seq[String],
+  teamNames   : Seq[String],
+  githubUrl   : Link,
+  ci          : Seq[Link]        = Seq.empty,
   environments: Seq[Environment] = Seq.empty,
-  language: String)
+  language    : String,
+  isArchived  : Boolean
+)
 
 object RepositoryDetails {
 
@@ -58,12 +60,15 @@ object RepositoryDetails {
         owningTeams = repo.owningTeams,
         teamNames   = teamNames,
         githubUrl   = Link("github-com", "GitHub.com", repo.url),
-        language    = repo.language.getOrElse("")
+        language    = repo.language.getOrElse(""),
+        isArchived  = repo.archived
       )
 
     repo.repoType match {
-      case RepoType.Service =>
-        repoDetails.copy(ci = buildCiUrls(repoDetails), environments = buildEnvironmentUrls(repo, urlTemplates))
+      case RepoType.Service => repoDetails.copy(
+                                 ci           = buildCiUrls(repoDetails),
+                                 environments = buildEnvironmentUrls(repo, urlTemplates)
+                               )
       case RepoType.Library => repoDetails.copy(ci = buildCiUrls(repoDetails))
       case _                => repoDetails
     }
@@ -72,26 +77,28 @@ object RepositoryDetails {
   private def buildEnvironmentUrls(repository: GitRepository, urlTemplates: UrlTemplates): Seq[Environment] =
     urlTemplates.environments.map {
       case (name, tps) =>
-        val links = tps.map { tp =>
-          Link(tp.name, tp.displayName, tp.url(repository.name))
-        }
-        Environment(name, links)
+        Environment(
+          name,
+          services = tps.map(tp => Link(tp.name, tp.displayName, tp.url(repository.name)))
+        )
     }.toSeq
 
-  private def buildCiUrls(repo: RepositoryDetails): Seq[Link] = repo.teamNames match {
-    case Seq(teamName) => buildCiUrl("Build", "Build", teamName, repo.name).toSeq
-    case teamNames =>
-      teamNames.flatMap(teamName => {
-        val name = s"$teamName Build"
-        buildCiUrl(name, name, teamName, repo.name)
-      })
-  }
+  private def buildCiUrls(repo: RepositoryDetails): Seq[Link] =
+    repo.teamNames match {
+      case Seq(teamName) => buildCiUrl("Build", "Build", teamName, repo.name).toSeq
+      case teamNames =>
+        teamNames.flatMap { teamName =>
+          val name = s"$teamName Build"
+          buildCiUrl(name, name, teamName, repo.name)
+        }
+    }
 
   private def buildCiUrl(
-    linkName: String,
+    linkName       : String,
     linkDisplayName: String,
-    jobTeamName: String,
-    repoName: String): Option[Link] =
+    jobTeamName    : String,
+    repoName       : String
+  ): Option[Link] =
     Try {
       new URI("https", "build.tax.service.gov.uk", s"/job/$jobTeamName/job/$repoName", null).toASCIIString
     } match {
@@ -100,5 +107,4 @@ object RepositoryDetails {
         logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
         None
     }
-
 }

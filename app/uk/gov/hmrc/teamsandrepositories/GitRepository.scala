@@ -21,35 +21,36 @@ import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 
 case class GitRepository(
-  name: String,
-  description: String,
-  url: String,
-  createdDate: Long,
-  lastActiveDate: Long,
-  isPrivate: Boolean                 = false,
-  repoType: RepoType                 = RepoType.Other,
+  name              : String,
+  description       : String,
+  url               : String,
+  createdDate       : Long,
+  lastActiveDate    : Long,
+  isPrivate         : Boolean        = false,
+  repoType          : RepoType       = RepoType.Other,
   digitalServiceName: Option[String] = None,
-  owningTeams: Seq[String]           = Nil,
-  language: Option[String]           = None,
-  archived: Boolean)
+  owningTeams       : Seq[String]    = Nil,
+  language          : Option[String] = None,
+  archived          : Boolean
+)
 
 object GitRepository {
 
   implicit val gitRepositoryFormats: OFormat[GitRepository] = {
 
-    val reads: Reads[GitRepository] = (
-      (JsPath \ "name").read[String] and
-        (JsPath \ "description").read[String] and
-        (JsPath \ "url").read[String] and
-        (JsPath \ "createdDate").read[Long] and
-        (JsPath \ "lastActiveDate").read[Long] and
-        (JsPath \ "isPrivate").readNullable[Boolean].map(_.getOrElse(false)) and
-        (JsPath \ "repoType").read[RepoType] and
-        (JsPath \ "digitalServiceName").readNullable[String] and
-        (JsPath \ "owningTeams").readNullable[Seq[String]].map(_.getOrElse(Nil)) and
-        (JsPath \ "language").readNullable[String] and
-        (JsPath \ "archived").readNullable[Boolean].map(_.getOrElse(false))
-    )(apply _)
+    val reads: Reads[GitRepository] =
+      ( (__ \ "name"              ).read[String]
+      ~ (__ \ "description"       ).read[String]
+      ~ (__ \ "url"               ).read[String]
+      ~ (__ \ "createdDate"       ).read[Long]
+      ~ (__ \ "lastActiveDate"    ).read[Long]
+      ~ (__ \ "isPrivate"         ).readNullable[Boolean].map(_.getOrElse(false))
+      ~ (__ \ "repoType"          ).read[RepoType]
+      ~ (__ \ "digitalServiceName").readNullable[String]
+      ~ (__ \ "owningTeams"       ).readNullable[Seq[String]].map(_.getOrElse(Nil))
+      ~ (__ \ "language"          ).readNullable[String]
+      ~ (__ \ "archived"          ).readNullable[Boolean].map(_.getOrElse(false))
+      )(apply _)
 
     val writes = Json.writes[GitRepository]
 
