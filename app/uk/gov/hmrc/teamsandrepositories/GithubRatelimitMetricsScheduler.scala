@@ -23,7 +23,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository, PersistedMetric}
+import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
@@ -73,10 +73,7 @@ class GithubRatelimitMetricsScheduler @Inject()(
 
   schedule("Github Ratelimit metrics", schedulerConfig.metrixScheduler) {
     metricOrchestrator
-      .attemptMetricRefresh(
-        skipReportingFor =
-          Option((persistedMetric: PersistedMetric) => !metricsDefinitions.contains(persistedMetric.name))
-      )
+      .attemptMetricRefresh()
       .map(_ => ())
   }
 }
