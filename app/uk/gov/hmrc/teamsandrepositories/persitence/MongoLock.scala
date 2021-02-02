@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import scala.concurrent.duration.DurationInt
 
 @Singleton
 class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
-  val dataReloadLock: MongoLockService = mongoLockRepository.toService("data-reload-lock", 20.minutes)
-  val jenkinsLock: MongoLockService    = mongoLockRepository.toService("jenkins-lock", 20.minutes)
-  val metrixLock: MongoLockService     = mongoLockRepository.toService("metrix-lock", 20.minutes)
+  val dataReloadLock: MongoLockService = MongoLockService(mongoLockRepository, "data-reload-lock", 20.minutes)
+  val jenkinsLock   : MongoLockService = MongoLockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
+  val metrixLock    : MongoLockService = MongoLockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
 }

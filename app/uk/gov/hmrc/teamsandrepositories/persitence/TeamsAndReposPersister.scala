@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,15 +134,13 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoComponent: MongoComponen
     collection
       .updateMany(
         filter  = equal("repositories.name", repoName),
-        update  = set("repositories.$.lastActiveDate", 0),
-        options = UpdateOptions().upsert(true)
-        // multi = true
+        update  = set("repositories.$.lastActiveDate", 0)
       )
       .toFuture()
-      .map { result =>
-        result.getModifiedCount match {
+      .map(
+        _.getModifiedCount match {
           case 0        => None
           case modified => Some(modified)
         }
-      }
+      )
 }
