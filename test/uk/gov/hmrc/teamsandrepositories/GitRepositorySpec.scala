@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.{LocalDateTime, ZoneOffset}
-
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

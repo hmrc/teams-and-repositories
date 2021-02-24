@@ -17,13 +17,13 @@
 package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
-import uk.gov.hmrc.mongo.lock.{MongoLockRepository, MongoLockService}
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, LockService}
 
 import scala.concurrent.duration.DurationInt
 
 @Singleton
 class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
-  val dataReloadLock: MongoLockService = MongoLockService(mongoLockRepository, "data-reload-lock", 20.minutes)
-  val jenkinsLock   : MongoLockService = MongoLockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
-  val metrixLock    : MongoLockService = MongoLockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
+  val dataReloadLock: LockService = LockService(mongoLockRepository, "data-reload-lock", 20.minutes)
+  val jenkinsLock   : LockService = LockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
+  val metrixLock    : LockService = LockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
 }

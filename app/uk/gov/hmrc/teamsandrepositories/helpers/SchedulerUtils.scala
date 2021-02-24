@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import akka.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.mongo.lock.MongoLockService
+import uk.gov.hmrc.mongo.lock.LockService
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfig
 // import uk.gov.hmrc.lock.LockKeeper
 
@@ -66,7 +66,7 @@ trait SchedulerUtils {
   def scheduleWithLock(
     label: String,
     schedulerConfig: SchedulerConfig,
-    lock: MongoLockService
+    lock: LockService
   )(f: => Future[Unit])(
     implicit
     actorSystem: ActorSystem,
@@ -74,7 +74,7 @@ trait SchedulerUtils {
     ec: ExecutionContext): Unit =
     schedule(label, schedulerConfig) {
       lock
-        .attemptLockWithRelease(f)
+        .withLock(f)
         .map {
           case Some(_) => logger.debug(s"$label finished - releasing lock")
           case None    => logger.debug(s"$label cannot run - lock ${lock.lockId} is taken... skipping update")

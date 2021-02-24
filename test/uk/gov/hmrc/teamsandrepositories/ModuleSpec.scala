@@ -30,7 +30,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, MongoLockService}
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
@@ -49,20 +49,16 @@ class ModuleSpec
 
   val mockMongoLockRepository: MongoLockRepository = mock[MongoLockRepository](RETURNS_DEEP_STUBS)
   val testMongoLocks: MongoLocks = new MongoLocks(mockMongoLockRepository) {
-    override val dataReloadLock: MongoLockService = create
-    override val jenkinsLock: MongoLockService    = create
-    override val metrixLock: MongoLockService     = create
+    override val dataReloadLock: LockService = create()
+    override val jenkinsLock: LockService    = create()
+    override val metrixLock: LockService     = create()
 
-    private def create = new MongoLockService {
+    private def create() = new LockService {
       override val lockRepository: LockRepository = mockMongoLockRepository
       override val lockId: String                 = "testLock"
       override val ttl: Duration                  = 20.minutes
 
-      override def attemptLockWithRelease[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-        body.map(Some(_))(ec)
-
-      override def attemptLockWithRefreshExpiry[T](body: => Future[T])(
-        implicit ec: ExecutionContext): Future[Option[T]] =
+      override def withLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
         body.map(Some(_))(ec)
     }
   }

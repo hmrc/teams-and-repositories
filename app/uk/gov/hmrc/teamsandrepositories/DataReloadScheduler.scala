@@ -57,7 +57,7 @@ class DataReloadScheduler @Inject()(
 
   def reload: Future[Seq[TeamRepositories]] =
     mongoLocks.dataReloadLock
-      .attemptLockWithRelease {
+      .withLock {
         logger.info(s"Starting mongo update")
         persistingService.persistTeamRepoMapping
       }
