@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ class PersistingServiceSpec
         TeamRepositories("team-d", Nil, System.currentTimeMillis())
       )
 
-      when(persistingService.persister.getAllTeamsAndRepos(any())(any()))
+      when(persistingService.persister.getAllTeamsAndRepos(any()))
         .thenReturn(Future.successful(teamRepositoriesInMongo))
       when(persistingService.persister.deleteTeams(any())(any()))
         .thenReturn(Future.successful(Set("something not important")))
@@ -276,7 +276,7 @@ class PersistingServiceSpec
     when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
       .thenReturn(mockGithubApiClient)
 
-    when(mockPersister.getAllTeamsAndRepos(any())(any()))
+    when(mockPersister.getAllTeamsAndRepos(any()))
       .thenReturn(Future.successful(storedTeamRepositories))
   when(mockPersister.update(any())(any()))
       .thenAnswer(new Answer[Future[TeamRepositories]] {

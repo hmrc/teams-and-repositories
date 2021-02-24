@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.teamsandrepositories.persitence.MongoTeamsAndRepositoriesPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
@@ -34,7 +33,6 @@ class MongoTeamsAndRepositoriesPersisterSpec
     extends AnyWordSpec
     with Matchers
     with LoneElement
-    with MongoSpecSupport
     with ScalaFutures
     with OptionValues
     with BeforeAndAfterEach
@@ -45,16 +43,18 @@ class MongoTeamsAndRepositoriesPersisterSpec
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[Module])
-      .configure(Map(
-        "mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories",
-        "metrics.jvm" -> false)
+      .configure(
+        Map(
+          "mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories",
+          "metrics.jvm" -> false
+        )
       )
       .build()
 
   val mongoTeamsAndReposPersister = app.injector.instanceOf(classOf[MongoTeamsAndRepositoriesPersister])
 
   override def beforeEach() {
-    mongoTeamsAndReposPersister.drop.futureValue
+    mongoTeamsAndReposPersister.clearAllData.futureValue
   }
 
   private val gitRepository1 =
@@ -115,7 +115,8 @@ class MongoTeamsAndRepositoriesPersisterSpec
       result should contain theSameElementsAs List(
         TeamRepositories("test-team1", List(gitRepositoryArchived), updateDate),
         teamAndRepositories2.copy(repositories = List()),
-        teamAndRepositories3.copy(repositories = List()))
+        teamAndRepositories3.copy(repositories = List())
+      )
     }
   }
 
@@ -222,7 +223,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
 
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue shouldBe true
 
       mongoTeamsAndReposPersister.resetLastActiveDate("non-exisiting-repo").futureValue shouldBe None
 

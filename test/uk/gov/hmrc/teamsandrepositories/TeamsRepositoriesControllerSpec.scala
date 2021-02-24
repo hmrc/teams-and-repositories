@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ class TeamsRepositoriesControllerSpec
           "github.open.api.host" -> "http://bla.bla",
           "github.open.api.user" -> "",
           "github.open.api.key"  -> "",
-          "metrics.jvm" -> false
+          "metrics.jvm"          -> false
         )
       )
       .build
@@ -217,17 +217,16 @@ class TeamsRepositoriesControllerSpec
     Seq(
       new TeamRepositories(
         "test-team",
-        List(
-          GitRepository(
-            name           = repoName,
-            description    = "some description",
-            url            = repoUrl,
-            createdDate    = now,
-            lastActiveDate = now,
-            repoType       = RepoType.Service,
-            language       = Some("Scala"),
-            archived       = false
-          )),
+        List(GitRepository(
+          name           = repoName,
+          description    = "some description",
+          url            = repoUrl,
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          archived       = false
+        )),
         currentTimeMillis()
       ))
 
@@ -246,7 +245,6 @@ class TeamsRepositoriesControllerSpec
     "have the correct url set up for the list of all services" in {
       uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services.url mustBe "/api/services"
     }
-
   }
 
   "Retrieving a list of teams" should {
@@ -811,7 +809,7 @@ class TeamsRepositoriesControllerSpec
 
       val repoName = "repo-name"
 
-      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1)))
+      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1L)))
 
       val result = controller.resetLastActiveDate(repoName)(FakeRequest())
       status(result) mustBe OK

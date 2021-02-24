@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,15 +36,15 @@ class IntegrationTestSupportController @Inject()(
 
   private implicit val mongoFormats: Reads[BuildJob] = BuildJob.mongoFormats
 
-  def validateJson[A : Reads] = parse.json.validate(
-    _.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
+  private def validateJson[A: Reads] =
+    parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
     Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
   }
 
   def clearAll() = Action.async {
-     teamsRepo.clearAllData.map(_ => Ok("Ok"))
+    teamsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 
   def addJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
@@ -52,6 +52,6 @@ class IntegrationTestSupportController @Inject()(
   }
 
   def clearJenkins() = Action.async {
-    jenkinsRepo.removeAll().map(_ => Ok("Ok"))
+    jenkinsRepo.clearAllData.map(_ => Ok("Ok"))
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,9 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import reactivemongo.api.DB
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.LockKeeper
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
@@ -47,17 +47,26 @@ class ModuleSpec
     with GuiceOneServerPerSuite
     with Eventually {
 
-  def mockDB: () => DB = () => mock[DB]
+  val mockMongoLockRepository: MongoLockRepository = mock[MongoLockRepository](RETURNS_DEEP_STUBS)
+  val testMongoLocks: MongoLocks = new MongoLocks(mockMongoLockRepository) {
+    override val dataReloadLock: LockService = create()
+    override val jenkinsLock: LockService    = create()
+    override val metrixLock: LockService     = create()
 
-  val testLockKeeper: LockKeeper = new LockKeeper(mockDB, "testLock") {
-    override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-      body.map(Some(_))
+    private def create() = new LockService {
+      override val lockRepository: LockRepository = mockMongoLockRepository
+      override val lockId: String                 = "testLock"
+      override val ttl: Duration                  = 20.minutes
+
+      override def withLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
+        body.map(Some(_))(ec)
+    }
   }
 
   val testTimestamper = new Timestamper
 
   val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
-  val intervalDuration: FiniteDuration = 100 millisecond
+  val intervalDuration: FiniteDuration       = 100 millisecond
 
   when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(intervalDuration)
@@ -76,7 +85,7 @@ class ModuleSpec
         bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
         bind[Timestamper].toInstance(testTimestamper),
         bind[PersistingService].toInstance(mockPersistingService),
-        bind[LockKeeper].toInstance(testLockKeeper)
+        bind[MongoLocks].toInstance(testMongoLocks)
       )
       .overrides(new Module())
       .configure("metrics.jvm" -> false)

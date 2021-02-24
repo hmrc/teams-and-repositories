@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DataReloadScheduler @Inject()(
-     persistingService: PersistingService
-   , config           : SchedulerConfigs
-   , mongoLocks       : MongoLocks
-   )( implicit
-      actorSystem         : ActorSystem
-    , applicationLifecycle: ApplicationLifecycle
-    ) extends SchedulerUtils {
+  persistingService: PersistingService,
+  config          : SchedulerConfigs,
+  mongoLocks      : MongoLocks
+)(implicit
+  actorSystem         : ActorSystem,
+  applicationLifecycle: ApplicationLifecycle
+) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -55,12 +55,14 @@ class DataReloadScheduler @Inject()(
   }
 
   def reload: Future[Seq[TeamRepositories]] =
-    mongoLocks.dataReloadLock.tryLock {
-      logger.info(s"Starting mongo update")
-      persistingService.persistTeamRepoMapping
-    }.map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
-     .map { r =>
-      logger.info(s"mongo update completed")
-      r
-    }
+    mongoLocks.dataReloadLock
+      .withLock {
+        logger.info(s"Starting mongo update")
+        persistingService.persistTeamRepoMapping
+      }
+      .map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
+      .map { r =>
+        logger.info(s"mongo update completed")
+        r
+      }
 }

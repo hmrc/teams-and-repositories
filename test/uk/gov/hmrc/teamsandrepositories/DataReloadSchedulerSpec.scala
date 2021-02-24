@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,12 @@ import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.{LockKeeper, MongoLocks}
+import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -53,19 +52,23 @@ class DataReloadSchedulerSpec
       .configure("metrics.jvm" -> false)
       .build()
 
-  def mockDB: () => DB = () => mock[DB]
+  val mockMongoLockRepository: MongoLockRepository = mock[MongoLockRepository](RETURNS_DEEP_STUBS)
+  val testMongoLocks: MongoLocks = new MongoLocks(mockMongoLockRepository) {
+    override val dataReloadLock: LockService = create
+    override val jenkinsLock: LockService    = create
+    override val metrixLock: LockService     = create
 
-  val testMongoLock: LockKeeper = new LockKeeper(mockDB, "testLock") {
-    override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-      body.map(t => Some(t))(ec)
-  }
+    private def create = new LockService {
+      override val lockRepository: LockRepository = mockMongoLockRepository
+      override val lockId: String                 = "testLock"
+      override val ttl: Duration                  = 20.minutes
 
-  val testMongoLocks: MongoLocks = new MongoLocks(mock[ReactiveMongoComponent](RETURNS_DEEP_STUBS)) {
-    override val dataReloadLock: LockKeeper = testMongoLock
+      override def withLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
+        body.map(Some(_))(ec)
+    }
   }
 
   "reload the cache and remove orphan teams at the configured intervals" in {
-
     val mockSchedulerConfigs  = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
     val mockPersistingService = mock[PersistingService]
 
@@ -77,10 +80,10 @@ class DataReloadSchedulerSpec
     when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
 
     new DataReloadScheduler(
-      persistingService    = mockPersistingService,
-      config               = mockSchedulerConfigs,
-      mongoLocks           = testMongoLocks
-    )(actorSystem          = app.actorSystem,
+      persistingService = mockPersistingService,
+      config            = mockSchedulerConfigs,
+      mongoLocks        = testMongoLocks
+    )(actorSystem = app.actorSystem,
       applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
     )
 
@@ -101,11 +104,12 @@ class DataReloadSchedulerSpec
       when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(false)
 
       new DataReloadScheduler(
-        persistingService    = mockPersistingService,
-        config               = mockSchedulerConfigs,
-        mongoLocks           = testMongoLocks
-      )(actorSystem          = app.actorSystem,
-        applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle])
+        persistingService = mockPersistingService,
+        config            = mockSchedulerConfigs,
+        mongoLocks        = testMongoLocks
+      )(actorSystem = app.actorSystem,
+        applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
+      )
 
       verify(mockPersistingService, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
       verify(mockPersistingService, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())

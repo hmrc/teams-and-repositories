@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,41 +17,46 @@
 package uk.gov.hmrc.teamsandrepositories.persitence
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
-import reactivemongo.api.commands.UpdateWriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.ReactiveRepository
+import org.mongodb.scala.bson.Document
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, UpdateOptions}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.result.UpdateResult
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BuildJobRepo @Inject()(mongoConnector: MongoConnector)
-  extends ReactiveRepository[BuildJob, BSONObjectID] (
-    collectionName = "jenkinsLinks",
-    mongo          = mongoConnector.db,
-    domainFormat   = BuildJob.mongoFormats) {
+class BuildJobRepo @Inject()(
+  mongoComponent: MongoComponent
+)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository(
+      mongoComponent = mongoComponent,
+      collectionName = "jenkinsLinks",
+      domainFormat   = BuildJob.mongoFormats,
+      indexes        = Seq(IndexModel(Indexes.hashed("service"), IndexOptions().name("serviceIdx")))
+    ) {
 
-  override def indexes: Seq[Index] =
-    Seq(Index(Seq("service" -> IndexType.Hashed), name = Some("serviceIdx")))
-
-  def findByService(service: String)(implicit ec: ExecutionContext): Future[Option[BuildJob]] =
-    find("service" -> service)
-      .map(_.headOption)
-
-  def updateOne(buildJob: BuildJob)(implicit ec: ExecutionContext): Future[UpdateWriteResult] = {
+  def findByService(service: String): Future[Option[BuildJob]] =
     collection
-      .update(ordered=false)
-      .one(
-        q      = Json.obj("service" -> buildJob.service),
-        u      = Json.obj("$set" -> Json.obj("jenkinsURL" -> buildJob.jenkinsURL)),
-        upsert = true
-      )
-  }
+      .find(equal("service", service))
+      .first()
+      .toFutureOption()
 
-  def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateWriteResult]] =
+  def updateOne(buildJob: BuildJob): Future[UpdateResult] =
+    collection
+      .updateOne(
+        filter  = equal("service", buildJob.service),
+        update  = set("jenkinsURL", buildJob.jenkinsURL),
+        options = UpdateOptions().upsert(true)
+      )
+      .toFuture()
+
+  def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     Future.traverse(buildJobs)(updateOne)
+
+  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
+    collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
 }

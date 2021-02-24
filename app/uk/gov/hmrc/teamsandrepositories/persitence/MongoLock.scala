@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,26 +17,13 @@
 package uk.gov.hmrc.teamsandrepositories.persitence
 
 import com.google.inject.{Inject, Singleton}
-import org.joda.time.Duration
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
-import uk.gov.hmrc.lock.{LockMongoRepository, LockRepository}
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, LockService}
 
-case class LockKeeper(db: () => DB, lockId: String) extends uk.gov.hmrc.lock.LockKeeper {
-  override val repo                 : LockRepository = LockMongoRepository(db)
-  override val forceLockReleaseAfter: Duration       = Duration.standardMinutes(20)
-}
-
-case class ExclusiveTimePeriodLock(db: () => DB, lockId: String) extends uk.gov.hmrc.lock.ExclusiveTimePeriodLock {
-  override val repo       : LockRepository = LockMongoRepository(db)
-  override val holdLockFor: Duration       = Duration.standardMinutes(20)
-}
+import scala.concurrent.duration.DurationInt
 
 @Singleton
-class MongoLocks @Inject()(mongo: ReactiveMongoComponent) {
-  private val db = mongo.mongoConnector.db
-
-  val dataReloadLock = LockKeeper(db, "data-reload-lock")
-  val jenkinsLock    = LockKeeper(db, "jenkins-lock")
-  val metrixLock     = ExclusiveTimePeriodLock(db, "metrix-lock")
+class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
+  val dataReloadLock: LockService = LockService(mongoLockRepository, "data-reload-lock", 20.minutes)
+  val jenkinsLock   : LockService = LockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
+  val metrixLock    : LockService = LockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
 }
