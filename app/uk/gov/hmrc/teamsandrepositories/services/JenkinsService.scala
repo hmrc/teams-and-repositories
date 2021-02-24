@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
 
-  def findByService(service: String)(implicit ec: ExecutionContext): Future[Option[BuildJob]] =
+  def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =

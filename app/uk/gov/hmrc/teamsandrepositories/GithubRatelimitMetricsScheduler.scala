@@ -35,28 +35,26 @@ import scala.concurrent.{ExecutionContext, Future}
 class GithubRatelimitMetricsScheduler @Inject()(
   githubConnector: GithubConnector,
   schedulerConfig: SchedulerConfigs,
-  githubConfig: GithubConfig,
-  mongoLocks: MongoLocks,
-  metrics: Metrics,
-  mongoComponent: MongoComponent
-)(
-  implicit
-  actorSystem: ActorSystem,
-  applicationLifecycle: ApplicationLifecycle)
-    extends SchedulerUtils {
+  githubConfig   : GithubConfig,
+  mongoLocks     : MongoLocks,
+  metrics        : Metrics,
+  mongoComponent : MongoComponent
+)(implicit
+  actorSystem         : ActorSystem,
+  applicationLifecycle: ApplicationLifecycle
+) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  val metricsDefinitions: Map[String, () => Future[Int]] = {
-    githubConfig.tokens.map {
-      case (username, token) =>
+  val metricsDefinitions: Map[String, () => Future[Int]] =
+    githubConfig.tokens
+      .map { case (username, token) =>
         s"github.token.$username.rate.remaining" -> { () =>
           githubConnector.getRateLimitMetrics(token).map(_.remaining)
         }
-    }.toMap
-  }
+      }.toMap
 
   val source: MetricSource =
     new MetricSource {

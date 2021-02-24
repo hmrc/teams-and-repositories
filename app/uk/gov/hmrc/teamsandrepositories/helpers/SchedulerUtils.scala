@@ -31,13 +31,14 @@ trait SchedulerUtils {
   private val logger = Logger(this.getClass)
 
   def schedule(
-    label: String,
+    label          : String,
     schedulerConfig: SchedulerConfig
-  )(f: => Future[Unit])(
-    implicit
-    actorSystem: ActorSystem,
+  )(f: => Future[Unit]
+  )(implicit
+    actorSystem         : ActorSystem,
     applicationLifecycle: ApplicationLifecycle,
-    ec: ExecutionContext): Unit =
+    ec                  : ExecutionContext
+  ): Unit =
     if (schedulerConfig.enabled) {
       val initialDelay = schedulerConfig.initialDelay
       val interval     = schedulerConfig.interval
@@ -64,14 +65,15 @@ trait SchedulerUtils {
     }
 
   def scheduleWithLock(
-    label: String,
+    label          : String,
     schedulerConfig: SchedulerConfig,
-    lock: LockService
-  )(f: => Future[Unit])(
-    implicit
-    actorSystem: ActorSystem,
+    lock           : LockService
+  )(f: => Future[Unit]
+  )(implicit
+    actorSystem         : ActorSystem,
     applicationLifecycle: ApplicationLifecycle,
-    ec: ExecutionContext): Unit =
+    ec                  : ExecutionContext
+  ): Unit =
     schedule(label, schedulerConfig) {
       lock
         .withLock(f)

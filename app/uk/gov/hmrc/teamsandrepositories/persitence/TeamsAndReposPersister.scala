@@ -38,10 +38,10 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
     mongoTeamsAndReposPersister.update(teamsAndRepositories)
   }
 
-  def getAllTeamsAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getAllTeamAndRepos(archived)
 
-  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
@@ -57,14 +57,17 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
 }
 
 @Singleton
-class MongoTeamsAndRepositoriesPersister @Inject()(mongoComponent: MongoComponent, futureHelpers: FutureHelpers)(
-  implicit ec: ExecutionContext)
-    extends PlayMongoRepository(
-      mongoComponent = mongoComponent,
-      collectionName = "teamsAndRepositories",
-      domainFormat   = TeamRepositories.formats,
-      indexes        = Seq(IndexModel(Indexes.hashed("teamName"), IndexOptions().name("teamNameIdx")))
-    ) {
+class MongoTeamsAndRepositoriesPersister @Inject()(
+  mongoComponent: MongoComponent,
+  futureHelpers : FutureHelpers
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository(
+  mongoComponent = mongoComponent,
+  collectionName = "teamsAndRepositories",
+  domainFormat   = TeamRepositories.formats,
+  indexes        = Seq(IndexModel(Indexes.hashed("teamName"), IndexOptions().name("teamNameIdx")))
+) {
   private val logger = Logger(this.getClass)
 
   def insert(teamAndRepos: TeamRepositories): Future[Boolean] =
@@ -87,7 +90,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoComponent: MongoComponen
           throw new RuntimeException(s"failed to persist $teamAndRepos", lastError)
       }
 
-  def getTeamsAndRepos(serviceNames: Seq[String])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
     collection
       .find(
         elemMatch(
@@ -98,20 +101,21 @@ class MongoTeamsAndRepositoriesPersister @Inject()(mongoComponent: MongoComponen
           )))
       .toFuture()
 
-  def getAllTeamAndRepos(archived: Option[Boolean])(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  def getAllTeamAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     // We need to filter after retrieving from Mongo as unfortunately a Mongo projection
     // using $elemMatch will only return the first matching item in an array, not
     // all matching items
     collection
       .find()
+      .toFuture()
       .map { unfilteredTeamsAndRepos =>
         archived match {
-          case None => unfilteredTeamsAndRepos
-          case Some(a) =>
-            unfilteredTeamsAndRepos.copy(repositories = unfilteredTeamsAndRepos.repositories.filter(_.archived == a))
+          case None    => unfilteredTeamsAndRepos
+          case Some(a) => unfilteredTeamsAndRepos.map { teamAndRepo =>
+                            teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.archived == a))
+                          }
         }
       }
-      .toFuture()
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())

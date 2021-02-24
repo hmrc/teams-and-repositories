@@ -83,7 +83,9 @@ class DataReloadSchedulerSpec
       persistingService = mockPersistingService,
       config            = mockSchedulerConfigs,
       mongoLocks        = testMongoLocks
-    )(actorSystem = app.actorSystem, applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle])
+    )(actorSystem = app.actorSystem,
+      applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
+    )
 
     verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
     verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
@@ -105,7 +107,9 @@ class DataReloadSchedulerSpec
         persistingService = mockPersistingService,
         config            = mockSchedulerConfigs,
         mongoLocks        = testMongoLocks
-      )(actorSystem = app.actorSystem, applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle])
+      )(actorSystem = app.actorSystem,
+        applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
+      )
 
       verify(mockPersistingService, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
       verify(mockPersistingService, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())

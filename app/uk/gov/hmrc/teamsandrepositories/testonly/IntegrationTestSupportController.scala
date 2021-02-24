@@ -27,16 +27,17 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.{BuildJob, TeamReposito
 import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
-  teamsRepo: TeamsAndReposPersister,
-  jenkinsRepo: BuildJobRepo,
+  teamsRepo    : TeamsAndReposPersister,
+  jenkinsRepo  : BuildJobRepo,
   futureHelpers: FutureHelpers,
-  cc: ControllerComponents
-)(implicit ec: ExecutionContext)
-    extends BackendController(cc) {
+  cc           : ControllerComponents
+)(implicit ec: ExecutionContext
+) extends BackendController(cc) {
 
   private implicit val mongoFormats: Reads[BuildJob] = BuildJob.mongoFormats
 
-  def validateJson[A: Reads] = parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
+  private def validateJson[A: Reads] =
+    parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
     Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))

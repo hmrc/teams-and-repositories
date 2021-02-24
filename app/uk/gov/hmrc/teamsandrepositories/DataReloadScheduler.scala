@@ -32,13 +32,12 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class DataReloadScheduler @Inject()(
   persistingService: PersistingService,
-  config: SchedulerConfigs,
-  mongoLocks: MongoLocks
-)(
-  implicit
-  actorSystem: ActorSystem,
-  applicationLifecycle: ApplicationLifecycle)
-    extends SchedulerUtils {
+  config          : SchedulerConfigs,
+  mongoLocks      : MongoLocks
+)(implicit
+  actorSystem         : ActorSystem,
+  applicationLifecycle: ApplicationLifecycle
+) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -49,9 +48,9 @@ class DataReloadScheduler @Inject()(
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {
       teamRepositoriesFromGh <- persistingService.persistTeamRepoMapping
-      _ = logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
+      _ =  logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
       _ <- persistingService.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
-      _ = logger.info("Finished removing orphan Teams")
+      _ =  logger.info("Finished removing orphan Teams")
     } yield ()
   }
 

@@ -43,7 +43,12 @@ class MongoTeamsAndRepositoriesPersisterSpec
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .disable(classOf[Module])
-      .configure(Map("mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories", "metrics.jvm" -> false))
+      .configure(
+        Map(
+          "mongodb.uri" -> "mongodb://localhost:27017/test-teams-and-repositories",
+          "metrics.jvm" -> false
+        )
+      )
       .build()
 
   val mongoTeamsAndReposPersister = app.injector.instanceOf(classOf[MongoTeamsAndRepositoriesPersister])
@@ -53,60 +58,15 @@ class MongoTeamsAndRepositoriesPersisterSpec
   }
 
   private val gitRepository1 =
-    GitRepository(
-      "repo-name1",
-      "Desc1",
-      "url1",
-      1,
-      2,
-      false,
-      RepoType.Service,
-      language = Some("Scala"),
-      archived = false)
+    GitRepository("repo-name1", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"), archived = false)
   private val gitRepository2 =
-    GitRepository(
-      "repo-name2",
-      "Desc2",
-      "url2",
-      3,
-      4,
-      false,
-      RepoType.Library,
-      language = Some("Scala"),
-      archived = false)
+    GitRepository("repo-name2", "Desc2", "url2", 3, 4, false, RepoType.Library, language = Some("Scala"), archived = false)
   private val gitRepository3 =
-    GitRepository(
-      "repo-name3",
-      "Desc3",
-      "url3",
-      5,
-      6,
-      false,
-      RepoType.Service,
-      language = Some("Scala"),
-      archived = false)
+    GitRepository("repo-name3", "Desc3", "url3", 5, 6, false, RepoType.Service, language = Some("Scala"), archived = false)
   private val gitRepository4 =
-    GitRepository(
-      "repo-name4",
-      "Desc4",
-      "url4",
-      7,
-      8,
-      false,
-      RepoType.Library,
-      language = Some("Scala"),
-      archived = false)
+    GitRepository("repo-name4", "Desc4", "url4", 7, 8, false, RepoType.Library, language = Some("Scala"), archived = false)
   private val gitRepositoryArchived =
-    GitRepository(
-      "repo-name-archived",
-      "Desc5",
-      "url5",
-      9,
-      10,
-      false,
-      RepoType.Service,
-      language = Some("Scala"),
-      archived = true)
+    GitRepository("repo-name-archived", "Desc5", "url5", 9, 10, false, RepoType.Service, language = Some("Scala"), archived = true)
 
   "getAllTeamAndRepos" should {
     val teamAndRepositories1 =
@@ -240,31 +200,13 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
     "set lastActiveDate to 0 of all repos with the given name and return number of modified records" in {
       val gitRepositoryToReset1 =
-        GitRepository(
-          "repo-to-reset-name",
-          "Desc1",
-          "url1",
-          1,
-          2,
-          false,
-          RepoType.Service,
-          language = Some("Scala"),
-          archived = false)
+        GitRepository("repo-to-reset-name", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"), archived = false)
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepositoryToReset1), System.currentTimeMillis())
       mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
 
       val gitRepositoryToReset2 =
-        GitRepository(
-          "repo-to-reset-name",
-          "Desc2",
-          "url2",
-          1,
-          2,
-          false,
-          RepoType.Service,
-          language = Some("Scala"),
-          archived = false)
+        GitRepository("repo-to-reset-name", "Desc2", "url2", 1, 2, false, RepoType.Service, language = Some("Scala"), archived = false)
       val teamAndRepositories2 =
         TeamRepositories("test-team2", List(gitRepositoryToReset2), System.currentTimeMillis())
       mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue

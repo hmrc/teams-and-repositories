@@ -39,13 +39,13 @@ class BuildJobRepo @Inject()(
       indexes        = Seq(IndexModel(Indexes.hashed("service"), IndexOptions().name("serviceIdx")))
     ) {
 
-  def findByService(service: String)(implicit ec: ExecutionContext): Future[Option[BuildJob]] =
+  def findByService(service: String): Future[Option[BuildJob]] =
     collection
       .find(equal("service", service))
       .first()
       .toFutureOption()
 
-  def updateOne(buildJob: BuildJob)(implicit ec: ExecutionContext): Future[UpdateResult] =
+  def updateOne(buildJob: BuildJob): Future[UpdateResult] =
     collection
       .updateOne(
         filter  = equal("service", buildJob.service),

@@ -230,7 +230,6 @@ class TeamsRepositoriesControllerSpec
         currentTimeMillis()
       ))
 
-  /*
   "Teams controller" should {
 
     "have the correct url set up for the teams list" in {
@@ -246,9 +245,7 @@ class TeamsRepositoriesControllerSpec
     "have the correct url set up for the list of all services" in {
       uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services.url mustBe "/api/services"
     }
-
   }
-   */
 
   "Retrieving a list of teams" should {
 
