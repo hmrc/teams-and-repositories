@@ -21,11 +21,11 @@ import java.time.LocalDateTime
 import java.util.Date
 
 import akka.actor.ActorSystem
+import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json._
 import play.api.mvc.Results
@@ -75,8 +75,6 @@ class TeamsRepositoriesControllerSpec
   val mockConfiguration          = mock[Configuration]
 
   val mockTeamsAndRepositories = mock[TeamsAndReposPersister]
-
-  import org.mockito.Mockito._
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()

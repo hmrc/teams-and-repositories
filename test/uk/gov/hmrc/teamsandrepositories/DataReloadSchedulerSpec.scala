@@ -17,12 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
-import org.mockito.Mockito._
+import org.mockito.MockitoSugar
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
@@ -87,8 +86,8 @@ class DataReloadSchedulerSpec
       applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
     )
 
-    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
-    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
+    verify(mockPersistingService, timeout(500).atLeast(2)).persistTeamRepoMapping(any())
+    verify(mockPersistingService, timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
   }
 
   "reloading the cache" should {
@@ -111,8 +110,8 @@ class DataReloadSchedulerSpec
         applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
       )
 
-      verify(mockPersistingService, Mockito.timeout(500).times(0)).persistTeamRepoMapping(any())
-      verify(mockPersistingService, Mockito.timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
+      verify(mockPersistingService, timeout(500).times(0)).persistTeamRepoMapping(any())
+      verify(mockPersistingService, timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
     }
   }
 }
