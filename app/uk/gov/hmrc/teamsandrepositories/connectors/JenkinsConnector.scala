@@ -21,7 +21,7 @@ import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpClient}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
@@ -34,25 +34,24 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
 
   private val logger = Logger(this.getClass)
 
-  private val buildsUrl: String = "api/json?tree=jobs[name,url]"
-
-  private def findBuildJobs(url: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
+  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
     // Prevents Server-Side Request Forgery
-    assert(url.startsWith(config.baseUrl), s"$url was requested for invalid host")
+    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
-    val authorizationHeader: Option[Authorization] = {
-      val authorizationValue =
+    val authorizationHeader =
         s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
-      Some(Authorization(authorizationValue))
-    }
 
-    implicit val hc: HeaderCarrier = HeaderCarrier(authorizationHeader)
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${baseUrl}api/json?tree=jobs[name,url]"
 
     http
-      .GET[JenkinsRoot](s"$url$buildsUrl")
+      .GET[JenkinsRoot](
+        url     = url,
+        headers = Seq("Authorization" -> authorizationHeader)
+      )
       .recoverWith {
         case NonFatal(ex) =>
-          logger.error(s"An error occurred when connecting to $url$buildsUrl: ${ex.getMessage}", ex)
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
           Future.failed(ex)
       }
   }
