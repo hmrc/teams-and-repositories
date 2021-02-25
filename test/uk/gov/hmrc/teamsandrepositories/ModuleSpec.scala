@@ -18,13 +18,12 @@ package uk.gov.hmrc.teamsandrepositories
 
 import com.google.inject.{Injector, Key, TypeLiteral}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
-import org.mockito.Mockito.{verify, when, _}
+import org.mockito.MockitoSugar
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -98,6 +97,6 @@ class ModuleSpec
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockPersistingService, Mockito.timeout(500).atLeast(2)).persistTeamRepoMapping(any())
+    verify(mockPersistingService, timeout(500).atLeast(2)).persistTeamRepoMapping(any())
   }
 }

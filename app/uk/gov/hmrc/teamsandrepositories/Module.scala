@@ -49,7 +49,7 @@ class DefaultHttpClient @Inject()(
   override protected val actorSystem: ActorSystem
 ) extends uk.gov.hmrc.http.HttpClient with WSHttp with WSProxy {
 
-  override lazy val configuration: Option[Config] = Option(config.underlying)
+  override lazy val configuration: Config = config.underlying
 
   override val hooks: Seq[HttpHook] = Seq(httpAuditing.AuditingHook)
 

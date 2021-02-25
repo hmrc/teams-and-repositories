@@ -21,14 +21,10 @@ import java.util.concurrent.Executors
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito
-import org.mockito.Mockito._
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
+import org.mockito.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -212,8 +208,8 @@ class PersistingServiceSpec
       val persistingService =
         buildPersistingService(dataSource, persistedRepositoriesForOrdering, mockMetrics)
 
-      val mappingTeamsOrder = Mockito.inOrder(dataSource)
-      val persistenceOrder  = Mockito.inOrder(persistingService.persister)
+      val mappingTeamsOrder = inOrder(dataSource)
+      val persistenceOrder  = inOrder(persistingService.persister)
 
       persistingService.persistTeamRepoMapping.futureValue
 
@@ -254,14 +250,15 @@ class PersistingServiceSpec
           TeamRepositories("team-a", Nil, System.currentTimeMillis()),
           TeamRepositories("team-c", Nil, System.currentTimeMillis())))(scala.concurrent.ExecutionContext.global)
 
-      verify(persistingService.persister, Mockito.timeout(1000)).deleteTeams(Set("team-b", "team-d"))
+      verify(persistingService.persister, timeout(1000)).deleteTeams(Set("team-b", "team-d"))
     }
   }
 
   private def buildPersistingService(
-    mockedDataSource: GithubV3RepositoryDataSource,
+    mockedDataSource      : GithubV3RepositoryDataSource,
     storedTeamRepositories: Seq[TeamRepositories],
-    metrics: Metrics) = {
+    metrics               : Metrics
+  ) = {
 
     val mockGithubConfig          = mock[GithubConfig]
     val mockPersister             = mock[TeamsAndReposPersister]
@@ -278,13 +275,9 @@ class PersistingServiceSpec
 
     when(mockPersister.getAllTeamsAndRepos(any()))
       .thenReturn(Future.successful(storedTeamRepositories))
-  when(mockPersister.update(any())(any()))
-      .thenAnswer(new Answer[Future[TeamRepositories]] {
-        override def answer(invocation: InvocationOnMock): Future[TeamRepositories] = {
-          val args = invocation.getArguments()
-          Future.successful(args(0).asInstanceOf[TeamRepositories])
-        }
-      })
+
+    when(mockPersister.update(any())(any()))
+      .thenAnswer { arg: TeamRepositories => Future.successful(arg) }
 
 
     new PersistingService(

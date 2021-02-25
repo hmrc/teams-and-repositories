@@ -96,7 +96,7 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  def getAllRepositories(): Future[List[GitRepository]] = {
+  def getAllRepositories(): Future[List[GitRepository]] =
     withCounter(s"github.open.allRepos") {
       githubApiClient.getReposForOrg(HMRC_ORG)
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
@@ -105,7 +105,6 @@ class GithubV3RepositoryDataSource(
         logger.error("Could not retrieve repo list for organisation.", ex)
         Future.failed(ex)
     }
-  }
 
   def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
     for {
@@ -151,13 +150,14 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  private def parseAppConfigFile(contents: String): Try[Object] =
-    Try(new Yaml().load(contents))
+  private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
+    Try(new Yaml().load[java.util.Map[String, Object]](contents))
 
   case class ManifestDetails(
-    repositoryType: Option[RepoType],
+    repositoryType    : Option[RepoType],
     digitalServiceName: Option[String],
-    owningTeams: Seq[String])
+    owningTeams       : Seq[String]
+  )
 
   private def parseManifest(repoName: String, manifest: String): Option[ManifestDetails] = {
     import scala.collection.JavaConverters._
@@ -169,7 +169,7 @@ class GithubV3RepositoryDataSource(
         None
 
       case Success(yamlMap) =>
-        val config = yamlMap.asInstanceOf[java.util.Map[String, Object]].asScala
+        val config = yamlMap.asScala
 
         val manifestDetails =
           ManifestDetails(

@@ -44,7 +44,7 @@ trait SchedulerUtils {
       val interval     = schedulerConfig.interval
       logger.info(s"Enabling $label scheduler, running every $interval (after initial delay $initialDelay)")
       val cancellable =
-        actorSystem.scheduler.schedule(initialDelay, interval) {
+        actorSystem.scheduler.scheduleWithFixedDelay(initialDelay, interval) { () =>
           val start = System.currentTimeMillis
           logger.info(s"Scheduler $label started")
           f.map { res =>
