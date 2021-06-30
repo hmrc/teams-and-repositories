@@ -47,9 +47,9 @@ class TeamsRepositoriesController @Inject()(
   lazy val repositoriesToIgnore: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
 
-  implicit val environmentFormats = Json.format[Link]
-  implicit val linkFormats        = Json.format[Environment]
-  implicit val serviceFormats     = Json.format[RepositoryDetails]
+  private implicit val lf  = Json.format[Link]
+  private implicit val ef  = Json.format[Environment]
+  private implicit val rdf = Json.format[RepositoryDetails]
 
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
@@ -116,36 +116,6 @@ class TeamsRepositoriesController @Inject()(
   def allRepositories(archived: Option[Boolean]) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
-    }
-  }
-
-  def teams = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      Ok(toJson(TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)))
-    }
-  }
-
-  def repositoriesByTeam(teamName: String) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
-        case None    => NotFound
-        case Some(x) => Ok(toJson(x.map { case (t, v) => (t.toString, v) }))
-      }
-    }
-  }
-
-  def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore) match {
-        case None    => NotFound
-        case Some(x) => Ok(toJson(x))
-      }
-    }
-  }
-
-  def allTeamsAndRepositories = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      Ok(toJson(TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)))
     }
   }
 
