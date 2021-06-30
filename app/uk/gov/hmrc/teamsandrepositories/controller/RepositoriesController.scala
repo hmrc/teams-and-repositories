@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import java.net.URLDecoder
 
 import com.google.inject.{Inject, Singleton}
-import play.api.Configuration
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc._
@@ -34,18 +33,12 @@ import uk.gov.hmrc.teamsandrepositories.RepoType
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TeamsRepositoriesController @Inject()(
+class RepositoriesController @Inject()(
   teamsAndReposPersister: TeamsAndReposPersister,
   urlTemplatesProvider  : UrlTemplatesProvider,
-  configuration         : Configuration,
   cc                    : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
-
-  val TimestampHeaderName = "X-Cache-Timestamp"
-
-  lazy val repositoriesToIgnore: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
 
   private implicit val lf  = Json.format[Link]
   private implicit val ef  = Json.format[Environment]

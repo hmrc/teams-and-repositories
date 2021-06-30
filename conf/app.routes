@@ -5,13 +5,13 @@ GET         /api/teams/:team                     uk.gov.hmrc.teamsandrepositorie
 GET         /api/teams_with_details/:team        uk.gov.hmrc.teamsandrepositories.controller.TeamsController.repositoriesWithDetailsByTeam(team)
 GET         /api/teams_with_repositories         uk.gov.hmrc.teamsandrepositories.controller.TeamsController.allTeamsAndRepositories
 
-GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allServices
-POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services
-GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.libraries
-GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoryDetails(name)
-GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allRepositories(archived: Option[Boolean])
-GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServiceDetails(name)
-GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServices
+GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allServices
+POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services
+GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries
+GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryDetails(name)
+GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allRepositories(archived: Option[Boolean])
+GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServiceDetails(name)
+GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServices
 GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 
 

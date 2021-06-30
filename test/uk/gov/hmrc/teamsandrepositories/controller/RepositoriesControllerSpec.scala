@@ -24,11 +24,11 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.Application
 import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.api.{Application, Configuration}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
@@ -40,7 +40,7 @@ import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TeamsRepositoriesControllerSpec
+class RepositoriesControllerSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
@@ -64,10 +64,6 @@ class TeamsRepositoriesControllerSpec
   private val lastActiveDateForLib2     = 50
 
   import play.api.inject.guice.GuiceApplicationBuilder
-
-  val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
-  val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
-  val mockConfiguration          = mock[Configuration]
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -195,7 +191,7 @@ class TeamsRepositoriesControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsRepositoriesController.services.url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.RepositoriesController.services.url mustBe "/api/services"
     }
   }
 
@@ -555,6 +551,9 @@ class TeamsRepositoriesControllerSpec
     (obj \ "teamNames").as[Seq[String]]
 
   private trait Setup {
+    val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
+    val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
+
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
       .thenReturn(Future.successful(defaultData))
 
@@ -568,13 +567,9 @@ class TeamsRepositoriesControllerSpec
         )
       )
 
-    when(mockConfiguration.get[Seq[String]]("shared.repositories"))
-      .thenReturn(List.empty)
-
-    val controller = new TeamsRepositoriesController(
+    val controller = new RepositoriesController(
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
-      mockConfiguration,
       stubControllerComponents()
     )
   }
