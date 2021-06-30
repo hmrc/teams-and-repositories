@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.lang.System.currentTimeMillis
 import java.time.LocalDateTime
@@ -32,8 +32,8 @@ import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
-import uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
@@ -44,13 +44,13 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class TeamsRepositoriesControllerSpec
-    extends AnyWordSpec
-    with Matchers
-    with MockitoSugar
-    with Results
-    with OptionValues
-    with GuiceOneServerPerSuite
-    with Eventually {
+  extends AnyWordSpec
+     with Matchers
+     with MockitoSugar
+     with Results
+     with OptionValues
+     with GuiceOneServerPerSuite
+     with Eventually {
 
   private val now             = new Date().getTime
   private val updateTimestamp = LocalDateTime.of(2016, 4, 5, 12, 57, 10)
@@ -69,12 +69,9 @@ class TeamsRepositoriesControllerSpec
 
   import play.api.inject.guice.GuiceApplicationBuilder
 
-  val dataReloadScheduler        = mock[DataReloadScheduler]
   val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
   val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
   val mockConfiguration          = mock[Configuration]
-
-  val mockTeamsAndRepositories = mock[TeamsAndReposPersister]
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -93,10 +90,11 @@ class TeamsRepositoriesControllerSpec
     mockedReturnData: Seq[TeamRepositories],
     listOfReposToIgnore: List[String] = List.empty[String],
     actorSystem: Option[ActorSystem]  = None,
-    updateTimestamp: LocalDateTime): TeamsRepositoriesController = {
+    updateTimestamp: LocalDateTime
+  ): TeamsRepositoriesController = {
 
-    when(mockConfiguration.getOptional[Seq[String]]("shared.repositories")).thenReturn(Some(listOfReposToIgnore))
-    when(mockTeamsAndRepositories.getAllTeamsAndRepos(None)).thenReturn(Future.successful(mockedReturnData))
+    when(mockConfiguration.get[Seq[String]]("shared.repositories")).thenReturn(listOfReposToIgnore)
+    when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None)).thenReturn(Future.successful(mockedReturnData))
 
     when(mockUrlTemplateProvider.ciUrlTemplates).thenReturn(
       UrlTemplates(
@@ -107,13 +105,11 @@ class TeamsRepositoriesControllerSpec
       ))
 
     new TeamsRepositoriesController(
-      dataReloadScheduler,
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
       mockConfiguration,
-      mockTeamsAndRepositories,
-      stubControllerComponents()) {
-
+      stubControllerComponents()
+    ) {
       override lazy val repositoriesToIgnore = listOfReposToIgnore
     }
   }
@@ -439,7 +435,7 @@ class TeamsRepositoriesControllerSpec
   "GET /api/services" should {
 
     "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
+      when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
       val result = controller.allServices(FakeRequest("GET", "/services?details=true"))
@@ -478,7 +474,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return service -> team mappings for all services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
+      when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
       val result = controller.allServices(FakeRequest("GET", "/services?teamDetails=true"))
@@ -497,7 +493,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getAllTeamsAndRepos(None))
+      when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
       val result = controller.allServices(FakeRequest())
@@ -661,7 +657,7 @@ class TeamsRepositoriesControllerSpec
   "POST /api/services" should {
 
     "return a json representation of services with the given names sorted alphabetically when the request has a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2")))
+      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("repo1", "repo2")))
         .thenReturn(Future.successful(defaultData))
 
       val result =
@@ -701,7 +697,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return service -> team mappings for selected services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("service1")))
+      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("service1")))
         .thenReturn(Future.successful(defaultData))
 
       val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
@@ -729,7 +725,7 @@ class TeamsRepositoriesControllerSpec
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
-      when(mockTeamsAndRepositories.getTeamsAndRepos(List("repo1", "repo2")))
+      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("repo1", "repo2")))
         .thenReturn(Future.successful(defaultData))
 
       val result = controller.services(FakeRequest().withBody(Json.arr("repo1", "repo2")))
@@ -801,30 +797,6 @@ class TeamsRepositoriesControllerSpec
     }
   }
 
-  "resetLastActiveDate" should {
-
-    "return OK if the persister return Some" in new Setup {
-
-      val repoName = "repo-name"
-
-      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(Some(1L)))
-
-      val result = controller.resetLastActiveDate(repoName)(FakeRequest())
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.obj("message" -> s"'$repoName' last active date reset for 1 team(s)")
-    }
-
-    "return NOT_FOUND if the persister return None" in new Setup {
-
-      val repoName = "repo-name"
-
-      when(mockTeamsAndReposPersister.resetLastActiveDate(repoName)).thenReturn(Future.successful(None))
-
-      val result = controller.resetLastActiveDate(repoName)(FakeRequest())
-      status(result) mustBe NOT_FOUND
-    }
-  }
-
   implicit class RichJsonValue(obj: JsValue) {
     def string(st: String) = (obj \ st).as[String]
     def nameField          = (obj \ "name").as[String]
@@ -842,11 +814,9 @@ class TeamsRepositoriesControllerSpec
     )
 
     val controller = new TeamsRepositoriesController(
-      dataReloadScheduler,
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
       mockConfiguration,
-      mockTeamsAndRepositories,
       stubControllerComponents()
     )
   }
