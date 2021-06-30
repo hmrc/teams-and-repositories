@@ -140,7 +140,8 @@ object TeamRepositories {
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
     repoName: String,
-    ciUrlTemplates: UrlTemplates): Option[RepositoryDetails] = {
+    ciUrlTemplates: UrlTemplates
+  ): Option[RepositoryDetails] = {
 
     val teamsOwningRepo = teamRepos.filter {
       case TeamRepositories(_, repos, _) =>
@@ -163,7 +164,8 @@ object TeamRepositories {
 
   def getTeamRepositoryNameList(
     teamRepos: Seq[TeamRepositories],
-    teamName: String): Option[Map[RepoType.RepoType, List[String]]] = {
+    teamName: String
+  ): Option[Map[RepoType.RepoType, Seq[String]]] = {
     val decodedTeamName = URLDecoder.decode(teamName, "UTF-8")
     teamRepos.find(_.teamName.equalsIgnoreCase(decodedTeamName)).map { t =>
       RepoType.values.foldLeft(Map.empty[RepoType.Value, List[String]]) {
@@ -181,7 +183,8 @@ object TeamRepositories {
   def getRepositoryDetailsList(
     teamRepos: Seq[TeamRepositories],
     repoType: RepoType,
-    ciUrlTemplates: UrlTemplates): Seq[RepositoryDetails] = {
+    ciUrlTemplates: UrlTemplates
+  ): Seq[RepositoryDetails] = {
 
     val allReposForType =
       teamRepos
