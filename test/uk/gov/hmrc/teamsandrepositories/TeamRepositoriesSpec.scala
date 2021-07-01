@@ -37,132 +37,28 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
   val nowInMillis = now.toInstant(ZoneOffset.UTC).toEpochMilli
 
   private val description = "Some description"
-  "getTeamList" should {
 
+  "GitRepository.getTeamActivityDatesOfNonSharedRepos" should {
     "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
-
       val oldestLibraryRepo = GitRepository(
         "repo1",
         "some desc",
         "",
-        createdDate    = 1,
-        lastActiveDate = 10,
+        createdDate        = 1,
+        lastActiveDate     = 10,
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false)
-      val oldDeployableRepo = GitRepository(
-        "repo2",
-        "some desc",
-        "",
-        createdDate    = 2,
-        lastActiveDate = 20,
-        // isInternal         = false,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-      val newDeployableRepo = GitRepository(
-        "repo3",
-        "some desc",
-        "",
-        createdDate    = 3,
-        lastActiveDate = 30,
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-      val oldOtherRepoWithLatestActiveDate = GitRepository(
-        "repo1",
-        description,
-        "",
-        createdDate    = 2,
-        lastActiveDate = 40,
-        // isInternal         = true,
-        repoType           = Other,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-
-      val teams = Seq(
-        TeamRepositories("teamNameChicken", List(newDeployableRepo, oldestLibraryRepo), System.currentTimeMillis()),
-        TeamRepositories(
-          "teamName",
-          List(oldDeployableRepo, oldOtherRepoWithLatestActiveDate),
-          System.currentTimeMillis()),
-        TeamRepositories("teamNameNotActive", List(), System.currentTimeMillis())
+        archived           = false
       )
 
-      val result: Seq[Team] = TeamRepositories.getTeamList(teams, Nil)
-
-      result(0).name                shouldBe "teamNameChicken"
-      result(0).firstActiveDate.get shouldBe oldestLibraryRepo.createdDate
-      result(0).lastActiveDate.get  shouldBe newDeployableRepo.lastActiveDate
-
-      result(1).name                shouldBe "teamName"
-      result(1).firstActiveDate.get shouldBe oldDeployableRepo.createdDate
-      result(1).lastActiveDate.get  shouldBe oldOtherRepoWithLatestActiveDate.lastActiveDate
-
-      result(2).name            shouldBe "teamNameNotActive"
-      result(2).firstActiveDate shouldBe None
-      result(2).lastActiveDate  shouldBe None
-
-    }
-
-    "Exclude specified repos in calculating activity max and min dates" in {
-
-      val oldLibraryRepo = GitRepository(
-        "repo1",
-        "some desc",
-        "",
-        createdDate    = 2,
-        lastActiveDate = 20,
-        // isInternal         = false,
-        repoType           = Library,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
       val oldDeployableRepo = GitRepository(
         "repo2",
         "some desc",
         "",
-        createdDate    = 3,
-        lastActiveDate = 30,
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-      val newLibraryRepo = GitRepository(
-        "repo1",
-        "some desc",
-        "",
-        createdDate    = 4,
-        lastActiveDate = 40,
-        // isInternal         = false,
-        repoType           = Library,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-      val newDeployableRepo = GitRepository(
-        "repo2",
-        "some desc",
-        "",
-        createdDate    = 5,
-        lastActiveDate = 50,
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        archived           = false)
-      val newIgnoreRepo = GitRepository(
-        "ignoreRepo",
-        "some desc",
-        "",
-        createdDate    = 1,
-        lastActiveDate = 10000,
+        createdDate        = 2,
+        lastActiveDate     = 20,
         // isInternal         = false,
         repoType           = Service,
         digitalServiceName = None,
@@ -170,40 +66,131 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         archived           = false
       )
 
-      val teams = Seq(
-        TeamRepositories(
-          "teamNameChicken",
-          List(oldLibraryRepo, newDeployableRepo, newIgnoreRepo),
-          System.currentTimeMillis()),
-        TeamRepositories(
-          "teamName",
-          List(oldDeployableRepo, newLibraryRepo, newIgnoreRepo),
-          System.currentTimeMillis()),
-        TeamRepositories("teamNameNotActive", List(), System.currentTimeMillis())
+      val newDeployableRepo = GitRepository(
+        "repo3",
+        "some desc",
+        "",
+        createdDate        = 3,
+        lastActiveDate     = 30,
+        // isInternal         = true,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
       )
 
-      val result: Seq[Team] = TeamRepositories.getTeamList(teams, List("ignoreRepo"))
+      val oldOtherRepoWithLatestActiveDate = GitRepository(
+        "repo1",
+        description,
+        "",
+        createdDate        = 2,
+        lastActiveDate     = 40,
+        // isInternal         = true,
+        repoType           = Other,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
 
-      result(0).name                shouldBe "teamNameChicken"
-      result(0).firstActiveDate.get shouldBe oldLibraryRepo.createdDate
-      result(0).lastActiveDate.get  shouldBe newDeployableRepo.lastActiveDate
+      val repositoriesToIgnore = List.empty
 
-      result(1).name                shouldBe "teamName"
-      result(1).firstActiveDate.get shouldBe oldDeployableRepo.createdDate
-      result(1).lastActiveDate.get  shouldBe newLibraryRepo.lastActiveDate
+      val result0 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(newDeployableRepo, oldestLibraryRepo), repositoriesToIgnore)
+      result0.firstActiveDate.value shouldBe oldestLibraryRepo.createdDate
+      result0.lastActiveDate.value  shouldBe newDeployableRepo.lastActiveDate
 
-      result(2).name            shouldBe "teamNameNotActive"
-      result(2).firstActiveDate shouldBe None
-      result(2).lastActiveDate  shouldBe None
+      val result1 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldDeployableRepo, oldOtherRepoWithLatestActiveDate), repositoriesToIgnore)
+      result1.firstActiveDate.get shouldBe oldDeployableRepo.createdDate
+      result1.lastActiveDate.get  shouldBe oldOtherRepoWithLatestActiveDate.lastActiveDate
 
+      val result2 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List.empty, repositoriesToIgnore)
+      result2.firstActiveDate shouldBe None
+      result2.lastActiveDate  shouldBe None
     }
 
+    "exclude specified repos in calculating activity max and min dates" in {
+      val oldLibraryRepo = GitRepository(
+        "repo1",
+        "some desc",
+        "",
+        createdDate        = 2,
+        lastActiveDate     = 20,
+        // isInternal         = false,
+        repoType           = Library,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val oldDeployableRepo = GitRepository(
+        "repo2",
+        "some desc",
+        "",
+        createdDate        = 3,
+        lastActiveDate     = 30,
+        // isInternal         = true,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val newLibraryRepo = GitRepository(
+        "repo1",
+        "some desc",
+        "",
+        createdDate        = 4,
+        lastActiveDate     = 40,
+        // isInternal         = false,
+        repoType           = Library,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val newDeployableRepo = GitRepository(
+        "repo2",
+        "some desc",
+        "",
+        createdDate        = 5,
+        lastActiveDate     = 50,
+        // isInternal         = true,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val newIgnoreRepo = GitRepository(
+        "ignoreRepo",
+        "some desc",
+        "",
+        createdDate        = 1,
+        lastActiveDate     = 10000,
+        // isInternal         = false,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repositoriesToIgnore = List("ignoreRepo")
+
+      val result0 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldLibraryRepo, newDeployableRepo, newIgnoreRepo), repositoriesToIgnore)
+      result0.firstActiveDate.value shouldBe oldLibraryRepo.createdDate
+      result0.lastActiveDate.value  shouldBe newDeployableRepo.lastActiveDate
+
+      val result1 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldDeployableRepo, newLibraryRepo, newIgnoreRepo), repositoriesToIgnore)
+      result1.firstActiveDate.get shouldBe oldDeployableRepo.createdDate
+      result1.lastActiveDate.get  shouldBe newLibraryRepo.lastActiveDate
+
+      val result2 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List.empty, repositoriesToIgnore)
+      result2.firstActiveDate shouldBe None
+      result2.lastActiveDate  shouldBe None
+    }
   }
 
   "getServiceRepoDetailsList" should {
-
     "include repository with type not Deployable as services if one of the repositories with same name is Deployable" in {
-
       val teams = Seq(
         TeamRepositories(
           "teamName",
@@ -284,11 +271,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       result.map(_.createdAt)     shouldBe List(timestamp, timestamp)
       result.map(_.lastUpdatedAt) shouldBe List(timestamp, timestamp)
     }
-
   }
 
   "getAllRepositories" should {
-
     "deduplicate results" in {
       val teams = Seq(TeamRepositories(
         "team1",
@@ -321,7 +306,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
   }
 
   "findRepositoryDetails" should {
-
     "find a repository" in { // todo(konrad) add more initial TeamRepositories as test has little value
       val teams = Seq(
         TeamRepositories(
@@ -345,8 +329,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap())) shouldBe defined
     }
-    "find a repository where the name has a different case" in {
 
+    "find a repository where the name has a different case" in {
       val teams = Seq(
         TeamRepositories(
           "teamName",
@@ -418,97 +402,10 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       val result = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap()))
       result shouldBe None
     }
-
   }
 
-  "getTeamRepositoryNameList" should {
-
-    "find the repository if the name has different case" in {
-      val teams = Seq(
-        TeamRepositories(
-          "teamName",
-          List(
-            GitRepository(
-              "repo1",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = false,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            ),
-            GitRepository(
-              "repo2",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            ),
-            GitRepository(
-              "repo1",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Other,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            ),
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            )
-          ),
-          System.currentTimeMillis()
-        ),
-        TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            )),
-          System.currentTimeMillis()
-        )
-      )
-      val result = TeamRepositories.getTeamRepositoryNameList(teams, "teamname")
-
-      result shouldBe Some(
-        Map(Service -> List("repo1", "repo2"), Library -> List("repo3"), Prototype -> List(), Other -> List()))
-    }
-
-  }
-
-  "asRepositoryTeamNameList" should {
-
+  "getRepositoryToTeamNameList" should {
     "group teams by services they own filtering out any duplicates" in {
-
       val teams = Seq(
         TeamRepositories(
           "team1",
@@ -638,378 +535,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       result should contain("repo2" -> Seq("team1", "team2"))
       result should contain("repo3" -> Seq("team2", "team3"))
       result should contain("repo4" -> Seq("team3"))
-
     }
-
-  }
-
-  "findTeam" should {
-
-    val oldDeployableRepo = GitRepository(
-      "repo1",
-      description,
-      "",
-      createdDate    = 1,
-      lastActiveDate = 10,
-      // isInternal         = false,
-      repoType           = Service,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val newDeployableRepo = GitRepository(
-      "repo1",
-      description,
-      "",
-      createdDate    = 2,
-      lastActiveDate = 20,
-      // isInternal         = true,
-      repoType           = Service,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val newLibraryRepo = GitRepository(
-      "repo1",
-      description,
-      "",
-      createdDate    = 3,
-      lastActiveDate = 30,
-      // isInternal         = true,
-      repoType           = Library,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val newOtherRepo = GitRepository(
-      "repo1",
-      description,
-      "",
-      createdDate    = 4,
-      lastActiveDate = 40,
-      // isInternal         = true,
-      repoType           = Other,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val sharedRepo = GitRepository(
-      "sharedRepo1",
-      description,
-      "",
-      createdDate    = 5,
-      lastActiveDate = 50,
-      // isInternal         = true,
-      repoType           = Other,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false
-    )
-
-    val teams = Seq(
-      TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo), System.currentTimeMillis()),
-      TeamRepositories(
-        "teamNameOther",
-        List(
-          GitRepository(
-            "repo3",
-            description,
-            "",
-            createdDate    = timestamp,
-            lastActiveDate = timestamp,
-            // isInternal         = true,
-            repoType           = Library,
-            digitalServiceName = None,
-            language           = Some("Scala"),
-            archived           = false
-          )),
-        System.currentTimeMillis()
-      )
-    )
-
-    "find a team" in {
-      val result = TeamRepositories.findTeam(teams, "teamName", Nil)
-      result shouldBe defined
-    }
-
-    "find a team when the name is of a different case" in {
-      val result = TeamRepositories.findTeam(teams, "teamname", Nil)
-      result          shouldBe defined
-      result.get.name shouldBe "teamName"
-    }
-
-    "get the max last active and min created at for repositories with the same name" in {
-      val result = TeamRepositories.findTeam(teams, "teamName", Nil)
-
-      result shouldBe Some(
-        Team(
-          name                     = "teamName",
-          firstActiveDate          = Some(1),
-          lastActiveDate           = Some(20),
-          firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
-          repos                    = Some(Map(Service -> List("repo1"), Library -> List(), Prototype -> List(), Other -> List()))
-        ))
-    }
-
-    "Include all repository types when get the max last active and min created at for team" in {
-
-      val teams = Seq(
-        TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo), System.currentTimeMillis()),
-        TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            )),
-          System.currentTimeMillis()
-        )
-      )
-
-      val result = TeamRepositories.findTeam(teams, "teamName", Nil)
-
-      result shouldBe Some(
-        Team(
-          "teamName",
-          Some(1),
-          Some(40),
-          Some(oldDeployableRepo.createdDate),
-          Some(
-            Map(
-              Service   -> List("repo1"),
-              Library   -> List("repo1"),
-              Prototype -> List(),
-              Other     -> List("repo1")
-            ))
-        )
-      )
-    }
-
-    "Exclude all shared repositories when calculating the min and max activity dates for a team" in {
-
-      val teams = Seq(
-        TeamRepositories(
-          "teamName",
-          List(oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo),
-          System.currentTimeMillis()),
-        TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            )),
-          System.currentTimeMillis()
-        )
-      )
-
-      val result = TeamRepositories.findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
-
-      result shouldBe Some(
-        Team(
-          "teamName",
-          Some(1),
-          Some(40),
-          Some(oldDeployableRepo.createdDate),
-          Some(
-            Map(
-              Service   -> List("repo1"),
-              Library   -> List("repo1"),
-              Prototype -> List(),
-              Other     -> List("repo1", "sharedRepo1")
-            ))
-        )
-      )
-    }
-
-    "populate firstServiceCreation date by looking at only the service repository" in {
-
-      val teams = Seq(
-        TeamRepositories(
-          "teamName",
-          List(newDeployableRepo, oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo),
-          System.currentTimeMillis()),
-        TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate    = timestamp,
-              lastActiveDate = timestamp,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              archived           = false
-            )),
-          System.currentTimeMillis()
-        )
-      )
-
-      val result = TeamRepositories.findTeam(teams, "teamName", List("sharedRepo1", "sharedRepo2", "sharedRepo3"))
-
-      result shouldBe Some(
-        Team(
-          "teamName",
-          Some(1),
-          Some(40),
-          Some(oldDeployableRepo.createdDate),
-          Some(
-            Map(
-              Service   -> List("repo1"),
-              Library   -> List("repo1"),
-              Prototype -> List(),
-              Other     -> List("repo1", "sharedRepo1")
-            ))
-        )
-      )
-    }
-
-    "return None when queried with a non existing team" in {
-      TeamRepositories.findTeam(teams, "nonExistingTeam", Nil) shouldBe None
-    }
-
-  }
-
-  "allTeamsAndTheirRepositories" should {
-    val repo1 = GitRepository(
-      "repo1",
-      description,
-      "",
-      createdDate        = 1,
-      lastActiveDate     = 10,
-      repoType           = Service,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      owningTeams        = List("teamName"),
-      archived           = false
-    )
-    val repo2 = GitRepository(
-      "repo2",
-      description,
-      "",
-      createdDate        = 1,
-      lastActiveDate     = 10,
-      repoType           = Service,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-
-    val repo3 = GitRepository(
-      "repo3",
-      description,
-      "",
-      createdDate        = 2,
-      lastActiveDate     = 20,
-      repoType           = Library,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val repo4 = GitRepository(
-      "repo4",
-      description,
-      "",
-      createdDate        = 2,
-      lastActiveDate     = 20,
-      repoType           = Library,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-
-    val repo5 = GitRepository(
-      "repo5",
-      description,
-      "",
-      createdDate        = 3,
-      lastActiveDate     = 30,
-      repoType           = Other,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val repo6 = GitRepository(
-      "repo6",
-      description,
-      "",
-      createdDate        = 3,
-      lastActiveDate     = 30,
-      repoType           = Other,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-
-    val repo7 = GitRepository(
-      "repo7",
-      description,
-      "",
-      createdDate        = 4,
-      lastActiveDate     = 40,
-      repoType           = Prototype,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-    val repo8 = GitRepository(
-      "repo8",
-      description,
-      "",
-      createdDate        = 4,
-      lastActiveDate     = 40,
-      repoType           = Prototype,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      archived           = false)
-
-    val teams = Seq(
-      TeamRepositories("teamName", List(repo1, repo2, repo3, repo4, repo5), System.currentTimeMillis()),
-      TeamRepositories("teamNameOther", List(repo4, repo5, repo6, repo7, repo8), System.currentTimeMillis())
-    )
-
-    "get all teams and their repositories grouped by repo type" in {
-      val result = TeamRepositories.allTeamsAndTheirRepositories(teams, Nil)
-
-      result should contain theSameElementsAs Seq(
-        Team(
-          name                     = "teamName",
-          firstActiveDate          = None,
-          lastActiveDate           = None,
-          firstServiceCreationDate = None,
-          repos = Some(
-            Map(
-              Service   -> List("repo1", "repo2"),
-              Library   -> List("repo3", "repo4"),
-              Prototype -> List(),
-              Other     -> List("repo5"))),
-          ownedRepos = List("repo1")
-        ),
-        Team(
-          name                     = "teamNameOther",
-          firstActiveDate          = None,
-          lastActiveDate           = None,
-          firstServiceCreationDate = None,
-          repos = Some(
-            Map(
-              Service   -> List(),
-              Library   -> List("repo4"),
-              Prototype -> List("repo7", "repo8"),
-              Other     -> List("repo5", "repo6"))
-          )
-        )
-      )
-    }
-
   }
 
   "findDigitalServiceDetails" should {
@@ -1103,4 +629,262 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     }
   }
 
+  "toTeam" should {
+    val oldDeployableRepo = GitRepository(
+      "repo1",
+      description,
+      "",
+      createdDate        = 1,
+      lastActiveDate     = 10,
+      // isInternal         = false,
+      repoType           = Service,
+      digitalServiceName = None,
+      language           = Some("Scala"),
+      archived           = false
+    )
+
+    val newDeployableRepo = GitRepository(
+      "repo1",
+      description,
+      "",
+      createdDate        = 2,
+      lastActiveDate     = 20,
+      // isInternal         = true,
+      repoType           = Service,
+      digitalServiceName = None,
+      language           = Some("Scala"),
+      archived           = false
+    )
+
+    val newLibraryRepo = GitRepository(
+      "repo1",
+      description,
+      "",
+      createdDate        = 3,
+      lastActiveDate     = 30,
+      // isInternal         = true,
+      repoType           = Library,
+      digitalServiceName = None,
+      language           = Some("Scala"),
+      archived           = false
+    )
+
+    val newOtherRepo = GitRepository(
+      "repo1",
+      description,
+      "",
+      createdDate        = 4,
+      lastActiveDate     = 40,
+      // isInternal         = true,
+      repoType           = Other,
+      digitalServiceName = None,
+      language           = Some("Scala"),
+      archived           = false
+    )
+
+    val sharedRepo = GitRepository(
+      "sharedRepo1",
+      description,
+      "",
+      createdDate        = 5,
+      lastActiveDate     = 50,
+      // isInternal         = true,
+      repoType           = Other,
+      digitalServiceName = None,
+      language           = Some("Scala"),
+      archived           = false
+    )
+
+    "get the max last active and min created at for repositories" in {
+      val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo), System.currentTimeMillis())
+
+      val result = TeamRepositories.toTeam(teamRepository, repositoriesToIgnore = Nil, excludeRepos = false)
+
+      result shouldBe Team(
+         name                     = "teamName",
+         firstActiveDate          = Some(1),
+         lastActiveDate           = Some(20),
+         firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
+         repos                    = Some(Map(Service -> List("repo1"), Library -> List(), Prototype -> List(), Other -> List()))
+       )
+    }
+
+    "Include all repository types when get the max last active and min created at for team" in {
+      val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo), System.currentTimeMillis())
+
+      val result = TeamRepositories.toTeam(teamRepository, repositoriesToIgnore = Nil, excludeRepos = false)
+
+      result shouldBe Team(
+        "teamName",
+        Some(1),
+        Some(40),
+        Some(oldDeployableRepo.createdDate),
+        Some(
+          Map(
+            Service   -> List("repo1"),
+            Library   -> List("repo1"),
+            Prototype -> List(),
+            Other     -> List("repo1")
+          ))
+      )
+    }
+
+    "populate firstServiceCreation date by looking at only the service repository" in {
+      val teamRepository = TeamRepositories(
+        "teamName",
+        List(newDeployableRepo, oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo),
+        System.currentTimeMillis()
+      )
+
+      val result = TeamRepositories.toTeam(teamRepository, repositoriesToIgnore = List("sharedRepo1", "sharedRepo2", "sharedRepo3"), excludeRepos = false)
+
+      result shouldBe Team(
+        "teamName",
+        Some(1),
+        Some(40),
+        Some(oldDeployableRepo.createdDate),
+        Some(
+          Map(
+            Service   -> List("repo1"),
+            Library   -> List("repo1"),
+            Prototype -> List(),
+            Other     -> List("repo1", "sharedRepo1")
+          ))
+      )
+    }
+
+    "get all teams and their repositories grouped by repo type" in {
+
+      val repo1 = GitRepository(
+        "repo1",
+        description,
+        "",
+        createdDate        = 1,
+        lastActiveDate     = 10,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        owningTeams        = List("teamName"),
+        archived           = false
+      )
+
+      val repo2 = GitRepository(
+        "repo2",
+        description,
+        "",
+        createdDate        = 1,
+        lastActiveDate     = 10,
+        repoType           = Service,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo3 = GitRepository(
+        "repo3",
+        description,
+        "",
+        createdDate        = 2,
+        lastActiveDate     = 20,
+        repoType           = Library,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo4 = GitRepository(
+        "repo4",
+        description,
+        "",
+        createdDate        = 2,
+        lastActiveDate     = 20,
+        repoType           = Library,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo5 = GitRepository(
+        "repo5",
+        description,
+        "",
+        createdDate        = 3,
+        lastActiveDate     = 30,
+        repoType           = Other,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo6 = GitRepository(
+        "repo6",
+        description,
+        "",
+        createdDate        = 3,
+        lastActiveDate     = 30,
+        repoType           = Other,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo7 = GitRepository(
+        "repo7",
+        description,
+        "",
+        createdDate        = 4,
+        lastActiveDate     = 40,
+        repoType           = Prototype,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val repo8 = GitRepository(
+        "repo8",
+        description,
+        "",
+        createdDate        = 4,
+        lastActiveDate     = 40,
+        repoType           = Prototype,
+        digitalServiceName = None,
+        language           = Some("Scala"),
+        archived           = false
+      )
+
+      val teamRepository =
+        TeamRepositories("teamName", List(repo1, repo2, repo3, repo4, repo5), System.currentTimeMillis())
+
+      TeamRepositories.toTeam(teamRepository, repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
+          name                     = "teamName",
+          firstActiveDate          = Some(1),
+          lastActiveDate           = Some(30),
+          firstServiceCreationDate = Some(1),
+          repos = Some(
+            Map(
+              Service   -> List("repo1", "repo2"),
+              Library   -> List("repo3", "repo4"),
+              Prototype -> List(),
+              Other     -> List("repo5"))),
+          ownedRepos = List("repo1")
+        )
+
+      val teamOtherRepository =
+        TeamRepositories("teamNameOther", List(repo4, repo5, repo6, repo7, repo8), System.currentTimeMillis())
+
+      TeamRepositories.toTeam(teamOtherRepository, repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
+        name                     = "teamNameOther",
+        firstActiveDate          = Some(2),
+        lastActiveDate           = Some(40),
+        firstServiceCreationDate = None,
+        repos = Some(
+          Map(
+            Service   -> List(),
+            Library   -> List("repo4"),
+            Prototype -> List("repo7", "repo8"),
+            Other     -> List("repo5", "repo6"))
+        )
+      )
+    }
+  }
 }

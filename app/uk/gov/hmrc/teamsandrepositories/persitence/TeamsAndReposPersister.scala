@@ -66,7 +66,8 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
   mongoComponent = mongoComponent,
   collectionName = "teamsAndRepositories",
   domainFormat   = TeamRepositories.formats,
-  indexes        = Seq(IndexModel(Indexes.hashed("teamName"), IndexOptions().name("teamNameIdx")))
+  indexes        = Seq(IndexModel(Indexes.ascending("teamName"), IndexOptions().name("teamNameIdx").unique(true))), // TODO unique requires that teamName is case insensitive
+  replaceIndexes = true
 ) {
   private val logger = Logger(this.getClass)
 

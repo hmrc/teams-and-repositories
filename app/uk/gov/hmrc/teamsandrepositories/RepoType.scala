@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.json._
 
+// TODO convert to AST
 object RepoType extends Enumeration {
 
   type RepoType = Value

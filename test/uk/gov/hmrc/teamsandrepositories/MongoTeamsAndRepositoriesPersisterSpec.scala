@@ -74,7 +74,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
     val teamAndRepositories2 =
       TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())
     val teamAndRepositories3 =
-      TeamRepositories("test-team2", List(gitRepository4), System.currentTimeMillis())
+      TeamRepositories("test-team3", List(gitRepository4), System.currentTimeMillis())
 
     "be able to add, get all teams and repos and delete everything... Everything!" in {
       mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
@@ -126,7 +126,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
     val teamAndRepositories2 =
       TeamRepositories("test-team2", List(gitRepository3), System.currentTimeMillis())
     val teamAndRepositories3 =
-      TeamRepositories("test-team2", List(gitRepository4), System.currentTimeMillis())
+      TeamRepositories("test-team3", List(gitRepository4), System.currentTimeMillis())
 
     "return a list of Teams and Repositories for a given list of service names" in {
       mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue

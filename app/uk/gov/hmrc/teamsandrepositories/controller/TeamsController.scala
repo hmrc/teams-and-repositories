@@ -45,7 +45,9 @@ class TeamsController @Inject()(
   def teams = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
-        val teams: Seq[Team] = TeamRepositories.getTeamList(allTeamsAndRepos, repositoriesToIgnore)
+        val teams =
+          allTeamsAndRepos
+            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = true))
         Ok(toJson(teams))
       }
   }
@@ -55,9 +57,13 @@ class TeamsController @Inject()(
   def repositoriesByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
-        TeamRepositories.getTeamRepositoryNameList(allTeamsAndRepos, teamName) match {
-          case None        => NotFound
-          case Some(repos) => Ok(toJson(repos)(Team.mapFormat))
+        val optTeam: Option[Team] =
+          allTeamsAndRepos
+            .find(_.teamName.equalsIgnoreCase(teamName))
+            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
+        optTeam match {
+          case None       => NotFound
+          case Some(team) => Ok(toJson(team.repos.getOrElse(Map.empty))(Team.mapFormat))
         }
       }
   }
@@ -66,7 +72,10 @@ class TeamsController @Inject()(
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
-        val optTeam: Option[Team] = TeamRepositories.findTeam(allTeamsAndRepos, teamName, repositoriesToIgnore)
+        val optTeam: Option[Team] =
+          allTeamsAndRepos
+            .find(_.teamName.equalsIgnoreCase(teamName))
+            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
         optTeam match {
           case None       => NotFound
           case Some(team) => Ok(toJson(team))
@@ -78,7 +87,9 @@ class TeamsController @Inject()(
   // missing firstActiveDate, lastActiveDate, firstServiceCreationDate to be consistent with /api/teams/:team and /api/teams_with_details/:team
   def allTeamsAndRepositories = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      val teams = TeamRepositories.allTeamsAndTheirRepositories(allTeamsAndRepos, repositoriesToIgnore)
+      val teams =
+        allTeamsAndRepos
+          .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
       Ok(toJson(teams))
     }
   }
