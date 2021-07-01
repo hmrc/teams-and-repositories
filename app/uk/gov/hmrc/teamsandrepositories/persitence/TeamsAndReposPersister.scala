@@ -29,6 +29,8 @@ import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.{ExecutionContext, Future}
 
+import MongoTeamsAndRepositoriesPersister.caseInsensitiveCollation
+
 class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
   private val logger = Logger(this.getClass)
 
@@ -66,12 +68,15 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
   mongoComponent = mongoComponent,
   collectionName = "teamsAndRepositories",
   domainFormat   = TeamRepositories.formats,
-  indexes        = Seq(IndexModel(Indexes.hashed("teamName"), IndexOptions().name("teamNameIdx")))
+  indexes        = Seq(
+                     IndexModel(
+                       Indexes.ascending("teamName"),
+                       IndexOptions().name("teamNameIdx").collation(caseInsensitiveCollation).unique(true)
+                     )
+                   ),
+  replaceIndexes = true
 ) {
   private val logger = Logger(this.getClass)
-
-  def insert(teamAndRepos: TeamRepositories): Future[Boolean] =
-    collection.insertOne(teamAndRepos).toFuture().map(_.wasAcknowledged())
 
   def update(teamAndRepos: TeamRepositories)(implicit ec: ExecutionContext): Future[TeamRepositories] =
     futureHelpers
@@ -80,7 +85,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
           .replaceOne(
             filter      = equal("teamName", teamAndRepos.teamName),
             replacement = teamAndRepos,
-            options     = ReplaceOptions().upsert(true)
+            options     = ReplaceOptions().upsert(true).collation(caseInsensitiveCollation)
           )
           .toFutureOption()
           .map(_ => teamAndRepos)
@@ -97,8 +102,10 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
           "repositories",
           or(
             serviceNames
-              .map(serviceName => regex("name", "^" + serviceName + "$")): _*
-          )))
+              .map(serviceName => regex("name", "^" + serviceName + "$", "i")): _*
+          )
+        )
+      )
       .toFuture()
 
   def getAllTeamAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
@@ -147,4 +154,12 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
           case modified => Some(modified)
         }
       )
+}
+
+object MongoTeamsAndRepositoriesPersister {
+  val caseInsensitiveCollation: Collation =
+    Collation.builder
+      .locale("en")
+      .collationStrength(CollationStrength.SECONDARY)
+      .build
 }

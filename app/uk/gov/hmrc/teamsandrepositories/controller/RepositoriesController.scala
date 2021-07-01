@@ -42,7 +42,10 @@ class RepositoriesController @Inject()(
 
   private implicit val lf  = Json.format[Link]
   private implicit val ef  = Json.format[Environment]
-  private implicit val rdf = Json.format[RepositoryDetails]
+  private implicit val rdf = {
+    implicit val rtf = RepoType.format
+    Json.format[RepositoryDetails]
+  }
 
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")

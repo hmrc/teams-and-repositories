@@ -47,6 +47,8 @@ class TeamsControllerSpec
      with GuiceOneServerPerSuite
      with Eventually {
 
+  implicit val tf = Team.format
+
   private val now = new Date().getTime
 
   private val createdDateForService1 = 1

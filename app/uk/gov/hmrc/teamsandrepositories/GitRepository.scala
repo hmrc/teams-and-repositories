@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 
 case class GitRepository(
   name              : String,
@@ -37,34 +36,31 @@ case class GitRepository(
 object GitRepository {
 
   implicit val gitRepositoryFormats: OFormat[GitRepository] = {
-
-    val reads: Reads[GitRepository] =
-      ( (__ \ "name"              ).read[String]
-      ~ (__ \ "description"       ).read[String]
-      ~ (__ \ "url"               ).read[String]
-      ~ (__ \ "createdDate"       ).read[Long]
-      ~ (__ \ "lastActiveDate"    ).read[Long]
-      ~ (__ \ "isPrivate"         ).readNullable[Boolean].map(_.getOrElse(false))
-      ~ (__ \ "repoType"          ).read[RepoType]
-      ~ (__ \ "digitalServiceName").readNullable[String]
-      ~ (__ \ "owningTeams"       ).readNullable[Seq[String]].map(_.getOrElse(Nil))
-      ~ (__ \ "language"          ).readNullable[String]
-      ~ (__ \ "archived"          ).readNullable[Boolean].map(_.getOrElse(false))
-      )(apply _)
-
-    val writes = Json.writes[GitRepository]
-
-    OFormat(reads, writes)
+    implicit val rtf = RepoType.format
+    ( (__ \ "name"              ).format[String]
+    ~ (__ \ "description"       ).format[String]
+    ~ (__ \ "url"               ).format[String]
+    ~ (__ \ "createdDate"       ).format[Long]
+    ~ (__ \ "lastActiveDate"    ).format[Long]
+    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"          ).format[RepoType]
+    ~ (__ \ "digitalServiceName").formatNullable[String]
+    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"          ).formatNullable[String]
+    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    )(apply _, unlift(unapply))
   }
 
   case class TeamActivityDates(
-    firstActiveDate: Option[Long]          = None,
-    lastActiveDate: Option[Long]           = None,
-    firstServiceCreationDate: Option[Long] = None)
+    firstActiveDate         : Option[Long] = None,
+    lastActiveDate          : Option[Long] = None,
+    firstServiceCreationDate: Option[Long] = None
+  )
 
   def getTeamActivityDatesOfNonSharedRepos(
-    repos: Seq[GitRepository],
-    repositoriesToIgnore: List[String]): TeamActivityDates = {
+    repos               : Seq[GitRepository],
+    repositoriesToIgnore: List[String]
+  ): TeamActivityDates = {
 
     val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
 
@@ -76,18 +72,18 @@ object GitRepository {
           None
 
       TeamActivityDates(
-        Some(getCreatedAtDate(nonIgnoredRepos)),
-        Some(getLastActiveDate(nonIgnoredRepos)),
-        firstServiceCreationDate)
-    } else {
+        firstActiveDate          = Some(getCreatedAtDate(nonIgnoredRepos)),
+        lastActiveDate           = Some(getLastActiveDate(nonIgnoredRepos)),
+        firstServiceCreationDate = firstServiceCreationDate
+      )
+    } else
       TeamActivityDates()
-    }
   }
 
   def primaryRepoType(repositories: Seq[GitRepository]): RepoType =
-    if (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
-    else if (repositories.exists(_.repoType == RepoType.Service)) RepoType.Service
-    else if (repositories.exists(_.repoType == RepoType.Library)) RepoType.Library
+    if      (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
+    else if (repositories.exists(_.repoType == RepoType.Service  )) RepoType.Service
+    else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
     else RepoType.Other
 
   def getCreatedAtDate(repos: Seq[GitRepository]): Long =
@@ -97,20 +93,19 @@ object GitRepository {
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
   def extractRepositoryGroupForType(
-    repoType: RepoType.RepoType,
-    repositories: Seq[GitRepository]): List[GitRepository] =
+    repoType    : RepoType,
+    repositories: Seq[GitRepository]
+  ): List[GitRepository] =
     repositories
       .groupBy(_.name)
       .filter {
-        case (_, repos) if repoType == RepoType.Service =>
-          repos.exists(x => x.repoType == RepoType.Service)
-        case (_, repos) if repoType == RepoType.Library =>
-          !repos.exists(x => x.repoType == RepoType.Service) && repos.exists(x => x.repoType == RepoType.Library)
-        case (_, repos) =>
-          !repos.exists(x => x.repoType == RepoType.Service) && !repos.exists(x => x.repoType == RepoType.Library) && repos
-            .exists(x => x.repoType == repoType)
+        case (_, repos) if repoType == RepoType.Service =>  repos.exists(_.repoType == RepoType.Service)
+        case (_, repos) if repoType == RepoType.Library => !repos.exists(_.repoType == RepoType.Service) &&
+                                                            repos.exists(_.repoType == RepoType.Library)
+        case (_, repos)                                 => !repos.exists(_.repoType == RepoType.Service) &&
+                                                           !repos.exists(_.repoType == RepoType.Library) &&
+                                                            repos.exists(_.repoType == repoType)
       }
       .flatMap(_._2)
       .toList
-
 }

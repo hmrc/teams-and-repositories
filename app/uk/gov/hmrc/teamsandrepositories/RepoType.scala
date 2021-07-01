@@ -18,26 +18,29 @@ package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.json._
 
-object RepoType extends Enumeration {
+sealed trait RepoType { def asString: String }
+object RepoType {
+  case object Service   extends RepoType { override val asString = "Service"   }
+  case object Library   extends RepoType { override val asString = "Library"   }
+  case object Prototype extends RepoType { override val asString = "Prototype" }
+  case object Other     extends RepoType { override val asString = "Other"     }
 
-  type RepoType = Value
+  val values: List[RepoType] = List(Service, Library, Prototype, Other)
 
-  val Service, Library, Prototype, Other = Value
+  def parse(s: String): Either[String, RepoType] =
+    values
+      .find(_.asString == s)
+      .toRight(s"Invalid repoType - should be one of: ${values.map(_.asString).mkString(", ")}")
 
-  implicit val repoType: Format[RepoType] = new Format[RepoType] {
-    override def reads(json: JsValue): JsResult[RepoType] = json match {
-      case JsString(s) =>
-        try {
-          JsSuccess(RepoType.withName(s))
-        } catch {
-          case _: NoSuchElementException =>
-            JsError(
-              s"Enumeration expected of type: '${RepoType.getClass}', but it does not appear to contain the value: '$s'")
-        }
-      case _ => JsError("String value expected")
-    }
+  val format: Format[RepoType] = new Format[RepoType] {
+    override def reads(json: JsValue): JsResult[RepoType] =
+      json match {
+        case JsString(s) =>
+          parse(s).fold(msg => JsError(msg), rt => JsSuccess(rt))
+        case _ => JsError("String value expected")
+      }
 
-    override def writes(o: RepoType): JsValue = JsString(o.toString)
+    override def writes(o: RepoType): JsValue =
+      JsString(o.asString)
   }
-
 }
