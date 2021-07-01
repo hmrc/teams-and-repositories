@@ -39,6 +39,8 @@ class TeamsController @Inject()(
 
   private implicit val tf = Team.format
 
+  // /api/teams
+  // equivalent to /api/teams_with_details/:team?exclude=repos,ownedRepos
   def teams = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
@@ -49,6 +51,8 @@ class TeamsController @Inject()(
       }
   }
 
+  // /api/teams/:team
+  // equivalent to /api/teams_with_details/:team/repos
   def repositoriesByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
@@ -63,6 +67,7 @@ class TeamsController @Inject()(
       }
   }
 
+  // /api/teams_with_details/:team
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
@@ -77,6 +82,8 @@ class TeamsController @Inject()(
       }
   }
 
+  // /api/teams_with_repositories
+  // missing firstActiveDate, lastActiveDate, firstServiceCreationDate to be consistent with /api/teams/:team and /api/teams_with_details/:team
   def allTeamsAndRepositories = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       val teams =

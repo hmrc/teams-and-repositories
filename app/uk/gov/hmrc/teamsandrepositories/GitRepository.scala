@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.{Instant, LocalDateTime, ZoneOffset}
+
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -52,9 +54,9 @@ object GitRepository {
   }
 
   case class TeamActivityDates(
-    firstActiveDate         : Option[Long] = None,
-    lastActiveDate          : Option[Long] = None,
-    firstServiceCreationDate: Option[Long] = None
+    firstActiveDate         : Option[LocalDateTime] = None,
+    lastActiveDate          : Option[LocalDateTime] = None,
+    firstServiceCreationDate: Option[LocalDateTime] = None
   )
 
   def getTeamActivityDatesOfNonSharedRepos(
@@ -86,11 +88,16 @@ object GitRepository {
     else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
     else RepoType.Other
 
-  def getCreatedAtDate(repos: Seq[GitRepository]): Long =
-    repos.minBy(_.createdDate).createdDate
+  def getCreatedAtDate(repos: Seq[GitRepository]): LocalDateTime = {
+    val millis = repos.minBy(_.createdDate).createdDate
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
+  }
 
-  def getLastActiveDate(repos: Seq[GitRepository]): Long =
-    repos.maxBy(_.lastActiveDate).lastActiveDate
+
+  def getLastActiveDate(repos: Seq[GitRepository]): LocalDateTime = {
+    val millis = repos.maxBy(_.lastActiveDate).lastActiveDate
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
+  }
 
   def extractRepositoryGroupForType(
     repoType    : RepoType,

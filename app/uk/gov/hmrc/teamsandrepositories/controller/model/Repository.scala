@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
+import java.time.LocalDateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
@@ -50,11 +51,11 @@ object Repository {
 
 case class Team(
   name                    : String,
-  firstActiveDate         : Option[Long] = None,
-  lastActiveDate          : Option[Long] = None,
-  firstServiceCreationDate: Option[Long] = None,
+  firstActiveDate         : Option[LocalDateTime]              = None,
+  lastActiveDate          : Option[LocalDateTime]              = None,
+  firstServiceCreationDate: Option[LocalDateTime]              = None,
   repos                   : Option[Map[RepoType, Seq[String]]],
-  ownedRepos              : Seq[String]  = Nil
+  ownedRepos              : Seq[String]                        = Nil
 )
 
 object Team {
@@ -84,9 +85,9 @@ object Team {
   val format: Format[Team] = {
     implicit val mf = mapFormat
     ( (__ \ "name"                    ).format[String]
-    ~ (__ \ "firstActiveDate"         ).formatNullable[Long] // TODO should be Date...
-    ~ (__ \ "lastActiveDate"          ).formatNullable[Long]  // TODO should be Date...
-    ~ (__ \ "firstServiceCreationDate").formatNullable[Long] // TODO should be Date...
+    ~ (__ \ "firstActiveDate"         ).formatNullable[LocalDateTime]
+    ~ (__ \ "lastActiveDate"          ).formatNullable[LocalDateTime]
+    ~ (__ \ "firstServiceCreationDate").formatNullable[LocalDateTime]
     ~ (__ \ "repos"                   ).formatNullable[Map[RepoType, Seq[String]]]
     ~ (__ \ "ownedRepos"              ).format[Seq[String]]
     )(Team.apply, unlift(Team.unapply))
