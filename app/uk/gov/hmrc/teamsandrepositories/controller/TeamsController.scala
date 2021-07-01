@@ -23,7 +23,6 @@ import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.ExecutionContext
 
@@ -40,27 +39,23 @@ class TeamsController @Inject()(
 
   private implicit val tf = Team.format
 
-  // /api/teams
-  // equivalent to /api/teams_with_details/:team?exclude=repos,ownedRepos
   def teams = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val teams =
           allTeamsAndRepos
-            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = true))
+            .map(_.toTeam(repositoriesToIgnore, excludeRepos = true))
         Ok(toJson(teams))
       }
   }
 
-  // /api/teams/:team
-  // equivalent to /api/teams_with_details/:team/repos
   def repositoriesByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val optTeam: Option[Team] =
           allTeamsAndRepos
             .find(_.teamName.equalsIgnoreCase(teamName))
-            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
+            .map(_.toTeam(repositoriesToIgnore, excludeRepos = false))
         optTeam match {
           case None       => NotFound
           case Some(team) => Ok(toJson(team.repos.getOrElse(Map.empty))(Team.mapFormat))
@@ -68,14 +63,13 @@ class TeamsController @Inject()(
       }
   }
 
-  // /api/teams_with_details/:team
   def repositoriesWithDetailsByTeam(teamName: String) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val optTeam: Option[Team] =
           allTeamsAndRepos
             .find(_.teamName.equalsIgnoreCase(teamName))
-            .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
+            .map(_.toTeam(repositoriesToIgnore, excludeRepos = false))
         optTeam match {
           case None       => NotFound
           case Some(team) => Ok(toJson(team))
@@ -83,13 +77,11 @@ class TeamsController @Inject()(
       }
   }
 
-  // /api/teams_with_repositories
-  // missing firstActiveDate, lastActiveDate, firstServiceCreationDate to be consistent with /api/teams/:team and /api/teams_with_details/:team
   def allTeamsAndRepositories = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       val teams =
         allTeamsAndRepos
-          .map(TeamRepositories.toTeam(_, repositoriesToIgnore, excludeRepos = false))
+          .map(_.toTeam(repositoriesToIgnore, excludeRepos = false))
       Ok(toJson(teams))
     }
   }

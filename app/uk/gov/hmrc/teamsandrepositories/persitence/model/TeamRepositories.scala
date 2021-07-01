@@ -23,7 +23,40 @@ import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 
-case class TeamRepositories(teamName: String, repositories: List[GitRepository], updateDate: Long)
+case class TeamRepositories(
+  teamName    : String,
+  repositories: List[GitRepository],
+  updateDate  : Long
+) {
+  def toTeam(repositoriesToIgnore: List[String], excludeRepos: Boolean) = {
+    val teamActivityDates =
+      GitRepository.getTeamActivityDatesOfNonSharedRepos(repositories, repositoriesToIgnore)
+
+    val repos =
+      if (excludeRepos)
+        None
+      else
+        Some(
+          RepoType.values.map(repoType => repoType -> Seq.empty).toMap ++
+            repositories
+              .groupBy(_.repoType)
+              .mapValues(_.map(_.name).distinct.sortBy(_.toUpperCase))
+        )
+
+    val ownedRepos = repositories.collect {
+      case gitRepository if gitRepository.owningTeams.contains(teamName) => gitRepository.name
+    }
+
+    Team(
+      name                     = teamName,
+      firstActiveDate          = teamActivityDates.firstActiveDate,
+      lastActiveDate           = teamActivityDates.lastActiveDate,
+      firstServiceCreationDate = teamActivityDates.firstServiceCreationDate,
+      repos                    = repos,
+      ownedRepos               = ownedRepos
+    )
+  }
+}
 
 object TeamRepositories {
   case class DigitalServiceRepository(
@@ -187,35 +220,5 @@ object TeamRepositories {
       .map { m =>
         m._1 -> m._2.map(_.teamName).distinct
       }
-  }
-
-  // TODO move onto TeamRepositories
-  def toTeam(teamRepositories: TeamRepositories, repositoriesToIgnore: List[String], excludeRepos: Boolean) = {
-    val teamActivityDates =
-      GitRepository.getTeamActivityDatesOfNonSharedRepos(teamRepositories.repositories, repositoriesToIgnore)
-
-    val repos =
-      if (excludeRepos)
-        None
-      else
-        Some(
-          RepoType.values.map(repoType => repoType -> Seq.empty).toMap ++
-            teamRepositories.repositories
-              .groupBy(_.repoType)
-              .mapValues(_.map(_.name).distinct.sortBy(_.toUpperCase))
-        )
-
-    val ownedRepos = teamRepositories.repositories.collect {
-      case gitRepository if gitRepository.owningTeams.contains(teamRepositories.teamName) => gitRepository.name
-    }
-
-    Team(
-      name                     = teamRepositories.teamName,
-      firstActiveDate          = teamActivityDates.firstActiveDate,
-      lastActiveDate           = teamActivityDates.lastActiveDate,
-      firstServiceCreationDate = teamActivityDates.firstServiceCreationDate,
-      repos                    = repos,
-      ownedRepos               = ownedRepos
-    )
   }
 }
