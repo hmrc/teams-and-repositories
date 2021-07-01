@@ -77,8 +77,8 @@ class MongoTeamsAndRepositoriesPersisterSpec
       TeamRepositories("test-team3", List(gitRepository4), System.currentTimeMillis())
 
     "be able to add, get all teams and repos and delete everything... Everything!" in {
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
 
       val all = mongoTeamsAndReposPersister.getAllTeamAndRepos(None).futureValue
 
@@ -90,9 +90,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
       val teamAndRepositoriesWithArchived =
         TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
 
-      mongoTeamsAndReposPersister.insert(teamAndRepositoriesWithArchived).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositoriesWithArchived).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories3).futureValue
 
       val result = mongoTeamsAndReposPersister.getAllTeamAndRepos(Some(false)).futureValue
       result should contain theSameElementsAs List(
@@ -107,9 +107,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
       val teamAndRepositoriesWithArchived =
         TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
 
-      mongoTeamsAndReposPersister.insert(teamAndRepositoriesWithArchived).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositoriesWithArchived).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories3).futureValue
 
       val result = mongoTeamsAndReposPersister.getAllTeamAndRepos(Some(true)).futureValue
       result should contain theSameElementsAs List(
@@ -129,9 +129,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
       TeamRepositories("test-team3", List(gitRepository4), System.currentTimeMillis())
 
     "return a list of Teams and Repositories for a given list of service names" in {
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories3).futureValue
 
       val result = mongoTeamsAndReposPersister.getTeamsAndRepos(Seq("repo-name1", "repo-name4")).futureValue
       result should contain theSameElementsAs List(teamAndRepositories1, teamAndRepositories3)
@@ -141,7 +141,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
   "update" should {
     "update already existing team" in {
       val teamAndRepositories1 = TeamRepositories("test-team", List(gitRepository1), System.currentTimeMillis())
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
       val teamAndRepositories2 = TeamRepositories("test-team", List(gitRepository2), System.currentTimeMillis())
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
@@ -163,9 +163,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
         TeamRepositories("test-team2", List(gitRepository3, gitRepository4), System.currentTimeMillis())
       val teamAndRepositories3 = TeamRepositories("test-team3", List(gitRepository1), System.currentTimeMillis())
 
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
-      mongoTeamsAndReposPersister.insert(teamAndRepositories3).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories3).futureValue
 
       List("test-team1", "test-team2").foreach { teamName =>
         mongoTeamsAndReposPersister.deleteTeam(teamName).futureValue
@@ -185,7 +185,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepository1, gitRepository2, gitRepository3), System.currentTimeMillis())
 
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
       mongoTeamsAndReposPersister.resetLastActiveDate(gitRepository2.name).futureValue shouldBe Some(1)
 
@@ -203,13 +203,13 @@ class MongoTeamsAndRepositoriesPersisterSpec
         GitRepository("repo-to-reset-name", "Desc1", "url1", 1, 2, false, RepoType.Service, language = Some("Scala"), archived = false)
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepositoryToReset1), System.currentTimeMillis())
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
       val gitRepositoryToReset2 =
         GitRepository("repo-to-reset-name", "Desc2", "url2", 1, 2, false, RepoType.Service, language = Some("Scala"), archived = false)
       val teamAndRepositories2 =
         TeamRepositories("test-team2", List(gitRepositoryToReset2), System.currentTimeMillis())
-      mongoTeamsAndReposPersister.insert(teamAndRepositories2).futureValue
+      mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
 
       mongoTeamsAndReposPersister.resetLastActiveDate(gitRepositoryToReset1.name).futureValue shouldBe Some(2)
 
@@ -217,17 +217,6 @@ class MongoTeamsAndRepositoriesPersisterSpec
         teamAndRepositories1.copy(repositories = List(gitRepositoryToReset1.copy(lastActiveDate = 0L))),
         teamAndRepositories2.copy(repositories = List(gitRepositoryToReset2.copy(lastActiveDate = 0L)))
       )
-    }
-
-    "do nothing if there is no repo with the given name" in {
-      val teamAndRepositories1 =
-        TeamRepositories("test-team1", List(gitRepository1), System.currentTimeMillis())
-
-      mongoTeamsAndReposPersister.insert(teamAndRepositories1).futureValue shouldBe true
-
-      mongoTeamsAndReposPersister.resetLastActiveDate("non-exisiting-repo").futureValue shouldBe None
-
-      mongoTeamsAndReposPersister.getAllTeamAndRepos(None).futureValue shouldBe Seq(teamAndRepositories1)
     }
   }
 }
