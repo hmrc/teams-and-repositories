@@ -1,22 +1,21 @@
 # microservice specific routes
 
-GET         /api/teams                           @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.teams
-GET         /api/teams/:team                     @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoriesByTeam(team)
-GET         /api/teams_with_details/:team        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoriesWithDetailsByTeam(team)
-GET         /api/teams_with_repositories         @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allTeamsAndRepositories
+GET         /api/teams                           uk.gov.hmrc.teamsandrepositories.controller.TeamsController.teams
+GET         /api/teams/:team                     uk.gov.hmrc.teamsandrepositories.controller.TeamsController.repositoriesByTeam(team)
+GET         /api/teams_with_details/:team        uk.gov.hmrc.teamsandrepositories.controller.TeamsController.repositoriesWithDetailsByTeam(team)
+GET         /api/teams_with_repositories         uk.gov.hmrc.teamsandrepositories.controller.TeamsController.allTeamsAndRepositories
 
-GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allServices
-POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.services
-GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.libraries
-GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.repositoryDetails(name)
-GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.allRepositories(archived: Option[Boolean])
-GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServiceDetails(name)
-GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.digitalServices
+GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allServices
+POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services
+GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries
+GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryDetails(name)
+GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allRepositories(archived: Option[Boolean])
+GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServiceDetails(name)
+GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServices
 GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 
 
 # admin
-GET         /api/cache/reload                    @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.reloadCache(full: Option[Boolean])
-POST        /api/cache/clear                     @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.clearCache
-GET         /api/cache/all                       @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.all
-PUT         /api/cache/repo/:name/reset-date     @uk.gov.hmrc.teamsandrepositories.controller.TeamsRepositoriesController.resetLastActiveDate(name: String)
+GET         /api/cache/reload                    uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
+POST        /api/cache/clear                     uk.gov.hmrc.teamsandrepositories.controller.AdminController.clearCache
+PUT         /api/cache/repo/:name/reset-date     uk.gov.hmrc.teamsandrepositories.controller.AdminController.resetLastActiveDate(name: String)
