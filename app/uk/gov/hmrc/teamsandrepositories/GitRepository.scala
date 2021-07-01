@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
 
 case class GitRepository(
   name              : String,
@@ -36,7 +35,8 @@ case class GitRepository(
 
 object GitRepository {
 
-  implicit val gitRepositoryFormats: OFormat[GitRepository] =
+  implicit val gitRepositoryFormats: OFormat[GitRepository] = {
+    implicit val rtf = RepoType.format
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
@@ -49,15 +49,16 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     )(apply _, unlift(unapply))
+  }
 
   case class TeamActivityDates(
-    firstActiveDate: Option[Long]          = None,
-    lastActiveDate: Option[Long]           = None,
+    firstActiveDate         : Option[Long] = None,
+    lastActiveDate          : Option[Long] = None,
     firstServiceCreationDate: Option[Long] = None
   )
 
   def getTeamActivityDatesOfNonSharedRepos(
-    repos: Seq[GitRepository],
+    repos               : Seq[GitRepository],
     repositoriesToIgnore: List[String]
   ): TeamActivityDates = {
 
@@ -92,7 +93,7 @@ object GitRepository {
     repos.maxBy(_.lastActiveDate).lastActiveDate
 
   def extractRepositoryGroupForType(
-    repoType    : RepoType.RepoType,
+    repoType    : RepoType,
     repositories: Seq[GitRepository]
   ): List[GitRepository] =
     repositories

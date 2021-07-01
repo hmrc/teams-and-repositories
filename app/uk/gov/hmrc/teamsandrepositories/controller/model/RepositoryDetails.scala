@@ -34,7 +34,7 @@ case class RepositoryDetails(
   isPrivate   : Boolean,
   createdAt   : Long,
   lastActive  : Long,
-  repoType    : RepoType.RepoType,
+  repoType    : RepoType,
   owningTeams : Seq[String],
   teamNames   : Seq[String],
   githubUrl   : Link,

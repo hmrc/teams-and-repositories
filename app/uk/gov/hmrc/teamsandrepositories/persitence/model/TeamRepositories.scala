@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persitence.model
 
 import java.time.{LocalDateTime, ZoneOffset}
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.RepoType.RepoType
+import uk.gov.hmrc.teamsandrepositories.RepoType
 import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
@@ -30,14 +30,16 @@ object TeamRepositories {
     name         : String,
     createdAt    : Long,
     lastUpdatedAt: Long,
-    repoType     : RepoType.RepoType,
+    repoType     : RepoType,
     teamNames    : Seq[String],
     archived     : Boolean
   )
 
   object DigitalServiceRepository {
-    implicit val format: OFormat[DigitalServiceRepository] =
+    implicit val format: Format[DigitalServiceRepository] = {
+      implicit val rtf = RepoType.format
       Json.format[DigitalServiceRepository]
+    }
   }
 
   case class DigitalService(
@@ -47,7 +49,7 @@ object TeamRepositories {
   )
 
   object DigitalService {
-    implicit val format: OFormat[DigitalService] =
+    implicit val format: Format[DigitalService] =
       Json.format[DigitalService]
   }
 
