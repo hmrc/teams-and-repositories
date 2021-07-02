@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.Instant
+import java.time.LocalDateTime
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
@@ -27,12 +27,13 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
 class Timestamper {
-  def timestampF() = Instant.now().toEpochMilli
+  def timestampF() = LocalDateTime.now()
 }
 
 @Singleton
@@ -105,18 +106,15 @@ case class PersistingService @Inject()(
         )
       }
 
+  private implicit val ldto: Ordering[LocalDateTime] = DateTimeUtils.localDateTimeOrdering
+
   private def teamsOrderedByUpdateDate(
       persistedTeams: Seq[TeamRepositories]
     )( implicit ec: ExecutionContext
     ): Future[List[GhTeam]] =
       dataSource.getTeamsForHmrcOrg
         .map(
-          _.map { ghTeam =>
-            val updateDate = persistedTeams.find(_.teamName == ghTeam.name).fold(0L)(_.updateDate)
-            (updateDate, ghTeam)
-          }
-          .sortBy(_._1)
-          .map(_._2)
+          _.sortBy(ghTeam => persistedTeams.find(_.teamName == ghTeam.name).fold(LocalDateTime.MIN)(_.updateDate))
         )
 
   def removeOrphanTeamsFromMongo(

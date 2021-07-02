@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import java.util.Date
+import java.time.LocalDateTime
 
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
@@ -49,19 +49,19 @@ class RepositoriesControllerSpec
      with GuiceOneServerPerSuite
      with Eventually {
 
-  private val now = new Date().getTime
+  private val now = LocalDateTime.now()
 
-  private val createdDateForService1 = 1
-  private val createdDateForService2 = 2
-  private val createdDateForService3 = 3
-  private val createdDateForLib1     = 4
-  private val createdDateForLib2     = 5
+  private val createdDateForService1 = now.plusSeconds(1)
+  private val createdDateForService2 = now.plusSeconds(2)
+  private val createdDateForService3 = now.plusSeconds(3)
+  private val createdDateForLib1     = now.plusSeconds(4)
+  private val createdDateForLib2     = now.plusSeconds(5)
 
-  private val lastActiveDateForService1 = 10
-  private val lastActiveDateForService2 = 20
-  private val lastActiveDateForService3 = 30
-  private val lastActiveDateForLib1     = 40
-  private val lastActiveDateForLib2     = 50
+  private val lastActiveDateForService1 = now.plusSeconds(10)
+  private val lastActiveDateForService2 = now.plusSeconds(20)
+  private val lastActiveDateForService3 = now.plusSeconds(30)
+  private val lastActiveDateForLib1     = now.plusSeconds(40)
+  private val lastActiveDateForLib2     = now.plusSeconds(50)
 
   import play.api.inject.guice.GuiceApplicationBuilder
 
@@ -106,7 +106,7 @@ class RepositoriesControllerSpec
             archived           = false
           )
         ),
-        System.currentTimeMillis()
+        now
       ),
       new TeamRepositories(
         "another-team",
@@ -167,13 +167,13 @@ class RepositoriesControllerSpec
             archived           = false
           )
         ),
-        System.currentTimeMillis()
+        now
       )
     )
 
   def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url") =
     Seq(
-      new TeamRepositories(
+      TeamRepositories(
         "test-team",
         List(GitRepository(
           name           = repoName,
@@ -185,7 +185,7 @@ class RepositoriesControllerSpec
           language       = Some("Scala"),
           archived       = false
         )),
-        System.currentTimeMillis()
+        now
       )
     )
 
@@ -333,7 +333,8 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false),
+                archived       = false
+              ),
               GitRepository(
                 "repo-name",
                 "some description",
@@ -342,7 +343,8 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false),
+                archived       = false
+              ),
               GitRepository(
                 "aadvark-repo",
                 "some description",
@@ -351,10 +353,12 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)
+                archived       = false
+              )
             ),
-            System.currentTimeMillis()
-          ))
+            now
+          )
+        )
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
@@ -379,8 +383,10 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           ),
           TeamRepositories(
             "another-team",
@@ -393,8 +399,10 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           )
         )
 

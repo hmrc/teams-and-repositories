@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.LocalDateTime
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -27,7 +28,7 @@ import scala.collection.immutable.ListMap
 
 class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
-  val now = System.currentTimeMillis()
+  val now = LocalDateTime.now()
 
   val urlTemplates = UrlTemplates(
     environments = ListMap(
@@ -287,67 +288,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       repoDetails.githubUrl    shouldBe githubLink("https://github.com/org/a-repo")
       repoDetails.ci           shouldBe Seq.empty
       repoDetails.environments shouldBe Seq.empty
-    }
-
-  }
-
-  "GitRepository" should {
-    "read an object without the isPrivate field" in {
-
-      GitRepository.gitRepositoryFormats
-        .reads(
-          Json.parse("""
-          |{"name":"a-repo",
-          |"description":"Some Description",
-          |"url":"https://not-open-github/org/a-repo",
-          |"createdDate":1499417808270,
-          |"lastActiveDate":1499417808270,
-          |"repoType":"Other",
-          |"updateDate":123,
-          |"language":"Scala",
-          |"archived": true}""".stripMargin)
-        )
-        .get shouldBe GitRepository(
-        "a-repo",
-        "Some Description",
-        "https://not-open-github/org/a-repo",
-        1499417808270L,
-        1499417808270L,
-        // isInternal = true,
-        repoType = RepoType.Other,
-        language = Some("Scala"),
-        archived = true
-      )
-
-    }
-
-    "read an object without the archived field" in {
-
-      GitRepository.gitRepositoryFormats
-        .reads(
-          Json.parse("""
-                       |{"name":"a-repo",
-                       |"description":"Some Description",
-                       |"url":"https://not-open-github/org/a-repo",
-                       |"createdDate":1499417808270,
-                       |"lastActiveDate":1499417808270,
-                       |"repoType":"Other",
-                       |"updateDate":123,
-                       |"language":"Scala"
-                       |}""".stripMargin)
-        )
-        .get shouldBe GitRepository(
-        "a-repo",
-        "Some Description",
-        "https://not-open-github/org/a-repo",
-        1499417808270L,
-        1499417808270L,
-        // isInternal = true,
-        repoType = RepoType.Other,
-        language = Some("Scala"),
-        archived = false
-      )
-
     }
   }
 }

@@ -24,8 +24,8 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 case class Repository(
   name         : String,
-  createdAt    : Long,
-  lastUpdatedAt: Long,
+  createdAt    : LocalDateTime,
+  lastUpdatedAt: LocalDateTime,
   repoType     : RepoType,
   language     : Option[String],
   archived     : Boolean

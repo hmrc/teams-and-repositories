@@ -16,17 +16,19 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 
 case class GitRepository(
   name              : String,
   description       : String,
   url               : String,
-  createdDate       : Long,
-  lastActiveDate    : Long,
+  createdDate       : LocalDateTime,
+  lastActiveDate    : LocalDateTime,
   isPrivate         : Boolean        = false,
   repoType          : RepoType       = RepoType.Other,
   digitalServiceName: Option[String] = None,
@@ -37,13 +39,30 @@ case class GitRepository(
 
 object GitRepository {
 
-  implicit val gitRepositoryFormats: OFormat[GitRepository] = {
+  val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[Long]
-    ~ (__ \ "lastActiveDate"    ).format[Long]
+    ~ (__ \ "createdDate"       ).format[LocalDateTime]
+    ~ (__ \ "lastActiveDate"    ).format[LocalDateTime]
+    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"          ).format[RepoType]
+    ~ (__ \ "digitalServiceName").formatNullable[String]
+    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"          ).formatNullable[String]
+    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    )(apply _, unlift(unapply))
+  }
+
+  val mongoFormat: OFormat[GitRepository] = {
+    implicit val ldtf = MongoJavatimeFormats.localDateTimeFormat
+    implicit val rtf = RepoType.format
+    ( (__ \ "name"              ).format[String]
+    ~ (__ \ "description"       ).format[String]
+    ~ (__ \ "url"               ).format[String]
+    ~ (__ \ "createdDate"       ).format[LocalDateTime]
+    ~ (__ \ "lastActiveDate"    ).format[LocalDateTime]
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "digitalServiceName").formatNullable[String]
@@ -88,16 +107,13 @@ object GitRepository {
     else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
     else RepoType.Other
 
-  def getCreatedAtDate(repos: Seq[GitRepository]): LocalDateTime = {
-    val millis = repos.minBy(_.createdDate).createdDate
-    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
-  }
+  private implicit val ldto: Ordering[LocalDateTime] = DateTimeUtils.localDateTimeOrdering
 
+  def getCreatedAtDate(repos: Seq[GitRepository]): LocalDateTime =
+    repos.map(_.createdDate).min
 
-  def getLastActiveDate(repos: Seq[GitRepository]): LocalDateTime = {
-    val millis = repos.maxBy(_.lastActiveDate).lastActiveDate
-    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
-  }
+  def getLastActiveDate(repos: Seq[GitRepository]): LocalDateTime =
+    repos.map(_.lastActiveDate).max
 
   def extractRepositoryGroupForType(
     repoType    : RepoType,

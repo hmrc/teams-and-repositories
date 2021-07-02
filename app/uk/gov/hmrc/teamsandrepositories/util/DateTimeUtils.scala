@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence.model
+package uk.gov.hmrc.teamsandrepositories.util
 
-import play.api.libs.json._
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
-case class BuildJob(service: String, jenkinsURL: String)
+object DateTimeUtils {
+  def millisToLocalDateTime(millis: Long): LocalDateTime =
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
 
-object BuildJob {
-  val mongoFormat: OFormat[BuildJob] =
-    Json.format[BuildJob]
+  def localDateTimeToMillis(ldt: LocalDateTime): Long =
+    ldt.toInstant(ZoneOffset.UTC).toEpochMilli
 
-  val apiWrites: Writes[BuildJob] = new Writes[BuildJob] {
-    override def writes(o: BuildJob): JsValue = Json.obj("service" -> o.service, "jenkinsURL" -> o.jenkinsURL)
-  }
+  val localDateTimeOrdering: Ordering[LocalDateTime] = Ordering.fromLessThan(_ isBefore _)
 }

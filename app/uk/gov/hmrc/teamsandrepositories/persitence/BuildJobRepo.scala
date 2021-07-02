@@ -35,7 +35,7 @@ class BuildJobRepo @Inject()(
     extends PlayMongoRepository(
       mongoComponent = mongoComponent,
       collectionName = "jenkinsLinks",
-      domainFormat   = BuildJob.mongoFormats,
+      domainFormat   = BuildJob.mongoFormat,
       indexes        = Seq(IndexModel(Indexes.hashed("service"), IndexOptions().name("serviceIdx")))
     ) {
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.net.URI
+import java.time.LocalDateTime
 
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
@@ -32,8 +33,8 @@ case class RepositoryDetails(
   name        : String,
   description : String,
   isPrivate   : Boolean,
-  createdAt   : Long,
-  lastActive  : Long,
+  createdAt   : LocalDateTime,
+  lastActive  : LocalDateTime,
   repoType    : RepoType,
   owningTeams : Seq[String],
   teamNames   : Seq[String],

@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.LocalDateTime
+
 import org.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatest.concurrent.ScalaFutures
@@ -48,7 +50,7 @@ class TeamsAndReposPersisterSpec
 
   private val mongoTeamsAndRepositoriesPersister = mock[MongoTeamsAndRepositoriesPersister]
 
-  val teamAndRepositories = TeamRepositories("teamX", Nil, System.currentTimeMillis())
+  val teamAndRepositories = TeamRepositories("teamX", Nil, LocalDateTime.now)
 
   val persister = new TeamsAndReposPersister(mongoTeamsAndRepositoriesPersister)
 
