@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence.model
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -30,7 +30,7 @@ import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 case class TeamRepositories(
   teamName    : String,
   repositories: List[GitRepository],
-  updateDate  : LocalDateTime
+  updateDate  : Instant
 ) {
   def toTeam(repositoriesToIgnore: List[String], excludeRepos: Boolean) = {
     val teamActivityDates =
@@ -63,12 +63,12 @@ case class TeamRepositories(
 }
 
 object TeamRepositories {
-  private implicit val ldto: Ordering[LocalDateTime] = DateTimeUtils.localDateTimeOrdering
+  private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
 
   case class DigitalServiceRepository(
     name         : String,
-    createdAt    : LocalDateTime,
-    lastUpdatedAt: LocalDateTime,
+    createdAt    : Instant,
+    lastUpdatedAt: Instant,
     repoType     : RepoType,
     teamNames    : Seq[String],
     archived     : Boolean
@@ -83,7 +83,7 @@ object TeamRepositories {
 
   case class DigitalService(
     name         : String,
-    lastUpdatedAt: LocalDateTime,
+    lastUpdatedAt: Instant,
     repositories : Seq[DigitalServiceRepository]
   )
 
@@ -147,11 +147,11 @@ object TeamRepositories {
   }
 
   val mongoFormat: OFormat[TeamRepositories] = {
-    implicit val ldtf = MongoJavatimeFormats.localDateTimeFormat
+    implicit val inf = MongoJavatimeFormats.instantFormat
     implicit val grf = GitRepository.mongoFormat
     ( (__ \ "teamName"    ).format[String]
     ~ (__ \ "repositories").format[List[GitRepository]]
-    ~ (__ \ "updateDate"  ).format[LocalDateTime]
+    ~ (__ \ "updateDate"  ).format[Instant]
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
 

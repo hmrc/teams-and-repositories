@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
+import java.time.Instant
+
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.MockitoSugar
@@ -33,7 +35,6 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils.millisToLocalDateTime
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -47,7 +48,7 @@ class GithubV3RepositoryDataSourceSpec
     with BeforeAndAfterEach {
 
   private val nowMillis = System.currentTimeMillis()
-  private val now = millisToLocalDateTime(nowMillis)
+  private val now = Instant.ofEpochMilli(nowMillis)
   private val timestampF = () => now
 
   val mockRegistry = mock[MetricRegistry]
@@ -900,7 +901,7 @@ class GithubV3RepositoryDataSourceSpec
                   "some description",
                   "url_A",
                   now,
-                  millisToLocalDateTime(lastActiveDate),
+                  Instant.ofEpochMilli(lastActiveDate),
                   isPrivate = true,
                   RepoType.Library,
                   Some("Some Digital Service"),
@@ -924,7 +925,7 @@ class GithubV3RepositoryDataSourceSpec
                 "some description",
                 "url_A",
                 now,
-                millisToLocalDateTime(lastActiveDate),
+                Instant.ofEpochMilli(lastActiveDate),
                 isPrivate          = true,
                 repoType           = RepoType.Library,
                 digitalServiceName = Some("Some Digital Service"),
@@ -1006,7 +1007,7 @@ class GithubV3RepositoryDataSourceSpec
                   "some description",
                   "url_A",
                   now,
-                  millisToLocalDateTime(nowMillis + 1),
+                  Instant.ofEpochMilli(nowMillis + 1),
                   isPrivate          = true,
                   repoType           = RepoType.Library,
                   digitalServiceName = Some("service-abcd"),
@@ -1058,7 +1059,7 @@ class GithubV3RepositoryDataSourceSpec
                 "some description",
                 "url_A",
                 now,
-                millisToLocalDateTime(lastActiveDate),
+                Instant.ofEpochMilli(lastActiveDate),
                 isPrivate          = true,
                 repoType           = RepoType.Library,
                 digitalServiceName = Some("service-abcd"),
@@ -1157,8 +1158,8 @@ class GithubV3RepositoryDataSourceSpec
         name               = "shared-repository",
         description        = "some description",
         url                = "url_A",
-        createdDate        = millisToLocalDateTime(0L),
-        lastActiveDate     = millisToLocalDateTime(0L),
+        createdDate        = Instant.ofEpochMilli(0L),
+        lastActiveDate     = Instant.ofEpochMilli(0L),
         repoType           = RepoType.Other,
         digitalServiceName = None,
         language           = None,
@@ -1168,7 +1169,13 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(
           team,
-          persistedTeams = Seq(TeamRepositories(teamName = "A", repositories = List(repository), updateDate = millisToLocalDateTime(0)))
+          persistedTeams = Seq(
+            TeamRepositories(
+              teamName     = "A",
+              repositories = List(repository),
+              updateDate   = Instant.ofEpochMilli(0)
+            )
+          )
         )
         .futureValue shouldBe TeamRepositories(
         teamName     = "A",

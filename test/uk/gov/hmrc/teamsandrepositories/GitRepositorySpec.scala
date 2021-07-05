@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import java.time.Instant
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -28,7 +28,7 @@ import scala.collection.immutable.ListMap
 
 class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
-  val now = LocalDateTime.now()
+  val now = Instant.now()
 
   val urlTemplates = UrlTemplates(
     environments = ListMap(

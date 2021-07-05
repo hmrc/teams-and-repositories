@@ -1,12 +1,10 @@
 # Migration to 11.0.0
 
+```javascript
+db.getCollection('updateTime').drop()
+```
 
-## Add new collections
-
-### Convert dates from long to date
-
-Is collection updateTime ever used?
-
+## Use Date rather than Long
 
 ```javascript
 db.getCollection('teamsAndRepositories').renameCollection('teamsAndRepositories-bak')

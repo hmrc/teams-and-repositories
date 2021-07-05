@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.concurrent.Executors
 
 import cats.implicits._
@@ -31,7 +31,6 @@ import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils.{localDateTimeToMillis, millisToLocalDateTime}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -43,7 +42,7 @@ class GithubV3RepositoryDataSource(
   githubConfig              : GithubConfig,
   val githubApiClient       : GithubApiClient,
   githubConnector           : GithubConnector,
-  timestampF                : () => LocalDateTime,
+  timestampF                : () => Instant,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore      : List[String],
   futureHelpers             : FutureHelpers
@@ -126,7 +125,7 @@ class GithubV3RepositoryDataSource(
         .flatMap(_.repositories.find(_.url == repository.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if localDateTimeToMillis(persistedRepository.lastActiveDate) >= repository.lastActiveDate =>
+      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate =>
         logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
@@ -137,7 +136,7 @@ class GithubV3RepositoryDataSource(
         logger.info(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${millisToLocalDateTime(repository.lastActiveDate)}"
+            s"github repository last updated -> ${Instant.ofEpochMilli(repository.lastActiveDate)}"
         )
         getRepositoryDetailsFromGithub(repository)
       case None =>
@@ -255,8 +254,8 @@ class GithubV3RepositoryDataSource(
       name           = repository.name,
       description    = repository.description,
       url            = repository.htmlUrl,
-      createdDate    = millisToLocalDateTime(repository.createdDate),
-      lastActiveDate = millisToLocalDateTime(repository.lastActiveDate),
+      createdDate    = Instant.ofEpochMilli(repository.createdDate),
+      lastActiveDate = Instant.ofEpochMilli(repository.lastActiveDate),
       isPrivate      = repository.isPrivate,
       archived       = repository.archived
     )
@@ -271,8 +270,8 @@ class GithubV3RepositoryDataSource(
       repository.name,
       description        = repository.description,
       url                = repository.htmlUrl,
-      createdDate        = millisToLocalDateTime(repository.createdDate),
-      lastActiveDate     = millisToLocalDateTime(repository.lastActiveDate),
+      createdDate        = Instant.ofEpochMilli(repository.createdDate),
+      lastActiveDate     = Instant.ofEpochMilli(repository.lastActiveDate),
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,

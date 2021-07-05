@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -27,8 +27,8 @@ case class GitRepository(
   name              : String,
   description       : String,
   url               : String,
-  createdDate       : LocalDateTime,
-  lastActiveDate    : LocalDateTime,
+  createdDate       : Instant,
+  lastActiveDate    : Instant,
   isPrivate         : Boolean        = false,
   repoType          : RepoType       = RepoType.Other,
   digitalServiceName: Option[String] = None,
@@ -44,8 +44,8 @@ object GitRepository {
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[LocalDateTime]
-    ~ (__ \ "lastActiveDate"    ).format[LocalDateTime]
+    ~ (__ \ "createdDate"       ).format[Instant]
+    ~ (__ \ "lastActiveDate"    ).format[Instant]
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "digitalServiceName").formatNullable[String]
@@ -56,13 +56,13 @@ object GitRepository {
   }
 
   val mongoFormat: OFormat[GitRepository] = {
-    implicit val ldtf = MongoJavatimeFormats.localDateTimeFormat
+    implicit val ldtf = MongoJavatimeFormats.instantFormat
     implicit val rtf = RepoType.format
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[LocalDateTime]
-    ~ (__ \ "lastActiveDate"    ).format[LocalDateTime]
+    ~ (__ \ "createdDate"       ).format[Instant]
+    ~ (__ \ "lastActiveDate"    ).format[Instant]
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "digitalServiceName").formatNullable[String]
@@ -73,9 +73,9 @@ object GitRepository {
   }
 
   case class TeamActivityDates(
-    firstActiveDate         : Option[LocalDateTime] = None,
-    lastActiveDate          : Option[LocalDateTime] = None,
-    firstServiceCreationDate: Option[LocalDateTime] = None
+    firstActiveDate         : Option[Instant] = None,
+    lastActiveDate          : Option[Instant] = None,
+    firstServiceCreationDate: Option[Instant] = None
   )
 
   def getTeamActivityDatesOfNonSharedRepos(
@@ -107,12 +107,12 @@ object GitRepository {
     else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
     else RepoType.Other
 
-  private implicit val ldto: Ordering[LocalDateTime] = DateTimeUtils.localDateTimeOrdering
+  private implicit val ldto: Ordering[Instant] = DateTimeUtils.instantOrdering
 
-  def getCreatedAtDate(repos: Seq[GitRepository]): LocalDateTime =
+  def getCreatedAtDate(repos: Seq[GitRepository]): Instant =
     repos.map(_.createdDate).min
 
-  def getLastActiveDate(repos: Seq[GitRepository]): LocalDateTime =
+  def getLastActiveDate(repos: Seq[GitRepository]): Instant =
     repos.map(_.lastActiveDate).max
 
   def extractRepositoryGroupForType(

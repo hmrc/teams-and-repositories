@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
-import java.time.LocalDateTime
+import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
@@ -24,8 +24,8 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 case class Repository(
   name         : String,
-  createdAt    : LocalDateTime,
-  lastUpdatedAt: LocalDateTime,
+  createdAt    : Instant,
+  lastUpdatedAt: Instant,
   repoType     : RepoType,
   language     : Option[String],
   archived     : Boolean
@@ -51,9 +51,9 @@ object Repository {
 
 case class Team(
   name                    : String,
-  firstActiveDate         : Option[LocalDateTime]              = None,
-  lastActiveDate          : Option[LocalDateTime]              = None,
-  firstServiceCreationDate: Option[LocalDateTime]              = None,
+  firstActiveDate         : Option[Instant]                    = None,
+  lastActiveDate          : Option[Instant]                    = None,
+  firstServiceCreationDate: Option[Instant]                    = None,
   repos                   : Option[Map[RepoType, Seq[String]]],
   ownedRepos              : Seq[String]                        = Nil
 )
@@ -63,10 +63,11 @@ object Team {
   val mapFormat: Format[Map[RepoType, Seq[String]]] = {
     val mapReads: Reads[Map[RepoType, Seq[String]]] = new Reads[Map[RepoType, Seq[String]]] {
       def reads(jv: JsValue): JsResult[Map[RepoType, Seq[String]]] =
-        JsSuccess(jv.as[Map[String, Seq[String]]].map {
-          case (k, v) =>
-            RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v.asInstanceOf[Seq[String]]
-        }
+        JsSuccess(
+          jv.as[Map[String, Seq[String]]].map {
+            case (k, v) =>
+              RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v.asInstanceOf[Seq[String]]
+          }
         )
     }
 
@@ -85,9 +86,9 @@ object Team {
   val format: Format[Team] = {
     implicit val mf = mapFormat
     ( (__ \ "name"                    ).format[String]
-    ~ (__ \ "firstActiveDate"         ).formatNullable[LocalDateTime]
-    ~ (__ \ "lastActiveDate"          ).formatNullable[LocalDateTime]
-    ~ (__ \ "firstServiceCreationDate").formatNullable[LocalDateTime]
+    ~ (__ \ "firstActiveDate"         ).formatNullable[Instant]
+    ~ (__ \ "lastActiveDate"          ).formatNullable[Instant]
+    ~ (__ \ "firstServiceCreationDate").formatNullable[Instant]
     ~ (__ \ "repos"                   ).formatNullable[Map[RepoType, Seq[String]]]
     ~ (__ \ "ownedRepos"              ).format[Seq[String]]
     )(Team.apply, unlift(Team.unapply))

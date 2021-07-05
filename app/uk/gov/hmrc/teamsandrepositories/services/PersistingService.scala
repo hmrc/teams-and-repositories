@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.LocalDateTime
+import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
@@ -33,7 +33,7 @@ import scala.util.control.NonFatal
 
 @Singleton
 class Timestamper {
-  def timestampF() = LocalDateTime.now()
+  def timestampF() = Instant.now()
 }
 
 @Singleton
@@ -106,7 +106,7 @@ case class PersistingService @Inject()(
         )
       }
 
-  private implicit val ldto: Ordering[LocalDateTime] = DateTimeUtils.localDateTimeOrdering
+  private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
 
   private def teamsOrderedByUpdateDate(
       persistedTeams: Seq[TeamRepositories]
@@ -114,7 +114,7 @@ case class PersistingService @Inject()(
     ): Future[List[GhTeam]] =
       dataSource.getTeamsForHmrcOrg
         .map(
-          _.sortBy(ghTeam => persistedTeams.find(_.teamName == ghTeam.name).fold(LocalDateTime.MIN)(_.updateDate))
+          _.sortBy(ghTeam => persistedTeams.find(_.teamName == ghTeam.name).fold(Instant.MIN)(_.updateDate))
         )
 
   def removeOrphanTeamsFromMongo(

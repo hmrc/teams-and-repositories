@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
@@ -26,12 +26,11 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.{DigitalServiceRepository, findDigitalServiceDetails}
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils.millisToLocalDateTime
 
 import scala.collection.immutable.ListMap
 
 class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
-  val now = LocalDateTime.now()
+  val now = Instant.now()
 
   private val description = "Some description"
 
@@ -41,8 +40,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo1",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(1),
-        lastActiveDate     = millisToLocalDateTime(10),
+        createdDate        = Instant.ofEpochMilli(1),
+        lastActiveDate     = Instant.ofEpochMilli(10),
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
@@ -54,8 +53,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo2",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(2),
-        lastActiveDate     = millisToLocalDateTime(20),
+        createdDate        = Instant.ofEpochMilli(2),
+        lastActiveDate     = Instant.ofEpochMilli(20),
         // isInternal         = false,
         repoType           = Service,
         digitalServiceName = None,
@@ -67,8 +66,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo3",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(3),
-        lastActiveDate     = millisToLocalDateTime(30),
+        createdDate        = Instant.ofEpochMilli(3),
+        lastActiveDate     = Instant.ofEpochMilli(30),
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
@@ -80,8 +79,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo1",
         description,
         "",
-        createdDate        = millisToLocalDateTime(2),
-        lastActiveDate     = millisToLocalDateTime(40),
+        createdDate        = Instant.ofEpochMilli(2),
+        lastActiveDate     = Instant.ofEpochMilli(40),
         // isInternal         = true,
         repoType           = Other,
         digitalServiceName = None,
@@ -109,8 +108,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo1",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(2),
-        lastActiveDate     = millisToLocalDateTime(20),
+        createdDate        = Instant.ofEpochMilli(2),
+        lastActiveDate     = Instant.ofEpochMilli(20),
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
@@ -122,8 +121,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo2",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(3),
-        lastActiveDate     = millisToLocalDateTime(30),
+        createdDate        = Instant.ofEpochMilli(3),
+        lastActiveDate     = Instant.ofEpochMilli(30),
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
@@ -135,8 +134,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo1",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(4),
-        lastActiveDate     = millisToLocalDateTime(40),
+        createdDate        = Instant.ofEpochMilli(4),
+        lastActiveDate     = Instant.ofEpochMilli(40),
         // isInternal         = false,
         repoType           = Library,
         digitalServiceName = None,
@@ -148,8 +147,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo2",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(5),
-        lastActiveDate     = millisToLocalDateTime(50),
+        createdDate        = Instant.ofEpochMilli(5),
+        lastActiveDate     = Instant.ofEpochMilli(50),
         // isInternal         = true,
         repoType           = Service,
         digitalServiceName = None,
@@ -161,8 +160,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "ignoreRepo",
         "some desc",
         "",
-        createdDate        = millisToLocalDateTime(1),
-        lastActiveDate     = millisToLocalDateTime(10000),
+        createdDate        = Instant.ofEpochMilli(1),
+        lastActiveDate     = Instant.ofEpochMilli(10000),
         // isInternal         = false,
         repoType           = Service,
         digitalServiceName = None,
@@ -635,8 +634,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       "repo1",
       description,
       "",
-      createdDate        = millisToLocalDateTime(1),
-      lastActiveDate     = millisToLocalDateTime(10),
+      createdDate        = Instant.ofEpochMilli(1),
+      lastActiveDate     = Instant.ofEpochMilli(10),
       // isInternal         = false,
       repoType           = Service,
       digitalServiceName = None,
@@ -648,8 +647,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       "repo1",
       description,
       "",
-      createdDate        = millisToLocalDateTime(2),
-      lastActiveDate     = millisToLocalDateTime(20),
+      createdDate        = Instant.ofEpochMilli(2),
+      lastActiveDate     = Instant.ofEpochMilli(20),
       // isInternal         = true,
       repoType           = Service,
       digitalServiceName = None,
@@ -661,8 +660,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       "repo1",
       description,
       "",
-      createdDate        = millisToLocalDateTime(3),
-      lastActiveDate     = millisToLocalDateTime(30),
+      createdDate        = Instant.ofEpochMilli(3),
+      lastActiveDate     = Instant.ofEpochMilli(30),
       // isInternal         = true,
       repoType           = Library,
       digitalServiceName = None,
@@ -674,8 +673,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       "repo1",
       description,
       "",
-      createdDate        = millisToLocalDateTime(4),
-      lastActiveDate     = millisToLocalDateTime(40),
+      createdDate        = Instant.ofEpochMilli(4),
+      lastActiveDate     = Instant.ofEpochMilli(40),
       // isInternal         = true,
       repoType           = Other,
       digitalServiceName = None,
@@ -687,8 +686,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       "sharedRepo1",
       description,
       "",
-      createdDate        = millisToLocalDateTime(5),
-      lastActiveDate     = millisToLocalDateTime(50),
+      createdDate        = Instant.ofEpochMilli(5),
+      lastActiveDate     = Instant.ofEpochMilli(50),
       // isInternal         = true,
       repoType           = Other,
       digitalServiceName = None,
@@ -703,8 +702,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       result shouldBe Team(
          name                     = "teamName",
-         firstActiveDate          = Some(millisToLocalDateTime(1)),
-         lastActiveDate           = Some(millisToLocalDateTime(20)),
+         firstActiveDate          = Some(Instant.ofEpochMilli(1)),
+         lastActiveDate           = Some(Instant.ofEpochMilli(20)),
          firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
          repos                    = Some(Map(Service -> List("repo1"), Library -> List(), Prototype -> List(), Other -> List()))
        )
@@ -717,8 +716,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       result shouldBe Team(
         "teamName",
-        Some(millisToLocalDateTime(1)),
-        Some(millisToLocalDateTime(40)),
+        Some(Instant.ofEpochMilli(1)),
+        Some(Instant.ofEpochMilli(40)),
         Some(oldDeployableRepo.createdDate),
         Some(
           Map(
@@ -741,8 +740,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       result shouldBe Team(
         "teamName",
-        Some(millisToLocalDateTime(1)),
-        Some(millisToLocalDateTime(40)),
+        Some(Instant.ofEpochMilli(1)),
+        Some(Instant.ofEpochMilli(40)),
         Some(oldDeployableRepo.createdDate),
         Some(
           Map(
@@ -760,8 +759,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo1",
         description,
         "",
-        createdDate        = millisToLocalDateTime(1),
-        lastActiveDate     = millisToLocalDateTime(10),
+        createdDate        = Instant.ofEpochMilli(1),
+        lastActiveDate     = Instant.ofEpochMilli(10),
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -773,8 +772,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo2",
         description,
         "",
-        createdDate        = millisToLocalDateTime(1),
-        lastActiveDate     = millisToLocalDateTime(10),
+        createdDate        = Instant.ofEpochMilli(1),
+        lastActiveDate     = Instant.ofEpochMilli(10),
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -785,8 +784,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo3",
         description,
         "",
-        createdDate        = millisToLocalDateTime(2),
-        lastActiveDate     = millisToLocalDateTime(20),
+        createdDate        = Instant.ofEpochMilli(2),
+        lastActiveDate     = Instant.ofEpochMilli(20),
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -797,8 +796,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo4",
         description,
         "",
-        createdDate        = millisToLocalDateTime(2),
-        lastActiveDate     = millisToLocalDateTime(20),
+        createdDate        = Instant.ofEpochMilli(2),
+        lastActiveDate     = Instant.ofEpochMilli(20),
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -809,8 +808,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo5",
         description,
         "",
-        createdDate        = millisToLocalDateTime(3),
-        lastActiveDate     = millisToLocalDateTime(30),
+        createdDate        = Instant.ofEpochMilli(3),
+        lastActiveDate     = Instant.ofEpochMilli(30),
         repoType           = Other,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -821,8 +820,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo6",
         description,
         "",
-        createdDate        = millisToLocalDateTime(3),
-        lastActiveDate     = millisToLocalDateTime(30),
+        createdDate        = Instant.ofEpochMilli(3),
+        lastActiveDate     = Instant.ofEpochMilli(30),
         repoType           = Other,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -833,8 +832,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo7",
         description,
         "",
-        createdDate        = millisToLocalDateTime(4),
-        lastActiveDate     = millisToLocalDateTime(40),
+        createdDate        = Instant.ofEpochMilli(4),
+        lastActiveDate     = Instant.ofEpochMilli(40),
         repoType           = Prototype,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -845,8 +844,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         "repo8",
         description,
         "",
-        createdDate        = millisToLocalDateTime(4),
-        lastActiveDate     = millisToLocalDateTime(40),
+        createdDate        = Instant.ofEpochMilli(4),
+        lastActiveDate     = Instant.ofEpochMilli(40),
         repoType           = Prototype,
         digitalServiceName = None,
         language           = Some("Scala"),
@@ -858,9 +857,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       teamRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
           name                     = "teamName",
-          firstActiveDate          = Some(millisToLocalDateTime(1)),
-          lastActiveDate           = Some(millisToLocalDateTime(30)),
-          firstServiceCreationDate = Some(millisToLocalDateTime(1)),
+          firstActiveDate          = Some(Instant.ofEpochMilli(1)),
+          lastActiveDate           = Some(Instant.ofEpochMilli(30)),
+          firstServiceCreationDate = Some(Instant.ofEpochMilli(1)),
           repos = Some(
             Map(
               Service   -> List("repo1", "repo2"),
@@ -875,8 +874,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       teamOtherRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
         name                     = "teamNameOther",
-        firstActiveDate          = Some(millisToLocalDateTime(2)),
-        lastActiveDate           = Some(millisToLocalDateTime(40)),
+        firstActiveDate          = Some(Instant.ofEpochMilli(2)),
+        lastActiveDate           = Some(Instant.ofEpochMilli(40)),
         firstServiceCreationDate = None,
         repos = Some(
           Map(

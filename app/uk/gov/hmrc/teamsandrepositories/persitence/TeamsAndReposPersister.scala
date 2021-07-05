@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence
 
+import java.time.Instant
+
 import com.google.inject.{Inject, Singleton}
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.Filters.{elemMatch, equal, or, regex}
@@ -26,7 +28,6 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils.millisToLocalDateTime
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -149,7 +150,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
     collection
       .updateMany(
         filter  = equal("repositories.name", repoName),
-        update  = set("repositories.$.lastActiveDate", millisToLocalDateTime(0))
+        update  = set("repositories.$.lastActiveDate", Instant.ofEpochMilli(0))
       )
       .toFuture()
       .map(

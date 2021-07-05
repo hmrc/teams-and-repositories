@@ -16,14 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.util
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.Instant
 
 object DateTimeUtils {
-  def millisToLocalDateTime(millis: Long): LocalDateTime =
-    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
-
-  def localDateTimeToMillis(ldt: LocalDateTime): Long =
-    ldt.toInstant(ZoneOffset.UTC).toEpochMilli
-
-  val localDateTimeOrdering: Ordering[LocalDateTime] = Ordering.fromLessThan(_ isBefore _)
+  val instantOrdering: Ordering[Instant] = Ordering.fromLessThan(_ isBefore _)
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
@@ -49,7 +49,7 @@ class RepositoriesControllerSpec
      with GuiceOneServerPerSuite
      with Eventually {
 
-  private val now = LocalDateTime.now()
+  private val now = Instant.now()
 
   private val createdDateForService1 = now.plusSeconds(1)
   private val createdDateForService2 = now.plusSeconds(2)
