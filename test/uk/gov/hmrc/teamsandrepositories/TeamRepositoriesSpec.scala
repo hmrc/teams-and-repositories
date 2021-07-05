@@ -698,7 +698,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "get the max last active and min created at for repositories" in {
       val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo), now)
 
-      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false)
+      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
 
       result shouldBe Team(
          name                     = "teamName",
@@ -712,7 +712,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "Include all repository types when get the max last active and min created at for team" in {
       val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo), now)
 
-      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false)
+      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
 
       result shouldBe Team(
         "teamName",
@@ -736,7 +736,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         now
       )
 
-      val result = teamRepository.toTeam(repositoriesToIgnore = List("sharedRepo1", "sharedRepo2", "sharedRepo3"), excludeRepos = false)
+      val result = teamRepository.toTeam(repositoriesToIgnore = List("sharedRepo1", "sharedRepo2", "sharedRepo3"), includeRepos = true)
 
       result shouldBe Team(
         "teamName",
@@ -855,7 +855,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       val teamRepository =
         TeamRepositories("teamName", List(repo1, repo2, repo3, repo4, repo5), now)
 
-      teamRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
+      teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
           name                     = "teamName",
           firstActiveDate          = Some(Instant.ofEpochMilli(1)),
           lastActiveDate           = Some(Instant.ofEpochMilli(30)),
@@ -872,7 +872,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       val teamOtherRepository =
         TeamRepositories("teamNameOther", List(repo4, repo5, repo6, repo7, repo8), now)
 
-      teamOtherRepository.toTeam(repositoriesToIgnore = Nil, excludeRepos = false) shouldEqual Team(
+      teamOtherRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
         name                     = "teamNameOther",
         firstActiveDate          = Some(Instant.ofEpochMilli(2)),
         lastActiveDate           = Some(Instant.ofEpochMilli(40)),

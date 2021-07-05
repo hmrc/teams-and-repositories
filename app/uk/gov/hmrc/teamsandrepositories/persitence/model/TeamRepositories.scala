@@ -32,16 +32,16 @@ case class TeamRepositories(
   repositories: List[GitRepository],
   updateDate  : Instant
 ) {
-  def toTeam(repositoriesToIgnore: List[String], excludeRepos: Boolean) = {
+  def toTeam(repositoriesToIgnore: List[String], includeRepos: Boolean) = {
     val teamActivityDates =
       GitRepository.getTeamActivityDatesOfNonSharedRepos(repositories, repositoriesToIgnore)
 
     val repos =
-      if (excludeRepos)
+      if (!includeRepos)
         None
       else
         Some(
-          RepoType.values.map(repoType => repoType -> Seq.empty).toMap ++
+          RepoType.values.map(repoType => repoType -> List.empty).toMap ++
             repositories
               .groupBy(_.repoType)
               .mapValues(_.map(_.name).distinct.sortBy(_.toUpperCase))

@@ -26,7 +26,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -188,36 +187,28 @@ class TeamsControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsController.teams.url mustBe "/api/teams"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsController.teams(includeRepos = true).url mustBe "/api/teams?includeRepos=true"
     }
 
     "have the correct url set up for a team's services" in {
       uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsController
-        .repositoriesByTeam("test-team")
-        .url mustBe "/api/teams/test-team"
-    }
-  }
-
-  "Retrieving a list of teams" should {
-    "Return a json representation of the data" in new Setup {
-      val result = controller.teams.apply(FakeRequest())
-
-      val team = contentAsJson(result).as[JsArray].value.head
-      team.as[Team].name mustBe "test-team"
+        .team("test-team", includeRepos = true)
+        .url mustBe "/api/teams/test-team?includeRepos=true"
     }
   }
 
   "Retrieving a list of repositories for a team" should {
     "Return all repo types belonging to a team" in new Setup {
-      val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
+      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      val data = contentAsJson(result).as[Map[String, List[String]]]
-      data mustBe Map(
-        "Service"   -> List("another-repo", "middle-repo"),
-        "Library"   -> List("alibrary-repo"),
-        "Prototype" -> List("CATO-prototype"),
-        "Other"     -> List("other-repo")
-      )
+      val team = contentAsJson(result).as[Team]
+      team.name mustBe "another-team"
+      team.repos mustBe Some(Map(
+        RepoType.Service   -> Seq("another-repo", "middle-repo"),
+        RepoType.Library   -> Seq("alibrary-repo"),
+        RepoType.Prototype -> Seq("CATO-prototype"),
+        RepoType.Other     -> Seq("other-repo")
+      ))
     }
 
     "Return information about all the teams that have access to a repo" in new Setup {
@@ -260,25 +251,24 @@ class TeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.repositoriesByTeam("another-team").apply(FakeRequest())
+      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      contentAsJson(result)
-        .as[Map[String, List[String]]] mustBe Map(
-          "Service"   -> List("repo-name"),
-          "Library"   -> List(),
-          "Prototype" -> List(),
-          "Other"     -> List()
-        )
+      contentAsJson(result).as[Team].repos mustBe Some(Map(
+        RepoType.Service   -> List("repo-name"),
+        RepoType.Library   -> List(),
+        RepoType.Prototype -> List(),
+        RepoType.Other     -> List()
+      ))
     }
   }
 
   "Retrieving a list of repository details for a team" should {
     "Return all repo types belonging to a team" in new Setup {
-      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      val data = contentAsJson(result).as[Team]
+      val team = contentAsJson(result).as[Team]
 
-      data.repos.value mustBe Map(
+      team.repos.value mustBe Map(
         RepoType.Service   -> List("another-repo", "middle-repo"),
         RepoType.Library   -> List("alibrary-repo"),
         RepoType.Prototype -> List("CATO-prototype"),
@@ -326,16 +316,17 @@ class TeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.repositoriesWithDetailsByTeam("another-team").apply(FakeRequest())
+      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
       contentAsJson(result)
         .as[Team]
         .repos
         .value mustBe Map(
-        RepoType.Service   -> List("repo-name"),
-        RepoType.Library   -> List(),
-        RepoType.Prototype -> List(),
-        RepoType.Other     -> List())
+          RepoType.Service   -> List("repo-name"),
+          RepoType.Library   -> List(),
+          RepoType.Prototype -> List(),
+          RepoType.Other     -> List()
+        )
     }
   }
 
@@ -364,10 +355,10 @@ class TeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
-      val jsonData = contentAsJson(result).as[Map[String, List[String]]]
-      jsonData.get("Service") mustBe Some(List())
+      val team = contentAsJson(result).as[Team]
+      team.repos.map(_.get(RepoType.Service)) mustBe Some(Some(List()))
     }
 
     "return an empty list if a team has no repositories" in new Setup {
@@ -376,15 +367,15 @@ class TeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
-      val jsonData = contentAsJson(result).as[Map[String, List[String]]]
-      jsonData mustBe Map(
-        "Service"   -> List(),
-        "Library"   -> List(),
-        "Prototype" -> List(),
-        "Other"     -> List()
-      )
+      val team = contentAsJson(result).as[Team]
+      team.repos mustBe Some(Map(
+        RepoType.Service   -> List(),
+        RepoType.Library   -> List(),
+        RepoType.Prototype -> List(),
+        RepoType.Other     -> List()
+      ))
     }
 
     "return a 404 if a team does not exist at all" in new Setup {
@@ -393,18 +384,11 @@ class TeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.repositoriesByTeam("test-team").apply(FakeRequest())
+      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
       status(result) mustBe 404
     }
   }
-
-  /*implicit class RichJsonValue(obj: JsValue) {
-    def string(st: String) = (obj \ st).as[String]
-    def nameField          = (obj \ "name").as[String]
-    def urlField           = (obj \ "url").as[String]
-    def teamNameSeq        = (obj \ "teamNames").as[Seq[String]]
-  }*/
 
   private trait Setup {
     val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
