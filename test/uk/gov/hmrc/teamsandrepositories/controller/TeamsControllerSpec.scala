@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import java.util.Date
+import java.time.Instant
 
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
@@ -49,19 +49,19 @@ class TeamsControllerSpec
 
   implicit val tf = Team.format
 
-  private val now = new Date().getTime
+  private val now = Instant.now()
 
-  private val createdDateForService1 = 1
-  private val createdDateForService2 = 2
-  private val createdDateForService3 = 3
-  private val createdDateForLib1     = 4
-  private val createdDateForLib2     = 5
+  private val createdDateForService1 = now.plusSeconds(1)
+  private val createdDateForService2 = now.plusSeconds(2)
+  private val createdDateForService3 = now.plusSeconds(3)
+  private val createdDateForLib1     = now.plusSeconds(4)
+  private val createdDateForLib2     = now.plusSeconds(5)
 
-  private val lastActiveDateForService1 = 10
-  private val lastActiveDateForService2 = 20
-  private val lastActiveDateForService3 = 30
-  private val lastActiveDateForLib1     = 40
-  private val lastActiveDateForLib2     = 50
+  private val lastActiveDateForService1 = now.plusSeconds(10)
+  private val lastActiveDateForService2 = now.plusSeconds(20)
+  private val lastActiveDateForService3 = now.plusSeconds(30)
+  private val lastActiveDateForLib1     = now.plusSeconds(40)
+  private val lastActiveDateForLib2     = now.plusSeconds(50)
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -104,7 +104,7 @@ class TeamsControllerSpec
             archived           = false
           )
         ),
-        System.currentTimeMillis()
+        now
       ),
       new TeamRepositories(
         "another-team",
@@ -165,7 +165,7 @@ class TeamsControllerSpec
             archived           = false
           )
         ),
-        System.currentTimeMillis()
+        now
       )
     )
 
@@ -183,7 +183,7 @@ class TeamsControllerSpec
           language       = Some("Scala"),
           archived       = false
         )),
-        System.currentTimeMillis()
+        now
       ))
 
   "Teams controller" should {
@@ -234,8 +234,10 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           ),
           new TeamRepositories(
             "another-team",
@@ -248,8 +250,10 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           )
         )
 
@@ -296,8 +300,10 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           ),
           TeamRepositories(
             "another-team",
@@ -310,8 +316,10 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false)),
-            System.currentTimeMillis()
+                archived       = false
+              )
+            ),
+            now
           )
         )
 
@@ -349,8 +357,9 @@ class TeamsControllerSpec
                 archived       = false
               )
             ),
-            System.currentTimeMillis()
-          ))
+            now
+          )
+        )
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
@@ -362,7 +371,7 @@ class TeamsControllerSpec
     }
 
     "return an empty list if a team has no repositories" in new Setup {
-      val sourceData = Seq(new TeamRepositories("test-team", List(), System.currentTimeMillis()))
+      val sourceData = Seq(new TeamRepositories("test-team", List(), now))
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))

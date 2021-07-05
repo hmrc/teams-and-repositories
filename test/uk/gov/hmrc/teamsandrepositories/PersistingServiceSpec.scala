@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import java.util.Date
+import java.time.Instant
 import java.util.concurrent.Executors
+
 import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -33,8 +34,8 @@ import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.services._
-import scala.concurrent.{ExecutionContext, Future}
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersistingServiceSpec
@@ -44,7 +45,7 @@ class PersistingServiceSpec
     with Matchers
     with DefaultPatienceConfig {
 
-  val now = new Date().getTime
+  val now = Instant.now()
 
   val mockMetrics  = mock[Metrics]
   val mockRegistry = mock[MetricRegistry]
@@ -201,9 +202,10 @@ class PersistingServiceSpec
 
       // N.B teamD has not been processed (does not exist in db)
       val persistedRepositoriesForOrdering = Seq(
-        TeamRepositories("teamA", Nil, updateDate = 1),
-        TeamRepositories("teamC", Nil, updateDate = 2),
-        TeamRepositories("teamB", Nil, updateDate = 3))
+        TeamRepositories("teamA", Nil, updateDate = Instant.ofEpochMilli(1)),
+        TeamRepositories("teamC", Nil, updateDate = Instant.ofEpochMilli(2)),
+        TeamRepositories("teamB", Nil, updateDate = Instant.ofEpochMilli(3))
+      )
 
       val persistingService =
         buildPersistingService(dataSource, persistedRepositoriesForOrdering, mockMetrics)
@@ -234,10 +236,10 @@ class PersistingServiceSpec
       val persistingService = buildPersistingService(dataSource1, Nil, mockMetrics)
 
       val teamRepositoriesInMongo = Seq(
-        TeamRepositories("team-a", Nil, System.currentTimeMillis()),
-        TeamRepositories("team-b", Nil, System.currentTimeMillis()),
-        TeamRepositories("team-c", Nil, System.currentTimeMillis()),
-        TeamRepositories("team-d", Nil, System.currentTimeMillis())
+        TeamRepositories("team-a", Nil, Instant.now()),
+        TeamRepositories("team-b", Nil, Instant.now()),
+        TeamRepositories("team-c", Nil, Instant.now()),
+        TeamRepositories("team-d", Nil, Instant.now())
       )
 
       when(persistingService.persister.getAllTeamsAndRepos(any()))
@@ -247,8 +249,10 @@ class PersistingServiceSpec
 
       persistingService.removeOrphanTeamsFromMongo(
         Seq(
-          TeamRepositories("team-a", Nil, System.currentTimeMillis()),
-          TeamRepositories("team-c", Nil, System.currentTimeMillis())))(scala.concurrent.ExecutionContext.global)
+          TeamRepositories("team-a", Nil, Instant.now()),
+          TeamRepositories("team-c", Nil, Instant.now())
+        )
+      )(scala.concurrent.ExecutionContext.global)
 
       verify(persistingService.persister, timeout(1000)).deleteTeams(Set("team-b", "team-d"))
     }

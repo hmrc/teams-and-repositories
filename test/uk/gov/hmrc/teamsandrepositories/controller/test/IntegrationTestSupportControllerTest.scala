@@ -44,11 +44,11 @@ class IntegrationTestSupportControllerTest extends AnyWordSpec {
                    |}]""".stripMargin
 
 
-      import TeamRepositories.formats
+      implicit val trf = TeamRepositories.apiFormat
 
-       Json.parse(json).validate[Seq[TeamRepositories]] match {
+      Json.parse(json).validate[Seq[TeamRepositories]] match {
         case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
-        case JsError(_) => println("not found")
+        case JsError(_)                             => println("not found")
       }
     }
   }

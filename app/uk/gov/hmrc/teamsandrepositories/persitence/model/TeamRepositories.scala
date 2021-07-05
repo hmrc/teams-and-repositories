@@ -16,17 +16,21 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence.model
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.Instant
+
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.teamsandrepositories.RepoType
 import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
+import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 
 case class TeamRepositories(
   teamName    : String,
   repositories: List[GitRepository],
-  updateDate  : Long
+  updateDate  : Instant
 ) {
   def toTeam(repositoriesToIgnore: List[String], excludeRepos: Boolean) = {
     val teamActivityDates =
@@ -59,10 +63,12 @@ case class TeamRepositories(
 }
 
 object TeamRepositories {
+  private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
+
   case class DigitalServiceRepository(
     name         : String,
-    createdAt    : Long,
-    lastUpdatedAt: Long,
+    createdAt    : Instant,
+    lastUpdatedAt: Instant,
     repoType     : RepoType,
     teamNames    : Seq[String],
     archived     : Boolean
@@ -77,7 +83,7 @@ object TeamRepositories {
 
   case class DigitalService(
     name         : String,
-    lastUpdatedAt: Long,
+    lastUpdatedAt: Instant,
     repositories : Seq[DigitalServiceRepository]
   )
 
@@ -135,13 +141,19 @@ object TeamRepositories {
 
   val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
-  // TODO get rid of this, we shouldn't write datetime as a long...
-  implicit val localDateTimeWrite: Writes[LocalDateTime] = new Writes[LocalDateTime] {
-    def writes(dateTime: LocalDateTime): JsValue = JsNumber(value = dateTime.atOffset(ZoneOffset.UTC).toEpochSecond)
+  val apiFormat: OFormat[TeamRepositories] = {
+    implicit val grf = GitRepository.apiFormat
+    Json.format[TeamRepositories]
   }
 
-  implicit val formats: OFormat[TeamRepositories] =
-    Json.format[TeamRepositories]
+  val mongoFormat: OFormat[TeamRepositories] = {
+    implicit val inf = MongoJavatimeFormats.instantFormat
+    implicit val grf = GitRepository.mongoFormat
+    ( (__ \ "teamName"    ).format[String]
+    ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "updateDate"  ).format[Instant]
+    )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
+  }
 
   case class RepositoryToTeam(
     repositoryName: String,

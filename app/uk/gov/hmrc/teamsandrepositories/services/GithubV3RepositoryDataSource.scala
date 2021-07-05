@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
+import java.time.Instant
 import java.util.concurrent.Executors
 
 import cats.implicits._
@@ -24,12 +25,12 @@ import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.githubclient._
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -41,12 +42,11 @@ class GithubV3RepositoryDataSource(
   githubConfig              : GithubConfig,
   val githubApiClient       : GithubApiClient,
   githubConnector           : GithubConnector,
-  timestampF                : () => Long,
+  timestampF                : () => Instant,
   val defaultMetricsRegistry: MetricRegistry,
   repositoriesToIgnore      : List[String],
   futureHelpers             : FutureHelpers
 ) {
-
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
   private val logger = Logger(this.getClass)
@@ -77,20 +77,12 @@ class GithubV3RepositoryDataSource(
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.open.repos") {
         githubApiClient.getReposForTeam(team.id)
-      }.flatMap { repos =>
-        val nonHiddenRepos = repos
+      }.flatMap(
+        _
           .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-
-        val updatedRepositories: Future[Seq[GitRepository]] =
-          nonHiddenRepos.foldLeftM(Seq.empty[GitRepository]){ case (acc, repo) =>
-            mapRepository(team, repo, persistedTeams)
-              .map(acc :+ _)
-          }
-
-        updatedRepositories.map { repos =>
-          TeamRepositories(team.name, repositories = repos.toList, timestampF())
-        }
-      }
+          .traverse(repo => mapRepository(team, repo, persistedTeams))
+          .map(repos => TeamRepositories(team.name, repositories = repos.toList, timestampF()))
+      )
     }.recover {
       case e =>
         logger.error("Could not map teams with organisations.", e)
@@ -133,7 +125,7 @@ class GithubV3RepositoryDataSource(
         .flatMap(_.repositories.find(_.url == repository.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if repository.lastActiveDate == persistedRepository.lastActiveDate =>
+      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate =>
         logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
@@ -144,7 +136,8 @@ class GithubV3RepositoryDataSource(
         logger.info(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${repository.lastActiveDate}")
+            s"github repository last updated -> ${Instant.ofEpochMilli(repository.lastActiveDate)}"
+        )
         getRepositoryDetailsFromGithub(repository)
       case None =>
         logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
@@ -261,8 +254,8 @@ class GithubV3RepositoryDataSource(
       name           = repository.name,
       description    = repository.description,
       url            = repository.htmlUrl,
-      createdDate    = repository.createdDate,
-      lastActiveDate = repository.lastActiveDate,
+      createdDate    = Instant.ofEpochMilli(repository.createdDate),
+      lastActiveDate = Instant.ofEpochMilli(repository.lastActiveDate),
       isPrivate      = repository.isPrivate,
       archived       = repository.archived
     )
@@ -271,13 +264,14 @@ class GithubV3RepositoryDataSource(
     repository: GhRepository,
     repositoryType: RepoType,
     maybeDigitalServiceName: Option[String],
-    owningTeams: Seq[String]): GitRepository =
+    owningTeams: Seq[String]
+  ): GitRepository =
     GitRepository(
       repository.name,
       description        = repository.description,
       url                = repository.htmlUrl,
-      createdDate        = repository.createdDate,
-      lastActiveDate     = repository.lastActiveDate,
+      createdDate        = Instant.ofEpochMilli(repository.createdDate),
+      lastActiveDate     = Instant.ofEpochMilli(repository.lastActiveDate),
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,

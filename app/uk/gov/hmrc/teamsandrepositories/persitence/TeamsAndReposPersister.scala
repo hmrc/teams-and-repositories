@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence
 
+import java.time.Instant
+
 import com.google.inject.{Inject, Singleton}
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.Filters.{elemMatch, equal, or, regex}
@@ -46,7 +48,7 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
   def getTeamsAndRepos(serviceNames: Seq[String]): Future[Seq[TeamRepositories]] =
     mongoTeamsAndReposPersister.getTeamsAndRepos(serviceNames)
 
-  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
+  def clearAllData(implicit ec: ExecutionContext): Future[Unit] =
     mongoTeamsAndReposPersister.clearAllData
 
   def deleteTeams(teamNames: Set[String])(implicit ec: ExecutionContext): Future[Set[String]] = {
@@ -67,7 +69,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "teamsAndRepositories",
-  domainFormat   = TeamRepositories.formats,
+  domainFormat   = TeamRepositories.mongoFormat,
   indexes        = Seq(
                      IndexModel(
                        Indexes.ascending("teamName"),
@@ -124,8 +126,11 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
         }
       }
 
-  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
-    collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
+  def clearAllData(implicit ec: ExecutionContext): Future[Unit] =
+    collection
+      .deleteMany(Document())
+      .toFuture()
+      .map(_ => ())
 
   def deleteTeam(teamName: String)(implicit ec: ExecutionContext): Future[String] =
     futureHelpers
@@ -145,7 +150,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
     collection
       .updateMany(
         filter  = equal("repositories.name", repoName),
-        update  = set("repositories.$.lastActiveDate", 0)
+        update  = set("repositories.$.lastActiveDate", Instant.ofEpochMilli(0))
       )
       .toFuture()
       .map(

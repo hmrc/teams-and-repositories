@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence.model
+package uk.gov.hmrc.teamsandrepositories.util
 
-import play.api.libs.json._
+import java.time.Instant
 
-case class BuildJob(service: String, jenkinsURL: String)
-
-object BuildJob {
-  val mongoFormat: OFormat[BuildJob] =
-    Json.format[BuildJob]
-
-  val apiWrites: Writes[BuildJob] = new Writes[BuildJob] {
-    override def writes(o: BuildJob): JsValue = Json.obj("service" -> o.service, "jenkinsURL" -> o.jenkinsURL)
-  }
+object DateTimeUtils {
+  val instantOrdering: Ordering[Instant] = Ordering.fromLessThan(_ isBefore _)
 }

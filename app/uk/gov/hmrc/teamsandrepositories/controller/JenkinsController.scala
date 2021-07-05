@@ -32,7 +32,7 @@ class JenkinsController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val apiWriter: Writes[BuildJob] = BuildJob.apiWriter
+  private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
   def lookup(service: String): Action[AnyContent] = Action.async {
     for {
