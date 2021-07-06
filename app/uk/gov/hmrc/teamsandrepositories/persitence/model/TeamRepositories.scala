@@ -75,9 +75,15 @@ object TeamRepositories {
   )
 
   object DigitalServiceRepository {
-    implicit val format: Format[DigitalServiceRepository] = {
+    val format: Format[DigitalServiceRepository] = {
       implicit val rtf = RepoType.format
-      Json.format[DigitalServiceRepository]
+      ( (__ \ "name"         ).format[String]
+      ~ (__ \ "createdAt"    ).format[Instant]
+      ~ (__ \ "lastUpdatedAt").format[Instant]
+      ~ (__ \ "repoType"     ).format[RepoType]
+      ~ (__ \ "teamNames"    ).format[Seq[String]]
+      ~ (__ \ "archived"     ).format[Boolean]
+      )(apply, unlift(unapply))
     }
   }
 
@@ -88,8 +94,13 @@ object TeamRepositories {
   )
 
   object DigitalService {
-    implicit val format: Format[DigitalService] =
-      Json.format[DigitalService]
+    val format: Format[DigitalService] = {
+      implicit val dsrf = DigitalServiceRepository.format
+      ( (__ \ "name"         ).format[String]
+      ~ (__ \ "lastUpdatedAt").format[Instant]
+      ~ (__ \ "repositories" ).format[Seq[DigitalServiceRepository]]
+      )(apply, unlift(unapply))
+    }
   }
 
   def findDigitalServiceDetails(
@@ -143,7 +154,10 @@ object TeamRepositories {
 
   val apiFormat: OFormat[TeamRepositories] = {
     implicit val grf = GitRepository.apiFormat
-    Json.format[TeamRepositories]
+    ( (__ \ "teamName"    ).format[String]
+    ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "updateDate"  ).format[Instant]
+    )(apply, unlift(unapply))
   }
 
   val mongoFormat: OFormat[TeamRepositories] = {

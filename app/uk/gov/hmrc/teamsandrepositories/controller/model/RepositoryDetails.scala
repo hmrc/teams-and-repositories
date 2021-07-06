@@ -20,14 +20,40 @@ import java.net.URI
 import java.time.Instant
 
 import play.api.Logger
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.util.{Failure, Success, Try}
 
-case class Environment(name: String, services: Seq[Link])
+case class Environment(
+  name    : String,
+  services: Seq[Link]
+)
 
-case class Link(name: String, displayName: String, url: String)
+object Environment {
+  val format: Format[Environment] = {
+    implicit val lf = Link.format
+    ( (__ \ "name"    ).format[String]
+    ~ (__ \ "services").format[Seq[Link]]
+    )(apply, unlift(unapply))
+  }
+}
+
+case class Link(
+  name       : String,
+  displayName: String,
+  url        : String
+)
+
+object Link {
+  val format: Format[Link] =
+    ( (__ \ "name"       ).format[String]
+    ~ (__ \ "displayName").format[String]
+    ~ (__ \ "url"        ).format[String]
+    )(apply, unlift(unapply))
+}
 
 case class RepositoryDetails(
   name        : String,
@@ -46,8 +72,27 @@ case class RepositoryDetails(
 )
 
 object RepositoryDetails {
-
   private val logger = Logger(this.getClass)
+
+  val format = {
+    implicit val rtf = RepoType.format
+    implicit val lf  = Link.format
+    implicit val ef  = Environment.format
+    ( (__ \ "name"        ).format[String]
+    ~ (__ \ "description" ).format[String]
+    ~ (__ \ "isPrivate"   ).format[Boolean]
+    ~ (__ \ "createdAt"   ).format[Instant]
+    ~ (__ \ "lastActive"  ).format[Instant]
+    ~ (__ \ "repoType"    ).format[RepoType]
+    ~ (__ \ "owningTeams" ).format[Seq[String]]
+    ~ (__ \ "teamNames"   ).format[Seq[String]]
+    ~ (__ \ "githubUrl"   ).format[Link]
+    ~ (__ \ "ci"          ).format[Seq[Link]]
+    ~ (__ \ "environments").format[Seq[Environment]]
+    ~ (__ \ "language"    ).format[String]
+    ~ (__ \ "isArchived"  ).format[Boolean]
+    )(apply, unlift(unapply))
+  }
 
   def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
     val repoDetails =

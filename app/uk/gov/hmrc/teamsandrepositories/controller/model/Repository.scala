@@ -45,7 +45,13 @@ object Repository {
 
   implicit val format: OFormat[Repository] = {
     implicit val rtf = RepoType.format
-    Json.format[Repository]
+    ( (__ \ "name"         ).format[String]
+    ~ (__ \ "createdAt"    ).format[Instant]
+    ~ (__ \ "lastUpdatedAt").format[Instant]
+    ~ (__ \ "repoType"     ).format[RepoType]
+    ~ (__ \ "language"     ).formatNullable[String]
+    ~ (__ \ "archived"     ).format[Boolean]
+    )(apply, unlift(unapply))
   }
 }
 

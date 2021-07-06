@@ -16,15 +16,22 @@
 
 package uk.gov.hmrc.teamsandrepositories.persitence.model
 
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-case class BuildJob(service: String, jenkinsURL: String)
+case class BuildJob(
+  service   : String,
+  jenkinsURL: String
+)
 
 object BuildJob {
   val mongoFormat: OFormat[BuildJob] =
-    Json.format[BuildJob]
+    ( (__ \ "service"   ).format[String]
+    ~ (__ \ "jenkinsURL").format[String]
+    )(apply, unlift(unapply))
 
-  val apiWrites: Writes[BuildJob] = new Writes[BuildJob] {
-    override def writes(o: BuildJob): JsValue = Json.obj("service" -> o.service, "jenkinsURL" -> o.jenkinsURL)
-  }
+  val apiWrites: Writes[BuildJob] =
+    ( (__ \ "service"   ).write[String]
+    ~ (__ \ "jenkinsURL").write[String]
+    )(unlift(unapply))
 }

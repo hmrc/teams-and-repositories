@@ -18,13 +18,13 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
-import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
-import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
+import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.RepoType
 
 import scala.concurrent.ExecutionContext
@@ -37,12 +37,8 @@ class RepositoriesController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val lf  = Json.format[Link]
-  private implicit val ef  = Json.format[Environment]
-  private implicit val rdf = {
-    implicit val rtf = RepoType.format
-    Json.format[RepositoryDetails]
-  }
+  private implicit val rdf = RepositoryDetails.format
+  private implicit val dsf = DigitalService.format
 
   def repositoryTeams = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
