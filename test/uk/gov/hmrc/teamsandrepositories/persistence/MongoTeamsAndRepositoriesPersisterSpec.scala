@@ -25,8 +25,7 @@ import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, Module, RepoType}
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, Module, RepoType, TeamRepositories}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.ExecutionContext.Implicits.global

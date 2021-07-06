@@ -28,12 +28,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
-import uk.gov.hmrc.teamsandrepositories.GitRepository
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global

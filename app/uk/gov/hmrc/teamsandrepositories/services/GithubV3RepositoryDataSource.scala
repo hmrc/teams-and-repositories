@@ -24,12 +24,11 @@ import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import uk.gov.hmrc.githubclient._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{Duration, DurationInt}

@@ -20,12 +20,10 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.teamsandrepositories.{DigitalService, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories.DigitalService
-import uk.gov.hmrc.teamsandrepositories.RepoType
 
 import scala.concurrent.ExecutionContext
 

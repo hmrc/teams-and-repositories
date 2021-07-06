@@ -17,9 +17,9 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.teamsandrepositories.BuildJob
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
-import uk.gov.hmrc.teamsandrepositories.persistence.model.BuildJob
 import org.mongodb.scala.result.UpdateResult
 
 import scala.concurrent.{ExecutionContext, Future}

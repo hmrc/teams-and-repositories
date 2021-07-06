@@ -24,7 +24,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.{ExecutionContext, Future}

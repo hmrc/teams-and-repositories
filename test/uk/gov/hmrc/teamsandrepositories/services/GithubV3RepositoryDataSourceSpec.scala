@@ -29,11 +29,10 @@ import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.githubclient._
-import uk.gov.hmrc.teamsandrepositories.{RepoType, GitRepository}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.persistence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 
 import scala.concurrent.{ExecutionContext, Future}
