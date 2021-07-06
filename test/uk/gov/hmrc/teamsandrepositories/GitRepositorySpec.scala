@@ -20,7 +20,6 @@ import java.time.Instant
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.Json
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 

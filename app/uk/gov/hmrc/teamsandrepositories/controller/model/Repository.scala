@@ -54,26 +54,26 @@ case class Team(
   firstActiveDate         : Option[Instant]                    = None,
   lastActiveDate          : Option[Instant]                    = None,
   firstServiceCreationDate: Option[Instant]                    = None,
-  repos                   : Option[Map[RepoType, Seq[String]]],
+  repos                   : Option[Map[RepoType, List[String]]],
   ownedRepos              : Seq[String]                        = Nil
 )
 
 object Team {
 
-  val mapFormat: Format[Map[RepoType, Seq[String]]] = {
-    val mapReads: Reads[Map[RepoType, Seq[String]]] = new Reads[Map[RepoType, Seq[String]]] {
-      def reads(jv: JsValue): JsResult[Map[RepoType, Seq[String]]] =
+  val mapFormat: Format[Map[RepoType, List[String]]] = {
+    val mapReads: Reads[Map[RepoType, List[String]]] = new Reads[Map[RepoType, List[String]]] {
+      def reads(jv: JsValue): JsResult[Map[RepoType, List[String]]] =
         JsSuccess(
-          jv.as[Map[String, Seq[String]]].map {
+          jv.as[Map[String, List[String]]].map {
             case (k, v) =>
-              RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v.asInstanceOf[Seq[String]]
+              RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v.asInstanceOf[List[String]]
           }
         )
     }
 
-    val mapWrites: Writes[Map[RepoType, Seq[String]]] =
-      new Writes[Map[RepoType, Seq[String]]] {
-        def writes(map: Map[RepoType, Seq[String]]): JsValue =
+    val mapWrites: Writes[Map[RepoType, List[String]]] =
+      new Writes[Map[RepoType, List[String]]] {
+        def writes(map: Map[RepoType, List[String]]): JsValue =
           Json.obj(map.map {
             case (s, o) =>
               val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString.apply))
@@ -89,7 +89,7 @@ object Team {
     ~ (__ \ "firstActiveDate"         ).formatNullable[Instant]
     ~ (__ \ "lastActiveDate"          ).formatNullable[Instant]
     ~ (__ \ "firstServiceCreationDate").formatNullable[Instant]
-    ~ (__ \ "repos"                   ).formatNullable[Map[RepoType, Seq[String]]]
+    ~ (__ \ "repos"                   ).formatNullable[Map[RepoType, List[String]]]
     ~ (__ \ "ownedRepos"              ).format[Seq[String]]
     )(Team.apply, unlift(Team.unapply))
   }
