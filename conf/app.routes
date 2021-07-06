@@ -4,6 +4,7 @@ GET         /api/teams                           uk.gov.hmrc.teamsandrepositorie
 GET         /api/teams/:team                     uk.gov.hmrc.teamsandrepositories.controller.TeamsController.team(team, includeRepos: Boolean ?= false)
 GET         /api/teams_with_repositories         uk.gov.hmrc.teamsandrepositories.controller.TeamsController.allTeamsAndRepositories
 
+GET         /api/repository_teams                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryTeams
 GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allServices
 POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services
 GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries

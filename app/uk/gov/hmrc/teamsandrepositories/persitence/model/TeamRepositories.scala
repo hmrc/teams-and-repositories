@@ -155,11 +155,6 @@ object TeamRepositories {
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
 
-  case class RepositoryToTeam(
-    repositoryName: String,
-    teamName      : String
-  )
-
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
     teamRepos
       .flatMap(_.repositories)
@@ -221,16 +216,14 @@ object TeamRepositories {
       .sortBy(_.name.toUpperCase)
   }
 
-  def getRepositoryToTeamNameList(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
+  def getRepositoryToTeamNames(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
     val mappings = for {
       tr <- teamRepos
       r  <- tr.repositories
-    } yield RepositoryToTeam(r.name, tr.teamName)
+    } yield (r.name, tr.teamName)
 
     mappings
-      .groupBy(_.repositoryName)
-      .map { m =>
-        m._1 -> m._2.map(_.teamName).distinct
-      }
+      .groupBy(_._1)
+      .mapValues(_.map(_._2).distinct)
   }
 }

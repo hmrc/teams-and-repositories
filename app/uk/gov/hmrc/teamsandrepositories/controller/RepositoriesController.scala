@@ -47,6 +47,18 @@ class RepositoriesController @Inject()(
     Json.format[RepositoryDetails]
   }
 
+  def repositoryTeams = Action.async {
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None) map { allTeamsAndRepos =>
+      Ok(toJson(TeamRepositories.getRepositoryToTeamNames(allTeamsAndRepos)))
+    }
+  }
+
+  def allRepositories(archived: Option[Boolean]) = Action.async {
+    teamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+      Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
+    }
+  }
+
   def repositoryDetails(name: String) = Action.async {
     val repoName = URLDecoder.decode(name, "UTF-8")
 
@@ -55,19 +67,6 @@ class RepositoriesController @Inject()(
         case None =>
           NotFound
         case Some(x: RepositoryDetails) =>
-          Ok(toJson(x))
-      }
-    }
-  }
-
-  def digitalServiceDetails(digitalServiceName: String) = Action.async {
-    val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
-
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
-        case None =>
-          NotFound
-        case Some(x: DigitalService) =>
           Ok(toJson(x))
       }
     }
@@ -109,17 +108,22 @@ class RepositoriesController @Inject()(
     }
   }
 
-  def allRepositories(archived: Option[Boolean]) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
-      Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
+  def digitalServiceDetails(digitalServiceName: String) = Action.async {
+    val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
+
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
+      TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
+        case None =>
+          NotFound
+        case Some(x: DigitalService) =>
+          Ok(toJson(x))
+      }
     }
   }
 
   private def determineServicesResponse[A](request: Request[A], data: Seq[TeamRepositories]): JsValue =
     if (request.getQueryString("details").nonEmpty)
       toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
-    else if (request.getQueryString("teamDetails").nonEmpty)
-      toJson(TeamRepositories.getRepositoryToTeamNameList(data))
     else
       toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Service))
 

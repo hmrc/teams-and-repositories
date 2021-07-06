@@ -246,6 +246,24 @@ class RepositoriesControllerSpec
     }
   }
 
+  "GET /api/repository_teams" should {
+    "return service -> team mappings" in new Setup {
+      val result = controller.repositoryTeams(FakeRequest("GET", "/repository_teams"))
+
+      val data = contentAsJson(result).as[Map[String, Seq[String]]]
+
+      data mustBe Map(
+        "repo-name"      -> Seq("test-team"),
+        "library-repo"   -> Seq("test-team"),
+        "another-repo"   -> Seq("another-team"),
+        "middle-repo"    -> Seq("another-team"),
+        "alibrary-repo"  -> Seq("another-team"),
+        "CATO-prototype" -> Seq("another-team"),
+        "other-repo"     -> List("another-team")
+      )
+    }
+  }
+
   "GET /api/services" should {
     "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup {
       val result = controller.allServices(FakeRequest("GET", "/services?details=true"))
@@ -281,22 +299,6 @@ class RepositoriesControllerSpec
       val env2Services = environments.find(x => nameField(x) == "env2").value.as[JsObject] \ "services"
       val env2Links    = env2Services.as[List[Map[String, String]]].toSet
       env2Links mustBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
-    }
-
-    "return service -> team mappings for all services when the request has a teamDetails query parameter" in new Setup {
-      val result = controller.allServices(FakeRequest("GET", "/services?teamDetails=true"))
-
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map(
-        "repo-name"      -> Seq("test-team"),
-        "library-repo"   -> Seq("test-team"),
-        "another-repo"   -> Seq("another-team"),
-        "middle-repo"    -> Seq("another-team"),
-        "alibrary-repo"  -> Seq("another-team"),
-        "CATO-prototype" -> Seq("another-team"),
-        "other-repo"     -> List("another-team")
-      )
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
@@ -416,13 +418,12 @@ class RepositoriesControllerSpec
   }
 
   "POST /api/services" should {
-
     "return a json representation of services with the given names sorted alphabetically when the request has a details query parameter" in new Setup {
       when(mockTeamsAndReposPersister.getTeamsAndRepos(List("repo1", "repo2")))
         .thenReturn(Future.successful(defaultData))
 
       val result =
-        controller.services(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
+        controller.services(FakeRequest("POST", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
 
       val resultJson = contentAsJson(result)
 
@@ -457,31 +458,12 @@ class RepositoriesControllerSpec
       env2Links mustBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
     }
 
-    "return service -> team mappings for selected services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("service1")))
-        .thenReturn(Future.successful(defaultData))
+    "return an empty array if no service names given" in new Setup {
+      val result = controller.services(FakeRequest("POST", "/services").withBody(Json.arr()))
 
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
+      val data = contentAsJson(result).as[Seq[Repository]]
 
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map(
-        "repo-name"      -> Seq("test-team"),
-        "library-repo"   -> Seq("test-team"),
-        "another-repo"   -> Seq("another-team"),
-        "middle-repo"    -> Seq("another-team"),
-        "alibrary-repo"  -> Seq("another-team"),
-        "CATO-prototype" -> Seq("another-team"),
-        "other-repo"     -> List("another-team")
-      )
-    }
-
-    "return an empty map if no service names given" in new Setup {
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
-
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map.empty
+      data mustBe Seq.empty
     }
 
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
