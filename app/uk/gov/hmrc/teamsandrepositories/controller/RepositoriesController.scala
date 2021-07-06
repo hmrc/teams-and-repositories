@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import java.net.URLDecoder
-
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
@@ -27,10 +25,9 @@ import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
 import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.RepoType
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class RepositoriesController @Inject()(
@@ -48,88 +45,72 @@ class RepositoriesController @Inject()(
   }
 
   def repositoryTeams = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None) map { allTeamsAndRepos =>
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getRepositoryToTeamNames(allTeamsAndRepos)))
     }
   }
 
-  def allRepositories(archived: Option[Boolean]) = Action.async {
+  def repositories(archived: Option[Boolean]) = Action.async {
     teamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def repositoryDetails(name: String) = Action.async {
-    val repoName = URLDecoder.decode(name, "UTF-8")
-
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      TeamRepositories.findRepositoryDetails(allTeamsAndRepos, repoName, urlTemplatesProvider.ciUrlTemplates) match {
-        case None =>
-          NotFound
-        case Some(x: RepositoryDetails) =>
-          Ok(toJson(x))
-      }
-    }
-  }
-
-  def allServices = Action.async { implicit request =>
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None) map { allTeamsAndRepos =>
-      Ok(determineServicesResponse(request, allTeamsAndRepos))
-    }
-  }
-
-  def services = Action.async(parse.json) { implicit request =>
-    withJsonBody[Set[String]] {
-      case serviceNames if serviceNames.isEmpty =>
-        Future.successful(Ok(determineServicesResponse(request, Nil)))
-      case serviceNames =>
-        teamsAndReposPersister.getTeamsAndRepos(serviceNames.toSeq) map { teamsAndRepos =>
-          Ok(determineServicesResponse(request, teamsAndRepos))
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+      .map { allTeamsAndRepos =>
+        TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match {
+          case None                    => NotFound
+          case Some(repositoryDetails) => Ok(toJson(repositoryDetails))
         }
-    }
+      }
   }
 
-  def libraries = Action.async { implicit request =>
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      Ok(determineLibrariesResponse(request, allTeamsAndRepos))
-    }
+  def services(details: Boolean) = Action.async {
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+      .map { allTeamsAndRepos =>
+        val json =
+          if (details)
+            toJson(TeamRepositories.getRepositoryDetailsList(allTeamsAndRepos, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
+          else
+            toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos).filter(_.repoType == RepoType.Service))
+        Ok(json)
+      }
+  }
+
+  def libraries(details: Boolean) = Action.async {
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+      .map { allTeamsAndRepos =>
+        val json =
+          if (details)
+            toJson(TeamRepositories.getRepositoryDetailsList(allTeamsAndRepos, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
+          else
+            toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos).filter(_.repoType == RepoType.Library))
+        Ok(json)
+      }
   }
 
   def digitalServices = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      val digitalServices: Seq[String] =
-        allTeamsAndRepos
-          .flatMap(_.repositories)
-          .flatMap(_.digitalServiceName)
-          .distinct
-          .sorted
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+      .map { allTeamsAndRepos =>
+        val digitalServices: Seq[String] =
+          allTeamsAndRepos
+            .flatMap(_.repositories)
+            .flatMap(_.digitalServiceName)
+            .distinct
+            .sorted
 
-      Ok(toJson(digitalServices))
-    }
-  }
-
-  def digitalServiceDetails(digitalServiceName: String) = Action.async {
-    val sanitisedDigitalServiceName = URLDecoder.decode(digitalServiceName, "UTF-8")
-
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
-      TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, sanitisedDigitalServiceName) match {
-        case None =>
-          NotFound
-        case Some(x: DigitalService) =>
-          Ok(toJson(x))
+        Ok(toJson(digitalServices))
       }
-    }
   }
 
-  private def determineServicesResponse[A](request: Request[A], data: Seq[TeamRepositories]): JsValue =
-    if (request.getQueryString("details").nonEmpty)
-      toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
-    else
-      toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Service))
-
-  private def determineLibrariesResponse(request: Request[AnyContent], data: Seq[TeamRepositories]) =
-    if (request.getQueryString("details").nonEmpty)
-      toJson(TeamRepositories.getRepositoryDetailsList(data, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
-    else
-      toJson(TeamRepositories.getAllRepositories(data).filter(_.repoType == RepoType.Library))
+  def digitalServiceDetails(name: String) = Action.async {
+    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+      .map { allTeamsAndRepos =>
+        TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match {
+          case None                 => NotFound
+          case Some(digitalService) => Ok(toJson(digitalService))
+        }
+      }
+  }
 }
