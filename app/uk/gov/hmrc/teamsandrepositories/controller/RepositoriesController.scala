@@ -22,9 +22,9 @@ import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.DigitalService
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories.DigitalService
 import uk.gov.hmrc.teamsandrepositories.RepoType
 
 import scala.concurrent.ExecutionContext

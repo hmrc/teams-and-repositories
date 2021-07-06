@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence
+package uk.gov.hmrc.teamsandrepositories.persistence
 
 import javax.inject.{Inject, Singleton}
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, UpdateOptions}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
+import uk.gov.hmrc.teamsandrepositories.persistence.model.BuildJob
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.result.UpdateResult

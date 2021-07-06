@@ -32,8 +32,8 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future

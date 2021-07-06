@@ -21,8 +21,8 @@ import play.api.libs.json.{JsError, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.persitence.{BuildJobRepo, TeamsAndReposPersister}
-import uk.gov.hmrc.teamsandrepositories.persitence.model.{BuildJob, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.persistence.model.{BuildJob, TeamRepositories}
 
 import scala.concurrent.{ExecutionContext, Future}
 

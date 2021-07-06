@@ -24,8 +24,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.{DigitalServiceRepository, findDigitalServiceDetails}
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories.{DigitalServiceRepository, findDigitalServiceDetails}
 
 import scala.collection.immutable.ListMap
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence.model
+package uk.gov.hmrc.teamsandrepositories.persistence.model
 
 import java.time.Instant
 

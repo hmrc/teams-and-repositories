@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence.model
+package uk.gov.hmrc.teamsandrepositories.persistence.model
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._

@@ -31,8 +31,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

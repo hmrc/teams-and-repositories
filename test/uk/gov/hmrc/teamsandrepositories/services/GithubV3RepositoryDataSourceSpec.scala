@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 
@@ -24,17 +24,17 @@ import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.githubclient._
+import uk.gov.hmrc.teamsandrepositories.{RepoType, GitRepository}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
-import uk.gov.hmrc.teamsandrepositories.services.GithubV3RepositoryDataSource
+import uk.gov.hmrc.teamsandrepositories.persistence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,7 +42,7 @@ class GithubV3RepositoryDataSourceSpec
     extends AnyWordSpec
     with ScalaFutures
     with Matchers
-    with DefaultPatienceConfig
+    with IntegrationPatience
     with MockitoSugar
     with SpanSugar
     with BeforeAndAfterEach {
@@ -1118,7 +1118,7 @@ class GithubV3RepositoryDataSourceSpec
 
       dataSource
         .mapTeam(team, persistedTeams = Nil)
-        .futureValue(Timeout(1 minute)) shouldBe
+        .futureValue(Timeout(1.minute)) shouldBe
         TeamRepositories(
           "A",
           List(

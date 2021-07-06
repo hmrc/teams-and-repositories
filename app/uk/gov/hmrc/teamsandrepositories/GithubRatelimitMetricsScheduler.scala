@@ -26,7 +26,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
+import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 
 import scala.concurrent.{ExecutionContext, Future}

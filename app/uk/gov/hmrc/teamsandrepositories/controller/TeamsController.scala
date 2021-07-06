@@ -22,7 +22,7 @@ import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.ExecutionContext
 
