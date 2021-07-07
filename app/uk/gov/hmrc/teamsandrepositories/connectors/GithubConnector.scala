@@ -16,29 +16,52 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, __}
+import uk.gov.hmrc.githubclient.{GhRepository, GhTeam, GithubApiClient}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class GithubConnector @Inject()(githubConfig: GithubConfig, http: HttpClient)(implicit ec: ExecutionContext) {
+@Singleton
+class GithubConnector @Inject()(
+  githubConfig   : GithubConfig,
+  httpClient     : HttpClient
+)(implicit ec: ExecutionContext) {
+
+  private val githubApiClient: GithubApiClient =
+    GithubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
   def getFileContent(repoName: String, path: String): Future[Option[String]] = {
     implicit val hc = HeaderCarrier()
-    http.GET[Option[HttpResponse]](
+    httpClient.GET[Option[HttpResponse]](
       url     = url"${githubConfig.rawUrl}/hmrc/$repoName/master/$path",
       headers = Seq("Authorization" -> s"token ${githubConfig.githubApiOpenConfig.key}")
     ).map(_.map(_.body))
   }
 
+  def getTeamsForOrganisation(organisation: String): Future[List[GhTeam]] =
+    githubApiClient.getTeamsForOrganisation(organisation)
+
+  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
+    githubApiClient.getReposForTeam(team.id)
+
+  def getReposForOrganisation(organisation: String): Future[List[GhRepository]] =
+    githubApiClient.getReposForOrg(organisation)
+
+  def getTags(org: String, repository: GhRepository): Future[List[String]] =
+    githubApiClient.getTags(org, repository.name)
+
+  def repoContainsContent(path: String, repo: GhRepository, organisation: String): Future[Boolean] =
+    githubApiClient.repoContainsContent(path, repo.name, organisation)
+
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
     implicit val hc = HeaderCarrier()
     implicit val rlmr = RateLimitMetrics.reads
-    http.GET[RateLimitMetrics](
+    httpClient.GET[RateLimitMetrics](
       url     = s"${githubConfig.url}/rate_limit",
       headers = Seq("Authorization" -> s"token $token")
     )

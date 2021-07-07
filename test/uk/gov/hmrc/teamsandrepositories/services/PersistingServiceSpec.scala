@@ -27,7 +27,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
+import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
@@ -266,15 +266,10 @@ class PersistingServiceSpec
     val mockGithubConfig          = mock[GithubConfig]
     val mockPersister             = mock[TeamsAndReposPersister]
     val mockGithubConnector       = mock[GithubConnector]
-    val mockGithubClientDecorator = mock[GithubApiClientDecorator]
-    val mockGithubApiClient       = mock[GithubApiClient]
     val gitApiConfig              = GitApiConfig(user = "", key = "open.key", apiUrl = "open.com")
 
     when(mockGithubConfig.githubApiOpenConfig)
       .thenReturn(gitApiConfig)
-
-    when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
-      .thenReturn(mockGithubApiClient)
 
     when(mockPersister.getAllTeamsAndRepos(any()))
       .thenReturn(Future.successful(storedTeamRepositories))
@@ -284,14 +279,13 @@ class PersistingServiceSpec
 
 
     new PersistingService(
-      githubConfig             = mockGithubConfig,
-      persister                = mockPersister,
-      githubConnector          = mockGithubConnector,
-      githubApiClientDecorator = mockGithubClientDecorator,
-      timestamper              = testTimestamper,
-      metrics                  = metrics,
-      configuration            = Configuration(),
-      futureHelpers            = new FutureHelpers(metrics)
+      githubConfig    = mockGithubConfig,
+      persister       = mockPersister,
+      githubConnector = mockGithubConnector,
+      timestamper     = testTimestamper,
+      metrics         = metrics,
+      configuration   = Configuration(),
+      futureHelpers   = new FutureHelpers(metrics)
       ) {
         override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
       }

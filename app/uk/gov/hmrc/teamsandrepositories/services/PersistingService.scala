@@ -21,7 +21,7 @@ import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.githubclient.{GhTeam, GithubApiClient}
+import uk.gov.hmrc.githubclient.GhTeam
 import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
@@ -41,13 +41,11 @@ case class PersistingService @Inject()(
   githubConfig            : GithubConfig,
   persister               : TeamsAndReposPersister,
   githubConnector         : GithubConnector,
-  githubApiClientDecorator: GithubApiClientDecorator,
   timestamper             : Timestamper,
   metrics                 : Metrics,
   configuration           : Configuration,
   futureHelpers           : FutureHelpers
 ) {
-
   private val logger = Logger(this.getClass)
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
@@ -55,14 +53,9 @@ case class PersistingService @Inject()(
   val repositoriesToIgnore: List[String] =
     configuration.getOptional[Seq[String]]("shared.repositories").map(_.toList).getOrElse(List.empty[String])
 
-  val gitOpenClient: GithubApiClient =
-    githubApiClientDecorator
-      .githubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
-
   val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
       githubConfig           = githubConfig,
-      githubApiClient        = gitOpenClient,
       githubConnector        = githubConnector,
       timestampF             = timestamper.timestampF,
       defaultMetricsRegistry = defaultMetricsRegistry,
@@ -133,9 +126,4 @@ case class PersistingService @Inject()(
         logger.error("Could not remove orphan teams from mongo.", e)
         throw e
     }
-}
-
-@Singleton
-case class GithubApiClientDecorator @Inject()() {
-  def githubApiClient(apiUrl: String, apiToken: String) = GithubApiClient(apiUrl, apiToken)
 }

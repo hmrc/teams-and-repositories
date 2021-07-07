@@ -38,7 +38,6 @@ import scala.util.{Failure, Success, Try}
 
 class GithubV3RepositoryDataSource(
   githubConfig              : GithubConfig,
-  val githubApiClient       : GithubApiClient,
   githubConnector           : GithubConnector,
   timestampF                : () => Instant,
   val defaultMetricsRegistry: MetricRegistry,
@@ -56,7 +55,7 @@ class GithubV3RepositoryDataSource(
 
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      githubApiClient.getTeamsForOrganisation(HMRC_ORG)
+      githubConnector.getTeamsForOrganisation(HMRC_ORG)
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
@@ -68,7 +67,7 @@ class GithubV3RepositoryDataSource(
     logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
       withCounter(s"github.open.repos") {
-        githubApiClient.getReposForTeam(team.id)
+        githubConnector.getReposForTeam(team)
       }.flatMap(
         _
           .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
@@ -84,7 +83,7 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] =
     withCounter(s"github.open.allRepos") {
-      githubApiClient.getReposForOrg(HMRC_ORG)
+      githubConnector.getReposForOrganisation(HMRC_ORG)
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
@@ -230,12 +229,12 @@ class GithubV3RepositoryDataSource(
 
   private def hasTags(repository: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
-      githubApiClient.getTags(HMRC_ORG, repository.name)
+      githubConnector.getTags(HMRC_ORG, repository)
     }.map(_.nonEmpty)
 
   private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {
-      githubApiClient.repoContainsContent(path, repo.name, HMRC_ORG)
+      githubConnector.repoContainsContent(path, repo, HMRC_ORG)
     }
 
   private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
