@@ -23,7 +23,6 @@ import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
-import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
@@ -227,8 +226,8 @@ class GithubV3RepositoryDataSource(
 
   private def hasTags(repo: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
-      githubConnector.getTags(repo)
-    }.map(_.nonEmpty)
+      githubConnector.hasTags(repo)
+    }
 
   private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {

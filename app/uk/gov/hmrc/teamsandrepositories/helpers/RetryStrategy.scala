@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import java.util.{Timer, TimerTask}
 
 import play.api.Logger
-import uk.gov.hmrc.githubclient.APIRateLimitExceededException
+import uk.gov.hmrc.teamsandrepositories.connectors.APIRateLimitExceededException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration.{Duration, DurationInt}

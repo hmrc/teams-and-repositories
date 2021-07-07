@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import uk.gov.hmrc.githubclient.APIRateLimitExceededException
+import uk.gov.hmrc.teamsandrepositories.connectors.APIRateLimitExceededException
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

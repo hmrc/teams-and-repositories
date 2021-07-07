@@ -27,7 +27,6 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.githubclient.{GitApiConfig}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
@@ -144,8 +143,8 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
-      val ghTeamB = GhTeam("teamB", 2)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
+      val ghTeamB = GhTeam(id = 2, name = "teamB")
 
       when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
       when(dataSource.mapTeam(eqTo(ghTeamA), any()))
@@ -219,7 +218,7 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
 
       when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA)))
 
@@ -268,10 +267,10 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
-      val ghTeamB = GhTeam("teamB", 2)
-      val ghTeamC = GhTeam("teamC", 3)
-      val ghTeamD = GhTeam("teamD", 4)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
+      val ghTeamB = GhTeam(id = 2, name = "teamB")
+      val ghTeamC = GhTeam(id = 3, name = "teamC")
+      val ghTeamD = GhTeam(id = 4, name = "teamD")
 
       val reposWithoutTeams =
         List(
@@ -371,10 +370,11 @@ class PersistingServiceSpec
     val mockGithubConfig          = mock[GithubConfig]
     val mockPersister             = mock[TeamsAndReposPersister]
     val mockGithubConnector       = mock[GithubConnector]
-    val gitApiConfig              = GitApiConfig(user = "", key = "open.key", apiUrl = "open.com")
 
-    when(mockGithubConfig.githubApiOpenConfig)
-      .thenReturn(gitApiConfig)
+    when(mockGithubConfig.apiUrl)
+      .thenReturn("open.com")
+    when(mockGithubConfig.key)
+      .thenReturn("open.key")
 
     when(mockPersister.getAllTeamsAndRepos(any()))
       .thenReturn(Future.successful(storedTeamRepositories))

@@ -38,24 +38,9 @@ class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       , "ratemetrics.githubtokens.2.token"    -> "token2"
       ))
 
-      githubConfig.url shouldBe "https://api.github.com"
+      githubConfig.apiUrl shouldBe "https://api.github.com"
       githubConfig.rawUrl shouldBe "http://localhost:8461/github/raw"
       githubConfig.tokens shouldBe List("user1" -> "token1", "user2" -> "token2")
-    }
-
-    "handle undefined open api credentials" in {
-      val config =
-        ConfigFactory.parseString(
-          f"""|
-            |github.open.api.url     = "https://api.github.com"
-            |github.open.api.rawurl  = "http://localhost:8461/github/raw"
-            |ratemetrics.githubtokens.1.username = $${?github.open.api.user}
-            |ratemetrics.githubtokens.1.token    = $${?github.open.api.key}
-            """.stripMargin
-        ).resolve
-      val githubConfig = new GithubConfig(new Configuration(config))
-
-      githubConfig.tokens shouldBe Nil
     }
 
     "infer token config from open api credentials" in {

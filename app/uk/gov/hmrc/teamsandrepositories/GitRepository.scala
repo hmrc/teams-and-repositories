@@ -71,7 +71,7 @@ object GitRepository {
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"     ).format[String]
+    ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
     )(apply _, unlift(unapply))
   }
 

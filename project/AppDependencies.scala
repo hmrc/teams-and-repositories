@@ -9,7 +9,6 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % hmrcMongoVersion,
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % "4.0.0",
-    "uk.gov.hmrc"       %% "github-client"             % "3.0.0",
     "org.yaml"          %  "snakeyaml"                 % "1.28",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-metrix-play-28" % hmrcMongoVersion,
     "org.typelevel"     %% "cats-core"                 % "2.4.2"
