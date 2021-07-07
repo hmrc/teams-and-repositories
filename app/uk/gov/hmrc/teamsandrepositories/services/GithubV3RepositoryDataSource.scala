@@ -26,7 +26,7 @@ import play.api.Logger
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 
@@ -55,7 +55,7 @@ class GithubV3RepositoryDataSource(
 
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      githubConnector.getTeamsForOrganisation(HMRC_ORG)
+      githubConnector.getTeamsForOrg(HMRC_ORG)
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
@@ -83,7 +83,7 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] =
     withCounter(s"github.open.allRepos") {
-      githubConnector.getReposForOrganisation(HMRC_ORG)
+      githubConnector.getReposForOrg(HMRC_ORG)
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>

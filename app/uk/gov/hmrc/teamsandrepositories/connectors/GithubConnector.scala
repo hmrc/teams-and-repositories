@@ -18,13 +18,21 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Reads, __}
-import uk.gov.hmrc.githubclient.{GhRepository, GhTeam, GithubApiClient}
+import play.api.libs.json.{Reads, OFormat, __}
+import uk.gov.hmrc.githubclient.{GhRepository, GithubApiClient}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.{ExecutionContext, Future}
+
+case class GhTeam(name: String, id: Long)
+object GhTeam {
+  val format: OFormat[GhTeam] =
+    ( (__ \ "name").format[String]
+    ~ (__ \ "id"  ).format[Long]
+    )(apply, unlift(unapply))
+}
 
 @Singleton
 class GithubConnector @Inject()(
@@ -35,28 +43,33 @@ class GithubConnector @Inject()(
   private val githubApiClient: GithubApiClient =
     GithubApiClient(githubConfig.githubApiOpenConfig.apiUrl, githubConfig.githubApiOpenConfig.key)
 
-  def getFileContent(repoName: String, path: String): Future[Option[String]] = {
-    implicit val hc = HeaderCarrier()
+  private implicit val hc = HeaderCarrier()
+
+  def getFileContent(repoName: String, path: String): Future[Option[String]] =
     httpClient.GET[Option[HttpResponse]](
       url     = url"${githubConfig.rawUrl}/hmrc/$repoName/master/$path",
       headers = Seq("Authorization" -> s"token ${githubConfig.githubApiOpenConfig.key}")
     ).map(_.map(_.body))
-  }
 
-  def getTeamsForOrganisation(organisation: String): Future[List[GhTeam]] =
-    githubApiClient.getTeamsForOrganisation(organisation)
+  def getTeamsForOrg(org: String): Future[List[GhTeam]] = {
+    implicit val tf = GhTeam.format
+    httpClient.GET[List[GhTeam]](
+      url     = url"${githubConfig.githubApiOpenConfig.apiUrl}/orgs/$org/teams",
+      headers = Seq("Authorization" -> s"token ${githubConfig.githubApiOpenConfig.key}")
+    )
+  }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
     githubApiClient.getReposForTeam(team.id)
 
-  def getReposForOrganisation(organisation: String): Future[List[GhRepository]] =
-    githubApiClient.getReposForOrg(organisation)
+  def getReposForOrg(org: String): Future[List[GhRepository]] =
+    githubApiClient.getReposForOrg(org)
 
   def getTags(org: String, repository: GhRepository): Future[List[String]] =
     githubApiClient.getTags(org, repository.name)
 
-  def repoContainsContent(path: String, repo: GhRepository, organisation: String): Future[Boolean] =
-    githubApiClient.repoContainsContent(path, repo.name, organisation)
+  def repoContainsContent(path: String, repo: GhRepository, org: String): Future[Boolean] =
+    githubApiClient.repoContainsContent(path, repo.name, org)
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
     implicit val hc = HeaderCarrier()

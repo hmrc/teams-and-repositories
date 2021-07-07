@@ -21,12 +21,11 @@ import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.githubclient.GhTeam
 import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
