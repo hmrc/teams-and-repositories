@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -23,17 +23,16 @@ import com.codahale.metrics.{Counter, MetricRegistry}
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.services._
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,7 +42,7 @@ class PersistingServiceSpec
     with MockitoSugar
     with ScalaFutures
     with Matchers
-    with DefaultPatienceConfig {
+    with IntegrationPatience {
 
   val now = Instant.now()
 

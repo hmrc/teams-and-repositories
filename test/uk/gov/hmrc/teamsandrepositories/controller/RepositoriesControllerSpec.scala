@@ -29,11 +29,10 @@ import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
@@ -171,7 +170,11 @@ class RepositoriesControllerSpec
       )
     )
 
-  def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url") =
+  def singleRepoResult(
+    teamName: String = "test-team",
+    repoName: String = "repo-name",
+    repoUrl: String = "repo-url"
+  ): Seq[TeamRepositories] =
     Seq(
       TeamRepositories(
         "test-team",
@@ -191,7 +194,7 @@ class RepositoriesControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.RepositoriesController.services.url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.RepositoriesController.services(details = false).url mustBe "/api/services"
     }
   }
 
@@ -206,19 +209,16 @@ class RepositoriesControllerSpec
 
   "Retrieving a list of all libraries" should {
     "return a name and dates list of all the libraries" in new Setup {
-      val result       = controller.libraries(FakeRequest())
+      val result       = controller.libraries(details = false)(FakeRequest())
       val resultJson   = contentAsJson(result)
       val libraryNames = resultJson.as[Seq[Repository]]
       libraryNames.map(_.name)          mustBe List("alibrary-repo", "library-repo")
       libraryNames.map(_.createdAt)     must contain theSameElementsAs List(createdDateForLib1, createdDateForLib2)
-      libraryNames.map(_.lastUpdatedAt) must contain theSameElementsAs List(
-        lastActiveDateForLib1,
-        lastActiveDateForLib2
-      )
+      libraryNames.map(_.lastUpdatedAt) must contain theSameElementsAs List(lastActiveDateForLib1, lastActiveDateForLib2 )
     }
 
     "Return a json representation of the data when request has a details query parameter" in new Setup {
-      val result = controller.libraries.apply(FakeRequest("GET", "/libraries?details=true"))
+      val result = controller.libraries(details = true).apply(FakeRequest())
 
       val resultJson = contentAsJson(result)
 
@@ -246,9 +246,27 @@ class RepositoriesControllerSpec
     }
   }
 
+  "GET /api/repository_teams" should {
+    "return service -> team mappings" in new Setup {
+      val result = controller.repositoryTeams(FakeRequest())
+
+      val data = contentAsJson(result).as[Map[String, Seq[String]]]
+
+      data mustBe Map(
+        "repo-name"      -> Seq("test-team"),
+        "library-repo"   -> Seq("test-team"),
+        "another-repo"   -> Seq("another-team"),
+        "middle-repo"    -> Seq("another-team"),
+        "alibrary-repo"  -> Seq("another-team"),
+        "CATO-prototype" -> Seq("another-team"),
+        "other-repo"     -> List("another-team")
+      )
+    }
+  }
+
   "GET /api/services" should {
     "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup {
-      val result = controller.allServices(FakeRequest("GET", "/services?details=true"))
+      val result = controller.services(details = true)(FakeRequest())
 
       val resultJson = contentAsJson(result)
 
@@ -283,27 +301,11 @@ class RepositoriesControllerSpec
       env2Links mustBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
     }
 
-    "return service -> team mappings for all services when the request has a teamDetails query parameter" in new Setup {
-      val result = controller.allServices(FakeRequest("GET", "/services?teamDetails=true"))
-
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map(
-        "repo-name"      -> Seq("test-team"),
-        "library-repo"   -> Seq("test-team"),
-        "another-repo"   -> Seq("another-team"),
-        "middle-repo"    -> Seq("another-team"),
-        "alibrary-repo"  -> Seq("another-team"),
-        "CATO-prototype" -> Seq("another-team"),
-        "other-repo"     -> List("another-team")
-      )
-    }
-
     "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.allServices(FakeRequest())
+      val result = controller.services(details = false)(FakeRequest())
 
       val serviceList = contentAsJson(result).as[Seq[Repository]]
       serviceList.map(_.name) mustBe Seq("another-repo", "middle-repo", "repo-name")
@@ -363,7 +365,7 @@ class RepositoriesControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-        val result     = controller.allServices(FakeRequest())
+      val result = controller.services(details = false)(FakeRequest())
 
       contentAsJson(result).as[List[Repository]].map(_.name) mustBe List("aadvark-repo", "Another-repo", "repo-name")
     }
@@ -409,99 +411,9 @@ class RepositoriesControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(data))
 
-      val result = controller.allServices(FakeRequest())
+      val result = controller.services(details = false)(FakeRequest())
 
       contentAsJson(result).as[JsArray].value.size mustBe 1
-    }
-  }
-
-  "POST /api/services" should {
-
-    "return a json representation of services with the given names sorted alphabetically when the request has a details query parameter" in new Setup {
-      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("repo1", "repo2")))
-        .thenReturn(Future.successful(defaultData))
-
-      val result =
-        controller.services(FakeRequest("GET", "/services?details=true").withBody(Json.arr("repo1", "repo2")))
-
-      val resultJson = contentAsJson(result)
-
-      resultJson.as[Seq[JsObject]].map(_.value("name").as[String]) mustBe List(
-        "another-repo",
-        "middle-repo",
-        "repo-name"
-      )
-
-      val last = resultJson.as[Seq[JsObject]].last
-
-      (last \ "githubUrl").as[JsObject].as[Map[String, String]] mustBe Map(
-        "name"        -> "github-com",
-        "displayName" -> "GitHub.com",
-        "url"         -> "repo-url"
-      )
-
-      nameField(last)      mustBe "repo-name"
-      teamNamesField(last) mustBe Seq("test-team")
-
-      val environments = (last \ "environments").as[JsArray].value
-
-      val find: Option[JsValue] = environments.find(x => nameField(x) == "env1")
-      val env1Services          = find.value.as[JsObject] \ "services"
-      val env1Links             = env1Services.as[List[Map[String, String]]].toSet
-      env1Links mustBe Set(
-        Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"),
-        Map("name" -> "mon1", "displayName" -> "mon 1", "url" -> "repo-name"))
-
-      val env2Services = environments.find(x => nameField(x) == "env2").value.as[JsObject] \ "services"
-      val env2Links    = env2Services.as[List[Map[String, String]]].toSet
-      env2Links mustBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
-    }
-
-    "return service -> team mappings for selected services when the request has a teamDetails query parameter" in new Setup {
-      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("service1")))
-        .thenReturn(Future.successful(defaultData))
-
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr("service1")))
-
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map(
-        "repo-name"      -> Seq("test-team"),
-        "library-repo"   -> Seq("test-team"),
-        "another-repo"   -> Seq("another-team"),
-        "middle-repo"    -> Seq("another-team"),
-        "alibrary-repo"  -> Seq("another-team"),
-        "CATO-prototype" -> Seq("another-team"),
-        "other-repo"     -> List("another-team")
-      )
-    }
-
-    "return an empty map if no service names given" in new Setup {
-      val result = controller.services(FakeRequest("GET", "/services?teamDetails=true").withBody(Json.arr()))
-
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
-
-      data mustBe Map.empty
-    }
-
-    "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
-      when(mockTeamsAndReposPersister.getTeamsAndRepos(List("repo1", "repo2")))
-        .thenReturn(Future.successful(defaultData))
-
-      val result = controller.services(FakeRequest().withBody(Json.arr("repo1", "repo2")))
-
-      val serviceList = contentAsJson(result).as[Seq[Repository]]
-      serviceList.map(_.name) mustBe Seq("another-repo", "middle-repo", "repo-name")
-      serviceList.map(_.createdAt) must contain theSameElementsAs List(
-        createdDateForService1,
-        createdDateForService2,
-        createdDateForService3
-      )
-      serviceList.map(_.lastUpdatedAt) must contain theSameElementsAs List(
-        lastActiveDateForService1,
-        lastActiveDateForService2,
-        lastActiveDateForService3
-      )
     }
   }
 
@@ -537,7 +449,7 @@ class RepositoriesControllerSpec
 
   "Retrieving a list of all repositories" should {
     "return all the repositories" in new Setup {
-      val result       = controller.allRepositories(None)(FakeRequest())
+      val result       = controller.repositories(None)(FakeRequest())
       val resultJson   = contentAsJson(result)
       val repositories = resultJson.as[Seq[Repository]]
       repositories.map(_.name) mustBe List(

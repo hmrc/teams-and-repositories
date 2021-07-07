@@ -29,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
-import uk.gov.hmrc.teamsandrepositories.persitence.MongoLocks
+import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.duration.{Duration, DurationInt}

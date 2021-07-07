@@ -23,14 +23,12 @@ import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
-import play.api.libs.json._
 import uk.gov.hmrc.githubclient._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -50,12 +48,6 @@ class GithubV3RepositoryDataSource(
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
   private val logger = Logger(this.getClass)
-
-  implicit val repositoryFormats = {
-    implicit val rtf = RepoType.format
-    Json.format[GitRepository]
-  }
-  implicit val teamRepositoryFormats = Json.format[TeamRepositories]
 
   val retries: Int              = 5
   val initialDuration: Duration = 50.millis

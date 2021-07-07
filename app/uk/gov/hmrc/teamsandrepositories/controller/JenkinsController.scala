@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.persitence.model.BuildJob
+import uk.gov.hmrc.teamsandrepositories.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.ExecutionContext

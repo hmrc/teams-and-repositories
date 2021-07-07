@@ -29,10 +29,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-import uk.gov.hmrc.teamsandrepositories.persitence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

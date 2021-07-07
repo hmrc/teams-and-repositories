@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import com.google.inject.{Inject, Singleton}
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, LockService}
 
-trait DefaultPatienceConfig {
-  self: ScalaFutures =>
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
+import scala.concurrent.duration.DurationInt
+
+@Singleton
+class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
+  val dataReloadLock: LockService = LockService(mongoLockRepository, "data-reload-lock", 20.minutes)
+  val jenkinsLock   : LockService = LockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
+  val metrixLock    : LockService = LockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
 }

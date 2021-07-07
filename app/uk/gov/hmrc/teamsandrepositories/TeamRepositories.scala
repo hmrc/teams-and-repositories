@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence.model
+package uk.gov.hmrc.teamsandrepositories
 
 import java.time.Instant
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.teamsandrepositories.RepoType
-import uk.gov.hmrc.teamsandrepositories._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
 import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
@@ -64,33 +62,6 @@ case class TeamRepositories(
 
 object TeamRepositories {
   private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
-
-  case class DigitalServiceRepository(
-    name         : String,
-    createdAt    : Instant,
-    lastUpdatedAt: Instant,
-    repoType     : RepoType,
-    teamNames    : Seq[String],
-    archived     : Boolean
-  )
-
-  object DigitalServiceRepository {
-    implicit val format: Format[DigitalServiceRepository] = {
-      implicit val rtf = RepoType.format
-      Json.format[DigitalServiceRepository]
-    }
-  }
-
-  case class DigitalService(
-    name         : String,
-    lastUpdatedAt: Instant,
-    repositories : Seq[DigitalServiceRepository]
-  )
-
-  object DigitalService {
-    implicit val format: Format[DigitalService] =
-      Json.format[DigitalService]
-  }
 
   def findDigitalServiceDetails(
     allTeamsAndRepos: Seq[TeamRepositories],
@@ -143,7 +114,10 @@ object TeamRepositories {
 
   val apiFormat: OFormat[TeamRepositories] = {
     implicit val grf = GitRepository.apiFormat
-    Json.format[TeamRepositories]
+    ( (__ \ "teamName"    ).format[String]
+    ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "updateDate"  ).format[Instant]
+    )(apply, unlift(unapply))
   }
 
   val mongoFormat: OFormat[TeamRepositories] = {
@@ -154,11 +128,6 @@ object TeamRepositories {
     ~ (__ \ "updateDate"  ).format[Instant]
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
-
-  case class RepositoryToTeam(
-    repositoryName: String,
-    teamName      : String
-  )
 
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
     teamRepos
@@ -221,16 +190,52 @@ object TeamRepositories {
       .sortBy(_.name.toUpperCase)
   }
 
-  def getRepositoryToTeamNameList(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
+  def getRepositoryToTeamNames(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
     val mappings = for {
       tr <- teamRepos
       r  <- tr.repositories
-    } yield RepositoryToTeam(r.name, tr.teamName)
+    } yield (r.name, tr.teamName)
 
     mappings
-      .groupBy(_.repositoryName)
-      .map { m =>
-        m._1 -> m._2.map(_.teamName).distinct
-      }
+      .groupBy(_._1)
+      .mapValues(_.map(_._2).distinct)
+  }
+}
+
+case class DigitalServiceRepository(
+  name         : String,
+  createdAt    : Instant,
+  lastUpdatedAt: Instant,
+  repoType     : RepoType,
+  teamNames    : Seq[String],
+  archived     : Boolean
+)
+
+object DigitalServiceRepository {
+  val format: Format[DigitalServiceRepository] = {
+    implicit val rtf = RepoType.format
+    ( (__ \ "name"         ).format[String]
+    ~ (__ \ "createdAt"    ).format[Instant]
+    ~ (__ \ "lastUpdatedAt").format[Instant]
+    ~ (__ \ "repoType"     ).format[RepoType]
+    ~ (__ \ "teamNames"    ).format[Seq[String]]
+    ~ (__ \ "archived"     ).format[Boolean]
+    )(apply, unlift(unapply))
+  }
+}
+
+case class DigitalService(
+  name         : String,
+  lastUpdatedAt: Instant,
+  repositories : Seq[DigitalServiceRepository]
+)
+
+object DigitalService {
+  val format: Format[DigitalService] = {
+    implicit val dsrf = DigitalServiceRepository.format
+    ( (__ \ "name"         ).format[String]
+    ~ (__ \ "lastUpdatedAt").format[Instant]
+    ~ (__ \ "repositories" ).format[Seq[DigitalServiceRepository]]
+    )(apply, unlift(unapply))
   }
 }

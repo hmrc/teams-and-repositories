@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence
+package uk.gov.hmrc.teamsandrepositories.persistence
 
 import java.time.Instant
 
@@ -26,8 +26,8 @@ import org.mongodb.scala.model._
 import play.api.Logger
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
 
 import scala.concurrent.{ExecutionContext, Future}
 

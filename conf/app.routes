@@ -4,11 +4,11 @@ GET         /api/teams                           uk.gov.hmrc.teamsandrepositorie
 GET         /api/teams/:team                     uk.gov.hmrc.teamsandrepositories.controller.TeamsController.team(team, includeRepos: Boolean ?= false)
 GET         /api/teams_with_repositories         uk.gov.hmrc.teamsandrepositories.controller.TeamsController.allTeamsAndRepositories
 
-GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allServices
-POST        /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services
-GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries
+GET         /api/repository_teams                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryTeams
+GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services(details: Boolean ?= false)
+GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries(details: Boolean ?= false)
 GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryDetails(name)
-GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.allRepositories(archived: Option[Boolean])
+GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositories(archived: Option[Boolean])
 GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServiceDetails(name)
 GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServices
 GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)

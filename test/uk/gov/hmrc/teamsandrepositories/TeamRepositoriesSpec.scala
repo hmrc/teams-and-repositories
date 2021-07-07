@@ -24,12 +24,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.persitence.model.TeamRepositories.{DigitalServiceRepository, findDigitalServiceDetails}
+
 
 import scala.collection.immutable.ListMap
 
 class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
+  import TeamRepositories._
+
   val now = Instant.now()
 
   private val description = "Some description"
@@ -404,7 +405,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     }
   }
 
-  "getRepositoryToTeamNameList" should {
+  "getRepositoryToTeamNames" should {
     "group teams by services they own filtering out any duplicates" in {
       val teams = Seq(
         TeamRepositories(
@@ -529,7 +530,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         )
       )
 
-      val result = TeamRepositories.getRepositoryToTeamNameList(teams)
+      val result = TeamRepositories.getRepositoryToTeamNames(teams)
 
       result should contain("repo1" -> Seq("team1"))
       result should contain("repo2" -> Seq("team1", "team2"))

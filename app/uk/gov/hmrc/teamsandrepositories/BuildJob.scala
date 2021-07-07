@@ -14,16 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.persitence
+package uk.gov.hmrc.teamsandrepositories
 
-import com.google.inject.{Inject, Singleton}
-import uk.gov.hmrc.mongo.lock.{MongoLockRepository, LockService}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-import scala.concurrent.duration.DurationInt
+case class BuildJob(
+  service   : String,
+  jenkinsURL: String
+)
 
-@Singleton
-class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
-  val dataReloadLock: LockService = LockService(mongoLockRepository, "data-reload-lock", 20.minutes)
-  val jenkinsLock   : LockService = LockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
-  val metrixLock    : LockService = LockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
+object BuildJob {
+  val mongoFormat: OFormat[BuildJob] =
+    ( (__ \ "service"   ).format[String]
+    ~ (__ \ "jenkinsURL").format[String]
+    )(apply, unlift(unapply))
+
+  val apiWrites: Writes[BuildJob] =
+    ( (__ \ "service"   ).write[String]
+    ~ (__ \ "jenkinsURL").write[String]
+    )(unlift(unapply))
 }
