@@ -38,11 +38,11 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersistingServiceSpec
-    extends AnyWordSpec
-    with MockitoSugar
-    with ScalaFutures
-    with Matchers
-    with IntegrationPatience {
+  extends AnyWordSpec
+     with MockitoSugar
+     with ScalaFutures
+     with Matchers
+     with IntegrationPatience {
 
   val now = Instant.now()
 
@@ -66,8 +66,26 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repo1", "Some Description", "url1", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repo2", "Some Description", "url2", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              "repo1",
+              "Some Description",
+              "url1",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            ),
+            GitRepository(
+              "repo2",
+              "Some Description",
+              "url2",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            )
           ),
           timestampF()
         )
@@ -76,16 +94,52 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamB",
           List(
-            GitRepository("repo3", "Some Description", "url3", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repo4", "Some Description", "url4", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              "repo3",
+              "Some Description",
+              "url3",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            ),
+            GitRepository(
+              "repo4",
+              "Some Description",
+              "url4",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+              )
           ),
           timestampF()
         )
 
       val reposWithoutTeams =
         List(
-          GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false),
-          GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false)
+          GitRepository(
+            "repo5",
+            "Some Description",
+            "url5",
+            now,
+            now,
+            language      = Some("Scala"),
+            archived      = false,
+            defaultBranch = "main"
+          ),
+          GitRepository(
+            "repo6",
+            "Some Description",
+            "url6",
+            now,
+            now,
+            language = Some("Scala"),
+            archived = false,
+            defaultBranch = "main"
+          )
         )
 
       val dataSource = mock[GithubV3RepositoryDataSource]
@@ -118,14 +172,43 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repoB2", "Some Description", "urlB2", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repoA1", "Some Description", "urlA1", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              "repoB2",
+              "Some Description",
+              "urlB2",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            ),
+            GitRepository(
+              "repoA1",
+              "Some Description",
+              "urlA1",
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            )
           ),
           timestampF()
         )
 
       val dataSource1ReposWithoutTeams =
-        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false))
+        List(
+          GitRepository(
+            "repo6",
+            "Some Description",
+            "url6",
+            now,
+            now,
+            language      = Some("Scala"),
+            archived      = false,
+            defaultBranch = "main"
+          )
+        )
 
       val unknownTeamRepositories =
         TeamRepositories(
@@ -164,7 +247,18 @@ class PersistingServiceSpec
       def buildTeamRepositories(teamName: String, repoName: String, url: String) =
         TeamRepositories(
           teamName,
-          List(GitRepository(repoName, "Some Description", url, now, now, language = Some("Scala"), archived = false)),
+          List(
+            GitRepository(
+              repoName,
+              "Some Description",
+              url,
+              now,
+              now,
+              language      = Some("Scala"),
+              archived      = false,
+              defaultBranch = "main"
+            )
+          ),
           timestampF())
 
       val teamARepositories = buildTeamRepositories("teamA", "repo1", "url1")
@@ -180,7 +274,18 @@ class PersistingServiceSpec
       val ghTeamD = GhTeam("teamD", 4)
 
       val reposWithoutTeams =
-        List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false))
+        List(
+          GitRepository(
+            "repo5",
+             "Some Description",
+             "url5",
+             now,
+             now,
+             language      = Some("Scala"),
+             archived      = false,
+             defaultBranch = "main"
+           )
+         )
 
       val unknownTeamRepositories =
         TeamRepositories(

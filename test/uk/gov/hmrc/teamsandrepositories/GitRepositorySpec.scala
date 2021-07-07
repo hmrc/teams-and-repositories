@@ -47,10 +47,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-library",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Library,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Library,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -67,10 +68,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-library",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Library,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Library,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -93,10 +95,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-library",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Library,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Library,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -113,10 +116,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-library",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Library,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Library,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a team"), urlTemplates)
@@ -134,10 +138,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-service",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Service,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Service,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -154,10 +159,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-service",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Service,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Service,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -180,10 +186,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-service",
           now,
           now,
-          isPrivate = true,
-          repoType  = RepoType.Service,
-          language  = Some("Scala"),
-          archived  = false
+          isPrivate     = true,
+          repoType      = RepoType.Service,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -200,9 +207,10 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://not-open-github/org/a-library",
           now,
           now,
-          repoType = RepoType.Prototype,
-          language = Some("Scala"),
-          archived = false
+          repoType      = RepoType.Prototype,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -218,9 +226,10 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://not-open-github/org/a-library",
           now,
           now,
-          repoType = RepoType.Other,
-          language = Some("Scala"),
-          archived = false
+          repoType      = RepoType.Other,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -236,9 +245,10 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://github.com/org/a-frontend",
           now,
           now,
-          repoType = RepoType.Service,
-          language = Some("Scala"),
-          archived = false
+          repoType      = RepoType.Service,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aFrontend, Seq("teamName"), urlTemplates)
@@ -261,9 +271,10 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "https://not-open-github/org/a-library",
           now,
           now,
-          repoType = RepoType.Library,
-          language = Some("Scala"),
-          archived = false
+          repoType      = RepoType.Library,
+          language      = Some("Scala"),
+          archived      = false,
+          defaultBranch = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -278,9 +289,11 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
         "https://github.com/org/a-repo",
         now,
         now,
-        repoType = RepoType.Other,
-        language = Some("Scala"),
-        archived = false)
+        repoType      = RepoType.Other,
+        language      = Some("Scala"),
+        archived      = false,
+        defaultBranch = "main"
+      )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)
 

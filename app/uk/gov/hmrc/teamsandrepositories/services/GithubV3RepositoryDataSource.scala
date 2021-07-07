@@ -26,7 +26,7 @@ import play.api.Logger
 import uk.gov.hmrc.githubclient._
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 
@@ -51,11 +51,9 @@ class GithubV3RepositoryDataSource(
   val retries: Int              = 5
   val initialDuration: Duration = 50.millis
 
-  val HMRC_ORG = "hmrc"
-
   def getTeamsForHmrcOrg: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      githubConnector.getTeamsForOrg(HMRC_ORG)
+      githubConnector.getTeams()
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
@@ -83,7 +81,7 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] =
     withCounter(s"github.open.allRepos") {
-      githubConnector.getReposForOrg(HMRC_ORG)
+      githubConnector.getRepos()
         .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
@@ -118,7 +116,7 @@ class GithubV3RepositoryDataSource(
     optPersistedRepository match {
       case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate =>
         logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
-        Future.successful(buildGitRepositoryUsingPreviouslyPersistedOne(repository, persistedRepository))
+        Future.successful(enhanceGitRepository(persistedRepository, repository))
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
         logger.info(s"Team '${team.name}' - Partial reload of ${repository.htmlUrl}")
         logger.debug(s"Mapping repository (${repository.name}) as ${RepoType.Other}")
@@ -227,39 +225,45 @@ class GithubV3RepositoryDataSource(
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
 
-  private def hasTags(repository: GhRepository): Future[Boolean] =
+  private def hasTags(repo: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
-      githubConnector.getTags(HMRC_ORG, repository)
+      githubConnector.getTags(repo)
     }.map(_.nonEmpty)
 
   private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {
-      githubConnector.repoContainsContent(path, repo, HMRC_ORG)
+      githubConnector.repoContainsContent(repo, path)
     }
 
   private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
     githubConnector.getFileContent(repo.name, path).map(_.isDefined)
 
-  def buildGitRepositoryUsingPreviouslyPersistedOne(repository: GhRepository, persistedRepository: GitRepository) =
+  def enhanceGitRepository(
+    persistedRepository: GitRepository,
+    repository         : GhRepository
+  ): GitRepository =
     persistedRepository.copy(
       name           = repository.name,
-      description    = repository.description,
+      description    = repository.description.getOrElse(""),
       url            = repository.htmlUrl,
       createdDate    = Instant.ofEpochMilli(repository.createdDate),
       lastActiveDate = Instant.ofEpochMilli(repository.lastActiveDate),
       isPrivate      = repository.isPrivate,
-      archived       = repository.archived
+      language       = repository.language,
+      archived       = repository.archived,
+      defaultBranch  = repository.defaultBranch
     )
 
+  // TODO clean up duplication between enhance(partial) and buildGitRepository
   def buildGitRepository(
-    repository: GhRepository,
-    repositoryType: RepoType,
+    repository             : GhRepository,
+    repositoryType         : RepoType,
     maybeDigitalServiceName: Option[String],
-    owningTeams: Seq[String]
+    owningTeams            : Seq[String]
   ): GitRepository =
     GitRepository(
-      repository.name,
-      description        = repository.description,
+      name               = repository.name,
+      description        = repository.description.getOrElse(""),
       url                = repository.htmlUrl,
       createdDate        = Instant.ofEpochMilli(repository.createdDate),
       lastActiveDate     = Instant.ofEpochMilli(repository.lastActiveDate),
@@ -267,8 +271,9 @@ class GithubV3RepositoryDataSource(
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,
       owningTeams        = owningTeams,
-      language           = Option(repository.language),
-      archived           = repository.archived
+      language           = repository.language,
+      archived           = repository.archived,
+      defaultBranch      = repository.defaultBranch
     )
 
   def withCounter[T](name: String)(f: Future[T]) =

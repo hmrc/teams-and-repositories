@@ -33,8 +33,9 @@ case class GitRepository(
   repoType          : RepoType       = RepoType.Other,
   digitalServiceName: Option[String] = None,
   owningTeams       : Seq[String]    = Nil,
-  language          : Option[String] = None,
-  archived          : Boolean
+  language          : Option[String],
+  archived          : Boolean,
+  defaultBranch     : String
 )
 
 object GitRepository {
@@ -52,6 +53,7 @@ object GitRepository {
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"     ).format[String]
     )(apply _, unlift(unapply))
   }
 
@@ -69,6 +71,7 @@ object GitRepository {
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"     ).format[String]
     )(apply _, unlift(unapply))
   }
 
