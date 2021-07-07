@@ -30,7 +30,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTag, GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.{MongoTeamsAndRepositoriesPersister, TeamsAndReposPersister}
 
@@ -113,7 +113,7 @@ class GithubV3RepositoryDataSourceSpec
     }
   }
 
-  "Github v3 Data Source getTeamsWithOrgAndDataSourceDetails" should {
+  "Github v3 Data Source getTeams" should {
     "Return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val teamB       = GhTeam(id = 2, name = "B")
       private val hiddenTeam1 = GhTeam(id = 5, name = "hidden_team1")
@@ -121,7 +121,7 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA, teamB, hiddenTeam1)))
 
-      val result = dataSource.getTeamsForHmrcOrg.futureValue
+      val result = dataSource.getTeams().futureValue
 
       result.size shouldBe 2
       result      should contain theSameElementsAs Seq(teamA, teamB)
@@ -136,11 +136,11 @@ class GithubV3RepositoryDataSourceSpec
         description    = Some("a test repo"),
         htmlUrl        = "http://github.com/repo1",
         fork           = false,
-        createdDate    = nowMillis,
-        lastActiveDate = nowMillis,
+        createdDate    = now,
+        lastActiveDate = now,
         isPrivate      = false,
         language       = Some("Scala"),
-        archived       = false,
+        isArchived     = false,
         defaultBranch  = "main"
       )
       private val repo2 = GhRepository(
@@ -149,11 +149,11 @@ class GithubV3RepositoryDataSourceSpec
         description    = Some("another test repo"),
         htmlUrl        = "http://github.com/repo2",
         fork           = false,
-        createdDate    = nowMillis,
-        lastActiveDate = nowMillis,
+        createdDate    = now,
+        lastActiveDate = now,
         isPrivate      = false,
         language       = Some("Scala"),
-        archived       = false,
+        isArchived     = false,
         defaultBranch  = "main"
       )
       when(mockGithubConnector.getRepos())
@@ -174,7 +174,7 @@ class GithubV3RepositoryDataSourceSpec
           digitalServiceName = None,
           owningTeams        = List(),
           language           = Some("Scala"),
-          archived           = false,
+          isArchived         = false,
           defaultBranch      = "main"
         ),
         GitRepository(
@@ -188,7 +188,7 @@ class GithubV3RepositoryDataSourceSpec
           digitalServiceName = None,
           owningTeams        = List(),
           language           = Some("Scala"),
-          archived           = false,
+          isArchived         = false,
           defaultBranch      = "main"
         )
       )
@@ -212,17 +212,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -240,7 +240,7 @@ class GithubV3RepositoryDataSourceSpec
               lastActiveDate     = now,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )),
           timestampF()
@@ -253,30 +253,30 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "hidden_repo1",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "hidden_repo1",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           ),
           GhRepository(
-            id = 2,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 2,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -297,7 +297,7 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               owningTeams        = Nil,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -311,17 +311,17 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(
           List(
             GhRepository(
-              id = 1,
-              "A_r",
-              description = Some("some description"),
-              "url_A",
-              false,
-              nowMillis,
-              nowMillis,
-              false,
-              language = Some("Scala"),
-              false,
-              defaultBranch = "main"
+              id             = 1,
+              name           = "A_r",
+              description    = Some("some description"),
+              htmlUrl        = "url_A",
+              fork           = false,
+              createdDate    = now,
+              lastActiveDate = now,
+              isPrivate      = false,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
             )
           )
         )
@@ -337,15 +337,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -360,17 +360,17 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(
           List(
             GhRepository(
-              id = 1,
-              "A_r",
-              description = Some("some description"),
-              "url_A",
-              false,
-              nowMillis,
-              nowMillis,
-              false,
-              language = Some("Scala"),
-              false,
-              defaultBranch = "main"
+              id             = 1,
+              name           = "A_r",
+              description    = Some("some description"),
+              htmlUrl        = "url_A",
+              fork           = false,
+              createdDate    = now,
+              lastActiveDate = now,
+              isPrivate      = false,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
             )
           )
         ))
@@ -385,15 +385,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -408,17 +408,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -431,15 +431,15 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "A_r",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             repoType           = RepoType.Service,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -454,17 +454,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -477,15 +477,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -499,17 +499,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "repository-xyz",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "repository-xyz",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -522,15 +522,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "repository-xyz",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "repository-xyz",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Other,
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -545,17 +545,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "repository-xyz",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "repository-xyz",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )))
         )
 
@@ -573,15 +573,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "repository-xyz",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "repository-xyz",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Service,
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -596,17 +596,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -619,15 +619,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -642,17 +642,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -665,15 +665,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Other,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -688,17 +688,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -711,15 +711,15 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               repoType           = RepoType.Other,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -729,16 +729,16 @@ class GithubV3RepositoryDataSourceSpec
 
     "Set type Library if not Service and has src/main/scala and has tags" in new Setup {
       val ghRepository = GhRepository(
-        id = 1,
-        "A_r",
-        description = Some("some description"),
-        "url_A",
-        false,
-        nowMillis,
-        nowMillis,
-        false,
+        id             = 1,
+        name           = "A_r",
+        description    = Some("some description"),
+        htmlUrl        = "url_A",
+        fork           = false,
+        createdDate    = now,
+        lastActiveDate = now,
+        isPrivate      = false,
         language       = Some("Scala"),
-        archived       = false,
+        isArchived     = false,
         defaultBranch  = "main"
       )
 
@@ -762,15 +762,15 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "A_r",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             repoType           = RepoType.Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -780,17 +780,17 @@ class GithubV3RepositoryDataSourceSpec
 
     "Set type Library if not Service and has src/main/java and has tags" in new Setup {
       val ghRepository = GhRepository(
-        id = 1,
-        "A_r",
-        description = Some("some description"),
-        "url_A",
-        false,
-        nowMillis,
-        nowMillis,
-        false,
-        language = Some("Scala"),
-        false,
-        defaultBranch = "main"
+        id             = 1,
+        name           = "A_r",
+        description    = Some("some description"),
+        htmlUrl        = "url_A",
+        fork           = false,
+        createdDate    = now,
+        lastActiveDate = now,
+        isPrivate      = false,
+        language       = Some("Scala"),
+        isArchived     = false,
+        defaultBranch  = "main"
       )
 
       when(mockGithubConnector.getTeams())
@@ -813,15 +813,15 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "A_r",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             repoType           = RepoType.Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -836,17 +836,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "CATO-prototype",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "CATO-prototype",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -858,15 +858,15 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "CATO-prototype",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "CATO-prototype",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             repoType           = RepoType.Prototype,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -881,17 +881,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -903,15 +903,15 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "A_r",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             repoType           = RepoType.Other,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -926,17 +926,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -965,7 +965,7 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               owningTeams        = List("team1", "team2"),
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -980,17 +980,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            fork = false,
-            nowMillis,
-            nowMillis,
-            false,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = false,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
           )
         )))
 
@@ -1019,17 +1019,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id = 1,
-            "A_r",
-            description = Some("some description"),
-            "url_A",
-            false,
-            nowMillis,
-            nowMillis,
-            true,
-            language = Some("Scala"),
-            false,
-            defaultBranch = "main"
+            id             = 1,
+            name           = "A_r",
+            description    = Some("some description"),
+            htmlUrl        = "url_A",
+            fork           = false,
+            createdDate    = now,
+            lastActiveDate = now,
+            isPrivate      = true,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
            )
           )))
 
@@ -1041,16 +1041,16 @@ class GithubV3RepositoryDataSourceSpec
         "A",
         List(
           GitRepository(
-            "A_r",
-            "some description",
-            "url_A",
-            now,
-            now,
+            name               = "A_r",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
             isPrivate          = true,
             repoType           = RepoType.Other,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -1065,21 +1065,21 @@ class GithubV3RepositoryDataSourceSpec
             when(mockGithubConnector.getTeams())
               .thenReturn(Future.successful(List(teamA)))
 
-            val lastActiveDate: Long = 1234l
+            val lastActiveDate = Instant.ofEpochMilli(1234L)
             when(mockGithubConnector.getReposForTeam(teamA))
               .thenReturn(Future.successful(List(
                 GhRepository(
-                  id = 1,
-                  "repo-1",
-                  description = Some("some description"),
-                  "url_A",
-                  false,
-                  nowMillis,
-                  lastActiveDate,
-                  true,
-                  language = None,
-                  false,
-                  defaultBranch = "main"
+                  id             = 1,
+                  name           = "repo-1",
+                  description    = Some("some description"),
+                  htmlUrl        = "url_A",
+                  fork           = false,
+                  createdDate    = now,
+                  lastActiveDate = lastActiveDate,
+                  isPrivate      = true,
+                  language       = None,
+                  isArchived     = false,
+                  defaultBranch  = "main"
                 )
               )))
 
@@ -1087,17 +1087,17 @@ class GithubV3RepositoryDataSourceSpec
               "A",
               List(
                 GitRepository(
-                  "repo-1",
-                  "some description",
-                  "url_A",
-                  now,
-                  Instant.ofEpochMilli(lastActiveDate),
-                  isPrivate = true,
-                  RepoType.Library,
-                  Some("Some Digital Service"),
-                  Nil,
+                  name               = "repo-1",
+                  description        = "some description",
+                  url                = "url_A",
+                  createdDate        = now,
+                  lastActiveDate     = lastActiveDate,
+                  isPrivate          = true,
+                  repoType           = RepoType.Library,
+                  digitalServiceName = Some("Some Digital Service"),
+                  owningTeams        = Nil,
                   language           = None,
-                  archived           = false,
+                  isArchived         = false,
                   defaultBranch      = "main"
                 )
               ),
@@ -1112,16 +1112,16 @@ class GithubV3RepositoryDataSourceSpec
             repositories shouldBe TeamRepositories(
               "A",
               List(GitRepository(
-                "repo-1",
-                "some description",
-                "url_A",
-                now,
-                Instant.ofEpochMilli(lastActiveDate),
+                name               = "repo-1",
+                description        = "some description",
+                url                = "url_A",
+                createdDate        = now,
+                lastActiveDate     = lastActiveDate,
                 isPrivate          = true,
                 repoType           = RepoType.Library,
                 digitalServiceName = Some("Some Digital Service"),
                 language           = None,
-                archived           = false,
+                isArchived         = false,
                 defaultBranch      = "main"
               )),
               timestampF()
@@ -1142,16 +1142,16 @@ class GithubV3RepositoryDataSourceSpec
               .thenReturn(Future.successful(
                 List(
                   GhRepository(
-                    id = 1,
-                    "repo-1",
-                    description = Some("some description"),
-                    "url_A",
-                    false,
-                    createdDate    = nowMillis,
-                    lastActiveDate = nowMillis + 1,
-                    true,
+                    id             = 1,
+                    name           = "repo-1",
+                    description    = Some("some description"),
+                    htmlUrl        = "url_A",
+                    fork           = false,
+                    createdDate    = now,
+                    lastActiveDate = now.plusSeconds(1),
+                    isPrivate      = true,
                     language       = None,
-                    archived       = false,
+                    isArchived     = false,
                     defaultBranch  = "main"
                   )
                 )
@@ -1170,18 +1170,18 @@ class GithubV3RepositoryDataSourceSpec
               "A",
               List(
                 GitRepository(
-                  "repo-1",
-                  "some description",
-                  "url_A",
-                  createdDate    = now,
-                  lastActiveDate = now,
-                  true,
-                  RepoType.Library,
-                  Some("Some Digital Service"),
-                  Nil,
-                  language       = None,
-                  archived       = false,
-                  defaultBranch  = "main"
+                  name               = "repo-1",
+                  description        = "some description",
+                  url                = "url_A",
+                  createdDate        = now,
+                  lastActiveDate     = now,
+                  isPrivate          = true,
+                  repoType           = RepoType.Library,
+                  digitalServiceName = Some("Some Digital Service"),
+                  owningTeams        = Nil,
+                  language           = None,
+                  isArchived         = false,
+                  defaultBranch      = "main"
                 )
               ),
               now
@@ -1198,16 +1198,16 @@ class GithubV3RepositoryDataSourceSpec
               "A",
               List(
                 GitRepository(
-                  "repo-1",
-                  "some description",
-                  "url_A",
-                  now,
-                  Instant.ofEpochMilli(nowMillis + 1),
+                  name               = "repo-1",
+                  description        = "some description",
+                  url                = "url_A",
+                  createdDate        = now,
+                  lastActiveDate     = now.plusSeconds(1),
                   isPrivate          = true,
                   repoType           = RepoType.Library,
                   digitalServiceName = Some("service-abcd"),
                   language           = None,
-                  archived           = false,
+                  isArchived         = false,
                   defaultBranch      = "main"
                 )
               ),
@@ -1224,22 +1224,22 @@ class GithubV3RepositoryDataSourceSpec
           when(mockGithubConnector.getTeams())
             .thenReturn(Future.successful(List(teamA)))
 
-          val lastActiveDate: Long = 1234L
+          val lastActiveDate = Instant.ofEpochMilli(1234L)
 
           when(mockGithubConnector.getReposForTeam(teamA))
             .thenReturn(Future.successful(List(
               GhRepository(
-                id = 1,
-                "repo-1",
-                description = Some("some description"),
-                "url_A",
-                false,
-                nowMillis,
-                lastActiveDate,
-                true,
-                language = None,
-                archived = false,
-                defaultBranch = "main"
+                id             = 1,
+                name           = "repo-1",
+                description    = Some("some description"),
+                htmlUrl        = "url_A",
+                fork           = false,
+                createdDate    = now,
+                lastActiveDate = lastActiveDate,
+                isPrivate      = true,
+                language       = None,
+                isArchived     = false,
+                defaultBranch  = "main"
               )
             )))
 
@@ -1262,15 +1262,15 @@ class GithubV3RepositoryDataSourceSpec
             "A",
             List(
               GitRepository(
-                "repo-1",
-                "some description",
-                "url_A",
-                now,
-                Instant.ofEpochMilli(lastActiveDate),
+                name               = "repo-1",
+                description        = "some description",
+                url                = "url_A",
+                createdDate        = now,
+                lastActiveDate     = lastActiveDate,
                 isPrivate          = true,
                 repoType           = RepoType.Library,
                 digitalServiceName = Some("service-abcd"),
-                archived           = false,
+                isArchived         = false,
                 language           = None,
                 defaultBranch      = "main"
               )
@@ -1295,17 +1295,17 @@ class GithubV3RepositoryDataSourceSpec
 
       private val repository =
         GhRepository(
-          id = 1,
-          "A_r",
-          description = Some("some description"),
-          "url_A",
-          false,
-          nowMillis,
-          nowMillis,
-          false,
-          language = Some("Scala"),
-          false,
-          defaultBranch = "main"
+          id             = 1,
+          name           = "A_r",
+          description    = Some("some description"),
+          htmlUrl        = "url_A",
+          fork           = false,
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = false,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       when(mockGithubConnector.getReposForTeam(teamA))
@@ -1342,14 +1342,14 @@ class GithubV3RepositoryDataSourceSpec
           "A",
           List(
             GitRepository(
-              "A_r",
-              "some description",
-              "url_A",
-              now,
-              now,
+              name               = "A_r",
+              description        = "some description",
+              url                = "url_A",
+              createdDate        = now,
+              lastActiveDate     = now,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -1365,11 +1365,11 @@ class GithubV3RepositoryDataSourceSpec
           description    = Some("some description"),
           htmlUrl        = "url_A",
           fork           = false,
-          createdDate    = 0L,
-          lastActiveDate = nowMillis,
+          createdDate    = Instant.ofEpochMilli(0L),
+          lastActiveDate = now,
           isPrivate      = false,
           language       = None,
-          archived       = false,
+          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -1385,7 +1385,7 @@ class GithubV3RepositoryDataSourceSpec
         repoType           = RepoType.Other,
         digitalServiceName = None,
         language           = None,
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 

@@ -66,7 +66,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       false,
       RepoType.Service,
       language      = Some("Scala"),
-      archived      = false,
+      isArchived    = false,
       defaultBranch = "main"
     )
   private val gitRepository2 =
@@ -79,7 +79,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       false,
       RepoType.Library,
       language      = Some("Scala"),
-      archived      = false,
+      isArchived    = false,
       defaultBranch = "main"
     )
   private val gitRepository3 =
@@ -92,7 +92,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       false,
       RepoType.Service,
       language      = Some("Scala"),
-      archived      = false,
+      isArchived    = false,
       defaultBranch = "main"
     )
   private val gitRepository4 =
@@ -105,7 +105,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       false,
       RepoType.Library,
       language      = Some("Scala"),
-      archived      = false,
+      isArchived    = false,
       defaultBranch = "main"
     )
   private val gitRepositoryArchived =
@@ -118,7 +118,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
       false,
       RepoType.Service,
       language      = Some("Scala"),
-      archived      = true,
+      isArchived    = true,
       defaultBranch = "main"
     )
 
@@ -262,7 +262,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
           false,
           RepoType.Service,
           language      = Some("Scala"),
-          archived      = false,
+          isArchived    = false,
           defaultBranch = "main"
         )
       val teamAndRepositories1 =
@@ -279,7 +279,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
           false,
           RepoType.Service,
           language      = Some("Scala"),
-          archived      = false,
+          isArchived    = false,
           defaultBranch = "main"
         )
       val teamAndRepositories2 =

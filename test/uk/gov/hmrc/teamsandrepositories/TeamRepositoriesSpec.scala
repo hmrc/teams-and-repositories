@@ -47,7 +47,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -61,7 +61,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -75,7 +75,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -89,7 +89,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Other,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -119,7 +119,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -133,7 +133,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -147,7 +147,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -161,7 +161,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -175,7 +175,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -211,7 +211,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -224,7 +224,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -237,7 +237,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Other,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -250,7 +250,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -269,7 +269,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -299,7 +299,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
             repoType           = Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -316,7 +316,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
             repoType           = Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -341,7 +341,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -359,7 +359,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -389,7 +389,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -414,7 +414,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -445,7 +445,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -464,7 +464,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Other,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )),
           now
@@ -492,7 +492,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -505,7 +505,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -524,7 +524,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -537,7 +537,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -556,7 +556,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -569,7 +569,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -588,7 +588,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             ),
             GitRepository(
@@ -601,7 +601,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -632,7 +632,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           repoType           = Library,
           digitalServiceName = Some(digitalServiceName),
           language           = Some("Scala"),
-          archived           = false,
+          isArchived         = false,
           defaultBranch      = "main"
         )
 
@@ -701,7 +701,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               lastActiveDate     = now,
               digitalServiceName = Some("DigitalService1"),
               language           = None,
-              archived           = false,
+              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -723,7 +723,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Service,
       digitalServiceName = None,
       language           = Some("Scala"),
-      archived           = false,
+      isArchived         = false,
       defaultBranch      = "main"
     )
 
@@ -737,7 +737,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Service,
       digitalServiceName = None,
       language           = Some("Scala"),
-      archived           = false,
+      isArchived         = false,
       defaultBranch      = "main"
     )
 
@@ -751,7 +751,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Library,
       digitalServiceName = None,
       language           = Some("Scala"),
-      archived           = false,
+      isArchived         = false,
       defaultBranch      = "main"
     )
 
@@ -765,7 +765,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Other,
       digitalServiceName = None,
       language           = Some("Scala"),
-      archived           = false,
+      isArchived         = false,
       defaultBranch      = "main"
     )
 
@@ -779,7 +779,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       repoType           = Other,
       digitalServiceName = None,
       language           = Some("Scala"),
-      archived           = false,
+      isArchived         = false,
       defaultBranch      = "main"
     )
 
@@ -853,7 +853,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         digitalServiceName = None,
         language           = Some("Scala"),
         owningTeams        = List("teamName"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -866,7 +866,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Service,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -879,7 +879,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -892,7 +892,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Library,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -905,7 +905,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Other,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -918,7 +918,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Other,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -931,7 +931,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Prototype,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 
@@ -944,7 +944,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         repoType           = Prototype,
         digitalServiceName = None,
         language           = Some("Scala"),
-        archived           = false,
+        isArchived         = false,
         defaultBranch      = "main"
       )
 

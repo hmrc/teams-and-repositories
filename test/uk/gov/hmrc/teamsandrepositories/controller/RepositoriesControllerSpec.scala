@@ -91,7 +91,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -103,7 +103,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-3"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -121,7 +121,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -133,7 +133,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -145,7 +145,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -157,7 +157,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Prototype,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -169,7 +169,7 @@ class RepositoriesControllerSpec
             repoType           = RepoType.Other,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -193,7 +193,7 @@ class RepositoriesControllerSpec
           lastActiveDate = now,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          archived       = false,
+          isArchived     = false,
           defaultBranch  = "main"
         )),
         now
@@ -343,7 +343,7 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               ),
               GitRepository(
@@ -354,7 +354,7 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               ),
               GitRepository(
@@ -365,7 +365,7 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -396,7 +396,7 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -413,7 +413,7 @@ class RepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),

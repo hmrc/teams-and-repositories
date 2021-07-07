@@ -88,7 +88,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -100,7 +100,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-3"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -118,7 +118,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -130,7 +130,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -142,7 +142,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -154,7 +154,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Prototype,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -166,7 +166,7 @@ class TeamsControllerSpec
             repoType           = RepoType.Other,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            archived           = false,
+            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -186,7 +186,7 @@ class TeamsControllerSpec
           lastActiveDate = now,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          archived       = false,
+          isArchived     = false,
           defaultBranch  = "main"
         )),
         now
@@ -232,7 +232,7 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -249,7 +249,7 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -299,7 +299,7 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -316,7 +316,7 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -356,7 +356,7 @@ class TeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Library,
                 language       = Some("Scala"),
-                archived       = false,
+                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),

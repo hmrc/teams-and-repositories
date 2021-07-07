@@ -40,7 +40,7 @@ object Repository {
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
       language      = gr.language,
-      archived      = gr.archived
+      archived      = gr.isArchived
     )
 
   implicit val format: OFormat[Repository] = {

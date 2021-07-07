@@ -104,7 +104,7 @@ case class PersistingService @Inject()(
       persistedTeams: Seq[TeamRepositories]
     )( implicit ec: ExecutionContext
     ): Future[List[GhTeam]] =
-      dataSource.getTeamsForHmrcOrg
+      dataSource.getTeams
         .map(
           _.sortBy(ghTeam => persistedTeams.find(_.teamName == ghTeam.name).fold(Instant.MIN)(_.updateDate))
         )

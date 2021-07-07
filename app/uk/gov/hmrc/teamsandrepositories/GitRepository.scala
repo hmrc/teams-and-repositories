@@ -34,7 +34,7 @@ case class GitRepository(
   digitalServiceName: Option[String] = None,
   owningTeams       : Seq[String]    = Nil,
   language          : Option[String],
-  archived          : Boolean,
+  isArchived        : Boolean,
   defaultBranch     : String
 )
 

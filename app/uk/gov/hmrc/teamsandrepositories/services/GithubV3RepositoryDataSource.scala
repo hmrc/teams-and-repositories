@@ -50,7 +50,7 @@ class GithubV3RepositoryDataSource(
   val retries: Int              = 5
   val initialDuration: Duration = 50.millis
 
-  def getTeamsForHmrcOrg: Future[List[GhTeam]] =
+  def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
       githubConnector.getTeams()
     }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
@@ -93,13 +93,13 @@ class GithubV3RepositoryDataSource(
       optManifest     <- githubConnector.getFileContent(repository.name, "repository.yaml")
       manifestDetails =  optManifest.flatMap(parseManifest(repository.name, _))
                            .getOrElse(ManifestDetails(None, None, Nil))
-      repositoryType  <- manifestDetails.repositoryType match {
-                           case None                 => getTypeFromGithub(repository)
-                           case Some(repositoryType) => Future.successful(repositoryType)
+      repoType        <- manifestDetails.repoType match {
+                           case None           => getTypeFromGithub(repository)
+                           case Some(repoType) => Future.successful(repoType)
                          }
     } yield {
-      logger.debug(s"Mapping repository (${repository.name}) as $repositoryType")
-      buildGitRepository(repository, repositoryType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
+      logger.debug(s"Mapping repository (${repository.name}) as $repoType")
+      buildGitRepository(repository, repoType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
     }
 
   private def mapRepository(
@@ -113,7 +113,7 @@ class GithubV3RepositoryDataSource(
         .flatMap(_.repositories.find(_.url == repository.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate =>
+      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate.toEpochMilli =>
         logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
         Future.successful(enhanceGitRepository(persistedRepository, repository))
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
@@ -124,12 +124,12 @@ class GithubV3RepositoryDataSource(
         logger.info(
           s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${Instant.ofEpochMilli(repository.lastActiveDate)}"
+            s"github repository last updated -> ${repository.lastActiveDate}"
         )
         getRepositoryDetailsFromGithub(repository)
       case None =>
         logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
-        getRepositoryDetailsFromGithub(repository)
+        getRepositoryDetailsFromGithub(repository) // TODO repoType is never updated...
     }
   }
 
@@ -137,7 +137,7 @@ class GithubV3RepositoryDataSource(
     Try(new Yaml().load[java.util.Map[String, Object]](contents))
 
   case class ManifestDetails(
-    repositoryType    : Option[RepoType],
+    repoType          : Option[RepoType],
     digitalServiceName: Option[String],
     owningTeams       : Seq[String]
   )
@@ -156,7 +156,7 @@ class GithubV3RepositoryDataSource(
 
         val manifestDetails =
           ManifestDetails(
-            repositoryType     = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+            repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
                                    case "service" => Some(RepoType.Service)
                                    case "library" => Some(RepoType.Library)
                                    case _         => None
@@ -202,6 +202,8 @@ class GithubV3RepositoryDataSource(
   private def isReleasable(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
+    // doesn't work for multi-module
+    // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
     def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/scala"))
     def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/java"))
     def containsTags    = hasTags(repo)
@@ -245,11 +247,11 @@ class GithubV3RepositoryDataSource(
       name           = repository.name,
       description    = repository.description.getOrElse(""),
       url            = repository.htmlUrl,
-      createdDate    = Instant.ofEpochMilli(repository.createdDate),
-      lastActiveDate = Instant.ofEpochMilli(repository.lastActiveDate),
+      createdDate    = repository.createdDate,
+      lastActiveDate = repository.lastActiveDate,
       isPrivate      = repository.isPrivate,
       language       = repository.language,
-      archived       = repository.archived,
+      isArchived     = repository.isArchived,
       defaultBranch  = repository.defaultBranch
     )
 
@@ -264,14 +266,14 @@ class GithubV3RepositoryDataSource(
       name               = repository.name,
       description        = repository.description.getOrElse(""),
       url                = repository.htmlUrl,
-      createdDate        = Instant.ofEpochMilli(repository.createdDate),
-      lastActiveDate     = Instant.ofEpochMilli(repository.lastActiveDate),
+      createdDate        = repository.createdDate,
+      lastActiveDate     = repository.lastActiveDate,
       isPrivate          = repository.isPrivate,
       repoType           = repositoryType,
       digitalServiceName = maybeDigitalServiceName,
       owningTeams        = owningTeams,
       language           = repository.language,
-      archived           = repository.archived,
+      isArchived         = repository.isArchived,
       defaultBranch      = repository.defaultBranch
     )
 

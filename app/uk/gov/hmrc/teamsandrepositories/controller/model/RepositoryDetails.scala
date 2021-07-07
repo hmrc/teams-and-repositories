@@ -107,7 +107,7 @@ object RepositoryDetails {
         teamNames   = teamNames,
         githubUrl   = Link("github-com", "GitHub.com", repo.url),
         language    = repo.language.getOrElse(""),
-        isArchived  = repo.archived
+        isArchived  = repo.isArchived
       )
 
     repo.repoType match {

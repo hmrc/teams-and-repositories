@@ -43,33 +43,34 @@ class GithubConnector @Inject()(
 
   private implicit val hc = HeaderCarrier()
 
-  def getFileContent(repoName: String, path: String): Future[Option[String]] =
+  def getFileContent(repoName: String, path: String): Future[Option[String]] = {
     httpClient.GET[Option[HttpResponse]](
-      url     = url"${githubConfig.rawUrl}/hmrc/$repoName/master/$path", // TODO check path is not escaped...
+      url     = url"${githubConfig.rawUrl}/hmrc/$repoName/master/$path", // works with both escaped and non-escaped path
       headers = Seq(authHeader)
-    ).map(_.map(_.body))
+    ).map(_.map(_.body)) // TODO do we need to check status?
+  }
 
   def getTeams(): Future[List[GhTeam]] = {
     implicit val tf = GhTeam.format
-    invokePaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams")
+    invokePaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
   }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] = {
     implicit val rf = GhRepository.format
-    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubName}/repos")
+    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubName}/repos?per_page=100")
   }
 
   def getRepos(): Future[List[GhRepository]] = {
     implicit val rf = GhRepository.format
-    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos")
+    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
   }
 
   def hasTags(repo: GhRepository): Future[Boolean] = {
     implicit val tf = GhTag.format
-    httpClient.GET[List[GhTag]](
-      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags",
+    httpClient.GET[Option[List[GhTag]]](
+      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
       headers = Seq(authHeader, acceptsHeader)
-    ).map(_.nonEmpty)
+    ).map(_.isDefined)
      .recoverWith {
        case e if isRateLimit(e) => rateLimitError(e)
      }
@@ -77,9 +78,9 @@ class GithubConnector @Inject()(
 
   def repoContainsContent(repo: GhRepository, path: String): Future[Boolean] =
     httpClient.GET[Option[HttpResponse]](
-      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // TODO add path without escaping...
+      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
       headers = Seq(authHeader, acceptsHeader)
-    ).map(_.fold(false)(_.body.isEmpty))
+    ).map(_.isDefined)
      .recoverWith {
        case e if isRateLimit(e) => rateLimitError(e)
      }
@@ -99,20 +100,22 @@ class GithubConnector @Inject()(
     r: HttpReads[List[A]]
   ): Future[List[A]] = {
     implicit val read: HttpReads[PaginatedResult[A]] =
-      HttpReadsInstances.readRaw
-        .map(_.header("link").map(parseLink).getOrElse(Map.empty))
-        .flatMap(links => r.map(PaginatedResult(_, links)))
+      for {
+        links <- HttpReadsInstances.readRaw
+                   .map(_.header("link").fold(Map.empty[String, String])(parseLink))
+        res   <- r
+      } yield PaginatedResult(res, links)
 
     httpClient
       .GET[PaginatedResult[A]](
-        url     = url"$url?per_page=100",
+        url     = url"$url",
         headers = Seq(authHeader, acceptsHeader)
       )
       .flatMap { response =>
         val acc2 = acc ++ response.results
-        response.links.get("next").fold(Future.successful(acc2)) { nextUrl =>
+        response.links.get("next").fold(Future.successful(acc2))(nextUrl =>
           invokePaginated(url"$nextUrl", acc2)
-        }
+        )
       }
       .recoverWith { case e if isRateLimit(e) => rateLimitError(e) }
   }
@@ -151,11 +154,11 @@ case class GhRepository(
   description   : Option[String],
   htmlUrl       : String,
   fork          : Boolean,
-  createdDate   : Long, // TODO change to Instant
-  lastActiveDate: Long, // TODO change to Instant
+  createdDate   : Instant,
+  lastActiveDate: Instant,
   isPrivate     : Boolean,
   language      : Option[String],
-  archived      : Boolean, // TODO rename isArchived
+  isArchived    : Boolean,
   defaultBranch : String
 )
 
@@ -166,8 +169,8 @@ object GhRepository {
     ~ (__ \ "description"   ).formatNullable[String]
     ~ (__ \ "html_url"      ).format[String]
     ~ (__ \ "fork"          ).format[Boolean]
-    ~ (__ \ "created_at"    ).format[Instant].inmap[Long](_.toEpochMilli, Instant.ofEpochMilli)
-    ~ (__ \ "pushed_at"      ).format[Instant].inmap[Long](_.toEpochMilli, Instant.ofEpochMilli)
+    ~ (__ \ "created_at"    ).format[Instant]
+    ~ (__ \ "pushed_at"     ).format[Instant]
     ~ (__ \ "private"       ).format[Boolean]
     ~ (__ \ "language"      ).formatNullable[String]
     ~ (__ \ "archived"      ).format[Boolean]
