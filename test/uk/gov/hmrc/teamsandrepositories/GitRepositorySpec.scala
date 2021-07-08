@@ -42,16 +42,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "create links for libraries" in {
       val repo =
         GitRepository(
-          "a-library",
-          "Some Description",
-          "https://github.com/org/a-library",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Library,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-library",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Library,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -63,16 +63,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "create ci links for libraries belonging to multiple teams" in {
       val repo =
         GitRepository(
-          "a-library",
-          "Some Description",
-          "https://github.com/org/a-library",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Library,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-library",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Library,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -90,16 +90,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "not create ci links for libraries without a team" in {
       val repo =
         GitRepository(
-          "a-library",
-          "Some Description",
-          "https://github.com/org/a-library",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Library,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-library",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Library,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -111,16 +111,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "url encode ci links with spaces correctly" in {
       val repo =
         GitRepository(
-          "a-library",
-          "Some Description",
-          "https://github.com/org/a-library",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Library,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-library",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Library,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a team"), urlTemplates)
@@ -133,16 +133,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "create links for services" in {
       val repo =
         GitRepository(
-          "a-service",
-          "Some Description",
-          "https://github.com/org/a-service",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Service,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-service",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-service",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)
@@ -154,16 +154,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "create ci links for services belonging to multiple teams" in {
       val repo =
         GitRepository(
-          "a-service",
-          "Some Description",
-          "https://github.com/org/a-service",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Service,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-service",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-service",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team", "another-team"), urlTemplates)
@@ -181,16 +181,16 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "not create ci links for services without a team" in {
       val repo =
         GitRepository(
-          "a-service",
-          "Some Description",
-          "https://github.com/org/a-service",
-          now,
-          now,
-          isPrivate     = true,
-          repoType      = RepoType.Service,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-service",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-service",
+          createdDate    = now,
+          lastActiveDate = now,
+          isPrivate      = true,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq(), urlTemplates)
@@ -202,15 +202,15 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "not create ci links for prototype repositories" in {
       val aLibrary =
         GitRepository(
-          "a-prototype",
-          "Some Description",
-          "https://not-open-github/org/a-library",
-          now,
-          now,
-          repoType      = RepoType.Prototype,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-prototype",
+          description    = "Some Description",
+          url            = "https://not-open-github/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Prototype,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -221,15 +221,15 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "not create ci links for other type of repositories" in {
       val aLibrary =
         GitRepository(
-          "a-other",
-          "Some Description",
-          "https://not-open-github/org/a-library",
-          now,
-          now,
-          repoType      = RepoType.Other,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-other",
+          description    = "Some Description",
+          url            = "https://not-open-github/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Other,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -240,15 +240,15 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "create links for each environment" in {
       val aFrontend =
         GitRepository(
-          "a-frontend",
-          "Some Description",
-          "https://github.com/org/a-frontend",
-          now,
-          now,
-          repoType      = RepoType.Service,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-frontend",
+          description    = "Some Description",
+          url            = "https://github.com/org/a-frontend",
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Service,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aFrontend, Seq("teamName"), urlTemplates)
@@ -266,15 +266,15 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
     "not create environment links for libraries" in {
       val aLibrary =
         GitRepository(
-          "a-library",
-          "Some Description",
-          "https://not-open-github/org/a-library",
-          now,
-          now,
-          repoType      = RepoType.Library,
-          language      = Some("Scala"),
-          isArchived    = false,
-          defaultBranch = "main"
+          name           = "a-library",
+          description    = "Some Description",
+          url            = "https://not-open-github/org/a-library",
+          createdDate    = now,
+          lastActiveDate = now,
+          repoType       = RepoType.Library,
+          language       = Some("Scala"),
+          isArchived     = false,
+          defaultBranch  = "main"
         )
 
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
@@ -284,15 +284,15 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
     "just create github links if not Deployable or Library" in {
       val repo = GitRepository(
-        "a-repo",
-        "Some Description",
-        "https://github.com/org/a-repo",
-        now,
-        now,
-        repoType      = RepoType.Other,
-        language      = Some("Scala"),
-        isArchived    = false,
-        defaultBranch = "main"
+        name           = "a-repo",
+        description    = "Some Description",
+        url            = "https://github.com/org/a-repo",
+        createdDate    = now,
+        lastActiveDate = now,
+        repoType       = RepoType.Other,
+        language       = Some("Scala"),
+        isArchived     = false,
+        defaultBranch  = "main"
       )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("teamName"), urlTemplates)

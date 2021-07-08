@@ -81,55 +81,69 @@ class GithubV3RepositoryDataSource(
   def getAllRepositories(): Future[List[GitRepository]] =
     withCounter(s"github.open.allRepos") {
       githubConnector.getRepos()
-        .map(_.map(r => buildGitRepository(r, RepoType.Other, None, Seq.empty)))
+        .map(_.map(repo => buildGitRepository(repo, RepoType.Other, None, Seq.empty)))
     }.recoverWith {
       case NonFatal(ex) =>
         logger.error("Could not retrieve repo list for organisation.", ex)
         Future.failed(ex)
     }
 
-  def getRepositoryDetailsFromGithub(repository: GhRepository): Future[GitRepository] =
+  private def buildGitRepositoryFromGithub(repo: GhRepository): Future[GitRepository] =
     for {
-      optManifest     <- githubConnector.getFileContent(repository.name, "repository.yaml")
-      manifestDetails =  optManifest.flatMap(parseManifest(repository.name, _))
+      optManifest     <- githubConnector.getFileContent(repo, "repository.yaml")
+      manifestDetails =  optManifest.flatMap(parseManifest(repo.name, _))
                            .getOrElse(ManifestDetails(None, None, Nil))
       repoType        <- manifestDetails.repoType match {
-                           case None           => getTypeFromGithub(repository)
+                           case None           => getTypeFromGithub(repo)
                            case Some(repoType) => Future.successful(repoType)
                          }
     } yield {
-      logger.debug(s"Mapping repository (${repository.name}) as $repoType")
-      buildGitRepository(repository, repoType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
+      logger.debug(s"Mapping repository (${repo.name}) as $repoType")
+      buildGitRepository(repo, repoType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
     }
 
   private def mapRepository(
     team          : GhTeam,
-    repository    : GhRepository,
+    repo          : GhRepository,
     persistedTeams: Seq[TeamRepositories]
-    ): Future[GitRepository] = {
+  ): Future[GitRepository] = {
     val optPersistedRepository =
       persistedTeams
-        .find(tr => tr.repositories.exists(r => r.name == repository.name && team.name == tr.teamName))
-        .flatMap(_.repositories.find(_.url == repository.htmlUrl))
+        .find(tr => tr.repositories.exists(r => r.name == repo.name && team.name == tr.teamName))
+        .flatMap(_.repositories.find(_.url == repo.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repository.lastActiveDate.toEpochMilli =>
-        logger.info(s"Team '${team.name}' - Repository '${repository.htmlUrl}' already up to date")
-        Future.successful(enhanceGitRepository(persistedRepository, repository))
+      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repo.lastActiveDate.toEpochMilli =>
+        logger.info(s"Team '${team.name}' - Repository '${repo.htmlUrl}' already up to date")
+        Future.successful(
+          buildGitRepository(
+            repo               = repo,
+            repoType           = persistedRepository.repoType,
+            digitalServiceName = persistedRepository.digitalServiceName,
+            owningTeams        = persistedRepository.owningTeams
+          )
+        )
       case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
-        logger.info(s"Team '${team.name}' - Partial reload of ${repository.htmlUrl}")
-        logger.debug(s"Mapping repository (${repository.name}) as ${RepoType.Other}")
-        Future.successful(buildGitRepository(repository, RepoType.Other, None, persistedRepository.owningTeams))
+        logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl}")
+        logger.debug(s"Mapping repository (${repo.name}) as ${RepoType.Other}")
+        Future.successful(
+          buildGitRepository(
+            repo               = repo,
+            repoType           = RepoType.Other,
+            digitalServiceName = None,
+            owningTeams        = persistedRepository.owningTeams
+          )
+        )
       case Some(persistedRepository) =>
         logger.info(
-          s"Team '${team.name}' - Full reload of ${repository.htmlUrl}: " +
+          s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${repository.lastActiveDate}"
+            s"github repository last updated -> ${repo.lastActiveDate}"
         )
-        getRepositoryDetailsFromGithub(repository)
+        buildGitRepositoryFromGithub(repo)
       case None =>
-        logger.info(s"Team '${team.name}' - Full reload of ${repository.name} from github: never persisted before")
-        getRepositoryDetailsFromGithub(repository) // TODO repoType is never updated...
+        logger.info(s"Team '${team.name}' - Full reload of ${repo.name} from github: never persisted before")
+        buildGitRepositoryFromGithub(repo)
     }
   }
 
@@ -204,8 +218,8 @@ class GithubV3RepositoryDataSource(
 
     // doesn't work for multi-module
     // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/scala"))
-    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(hasPath(repo, "src/main/java"))
+    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(existsContent(repo, "src/main/scala"))
+    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(existsContent(repo, "src/main/java"))
     def containsTags    = hasTags(repo)
 
     (hasSrcMainScala || hasSrcMainJava) && containsTags
@@ -215,13 +229,13 @@ class GithubV3RepositoryDataSource(
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(hasFile(repo, "conf/application.conf"))
+      exponentialRetry(retries, initialDuration)(existsContent(repo, "conf/application.conf"))
 
     def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(hasFile(repo, "Procfile"))
+      exponentialRetry(retries, initialDuration)(existsContent(repo, "Procfile"))
 
     def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(hasFile(repo, "deploy.properties"))
+      exponentialRetry(retries, initialDuration)(existsContent(repo, "deploy.properties"))
 
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
@@ -231,50 +245,30 @@ class GithubV3RepositoryDataSource(
       githubConnector.hasTags(repo)
     }
 
-  private def hasPath(repo: GhRepository, path: String): Future[Boolean] =
+  private def existsContent(repo: GhRepository, path: String): Future[Boolean] =
     withCounter(s"github.open.containsContent") {
-      githubConnector.repoContainsContent(repo, path)
+      githubConnector.existsContent(repo, path)
     }
 
-  private def hasFile(repo: GhRepository, path: String): Future[Boolean] =
-    githubConnector.getFileContent(repo.name, path).map(_.isDefined)
-
-  def enhanceGitRepository(
-    persistedRepository: GitRepository,
-    repository         : GhRepository
-  ): GitRepository =
-    persistedRepository.copy(
-      name           = repository.name,
-      description    = repository.description.getOrElse(""),
-      url            = repository.htmlUrl,
-      createdDate    = repository.createdDate,
-      lastActiveDate = repository.lastActiveDate,
-      isPrivate      = repository.isPrivate,
-      language       = repository.language,
-      isArchived     = repository.isArchived,
-      defaultBranch  = repository.defaultBranch
-    )
-
-  // TODO clean up duplication between enhance(partial) and buildGitRepository
-  def buildGitRepository(
-    repository             : GhRepository,
-    repositoryType         : RepoType,
-    maybeDigitalServiceName: Option[String],
-    owningTeams            : Seq[String]
+  private def buildGitRepository(
+    repo             : GhRepository,
+    repoType          : RepoType,
+    digitalServiceName: Option[String],
+    owningTeams       : Seq[String]
   ): GitRepository =
     GitRepository(
-      name               = repository.name,
-      description        = repository.description.getOrElse(""),
-      url                = repository.htmlUrl,
-      createdDate        = repository.createdDate,
-      lastActiveDate     = repository.lastActiveDate,
-      isPrivate          = repository.isPrivate,
-      repoType           = repositoryType,
-      digitalServiceName = maybeDigitalServiceName,
+      name               = repo.name,
+      description        = repo.description.getOrElse(""),
+      url                = repo.htmlUrl,
+      createdDate        = repo.createdDate,
+      lastActiveDate     = repo.lastActiveDate,
+      isPrivate          = repo.isPrivate,
+      repoType           = repoType,
+      digitalServiceName = digitalServiceName,
       owningTeams        = owningTeams,
-      language           = repository.language,
-      isArchived         = repository.isArchived,
-      defaultBranch      = repository.defaultBranch
+      language           = repo.language,
+      isArchived         = repo.isArchived,
+      defaultBranch      = repo.defaultBranch
     )
 
   def withCounter[T](name: String)(f: Future[T]) =

@@ -23,7 +23,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, OFormat, __}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
@@ -43,11 +43,11 @@ class GithubConnector @Inject()(
 
   private implicit val hc = HeaderCarrier()
 
-  def getFileContent(repoName: String, path: String): Future[Option[String]] = {
-    httpClient.GET[Option[HttpResponse]](
-      url     = url"${githubConfig.rawUrl}/hmrc/$repoName/master/$path", // works with both escaped and non-escaped path
+  def getFileContent(repo: GhRepository, path: String): Future[Option[String]] = {
+    httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
+      url     = url"${githubConfig.rawUrl}/hmrc/${repo.name}/${repo.defaultBranch}/$path", // works with both escaped and non-escaped path
       headers = Seq(authHeader)
-    ).map(_.map(_.body)) // TODO do we need to check status?
+    ).map(_.map(_.fold(throw _, _.body)))
   }
 
   def getTeams(): Future[List[GhTeam]] = {
@@ -76,11 +76,14 @@ class GithubConnector @Inject()(
      }
   }
 
-  def repoContainsContent(repo: GhRepository, path: String): Future[Boolean] =
-    httpClient.GET[Option[HttpResponse]](
+  def existsContent(repo: GhRepository, path: String): Future[Boolean] =
+    httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
       url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
       headers = Seq(authHeader, acceptsHeader)
-    ).map(_.isDefined)
+    ).map{
+      case None    => false
+      case Some(e) => e.fold(throw _, _ => true)
+    }
      .recoverWith {
        case e if isRateLimit(e) => rateLimitError(e)
      }
@@ -93,18 +96,28 @@ class GithubConnector @Inject()(
     )
   }
 
-  private case class PaginatedResult[A](results: List[A], links: Map[String, String])
+  private case class LinkParam(
+    k: String,
+    v: String
+  )
+  private case class PaginatedResult[A](
+    results: List[A],
+    nextUrl: Option[String]
+  )
 
-  private def invokePaginated[A](url: URL, acc: List[A] = List.empty)(
-    implicit hc: HeaderCarrier,
-    r: HttpReads[List[A]]
+  private def invokePaginated[A](
+    url: URL,
+    acc: List[A] = List.empty
+  )(implicit
+    hc: HeaderCarrier,
+    r : HttpReads[List[A]]
   ): Future[List[A]] = {
     implicit val read: HttpReads[PaginatedResult[A]] =
       for {
-        links <- HttpReadsInstances.readRaw
-                   .map(_.header("link").fold(Map.empty[String, String])(parseLink))
-        res   <- r
-      } yield PaginatedResult(res, links)
+        nextUrl <- HttpReadsInstances.readRaw
+                     .map(_.header("link").flatMap(lookupNextUrl))
+        res     <- r
+      } yield PaginatedResult(res, nextUrl)
 
     httpClient
       .GET[PaginatedResult[A]](
@@ -113,22 +126,30 @@ class GithubConnector @Inject()(
       )
       .flatMap { response =>
         val acc2 = acc ++ response.results
-        response.links.get("next").fold(Future.successful(acc2))(nextUrl =>
+        response.nextUrl.fold(Future.successful(acc2))(nextUrl =>
           invokePaginated(url"$nextUrl", acc2)
         )
       }
       .recoverWith { case e if isRateLimit(e) => rateLimitError(e) }
   }
 
+  private def lookupNextUrl(link: String): Option[String] =
+    parseLink(link).collectFirst {
+      case (url, params) if params.contains(LinkParam("rel", "next")) => url
+    }
+
   // RFC 5988 link header
-  private def parseLink(link: String): Map[String, String] =
+  private def parseLink(link: String): Map[String, List[LinkParam]] =
     link
-      .split(", ")
+      .split(",")
       .map { linkEntry =>
-        val entryPart = linkEntry.split(';')
-        val rel       = entryPart(1).replace(" rel=\"", "").replace("\"", "")
-        val url       = entryPart(0).replace("<", "").replace(">", "")
-        rel -> url
+        val urlRef :: params = linkEntry.split(";").toList
+        val url = urlRef.trim.stripPrefix("<").stripSuffix(">")
+        val linkParams = params.map { param =>
+          val k :: v :: Nil = param.split("=").toList
+          LinkParam(k.trim, v.trim.stripPrefix("\"").stripSuffix("\""))
+        }
+        url -> linkParams
       }
       .toMap
 }

@@ -59,7 +59,6 @@ class PersistingServiceSpec
   import testTimestamper._
 
   "persistTeamRepoMapping_new" should {
-
     "persist teams and their repos" in {
       val teamARepositories =
         TeamRepositories(
@@ -146,13 +145,17 @@ class PersistingServiceSpec
       val ghTeamA = GhTeam(id = 1, name = "teamA")
       val ghTeamB = GhTeam(id = 2, name = "teamB")
 
-      when(dataSource.getTeams()).thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
+      when(dataSource.getTeams())
+        .thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
+
       when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
+
       when(dataSource.mapTeam(eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
-      when(dataSource.getAllRepositories()).thenReturn(Future(reposWithoutTeams))
+      when(dataSource.getAllRepositories())
+        .thenReturn(Future(reposWithoutTeams))
 
       val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
