@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import java.time.Instant
 
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
@@ -27,19 +27,17 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, Module, RepoType, TeamRepositories}
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MongoTeamsAndRepositoriesPersisterSpec
-    extends AnyWordSpec
-    with Matchers
-    with LoneElement
-    with ScalaFutures
-    with OptionValues
-    with BeforeAndAfterEach
-    with GuiceOneAppPerSuite {
-
-  override implicit val patienceConfig = PatienceConfig(timeout = 30.seconds, interval = 100.millis)
+  extends AnyWordSpec
+     with Matchers
+     with LoneElement
+     with ScalaFutures
+     with IntegrationPatience
+     with OptionValues
+     with BeforeAndAfterEach
+     with GuiceOneAppPerSuite {
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -59,15 +57,70 @@ class MongoTeamsAndRepositoriesPersisterSpec
   }
 
   private val gitRepository1 =
-    GitRepository("repo-name1", "Desc1", "url1", Instant.now(), Instant.now(), false, RepoType.Service, language = Some("Scala"), archived = false)
+    GitRepository(
+      "repo-name1",
+      "Desc1",
+      "url1",
+      Instant.now(),
+      Instant.now(),
+      false,
+      RepoType.Service,
+      language      = Some("Scala"),
+      isArchived    = false,
+      defaultBranch = "main"
+    )
   private val gitRepository2 =
-    GitRepository("repo-name2", "Desc2", "url2", Instant.now(), Instant.now(), false, RepoType.Library, language = Some("Scala"), archived = false)
+    GitRepository(
+      "repo-name2",
+      "Desc2",
+      "url2",
+      Instant.now(),
+      Instant.now(),
+      false,
+      RepoType.Library,
+      language      = Some("Scala"),
+      isArchived    = false,
+      defaultBranch = "main"
+    )
   private val gitRepository3 =
-    GitRepository("repo-name3", "Desc3", "url3", Instant.now(), Instant.now(), false, RepoType.Service, language = Some("Scala"), archived = false)
+    GitRepository(
+      "repo-name3",
+      "Desc3",
+      "url3",
+      Instant.now(),
+      Instant.now(),
+      false,
+      RepoType.Service,
+      language      = Some("Scala"),
+      isArchived    = false,
+      defaultBranch = "main"
+    )
   private val gitRepository4 =
-    GitRepository("repo-name4", "Desc4", "url4", Instant.now(), Instant.now(), false, RepoType.Library, language = Some("Scala"), archived = false)
+    GitRepository(
+      "repo-name4",
+      "Desc4",
+      "url4",
+      Instant.now(),
+      Instant.now(),
+      false,
+      RepoType.Library,
+      language      = Some("Scala"),
+      isArchived    = false,
+      defaultBranch = "main"
+    )
   private val gitRepositoryArchived =
-    GitRepository("repo-name-archived", "Desc5", "url5", Instant.now(), Instant.now(), false, RepoType.Service, language = Some("Scala"), archived = true)
+    GitRepository(
+      "repo-name-archived",
+      "Desc5",
+      "url5",
+      Instant.now(),
+      Instant.now(),
+      false,
+      RepoType.Service,
+      language      = Some("Scala"),
+      isArchived    = true,
+      defaultBranch = "main"
+    )
 
   "getAllTeamAndRepos" should {
     val teamAndRepositories1 =
@@ -181,9 +234,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
   }
 
   "resetLastActiveDate" should {
-
     "set repo's lastActiveDate to 0 and return 1 as number of modified records" in {
-
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepository1, gitRepository2, gitRepository3), Instant.now())
 
@@ -202,13 +253,35 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
     "set lastActiveDate to 0 of all repos with the given name and return number of modified records" in {
       val gitRepositoryToReset1 =
-        GitRepository("repo-to-reset-name", "Desc1", "url1", Instant.now(), Instant.now(), false, RepoType.Service, language = Some("Scala"), archived = false)
+        GitRepository(
+          "repo-to-reset-name",
+          "Desc1",
+          "url1",
+          Instant.now(),
+          Instant.now(),
+          false,
+          RepoType.Service,
+          language      = Some("Scala"),
+          isArchived    = false,
+          defaultBranch = "main"
+        )
       val teamAndRepositories1 =
         TeamRepositories("test-team1", List(gitRepositoryToReset1), Instant.now())
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
       val gitRepositoryToReset2 =
-        GitRepository("repo-to-reset-name", "Desc2", "url2", Instant.now(), Instant.now(), false, RepoType.Service, language = Some("Scala"), archived = false)
+        GitRepository(
+          "repo-to-reset-name",
+          "Desc2",
+          "url2",
+          Instant.now(),
+          Instant.now(),
+          false,
+          RepoType.Service,
+          language      = Some("Scala"),
+          isArchived    = false,
+          defaultBranch = "main"
+        )
       val teamAndRepositories2 =
         TeamRepositories("test-team2", List(gitRepositoryToReset2), Instant.now())
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue

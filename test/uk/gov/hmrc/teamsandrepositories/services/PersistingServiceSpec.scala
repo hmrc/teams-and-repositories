@@ -27,10 +27,9 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.githubclient.{GhTeam, GitApiConfig, GithubApiClient}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
@@ -38,11 +37,11 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersistingServiceSpec
-    extends AnyWordSpec
-    with MockitoSugar
-    with ScalaFutures
-    with Matchers
-    with IntegrationPatience {
+  extends AnyWordSpec
+     with MockitoSugar
+     with ScalaFutures
+     with Matchers
+     with IntegrationPatience {
 
   val now = Instant.now()
 
@@ -60,14 +59,31 @@ class PersistingServiceSpec
   import testTimestamper._
 
   "persistTeamRepoMapping_new" should {
-
     "persist teams and their repos" in {
       val teamARepositories =
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repo1", "Some Description", "url1", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repo2", "Some Description", "url2", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              name           = "repo1",
+              description    = "Some Description",
+              url            = "url1",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            ),
+            GitRepository(
+              name           = "repo2",
+              description    = "Some Description",
+              url            = "url2",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            )
           ),
           timestampF()
         )
@@ -76,30 +92,70 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamB",
           List(
-            GitRepository("repo3", "Some Description", "url3", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repo4", "Some Description", "url4", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              name           = "repo3",
+              description    = "Some Description",
+              url            = "url3",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            ),
+            GitRepository(
+              name           = "repo4",
+              description    = "Some Description",
+              url            = "url4",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+              )
           ),
           timestampF()
         )
 
       val reposWithoutTeams =
         List(
-          GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false),
-          GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false)
+          GitRepository(
+            name           = "repo5",
+            description    = "Some Description",
+            url            = "url5",
+            createdDate    = now,
+            lastActiveDate = now,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
+          ),
+          GitRepository(
+            name           = "repo6",
+            description    = "Some Description",
+            url            = "url6",
+            createdDate    = now,
+            lastActiveDate = now,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
+          )
         )
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
-      val ghTeamB = GhTeam("teamB", 2)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
+      val ghTeamB = GhTeam(id = 2, name = "teamB")
 
-      when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
+      when(dataSource.getTeams())
+        .thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
+
       when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
+
       when(dataSource.mapTeam(eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
-      when(dataSource.getAllRepositories()).thenReturn(Future(reposWithoutTeams))
+      when(dataSource.getAllRepositories())
+        .thenReturn(Future(reposWithoutTeams))
 
       val persistingService = buildPersistingService(dataSource, Nil, mockMetrics)
 
@@ -118,14 +174,43 @@ class PersistingServiceSpec
         TeamRepositories(
           "teamA",
           List(
-            GitRepository("repoB2", "Some Description", "urlB2", now, now, language = Some("Scala"), archived = false),
-            GitRepository("repoA1", "Some Description", "urlA1", now, now, language = Some("Scala"), archived = false)
+            GitRepository(
+              name           = "repoB2",
+              description    = "Some Description",
+              url            = "urlB2",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            ),
+            GitRepository(
+              name           = "repoA1",
+              description    = "Some Description",
+              url            = "urlA1",
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            )
           ),
           timestampF()
         )
 
       val dataSource1ReposWithoutTeams =
-        List(GitRepository("repo6", "Some Description", "url6", now, now, language = Some("Scala"), archived = false))
+        List(
+          GitRepository(
+            name           = "repo6",
+            description    = "Some Description",
+            url            = "url6",
+            createdDate    = now,
+            lastActiveDate = now,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
+          )
+        )
 
       val unknownTeamRepositories =
         TeamRepositories(
@@ -136,9 +221,9 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
 
-      when(dataSource.getTeamsForHmrcOrg).thenReturn(Future.successful(List(ghTeamA)))
+      when(dataSource.getTeams()).thenReturn(Future.successful(List(ghTeamA)))
 
       when(dataSource.mapTeam(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource1))
@@ -164,7 +249,18 @@ class PersistingServiceSpec
       def buildTeamRepositories(teamName: String, repoName: String, url: String) =
         TeamRepositories(
           teamName,
-          List(GitRepository(repoName, "Some Description", url, now, now, language = Some("Scala"), archived = false)),
+          List(
+            GitRepository(
+              name           = repoName,
+              description    = "Some Description",
+              url            = url,
+              createdDate    = now,
+              lastActiveDate = now,
+              language       = Some("Scala"),
+              isArchived     = false,
+              defaultBranch  = "main"
+            )
+          ),
           timestampF())
 
       val teamARepositories = buildTeamRepositories("teamA", "repo1", "url1")
@@ -174,13 +270,24 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam("teamA", 1)
-      val ghTeamB = GhTeam("teamB", 2)
-      val ghTeamC = GhTeam("teamC", 3)
-      val ghTeamD = GhTeam("teamD", 4)
+      val ghTeamA = GhTeam(id = 1, name = "teamA")
+      val ghTeamB = GhTeam(id = 2, name = "teamB")
+      val ghTeamC = GhTeam(id = 3, name = "teamC")
+      val ghTeamD = GhTeam(id = 4, name = "teamD")
 
       val reposWithoutTeams =
-        List(GitRepository("repo5", "Some Description", "url5", now, now, language = Some("Scala"), archived = false))
+        List(
+          GitRepository(
+            name           = "repo5",
+            description    = "Some Description",
+            url            = "url5",
+            createdDate    = now,
+            lastActiveDate = now,
+            language       = Some("Scala"),
+            isArchived     = false,
+            defaultBranch  = "main"
+          )
+        )
 
       val unknownTeamRepositories =
         TeamRepositories(
@@ -189,7 +296,7 @@ class PersistingServiceSpec
           updateDate   = now
         )
 
-      when(dataSource.getTeamsForHmrcOrg)
+      when(dataSource.getTeams())
         .thenReturn(Future.successful(List(ghTeamA, ghTeamB, ghTeamC, ghTeamD)))
 
       when(dataSource.mapTeam(eqTo(ghTeamA), any())).thenReturn(Future.successful(teamARepositories))
@@ -266,15 +373,11 @@ class PersistingServiceSpec
     val mockGithubConfig          = mock[GithubConfig]
     val mockPersister             = mock[TeamsAndReposPersister]
     val mockGithubConnector       = mock[GithubConnector]
-    val mockGithubClientDecorator = mock[GithubApiClientDecorator]
-    val mockGithubApiClient       = mock[GithubApiClient]
-    val gitApiConfig              = GitApiConfig(user = "", key = "open.key", apiUrl = "open.com")
 
-    when(mockGithubConfig.githubApiOpenConfig)
-      .thenReturn(gitApiConfig)
-
-    when(mockGithubClientDecorator.githubApiClient(gitApiConfig.apiUrl, gitApiConfig.key))
-      .thenReturn(mockGithubApiClient)
+    when(mockGithubConfig.apiUrl)
+      .thenReturn("open.com")
+    when(mockGithubConfig.key)
+      .thenReturn("open.key")
 
     when(mockPersister.getAllTeamsAndRepos(any()))
       .thenReturn(Future.successful(storedTeamRepositories))
@@ -284,14 +387,13 @@ class PersistingServiceSpec
 
 
     new PersistingService(
-      githubConfig             = mockGithubConfig,
-      persister                = mockPersister,
-      githubConnector          = mockGithubConnector,
-      githubApiClientDecorator = mockGithubClientDecorator,
-      timestamper              = testTimestamper,
-      metrics                  = metrics,
-      configuration            = Configuration(),
-      futureHelpers            = new FutureHelpers(metrics)
+      githubConfig    = mockGithubConfig,
+      persister       = mockPersister,
+      githubConnector = mockGithubConnector,
+      timestamper     = testTimestamper,
+      metrics         = metrics,
+      configuration   = Configuration(),
+      futureHelpers   = new FutureHelpers(metrics)
       ) {
         override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
       }

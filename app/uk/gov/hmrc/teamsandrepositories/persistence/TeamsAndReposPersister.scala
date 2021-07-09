@@ -121,7 +121,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
         archived match {
           case None    => unfilteredTeamsAndRepos
           case Some(a) => unfilteredTeamsAndRepos.map { teamAndRepo =>
-                            teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.archived == a))
+                            teamAndRepo.copy(repositories = teamAndRepo.repositories.filter(_.isArchived == a))
                           }
         }
       }

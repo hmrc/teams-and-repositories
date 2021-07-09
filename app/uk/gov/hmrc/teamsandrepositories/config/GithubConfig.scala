@@ -16,28 +16,19 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import java.io.File
-
 import com.google.inject.{Inject, Singleton}
 import com.typesafe.config.{ConfigList, ConfigObject}
 import play.api.Configuration
-import uk.gov.hmrc.githubclient.GitApiConfig
 
 import scala.collection.JavaConverters._
 
 
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  private val host = configuration.getOptional[String]("github.open.api.host")
-  private val user = configuration.getOptional[String]("github.open.api.user")
-  private val key  = configuration.getOptional[String]("github.open.api.key")
-
-  val githubApiOpenConfig: GitApiConfig =
-    (user, key, host) match {
-      case (Some(u), Some(k), Some(h)) => GitApiConfig(u, k, h)
-      case (None, None, None) if new File(gitPath(".credentials")).exists() => GitApiConfig.fromFile(gitPath(".credentials"))
-      case _ => GitApiConfig("user_not_set", "key_not_set", "https://hostnotset.com")
-    }
+  val user   = configuration.get[String]("github.open.api.user")
+  val key    = configuration.get[String]("github.open.api.key")
+  val apiUrl = configuration.get[String]("github.open.api.url")
+  val rawUrl = configuration.get[String]("github.open.api.rawurl")
 
   val hiddenRepositories: List[String] =
     configuration.getOptional[String]("github.hidden.repositories")
@@ -46,13 +37,6 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val hiddenTeams: List[String] =
     configuration.getOptional[String]("github.hidden.teams")
       .fold(List.empty[String])(_.split(",").toList)
-
-  private def gitPath(gitFolder: String): String =
-    s"${System.getProperty("user.home")}/.github/$gitFolder"
-
-
-  val url    = configuration.get[String]("github.open.api.url")
-  val rawUrl = configuration.get[String]("github.open.api.rawurl")
 
   val tokens: List[(String, String)] =
     configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
