@@ -140,7 +140,7 @@ class GithubConnector @Inject()(
     }
 
   // RFC 5988 link header
-  private def parseLink(link: String): Map[String, List[LinkParam]] =
+  private def parseLink(link: String): Seq[(String, List[LinkParam])] =
     link
       .split(",")
       .map { linkEntry =>
@@ -152,7 +152,7 @@ class GithubConnector @Inject()(
         }
         url -> linkParams
       }
-      .toMap
+      .toSeq
 }
 
 case class GhTeam(

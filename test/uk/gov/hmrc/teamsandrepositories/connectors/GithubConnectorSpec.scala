@@ -279,7 +279,7 @@ class GithubConnectorSpec
           .willReturn(
             aResponse()
               .withBody(reposJson1)
-              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/lastPage>; rel="last"""")
+              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/nextPage>; rel="last"""")
           )
       )
 
