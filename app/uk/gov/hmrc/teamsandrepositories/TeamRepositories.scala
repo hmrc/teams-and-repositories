@@ -28,6 +28,7 @@ import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 case class TeamRepositories(
   teamName    : String,
   repositories: List[GitRepository],
+  createdDate : Option[Instant],
   updateDate  : Instant
 ) {
   def toTeam(repositoriesToIgnore: List[String], includeRepos: Boolean) = {
@@ -51,9 +52,8 @@ case class TeamRepositories(
 
     Team(
       name                     = teamName,
-      firstActiveDate          = teamActivityDates.firstActiveDate,
+      createdDate              = createdDate.orElse(teamActivityDates.firstActiveDate), // once we have createdDate in mongo for all repos, we can ignore firstActiveDate
       lastActiveDate           = teamActivityDates.lastActiveDate,
-      firstServiceCreationDate = teamActivityDates.firstServiceCreationDate,
       repos                    = repos,
       ownedRepos               = ownedRepos
     )
@@ -116,6 +116,7 @@ object TeamRepositories {
     implicit val grf = GitRepository.apiFormat
     ( (__ \ "teamName"    ).format[String]
     ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
     )(apply, unlift(unapply))
   }
@@ -125,6 +126,7 @@ object TeamRepositories {
     implicit val grf = GitRepository.mongoFormat
     ( (__ \ "teamName"    ).format[String]
     ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
@@ -144,15 +146,11 @@ object TeamRepositories {
     ciUrlTemplates: UrlTemplates
   ): Option[RepositoryDetails] = {
 
-    val teamsOwningRepo = teamRepos.filter {
-      case TeamRepositories(_, repos, _) =>
-        repos.exists(_.name.equalsIgnoreCase(repoName))
-    }
+    val teamsOwningRepo =
+      teamRepos.filter(_.repositories.exists(_.name.equalsIgnoreCase(repoName)))
 
-    val maybeRepo: Option[GitRepository] = teamsOwningRepo.headOption.flatMap {
-      case TeamRepositories(_, repos, _) =>
-        repos.find(_.name.equalsIgnoreCase(repoName))
-    }
+    val maybeRepo: Option[GitRepository] =
+      teamsOwningRepo.headOption.flatMap(_.repositories.find(_.name.equalsIgnoreCase(repoName)))
 
     maybeRepo.map { repo =>
       RepositoryDetails.create(
@@ -178,7 +176,7 @@ object TeamRepositories {
     allReposForType
       .map { repo =>
         val teamNames = teamRepos.collect {
-          case TeamRepositories(teamName, repos, _) if repos.exists(_.name.equalsIgnoreCase(repo.name)) => teamName
+          case teamRepository if teamRepository.repositories.exists(_.name.equalsIgnoreCase(repo.name)) => teamRepository.teamName
         }
 
         RepositoryDetails.create(

@@ -56,79 +56,78 @@ class MongoTeamsAndRepositoriesPersisterSpec
     mongoTeamsAndReposPersister.clearAllData.futureValue
   }
 
+  private val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
+
   private val gitRepository1 =
     GitRepository(
-      "repo-name1",
-      "Desc1",
-      "url1",
-      Instant.now(),
-      Instant.now(),
-      false,
-      RepoType.Service,
-      language      = Some("Scala"),
-      isArchived    = false,
-      defaultBranch = "main"
+      name           = "repo-name1",
+      description    = "Desc1",
+      url            = "url1",
+      createdDate    = Instant.now(),
+      lastActiveDate = Instant.now(),
+      isPrivate      = false,
+      repoType       = RepoType.Service,
+      language       = Some("Scala"),
+      isArchived     = false,
+      defaultBranch  = "main"
     )
   private val gitRepository2 =
     GitRepository(
-      "repo-name2",
-      "Desc2",
-      "url2",
-      Instant.now(),
-      Instant.now(),
-      false,
-      RepoType.Library,
-      language      = Some("Scala"),
-      isArchived    = false,
-      defaultBranch = "main"
+      name           = "repo-name2",
+      description    = "Desc2",
+      url            = "url2",
+      createdDate    = Instant.now(),
+      lastActiveDate = Instant.now(),
+      isPrivate      = false,
+      repoType       = RepoType.Library,
+      language       = Some("Scala"),
+      isArchived     = false,
+      defaultBranch  = "main"
     )
   private val gitRepository3 =
     GitRepository(
-      "repo-name3",
-      "Desc3",
-      "url3",
-      Instant.now(),
-      Instant.now(),
-      false,
-      RepoType.Service,
-      language      = Some("Scala"),
-      isArchived    = false,
-      defaultBranch = "main"
+      name           = "repo-name3",
+      description    = "Desc3",
+      url            = "url3",
+      createdDate    = Instant.now(),
+      lastActiveDate = Instant.now(),
+      isPrivate      = false,
+      repoType       = RepoType.Service,
+      language       = Some("Scala"),
+      isArchived     = false,
+      defaultBranch  = "main"
     )
   private val gitRepository4 =
     GitRepository(
-      "repo-name4",
-      "Desc4",
-      "url4",
-      Instant.now(),
-      Instant.now(),
-      false,
-      RepoType.Library,
-      language      = Some("Scala"),
-      isArchived    = false,
-      defaultBranch = "main"
+      name           = "repo-name4",
+      description    = "Desc4",
+      url            = "url4",
+      createdDate    = Instant.now(),
+      lastActiveDate = Instant.now(),
+      isPrivate      = false,
+      repoType       = RepoType.Library,
+      language       = Some("Scala"),
+      isArchived     = false,
+      defaultBranch  = "main"
     )
   private val gitRepositoryArchived =
     GitRepository(
-      "repo-name-archived",
-      "Desc5",
-      "url5",
-      Instant.now(),
-      Instant.now(),
-      false,
-      RepoType.Service,
-      language      = Some("Scala"),
-      isArchived    = true,
-      defaultBranch = "main"
+      name           = "repo-name-archived",
+      description    = "Desc5",
+      url            = "url5",
+      createdDate    = Instant.now(),
+      lastActiveDate = Instant.now(),
+      isPrivate      = false,
+      repoType       = RepoType.Service,
+      language       = Some("Scala"),
+      isArchived     = true,
+      defaultBranch  = "main"
     )
 
   "getAllTeamAndRepos" should {
-    val teamAndRepositories1 =
-      TeamRepositories("test-team1", List(gitRepository1, gitRepository2), Instant.now())
-    val teamAndRepositories2 =
-      TeamRepositories("test-team2", List(gitRepository3, gitRepository4), Instant.now())
-    val teamAndRepositories3 =
-      TeamRepositories("test-team3", List(gitRepository4), Instant.now())
+    val teamAndRepositories1 = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepository2))
+    val teamAndRepositories2 = buildTeamsRepositories("test-team2", List(gitRepository3, gitRepository4))
+    val teamAndRepositories3 = buildTeamsRepositories("test-team3", List(gitRepository4))
 
     "be able to add, get all teams and repos and delete everything... Everything!" in {
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
@@ -140,9 +139,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
     }
 
     "return only un-archived repositories when archived is false" in {
-      val updateDate = Instant.now()
-      val teamAndRepositoriesWithArchived =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
+      val teamAndRepositoriesWithArchived = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepositoryArchived))
 
       mongoTeamsAndReposPersister.update(teamAndRepositoriesWithArchived).futureValue
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
@@ -150,16 +147,14 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
       val result = mongoTeamsAndReposPersister.getAllTeamAndRepos(Some(false)).futureValue
       result should contain theSameElementsAs List(
-        TeamRepositories("test-team1", List(gitRepository1), updateDate),
+        teamAndRepositoriesWithArchived.copy(repositories = List(gitRepository1)),
         teamAndRepositories2,
         teamAndRepositories3
       )
     }
 
     "return only archived repositories when archived is true" in {
-      val updateDate = Instant.now()
-      val teamAndRepositoriesWithArchived =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepositoryArchived), updateDate)
+      val teamAndRepositoriesWithArchived = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepositoryArchived))
 
       mongoTeamsAndReposPersister.update(teamAndRepositoriesWithArchived).futureValue
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
@@ -167,7 +162,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
       val result = mongoTeamsAndReposPersister.getAllTeamAndRepos(Some(true)).futureValue
       result should contain theSameElementsAs List(
-        TeamRepositories("test-team1", List(gitRepositoryArchived), updateDate),
+        teamAndRepositoriesWithArchived.copy(repositories = List(gitRepositoryArchived)),
         teamAndRepositories2.copy(repositories = List()),
         teamAndRepositories3.copy(repositories = List())
       )
@@ -175,12 +170,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
   }
 
   "getTeamsAndRepos" should {
-    val teamAndRepositories1 =
-      TeamRepositories("test-team1", List(gitRepository1, gitRepository2), Instant.now())
-    val teamAndRepositories2 =
-      TeamRepositories("test-team2", List(gitRepository3), Instant.now())
-    val teamAndRepositories3 =
-      TeamRepositories("test-team3", List(gitRepository4), Instant.now())
+    val teamAndRepositories1 = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepository2))
+    val teamAndRepositories2 = buildTeamsRepositories("test-team2", List(gitRepository3))
+    val teamAndRepositories3 = buildTeamsRepositories("test-team3", List(gitRepository4))
 
     "return a list of Teams and Repositories for a given list of service names" in {
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
@@ -194,10 +186,10 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
   "update" should {
     "update already existing team" in {
-      val teamAndRepositories1 = TeamRepositories("test-team", List(gitRepository1), Instant.now())
+      val teamAndRepositories1 = buildTeamsRepositories("test-team", List(gitRepository1))
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
-      val teamAndRepositories2 = TeamRepositories("test-team", List(gitRepository2), Instant.now())
+      val teamAndRepositories2 = buildTeamsRepositories("test-team", List(gitRepository2))
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
 
       val allUpdated = mongoTeamsAndReposPersister.getAllTeamAndRepos(None).futureValue
@@ -211,12 +203,9 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
   "deleteTeam" should {
     "remove all given teams" in {
-      val teamAndRepositories1 =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepository2), Instant.now())
-      val teamAndRepositories2 =
-        TeamRepositories("test-team2", List(gitRepository3, gitRepository4), Instant.now())
-      val teamAndRepositories3 =
-        TeamRepositories("test-team3", List(gitRepository1), Instant.now())
+      val teamAndRepositories1 = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepository2))
+      val teamAndRepositories2 = buildTeamsRepositories("test-team2", List(gitRepository3, gitRepository4))
+      val teamAndRepositories3 = buildTeamsRepositories("test-team3", List(gitRepository1))
 
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
@@ -235,8 +224,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
 
   "resetLastActiveDate" should {
     "set repo's lastActiveDate to 0 and return 1 as number of modified records" in {
-      val teamAndRepositories1 =
-        TeamRepositories("test-team1", List(gitRepository1, gitRepository2, gitRepository3), Instant.now())
+      val teamAndRepositories1 = buildTeamsRepositories("test-team1", List(gitRepository1, gitRepository2, gitRepository3))
 
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
@@ -265,8 +253,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
           isArchived    = false,
           defaultBranch = "main"
         )
-      val teamAndRepositories1 =
-        TeamRepositories("test-team1", List(gitRepositoryToReset1), Instant.now())
+      val teamAndRepositories1 = buildTeamsRepositories("test-team1", List(gitRepositoryToReset1))
       mongoTeamsAndReposPersister.update(teamAndRepositories1).futureValue
 
       val gitRepositoryToReset2 =
@@ -282,8 +269,7 @@ class MongoTeamsAndRepositoriesPersisterSpec
           isArchived    = false,
           defaultBranch = "main"
         )
-      val teamAndRepositories2 =
-        TeamRepositories("test-team2", List(gitRepositoryToReset2), Instant.now())
+      val teamAndRepositories2 = buildTeamsRepositories("test-team2", List(gitRepositoryToReset2))
       mongoTeamsAndReposPersister.update(teamAndRepositories2).futureValue
 
       mongoTeamsAndReposPersister.resetLastActiveDate(gitRepositoryToReset1.name).futureValue shouldBe Some(2)
@@ -294,4 +280,12 @@ class MongoTeamsAndRepositoriesPersisterSpec
       )
     }
   }
+
+  def buildTeamsRepositories(teamName: String, repos: List[GitRepository]): TeamRepositories =
+    TeamRepositories(
+      teamName     = teamName,
+      repositories = repos,
+      createdDate  = Some(teamCreatedDate),
+      updateDate   = Instant.now()
+    )
 }

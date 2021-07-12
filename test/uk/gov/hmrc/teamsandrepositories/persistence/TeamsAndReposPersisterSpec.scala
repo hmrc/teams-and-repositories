@@ -49,7 +49,12 @@ class TeamsAndReposPersisterSpec
 
   private val mongoTeamsAndRepositoriesPersister = mock[MongoTeamsAndRepositoriesPersister]
 
-  val teamAndRepositories = TeamRepositories("teamX", Nil, Instant.now())
+  val teamAndRepositories = TeamRepositories(
+    teamName     = "teamX",
+    repositories = Nil,
+    createdDate  = Some(Instant.now()),
+    updateDate   = Instant.now()
+  )
 
   val persister = new TeamsAndReposPersister(mongoTeamsAndRepositoriesPersister)
 

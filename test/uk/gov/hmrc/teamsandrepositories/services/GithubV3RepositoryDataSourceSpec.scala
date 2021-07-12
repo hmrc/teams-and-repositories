@@ -18,8 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 
-import com.codahale.metrics.{Counter, MetricRegistry}
-import com.kenshoo.play.metrics.Metrics
 import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.scalatest.BeforeAndAfterEach
@@ -30,8 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GhTeamDetail, GithubConnector}
 
 import scala.concurrent.Future
 
@@ -48,29 +45,17 @@ class GithubV3RepositoryDataSourceSpec
   private val now = Instant.ofEpochMilli(nowMillis)
   private val timestampF = () => now
 
-  val mockRegistry = mock[MetricRegistry]
-  val mockCounter  = mock[Counter]
-
-  when(mockRegistry.counter(any())).thenReturn(mockCounter)
-
   trait Setup {
     val mockGithubConnector = mock[GithubConnector]
 
     val githubConfig: GithubConfig = mock[GithubConfig]
-
-    private val metrics: Metrics = new Metrics() {
-      override def defaultRegistry = new MetricRegistry
-      override def toJson          = ???
-    }
 
     val dataSource =
       new GithubV3RepositoryDataSource(
         githubConfig           = githubConfig,
         githubConnector        = mockGithubConnector,
         timestampF             = timestampF,
-        defaultMetricsRegistry = mockRegistry,
-        repositoriesToIgnore   = List("shared-repository"),
-        futureHelpers          = new FutureHelpers(metrics)
+        repositoriesToIgnore   = List("shared-repository")
       )
 
     val ec = dataSource.ec
@@ -80,6 +65,11 @@ class GithubV3RepositoryDataSourceSpec
 
     when(mockGithubConnector.getFileContent(any(), anyString()))
       .thenReturn(Future.successful(None))
+
+    val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
+
+    when(mockGithubConnector.getTeamDetail(any()))
+      .thenAnswer { team: GhTeam => Future.successful(Some(GhTeamDetail(team.id, team.name, teamCreatedDate))) }
 
     when(mockGithubConnector.hasTags(any()))
       .thenReturn(Future.successful(false))
@@ -114,7 +104,7 @@ class GithubV3RepositoryDataSourceSpec
 
   "GithubV3RepositoryDataSource.getTeams" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
-      private val teamB       = GhTeam(id = 2, name = "B")
+      private val teamB       = GhTeam(id = 2, name = "B"           )
       private val hiddenTeam1 = GhTeam(id = 5, name = "hidden_team1")
 
       when(mockGithubConnector.getTeams())
@@ -232,8 +222,8 @@ class GithubV3RepositoryDataSourceSpec
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -249,7 +239,9 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF())
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
+        )
     }
 
     "set repoType Service if the repository contains an app/application.conf file" in new Setup {
@@ -266,8 +258,8 @@ class GithubV3RepositoryDataSourceSpec
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -281,7 +273,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -298,8 +291,8 @@ class GithubV3RepositoryDataSourceSpec
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe
         TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -313,7 +306,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -330,8 +324,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r",
             description        = "some description",
@@ -345,7 +339,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -362,8 +357,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -377,7 +372,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -393,8 +389,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -408,7 +404,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -430,8 +427,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -445,7 +442,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -462,8 +460,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -477,7 +475,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -494,8 +493,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -509,7 +508,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -526,8 +526,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -541,7 +541,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -563,8 +564,8 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue
 
       repositories shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r",
             description        = "some description",
@@ -578,7 +579,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -600,8 +602,8 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue
 
       repositories shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r",
             description        = "some description",
@@ -615,7 +617,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -632,8 +635,8 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue
 
       repositories shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r-prototype",
             description        = "some description",
@@ -647,7 +650,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -663,8 +667,8 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue
 
       repositories shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r",
             description        = "some description",
@@ -678,7 +682,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -702,8 +707,8 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue shouldBe TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -718,7 +723,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -760,8 +766,8 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue
 
       repositories shouldBe TeamRepositories(
-        "A",
-        List(
+        teamName     = "A",
+        repositories = List(
           GitRepository(
             name               = "A_r",
             description        = "some description",
@@ -776,7 +782,8 @@ class GithubV3RepositoryDataSourceSpec
             defaultBranch      = "main"
           )
         ),
-        timestampF()
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = timestampF()
       )
     }
 
@@ -794,8 +801,8 @@ class GithubV3RepositoryDataSourceSpec
               .thenReturn(Future.successful(List(githubRepository)))
 
             val persistedTeamRepositories = TeamRepositories(
-              "A",
-              List(
+              teamName     = "A",
+              repositories = List(
                 GitRepository(
                   name               = "A_r",
                   description        = "some description",
@@ -811,7 +818,8 @@ class GithubV3RepositoryDataSourceSpec
                   defaultBranch      = "main"
                 )
               ),
-              now
+              createdDate  = Some(teamCreatedDate),
+              updateDate   = now
             )
 
             val repositories = dataSource
@@ -820,8 +828,8 @@ class GithubV3RepositoryDataSourceSpec
 
             //verify
             repositories shouldBe TeamRepositories(
-              "A",
-              List(GitRepository(
+              teamName     = "A",
+              repositories = List(GitRepository(
                 name               = "A_r",
                 description        = "some description",
                 url                = "url_A",
@@ -834,7 +842,8 @@ class GithubV3RepositoryDataSourceSpec
                 isArchived         = false,
                 defaultBranch      = "main"
               )),
-              timestampF()
+              createdDate  = Some(teamCreatedDate),
+              updateDate   = timestampF()
             )
             verify(mockGithubConnector, never).getFileContent(any(), any())
             verify(mockGithubConnector, never).existsContent(any(), any())
@@ -862,8 +871,8 @@ class GithubV3RepositoryDataSourceSpec
               .thenReturn(Future.successful(Some(manifestYaml)))
 
             val persistedTeamRepositories = TeamRepositories(
-              "A",
-              List(
+              teamName     = "A",
+              repositories = List(
                 GitRepository(
                   name               = "A_r",
                   description        = "some description",
@@ -879,7 +888,8 @@ class GithubV3RepositoryDataSourceSpec
                   defaultBranch      = "main"
                 )
               ),
-              now
+              createdDate  = Some(teamCreatedDate),
+              updateDate   = now
             )
 
             println(s"Persisted: ${persistedTeamRepositories.repositories.map(_.lastActiveDate)}")
@@ -890,8 +900,8 @@ class GithubV3RepositoryDataSourceSpec
 
             //verify
             repositories shouldBe TeamRepositories(
-              "A",
-              List(
+              teamName     = "A",
+              repositories = List(
                 GitRepository(
                   name               = "A_r",
                   description        = "some description",
@@ -906,7 +916,8 @@ class GithubV3RepositoryDataSourceSpec
                   defaultBranch      = "main"
                 )
               ),
-              timestampF()
+              createdDate  = Some(teamCreatedDate),
+              updateDate   = timestampF()
             )
             verify(mockGithubConnector, times(1)).getFileContent(githubRepository, "repository.yaml")
             verify(mockGithubConnector, never).existsContent(any(), any())
@@ -933,7 +944,7 @@ class GithubV3RepositoryDataSourceSpec
           when(mockGithubConnector.getFileContent(githubRepository, "repository.yaml"))
             .thenReturn(Future.successful(Some(manifestYaml)))
 
-          val persistedTeamRepositories = TeamRepositories("A", Nil, now)
+          val persistedTeamRepositories = TeamRepositories(teamName = "A", repositories = Nil, createdDate = Some(teamCreatedDate), updateDate = now)
 
           val repositories = dataSource
             .mapTeam(teamA, persistedTeams = Seq(persistedTeamRepositories))
@@ -941,8 +952,8 @@ class GithubV3RepositoryDataSourceSpec
 
           //verify
           repositories shouldBe TeamRepositories(
-            "A",
-            List(
+            teamName     = "A",
+            repositories = List(
               GitRepository(
                 name               = "A_r",
                 description        = "some description",
@@ -957,7 +968,8 @@ class GithubV3RepositoryDataSourceSpec
                 defaultBranch      = "main"
               )
             ),
-            timestampF()
+            createdDate  = Some(teamCreatedDate),
+            updateDate   = timestampF()
           )
           verify(mockGithubConnector, times(1)).getFileContent(githubRepository, "repository.yaml")
           verify(mockGithubConnector, never).existsContent(any(), any())
@@ -1006,8 +1018,8 @@ class GithubV3RepositoryDataSourceSpec
         .mapTeam(teamA, persistedTeams = Nil)
         .futureValue(Timeout(1.minute)) shouldBe
         TeamRepositories(
-          "A",
-          List(
+          teamName     = "A",
+          repositories = List(
             GitRepository(
               name               = "A_r",
               description        = "some description",
@@ -1020,7 +1032,8 @@ class GithubV3RepositoryDataSourceSpec
               defaultBranch      = "main"
             )
           ),
-          timestampF()
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = timestampF()
         )
     }
 
@@ -1055,6 +1068,7 @@ class GithubV3RepositoryDataSourceSpec
             TeamRepositories(
               teamName     = "A",
               repositories = List(repository),
+              createdDate  = Some(teamCreatedDate),
               updateDate   = Instant.ofEpochMilli(0)
             )
           )
@@ -1062,6 +1076,7 @@ class GithubV3RepositoryDataSourceSpec
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(repository.copy(lastActiveDate = now)),
+          createdDate  = Some(teamCreatedDate),
           updateDate   = now
         )
 

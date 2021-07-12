@@ -41,7 +41,7 @@ object RetryStrategy {
     implicit executor: ExecutionContext): Future[T] =
     f.recoverWith {
       case e: APIRateLimitExceededException =>
-        logger.error(s"API rate limit is reached (at retry:$times)", e)
+        logger.error(s"API rate limit is reached (skipping remaining $times retries)", e)
         Future.failed(e)
 
       case e if times > 0 =>

@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import java.net.URL
 import java.time.Instant
 
+import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
@@ -28,14 +29,18 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 
 @Singleton
 class GithubConnector @Inject()(
-  githubConfig   : GithubConfig,
-  httpClient     : HttpClient
+  githubConfig : GithubConfig,
+  httpClient   : HttpClient,
+  metrics      : Metrics,
 )(implicit ec: ExecutionContext) {
   import RateLimit._
+
+  private val defaultMetricsRegistry = metrics.defaultRegistry
 
   private val org = "hmrc"
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
@@ -50,43 +55,54 @@ class GithubConnector @Inject()(
     ).map(_.map(_.fold(throw _, _.body)))
   }
 
-  def getTeams(): Future[List[GhTeam]] = {
-    implicit val tf = GhTeam.format
-    invokePaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
+  def getTeams(): Future[List[GhTeam]] =
+    withCounter(s"github.open.teams") {
+      implicit val tf = GhTeam.format
+      requestPaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
+    }
+
+  def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] = {
+    implicit val rf = GhTeamDetail.format
+    requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
   }
 
-  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] = {
-    implicit val rf = GhRepository.format
-    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubName}/repos?per_page=100")
-  }
+  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
+    withCounter(s"github.open.repos") {
+      implicit val rf = GhRepository.format
+      requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
+    }
 
-  def getRepos(): Future[List[GhRepository]] = {
-    implicit val rf = GhRepository.format
-    invokePaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
-  }
+  def getRepos(): Future[List[GhRepository]] =
+    withCounter(s"github.open.allRepos") {
+      implicit val rf = GhRepository.format
+      requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
+    }
 
-  def hasTags(repo: GhRepository): Future[Boolean] = {
-    implicit val tf = GhTag.format
-    httpClient.GET[Option[List[GhTag]]](
-      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
-      headers = Seq(authHeader, acceptsHeader)
-    ).map(_.isDefined)
-     .recoverWith {
-       case e if isRateLimit(e) => rateLimitError(e)
-     }
-  }
+  def hasTags(repo: GhRepository): Future[Boolean] =
+    withCounter(s"github.open.tags") {
+      implicit val tf = GhTag.format
+      httpClient.GET[Option[List[GhTag]]](
+        url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
+        headers = Seq(authHeader, acceptsHeader)
+      ).map(_.isDefined)
+       .recoverWith {
+         case e if isRateLimit(e) => rateLimitError(e)
+       }
+    }
 
   def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-      url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
-      headers = Seq(authHeader, acceptsHeader)
-    ).map{
-      case None    => false
-      case Some(e) => e.fold(throw _, _ => true)
+    withCounter(s"github.open.containsContent") {
+      httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
+        url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
+        headers = Seq(authHeader, acceptsHeader)
+      ).map{
+        case None    => false
+        case Some(e) => e.fold(throw _, _ => true)
+      }
+      .recoverWith {
+        case e if isRateLimit(e) => rateLimitError(e)
+      }
     }
-     .recoverWith {
-       case e if isRateLimit(e) => rateLimitError(e)
-     }
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
     implicit val rlmr = RateLimitMetrics.reads
@@ -105,7 +121,19 @@ class GithubConnector @Inject()(
     nextUrl: Option[String]
   )
 
-  private def invokePaginated[A](
+  private def requestOptional[A : HttpReads](
+    url: URL
+  )(implicit
+    hc: HeaderCarrier
+  ): Future[Option[A]] =
+    httpClient.GET[Option[A]](
+      url     = url,
+      headers = Seq(authHeader, acceptsHeader)
+    ).recoverWith {
+       case e if isRateLimit(e) => rateLimitError(e)
+     }
+
+  private def requestPaginated[A](
     url: URL,
     acc: List[A] = List.empty
   )(implicit
@@ -127,7 +155,7 @@ class GithubConnector @Inject()(
       .flatMap { response =>
         val acc2 = acc ++ response.results
         response.nextUrl.fold(Future.successful(acc2))(nextUrl =>
-          invokePaginated(url"$nextUrl", acc2)
+          requestPaginated(url"$nextUrl", acc2)
         )
       }
       .recoverWith { case e if isRateLimit(e) => rateLimitError(e) }
@@ -136,7 +164,6 @@ class GithubConnector @Inject()(
   private def lookupNextUrl(link: String): Option[String] =
     parseLink(link).collectFirst {
       case (url, params) if params.contains(LinkParam("rel", "next")) => url
-      case (url, params) if params.contains(LinkParam("rel", "last")) => url
     }
 
   // RFC 5988 link header
@@ -153,13 +180,21 @@ class GithubConnector @Inject()(
         url -> linkParams
       }
       .toSeq
+
+  def withCounter[T](name: String)(f: Future[T]) =
+    f.andThen {
+      case Success(_) =>
+        defaultMetricsRegistry.counter(s"$name.success").inc()
+      case Failure(_) =>
+        defaultMetricsRegistry.counter(s"$name.failure").inc()
+    }
 }
 
 case class GhTeam(
   id  : Long,
   name: String
 ) {
-  def githubName: String =
+  def githubSlug: String =
     name.replaceAll(" - | |\\.", "-").toLowerCase
 }
 
@@ -167,6 +202,23 @@ object GhTeam {
   val format: OFormat[GhTeam] =
   ( (__ \ "id"  ).format[Long]
   ~ (__ \ "name").format[String]
+  )(apply, unlift(unapply))
+}
+
+case class GhTeamDetail(
+  id         : Long,
+  name       : String,
+  createdDate: Instant
+) {
+  def githubSlug: String =
+    name.replaceAll(" - | |\\.", "-").toLowerCase
+}
+
+object GhTeamDetail {
+  val format: OFormat[GhTeamDetail] =
+  ( (__ \ "id"        ).format[Long]
+  ~ (__ \ "name"      ).format[String]
+  ~ (__ \ "created_at").format[Instant]
   )(apply, unlift(unapply))
 }
 
@@ -232,7 +284,8 @@ object RateLimit {
   val logger: Logger = Logger(getClass)
 
   def isRateLimit(e: Throwable): Boolean =
-    e.getMessage.toLowerCase.contains("api rate limit exceeded")
+    e.getMessage.toLowerCase.contains("api rate limit exceeded") ||
+    e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism")
 
   def rateLimitError[T](e: Throwable): T = {
     logger.error("=== API rate limit has been reached ===", e)

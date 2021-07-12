@@ -20,13 +20,11 @@ import java.time.Instant
 import java.util.concurrent.Executors
 
 import cats.implicits._
-import com.codahale.metrics.MetricRegistry
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -39,9 +37,7 @@ class GithubV3RepositoryDataSource(
   githubConfig              : GithubConfig,
   githubConnector           : GithubConnector,
   timestampF                : () => Instant,
-  val defaultMetricsRegistry: MetricRegistry,
-  repositoriesToIgnore      : List[String],
-  futureHelpers             : FutureHelpers
+  repositoriesToIgnore      : List[String]
 ) {
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
@@ -51,9 +47,8 @@ class GithubV3RepositoryDataSource(
   val initialDuration: Duration = 50.millis
 
   def getTeams(): Future[List[GhTeam]] =
-    withCounter(s"github.open.teams") {
-      githubConnector.getTeams()
-    }.map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
+    githubConnector.getTeams()
+      .map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve teams for organisation list.", ex)
@@ -63,14 +58,22 @@ class GithubV3RepositoryDataSource(
   def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     exponentialRetry(retries, initialDuration) {
-      withCounter(s"github.open.repos") {
-        githubConnector.getReposForTeam(team)
-      }.flatMap(
-        _
-          .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-          .traverse(repo => mapRepository(team, repo, persistedTeams))
-          .map(repos => TeamRepositories(team.name, repositories = repos.toList, timestampF()))
-      )
+      for {
+        ghRepos            <- githubConnector.getReposForTeam(team)
+        currentCreatedDate =  persistedTeams.find(_.teamName == team.name).flatMap(_.createdDate)
+        optCreatedDate     <- if (currentCreatedDate.isEmpty)
+                                githubConnector.getTeamDetail(team).map(_.map(_.createdDate))
+                              else
+                                Future.successful(currentCreatedDate)
+        repos              <- ghRepos
+                                .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
+                                .traverse(repo => mapRepository(team, repo, persistedTeams))
+      } yield TeamRepositories(
+          teamName     = team.name,
+          repositories = repos.toList,
+          createdDate  = optCreatedDate,
+          updateDate   = timestampF()
+        )
     }.recover {
       case e =>
         logger.error("Could not map teams with organisations.", e)
@@ -79,14 +82,13 @@ class GithubV3RepositoryDataSource(
   }
 
   def getAllRepositories(): Future[List[GitRepository]] =
-    withCounter(s"github.open.allRepos") {
-      githubConnector.getRepos()
-        .map(_.map(repo => buildGitRepository(repo, RepoType.Other, None, Seq.empty)))
-    }.recoverWith {
-      case NonFatal(ex) =>
-        logger.error("Could not retrieve repo list for organisation.", ex)
-        Future.failed(ex)
-    }
+    githubConnector.getRepos()
+      .map(_.map(repo => buildGitRepository(repo, RepoType.Other, None, Seq.empty)))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error("Could not retrieve repo list for organisation.", ex)
+          Future.failed(ex)
+      }
 
   private def buildGitRepositoryFromGithub(repo: GhRepository): Future[GitRepository] =
     for {
@@ -218,9 +220,9 @@ class GithubV3RepositoryDataSource(
 
     // doesn't work for multi-module
     // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(existsContent(repo, "src/main/scala"))
-    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(existsContent(repo, "src/main/java"))
-    def containsTags    = hasTags(repo)
+    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "src/main/scala"))
+    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "src/main/java"))
+    def containsTags    = githubConnector.hasTags(repo)
 
     (hasSrcMainScala || hasSrcMainJava) && containsTags
   }
@@ -229,26 +231,16 @@ class GithubV3RepositoryDataSource(
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
 
     def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(existsContent(repo, "conf/application.conf"))
+      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "conf/application.conf"))
 
     def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(existsContent(repo, "Procfile"))
+      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "Procfile"))
 
     def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(existsContent(repo, "deploy.properties"))
+      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "deploy.properties"))
 
     isPlayServiceF || isJavaServiceF || hasProcFileF
   }
-
-  private def hasTags(repo: GhRepository): Future[Boolean] =
-    withCounter(s"github.open.tags") {
-      githubConnector.hasTags(repo)
-    }
-
-  private def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    withCounter(s"github.open.containsContent") {
-      githubConnector.existsContent(repo, path)
-    }
 
   private def buildGitRepository(
     repo             : GhRepository,
@@ -271,11 +263,5 @@ class GithubV3RepositoryDataSource(
       defaultBranch      = repo.defaultBranch
     )
 
-  def withCounter[T](name: String)(f: Future[T]) =
-    f.andThen {
-      case Success(_) =>
-        defaultMetricsRegistry.counter(s"$name.success").inc()
-      case Failure(_) =>
-        defaultMetricsRegistry.counter(s"$name.failure").inc()
-    }
+
 }

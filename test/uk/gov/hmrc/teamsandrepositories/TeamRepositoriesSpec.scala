@@ -199,81 +199,83 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "include repository with type not Deployable as services if one of the repositories with same name is Deployable" in {
       val teams = Seq(
         TeamRepositories(
-          "teamName",
-          List(
-            GitRepository(
-              "repo1",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = false,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            ),
-            GitRepository(
-              "repo2",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            ),
-            GitRepository(
-              "repo1",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Other,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            ),
-            GitRepository(
-              "repo3",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "teamName",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = false,
+                             repoType           = Service,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           ),
+                           GitRepository(
+                             "repo2",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Service,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           ),
+                           GitRepository(
+                             "repo1",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Other,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           ),
+                           GitRepository(
+                             "repo3",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate  = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "teamNameOther",
+          repositories = List(
+                           GitRepository(
+                             "repo3",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         )
       )
 
@@ -287,40 +289,46 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
   "getAllRepositories" should {
     "deduplicate results" in {
-      val teams = Seq(TeamRepositories(
-        "team1",
-        List(
-          GitRepository(
-            "repo1",
-            "some desc",
-            "",
-            createdDate        = now,
-            lastActiveDate     = now,
-            repoType           = Library,
-            digitalServiceName = None,
-            language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main"
-          )
+      val teams = Seq(
+        TeamRepositories(
+          teamName     = "team1",
+          repositories = List(
+                          GitRepository(
+                            "repo1",
+                            "some desc",
+                            "",
+                            createdDate        = now,
+                            lastActiveDate     = now,
+                            repoType           = Library,
+                            digitalServiceName = None,
+                            language           = Some("Scala"),
+                            isArchived         = false,
+                            defaultBranch      = "main"
+                          )
+                        ),
+          createdDate = Some(now),
+          updateDate   = now
         ),
-        now),
-      TeamRepositories(
-        "team2",
-        List(
-          GitRepository(
-            "repo1",
-            "some desc",
-            "",
-            createdDate        = now,
-            lastActiveDate     = now,
-            repoType           = Library,
-            digitalServiceName = None,
-            language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main"
-          )
-        ),
-        now))
+        TeamRepositories(
+          teamName     = "team2",
+          repositories = List(
+                          GitRepository(
+                            "repo1",
+                            "some desc",
+                            "",
+                            createdDate        = now,
+                            lastActiveDate     = now,
+                            repoType           = Library,
+                            digitalServiceName = None,
+                            language           = Some("Scala"),
+                            isArchived         = false,
+                            defaultBranch      = "main"
+                          )
+                        ),
+          createdDate  = Some(now),
+          updateDate   = now
+        )
+      )
 
       val res = TeamRepositories.getAllRepositories(teams)
 
@@ -330,40 +338,42 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "deduplicate results when there is a last modified mismatch" in {
       val teams = Seq(
         TeamRepositories(
-          "team1",
-          List(
-            GitRepository(
-              "repo1",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "team1",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "team2",
-          List(
-            GitRepository(
-              "repo1",
-              "some desc",
-              "",
-              createdDate        = now,
-              lastActiveDate     = now.minusSeconds(1000),
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "team2",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             "some desc",
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now.minusSeconds(1000),
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         )
       )
 
@@ -377,24 +387,26 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "find a repository" in { // todo(konrad) add more initial TeamRepositories as test has little value
       val teams = Seq(
         TeamRepositories(
-          "teamName",
-          List(
-            GitRepository(
-              "repo1",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = false,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
-        ))
+          teamName     = "teamName",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = false,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
+        )
+      )
 
       TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap())) shouldBe defined
     }
@@ -402,24 +414,26 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "find a repository where the name has a different case" in {
       val teams = Seq(
         TeamRepositories(
-          "teamName",
-          List(
-            GitRepository(
-              "repo1",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = false,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
-        ))
+          teamName     = "teamName",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = false,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
+        )
+      )
 
       val Some(repositoryDetails) =
         TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(ListMap()))
@@ -433,41 +447,44 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "not include repository with prototypes in their names" in {
       val teams = Seq(
         TeamRepositories(
-          "teamName",
-          List(
-            GitRepository(
-              "repo1-prototype",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = false,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "teamName",
+          repositories = List(
+                           GitRepository(
+                             "repo1-prototype",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = false,
+                             repoType           = Service,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "teamNameOther",
-          List(
-            GitRepository(
-              "repo3",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Other,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )),
-          now
+          teamName     = "teamNameOther",
+          repositories = List(
+                           GitRepository(
+                             "repo3",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Other,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         )
       )
 
@@ -480,44 +497,45 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "group teams by services they own filtering out any duplicates" in {
       val teams = Seq(
         TeamRepositories(
-          "team1",
-          List(
-            GitRepository(
-              "repo1",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = false,
-              repoType           = Service,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            ),
-            GitRepository(
-              "repo2",
-              description,
-              "",
-              createdDate        = now,
-              lastActiveDate     = now,
-              // isInternal         = true,
-              repoType           = Library,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          now
+          teamName     = "team1",
+          repositories = List(
+                           GitRepository(
+                             "repo1",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = false,
+                             repoType           = Service,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           ),
+                           GitRepository(
+                             "repo2",
+                             description,
+                             "",
+                             createdDate        = now,
+                             lastActiveDate     = now,
+                             // isInternal         = true,
+                             repoType           = Library,
+                             digitalServiceName = None,
+                             language           = Some("Scala"),
+                             isArchived         = false,
+                             defaultBranch      = "main"
+                           )
+                         ),
+          createdDate = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "team2",
-          List(
+          teamName     = "team2",
+          repositories = List(
             GitRepository(
-              "repo2",
-              description,
-              "",
+              name               = "repo2",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -528,9 +546,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             ),
             GitRepository(
-              "repo3",
-              description,
-              "",
+              name               = "repo3",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -541,15 +559,16 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             )
           ),
-          now
+          createdDate = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "team2",
-          List(
+          teamName     = "team2",
+          repositories = List(
             GitRepository(
-              "repo2",
-              description,
-              "",
+              name               = "repo2",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -560,9 +579,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             ),
             GitRepository(
-              "repo3",
-              description,
-              "",
+              name               = "repo3",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -573,15 +592,16 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             )
           ),
-          now
+          createdDate = Some(now),
+          updateDate   = now
         ),
         TeamRepositories(
-          "team3",
-          List(
+          teamName     = "team3",
+          repositories = List(
             GitRepository(
-              "repo3",
-              description,
-              "",
+              name               = "repo3",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -592,9 +612,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             ),
             GitRepository(
-              "repo4",
-              description,
-              "",
+              name               = "repo4",
+              description        = description,
+              url                = "",
               createdDate        = now,
               lastActiveDate     = now,
               // isInternal         = true,
@@ -605,7 +625,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             )
           ),
-          now
+          createdDate = Some(now),
+          updateDate   = now
         )
       )
 
@@ -658,10 +679,10 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
       val teamsAndRepositories =
         List(
-          TeamRepositories("team1", List(repo1, repo2), now),
-          TeamRepositories("team2", List(repo3), now),
-          TeamRepositories("team3", List(repo1, repo2, repo3), now),
-          TeamRepositories("team4", List(repo2, repo4), now)
+          TeamRepositories("team1", List(repo1, repo2), Some(now), now),
+          TeamRepositories("team2", List(repo3), Some(now), now),
+          TeamRepositories("team3", List(repo1, repo2, repo3), Some(now), now),
+          TeamRepositories("team4", List(repo2, repo4), Some(now), now)
         )
 
       val result = findDigitalServiceDetails(teamsAndRepositories, "DigitalService1")
@@ -691,8 +712,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     "find the Digital Service when the name is of a different case" in {
       val teams = Seq(
         TeamRepositories(
-          "teamName",
-          List(
+          teamName     = "teamName",
+          repositories = List(
             GitRepository(
               name               = "repo1",
               description        = description,
@@ -705,7 +726,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               defaultBranch      = "main"
             )
           ),
-          now
+          createdDate  = Some(now),
+          updateDate   = now
         ))
 
       findDigitalServiceDetails(teams, "digitalservice1").value.name shouldBe "DigitalService1"
@@ -713,10 +735,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
   }
 
   "toTeam" should {
+    val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
     val oldDeployableRepo = GitRepository(
-      "repo1",
-      description,
-      "",
+      name               = "repo1",
+      description        = description,
+      url                = "",
       createdDate        = Instant.ofEpochMilli(1),
       lastActiveDate     = Instant.ofEpochMilli(10),
       // isInternal         = false,
@@ -728,9 +751,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     )
 
     val newDeployableRepo = GitRepository(
-      "repo1",
-      description,
-      "",
+      name               = "repo1",
+      description        = description,
+      url                = "",
       createdDate        = Instant.ofEpochMilli(2),
       lastActiveDate     = Instant.ofEpochMilli(20),
       // isInternal         = true,
@@ -742,9 +765,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     )
 
     val newLibraryRepo = GitRepository(
-      "repo1",
-      description,
-      "",
+      name               = "repo1",
+      description        = description,
+      url                = "",
       createdDate        = Instant.ofEpochMilli(3),
       lastActiveDate     = Instant.ofEpochMilli(30),
       // isInternal         = true,
@@ -756,9 +779,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
     )
 
     val newOtherRepo = GitRepository(
-      "repo1",
-      description,
-      "",
+      name               = "repo1",
+      description        = description,
+      url                = "",
       createdDate        = Instant.ofEpochMilli(4),
       lastActiveDate     = Instant.ofEpochMilli(40),
       // isInternal         = true,
@@ -769,84 +792,57 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       defaultBranch      = "main"
     )
 
-    val sharedRepo = GitRepository(
-      "sharedRepo1",
-      description,
-      "",
-      createdDate        = Instant.ofEpochMilli(5),
-      lastActiveDate     = Instant.ofEpochMilli(50),
-      // isInternal         = true,
-      repoType           = Other,
-      digitalServiceName = None,
-      language           = Some("Scala"),
-      isArchived         = false,
-      defaultBranch      = "main"
-    )
-
-    "get the max last active and min created at for repositories" in {
-      val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newDeployableRepo), now)
+    "get the max last active for repositories" in {
+      val teamRepository = TeamRepositories(
+        teamName     = "teamName",
+        repositories = List(oldDeployableRepo, newDeployableRepo),
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = now
+      )
 
       val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
 
       result shouldBe Team(
-         name                     = "teamName",
-         firstActiveDate          = Some(Instant.ofEpochMilli(1)),
-         lastActiveDate           = Some(Instant.ofEpochMilli(20)),
-         firstServiceCreationDate = Some(oldDeployableRepo.createdDate),
-         repos                    = Some(Map(Service -> List("repo1"), Library -> List(), Prototype -> List(), Other -> List()))
+         name             = "teamName",
+         createdDate      = Some(teamCreatedDate),
+         lastActiveDate   = Some(Instant.ofEpochMilli(20)),
+         repos            = Some(Map(
+                              Service   -> List("repo1"),
+                              Library   -> List(),
+                              Prototype -> List(),
+                              Other     -> List()
+                            ))
        )
     }
 
-    "Include all repository types when get the max last active and min created at for team" in {
-      val teamRepository = TeamRepositories("teamName", List(oldDeployableRepo, newLibraryRepo, newOtherRepo), now)
+    "include all repository types when get the max last active for team" in {
+      val teamRepository = TeamRepositories(
+        teamName     = "teamName",
+        repositories = List(oldDeployableRepo, newLibraryRepo, newOtherRepo),
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = now
+      )
 
       val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
 
       result shouldBe Team(
-        "teamName",
-        Some(Instant.ofEpochMilli(1)),
-        Some(Instant.ofEpochMilli(40)),
-        Some(oldDeployableRepo.createdDate),
-        Some(
-          Map(
-            Service   -> List("repo1"),
-            Library   -> List("repo1"),
-            Prototype -> List(),
-            Other     -> List("repo1")
-          ))
-      )
-    }
-
-    "populate firstServiceCreation date by looking at only the service repository" in {
-      val teamRepository = TeamRepositories(
-        "teamName",
-        List(newDeployableRepo, oldDeployableRepo, newLibraryRepo, newOtherRepo, sharedRepo),
-        now
-      )
-
-      val result = teamRepository.toTeam(repositoriesToIgnore = List("sharedRepo1", "sharedRepo2", "sharedRepo3"), includeRepos = true)
-
-      result shouldBe Team(
-        "teamName",
-        Some(Instant.ofEpochMilli(1)),
-        Some(Instant.ofEpochMilli(40)),
-        Some(oldDeployableRepo.createdDate),
-        Some(
-          Map(
-            Service   -> List("repo1"),
-            Library   -> List("repo1"),
-            Prototype -> List(),
-            Other     -> List("repo1", "sharedRepo1")
-          ))
+        name            = "teamName",
+        createdDate     = Some(teamCreatedDate),
+        lastActiveDate  = Some(Instant.ofEpochMilli(40)),
+        repos           = Some(Map(
+                            Service   -> List("repo1"),
+                            Library   -> List("repo1"),
+                            Prototype -> List(),
+                            Other     -> List("repo1")
+                          ))
       )
     }
 
     "get all teams and their repositories grouped by repo type" in {
-
       val repo1 = GitRepository(
-        "repo1",
-        description,
-        "",
+        name               = "repo1",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(1),
         lastActiveDate     = Instant.ofEpochMilli(10),
         repoType           = Service,
@@ -858,9 +854,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo2 = GitRepository(
-        "repo2",
-        description,
-        "",
+        name               = "repo2",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(1),
         lastActiveDate     = Instant.ofEpochMilli(10),
         repoType           = Service,
@@ -871,9 +867,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo3 = GitRepository(
-        "repo3",
-        description,
-        "",
+        name               = "repo3",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(2),
         lastActiveDate     = Instant.ofEpochMilli(20),
         repoType           = Library,
@@ -884,9 +880,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo4 = GitRepository(
-        "repo4",
-        description,
-        "",
+        name               = "repo4",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(2),
         lastActiveDate     = Instant.ofEpochMilli(20),
         repoType           = Library,
@@ -897,9 +893,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo5 = GitRepository(
-        "repo5",
-        description,
-        "",
+        name               = "repo5",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(3),
         lastActiveDate     = Instant.ofEpochMilli(30),
         repoType           = Other,
@@ -910,9 +906,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo6 = GitRepository(
-        "repo6",
-        description,
-        "",
+        name               = "repo6",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(3),
         lastActiveDate     = Instant.ofEpochMilli(30),
         repoType           = Other,
@@ -923,9 +919,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo7 = GitRepository(
-        "repo7",
-        description,
-        "",
+        name               = "repo7",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(4),
         lastActiveDate     = Instant.ofEpochMilli(40),
         repoType           = Prototype,
@@ -936,9 +932,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val repo8 = GitRepository(
-        "repo8",
-        description,
-        "",
+        name               = "repo8",
+        description        = description,
+        url                = "",
         createdDate        = Instant.ofEpochMilli(4),
         lastActiveDate     = Instant.ofEpochMilli(40),
         repoType           = Prototype,
@@ -949,37 +945,44 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       )
 
       val teamRepository =
-        TeamRepositories("teamName", List(repo1, repo2, repo3, repo4, repo5), now)
+        TeamRepositories(
+          teamName     = "teamName",
+          repositories = List(repo1, repo2, repo3, repo4, repo5),
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = now
+        )
 
       teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
-          name                     = "teamName",
-          firstActiveDate          = Some(Instant.ofEpochMilli(1)),
-          lastActiveDate           = Some(Instant.ofEpochMilli(30)),
-          firstServiceCreationDate = Some(Instant.ofEpochMilli(1)),
-          repos = Some(
-            Map(
-              Service   -> List("repo1", "repo2"),
-              Library   -> List("repo3", "repo4"),
-              Prototype -> List(),
-              Other     -> List("repo5"))),
-          ownedRepos = List("repo1")
+          name            = "teamName",
+          createdDate     = Some(teamCreatedDate),
+          lastActiveDate  = Some(Instant.ofEpochMilli(30)),
+          repos           = Some(Map(
+                              Service   -> List("repo1", "repo2"),
+                              Library   -> List("repo3", "repo4"),
+                              Prototype -> List(),
+                              Other     -> List("repo5")
+                            )),
+          ownedRepos      = List("repo1")
         )
 
       val teamOtherRepository =
-        TeamRepositories("teamNameOther", List(repo4, repo5, repo6, repo7, repo8), now)
+        TeamRepositories(
+          teamName     = "teamNameOther",
+          repositories = List(repo4, repo5, repo6, repo7, repo8),
+          createdDate  = Some(teamCreatedDate),
+          updateDate   = now
+        )
 
       teamOtherRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
-        name                     = "teamNameOther",
-        firstActiveDate          = Some(Instant.ofEpochMilli(2)),
-        lastActiveDate           = Some(Instant.ofEpochMilli(40)),
-        firstServiceCreationDate = None,
-        repos = Some(
-          Map(
-            Service   -> List(),
-            Library   -> List("repo4"),
-            Prototype -> List("repo7", "repo8"),
-            Other     -> List("repo5", "repo6"))
-        )
+        name            = "teamNameOther",
+        createdDate     = Some(teamCreatedDate),
+        lastActiveDate  = Some(Instant.ofEpochMilli(40)),
+        repos           = Some(Map(
+                            Service   -> List(),
+                            Library   -> List("repo4"),
+                            Prototype -> List("repo7", "repo8"),
+                            Other     -> List("repo5", "repo6")
+                          ))
       )
     }
   }

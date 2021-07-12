@@ -78,29 +78,21 @@ object GitRepository {
   case class TeamActivityDates(
     firstActiveDate         : Option[Instant] = None,
     lastActiveDate          : Option[Instant] = None,
-    firstServiceCreationDate: Option[Instant] = None
   )
 
   def getTeamActivityDatesOfNonSharedRepos(
-    repos               : Seq[GitRepository],
-    repositoriesToIgnore: List[String]
+    repos      : Seq[GitRepository],
+    sharedRepos: List[String]
   ): TeamActivityDates = {
 
-    val nonIgnoredRepos = repos.filterNot(r => repositoriesToIgnore.contains(r.name))
+    val nonSharedRepos = repos.filterNot(r => sharedRepos.contains(r.name))
 
-    if (nonIgnoredRepos.nonEmpty) {
-      val firstServiceCreationDate =
-        if (nonIgnoredRepos.exists(_.repoType == RepoType.Service))
-          Some(getCreatedAtDate(nonIgnoredRepos.filter(_.repoType == RepoType.Service)))
-        else
-          None
-
+    if (nonSharedRepos.nonEmpty)
       TeamActivityDates(
-        firstActiveDate          = Some(getCreatedAtDate(nonIgnoredRepos)),
-        lastActiveDate           = Some(getLastActiveDate(nonIgnoredRepos)),
-        firstServiceCreationDate = firstServiceCreationDate
+        firstActiveDate = Some(nonSharedRepos.map(_.createdDate).min),
+        lastActiveDate  = Some(nonSharedRepos.map(_.lastActiveDate).max)
       )
-    } else
+    else
       TeamActivityDates()
   }
 
@@ -111,12 +103,6 @@ object GitRepository {
     else RepoType.Other
 
   private implicit val ldto: Ordering[Instant] = DateTimeUtils.instantOrdering
-
-  def getCreatedAtDate(repos: Seq[GitRepository]): Instant =
-    repos.map(_.createdDate).min
-
-  def getLastActiveDate(repos: Seq[GitRepository]): Instant =
-    repos.map(_.lastActiveDate).max
 
   def extractRepositoryGroupForType(
     repoType    : RepoType,
