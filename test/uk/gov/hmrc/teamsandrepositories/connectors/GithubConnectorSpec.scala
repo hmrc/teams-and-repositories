@@ -200,6 +200,21 @@ class GithubConnectorSpec
          }
       ]"""
 
+  val reposJson3 =
+    """[
+         {
+           "id"            : 4,
+           "name"          : "n4",
+           "html_url"      : "url4",
+           "fork"          : true,
+           "created_at"    : "2019-04-07T11:41:33Z",
+           "pushed_at"     : "2019-04-08T11:41:33Z",
+           "private"       : true,
+           "archived"      : false,
+           "default_branch": "b4"
+         }
+      ]"""
+
   val repos =
     List(
       GhRepository(
@@ -240,6 +255,19 @@ class GithubConnectorSpec
         language       = None,
         isArchived     = false,
         defaultBranch  = "b3"
+      ),
+      GhRepository(
+        id             = 4,
+        name           = "n4",
+        description    = None,
+        htmlUrl        = "url4",
+        fork           = true,
+        createdDate    = Instant.parse("2019-04-07T11:41:33Z"),
+        lastActiveDate = Instant.parse("2019-04-08T11:41:33Z"),
+        isPrivate      = true,
+        language       = None,
+        isArchived     = false,
+        defaultBranch  = "b4"
       )
     )
 
@@ -256,8 +284,16 @@ class GithubConnectorSpec
       )
 
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(aResponse().withBody(reposJson2))
+        get(urlPathEqualTo(s"/nextPage"))
+          .willReturn(
+            aResponse()
+              .withBody(reposJson2)
+              .withHeader("link", s"""<$wireMockUrl/lastPage>; rel="last"""")
+          )
+      )
+      stubFor(
+        get(urlPathEqualTo("/lastPage"))
+          .willReturn(aResponse().withBody(reposJson3))
       )
 
       connector.getReposForTeam(team).futureValue shouldBe repos
@@ -270,6 +306,11 @@ class GithubConnectorSpec
 
       wireMockServer.verify(
         getRequestedFor(urlPathEqualTo("/nextPage"))
+          .withHeader("Authorization", equalTo(s"token $token"))
+      )
+
+      wireMockServer.verify(
+        getRequestedFor(urlPathEqualTo("/lastPage"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
     }
@@ -287,8 +328,16 @@ class GithubConnectorSpec
       )
 
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(aResponse().withBody(reposJson2))
+        get(urlPathEqualTo(s"/nextPage"))
+          .willReturn(
+            aResponse()
+              .withBody(reposJson2)
+              .withHeader("link", s"""<$wireMockUrl/lastPage>; rel="last"""")
+          )
+      )
+      stubFor(
+        get(urlPathEqualTo("/lastPage"))
+          .willReturn(aResponse().withBody(reposJson3))
       )
 
       connector.getRepos().futureValue shouldBe repos
@@ -301,6 +350,11 @@ class GithubConnectorSpec
 
       wireMockServer.verify(
         getRequestedFor(urlPathEqualTo("/nextPage"))
+          .withHeader("Authorization", equalTo(s"token $token"))
+      )
+
+      wireMockServer.verify(
+        getRequestedFor(urlPathEqualTo("/lastPage"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
     }

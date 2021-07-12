@@ -136,6 +136,7 @@ class GithubConnector @Inject()(
   private def lookupNextUrl(link: String): Option[String] =
     parseLink(link).collectFirst {
       case (url, params) if params.contains(LinkParam("rel", "next")) => url
+      case (url, params) if params.contains(LinkParam("rel", "last")) => url
     }
 
   // RFC 5988 link header
