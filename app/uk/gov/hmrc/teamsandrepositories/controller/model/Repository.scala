@@ -56,12 +56,11 @@ object Repository {
 }
 
 case class Team(
-  name                    : String,
-  firstActiveDate         : Option[Instant]                    = None,
-  lastActiveDate          : Option[Instant]                    = None,
-  firstServiceCreationDate: Option[Instant]                    = None,
-  repos                   : Option[Map[RepoType, List[String]]],
-  ownedRepos              : Seq[String]                        = Nil
+  name           : String,
+  createdDate    : Option[Instant]                    = None,
+  lastActiveDate : Option[Instant]                    = None,
+  repos          : Option[Map[RepoType, List[String]]],
+  ownedRepos     : Seq[String]                        = Nil
 )
 
 object Team {
@@ -91,12 +90,11 @@ object Team {
 
   val format: Format[Team] = {
     implicit val mf = mapFormat
-    ( (__ \ "name"                    ).format[String]
-    ~ (__ \ "firstActiveDate"         ).formatNullable[Instant]
-    ~ (__ \ "lastActiveDate"          ).formatNullable[Instant]
-    ~ (__ \ "firstServiceCreationDate").formatNullable[Instant]
-    ~ (__ \ "repos"                   ).formatNullable[Map[RepoType, List[String]]]
-    ~ (__ \ "ownedRepos"              ).format[Seq[String]]
+    ( (__ \ "name"          ).format[String]
+    ~ (__ \ "createdDate"   ).formatNullable[Instant]
+    ~ (__ \ "lastActiveDate").formatNullable[Instant]
+    ~ (__ \ "repos"         ).formatNullable[Map[RepoType, List[String]]]
+    ~ (__ \ "ownedRepos"    ).format[Seq[String]]
     )(Team.apply, unlift(Team.unapply))
   }
 }

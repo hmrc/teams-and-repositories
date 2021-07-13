@@ -76,9 +76,9 @@ class TeamsControllerSpec
 
   val defaultData =
     Seq(
-      new TeamRepositories(
-        "test-team",
-        List(
+      TeamRepositories(
+        teamName      = "test-team",
+        repositories = List(
           GitRepository(
             "repo-name",
             "some description",
@@ -104,11 +104,12 @@ class TeamsControllerSpec
             defaultBranch      = "main"
           )
         ),
-        now
+        createdDate = Some(now),
+        updateDate  = now
       ),
-      new TeamRepositories(
-        "another-team",
-        List(
+      TeamRepositories(
+        teamName     = "another-team",
+        repositories = List(
           GitRepository(
             "another-repo",
             "some description",
@@ -170,15 +171,16 @@ class TeamsControllerSpec
             defaultBranch      = "main"
           )
         ),
-        now
+        createdDate = Some(now),
+        updateDate  = now
       )
     )
 
   def singleRepoResult(teamName: String = "test-team", repoName: String = "repo-name", repoUrl: String = "repo-url") =
     Seq(
-      new TeamRepositories(
-        "test-team",
-        List(GitRepository(
+      TeamRepositories(
+        teamName     = teamName,
+        repositories = List(GitRepository(
           name           = repoName,
           description    = "some description",
           url            = repoUrl,
@@ -189,8 +191,10 @@ class TeamsControllerSpec
           isArchived     = false,
           defaultBranch  = "main"
         )),
-        now
-      ))
+        createdDate = Some(now),
+        updateDate  = now
+      )
+    )
 
   "Teams controller" should {
     "have the correct url set up for the teams list" in {
@@ -221,9 +225,9 @@ class TeamsControllerSpec
     "Return information about all the teams that have access to a repo" in new Setup {
       val sourceData =
         Seq(
-          new TeamRepositories(
-            "test-team",
-            List(
+          TeamRepositories(
+            teamName     = "test-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -236,11 +240,12 @@ class TeamsControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           ),
-          new TeamRepositories(
-            "another-team",
-            List(
+          TeamRepositories(
+            teamName     = "another-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -253,7 +258,8 @@ class TeamsControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           )
         )
 
@@ -289,8 +295,8 @@ class TeamsControllerSpec
       val sourceData =
         Seq(
           TeamRepositories(
-            "test-team",
-            List(
+            teamName     = "test-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -303,11 +309,12 @@ class TeamsControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           ),
           TeamRepositories(
-            "another-team",
-            List(
+            teamName     = "another-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -320,7 +327,8 @@ class TeamsControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           )
         )
 
@@ -345,9 +353,9 @@ class TeamsControllerSpec
     "return the empty list for repository type if a team does not have it" in new Setup {
       val sourceData =
         Seq(
-          new TeamRepositories(
-            "test-team",
-            List(
+          TeamRepositories(
+            teamName     = "test-team",
+            repositories = List(
               GitRepository(
                 name           = "repo-open-name",
                 description    = "some description",
@@ -360,7 +368,8 @@ class TeamsControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           )
         )
 
@@ -374,7 +383,14 @@ class TeamsControllerSpec
     }
 
     "return an empty list if a team has no repositories" in new Setup {
-      val sourceData = Seq(new TeamRepositories("test-team", List(), now))
+      val sourceData = Seq(
+        TeamRepositories(
+          teamName = "test-team",
+          repositories = List(),
+          createdDate = Some(now),
+          updateDate  = now
+        )
+      )
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))

@@ -80,8 +80,8 @@ class RepositoriesControllerSpec
   val defaultData =
     Seq(
       new TeamRepositories(
-        "test-team",
-        List(
+        teamName     = "test-team",
+        repositories = List(
           GitRepository(
             "repo-name",
             "some description",
@@ -107,11 +107,12 @@ class RepositoriesControllerSpec
             defaultBranch      = "main"
           )
         ),
-        now
+        createdDate = Some(now),
+        updateDate  = now
       ),
       new TeamRepositories(
-        "another-team",
-        List(
+        teamName     = "another-team",
+        repositories = List(
           GitRepository(
             "another-repo",
             "some description",
@@ -173,7 +174,8 @@ class RepositoriesControllerSpec
             defaultBranch      = "main"
           )
         ),
-        now
+        createdDate = Some(now),
+        updateDate  = now
       )
     )
 
@@ -184,8 +186,8 @@ class RepositoriesControllerSpec
   ): Seq[TeamRepositories] =
     Seq(
       TeamRepositories(
-        "test-team",
-        List(GitRepository(
+        teamName     = teamName,
+        repositories = List(GitRepository(
           name           = repoName,
           description    = "some description",
           url            = repoUrl,
@@ -196,7 +198,8 @@ class RepositoriesControllerSpec
           isArchived     = false,
           defaultBranch  = "main"
         )),
-        now
+        createdDate = Some(now),
+        updateDate  = now
       )
     )
 
@@ -333,8 +336,8 @@ class RepositoriesControllerSpec
       val sourceData =
         Seq(
           TeamRepositories(
-            "test-team",
-            List(
+            teamName     = "test-team",
+            repositories = List(
               GitRepository(
                 "Another-repo",
                 "some description",
@@ -369,7 +372,8 @@ class RepositoriesControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           )
         )
 
@@ -386,8 +390,8 @@ class RepositoriesControllerSpec
       val data =
         Seq(
           TeamRepositories(
-            "test-team",
-            List(
+            teamName     = "test-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -400,11 +404,12 @@ class RepositoriesControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           ),
           TeamRepositories(
-            "another-team",
-            List(
+            teamName     = "another-team",
+            repositories = List(
               GitRepository(
                 "repo-name",
                 "some description",
@@ -417,7 +422,8 @@ class RepositoriesControllerSpec
                 defaultBranch  = "main"
               )
             ),
-            now
+            createdDate = Some(now),
+            updateDate  = now
           )
         )
 

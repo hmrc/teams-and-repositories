@@ -19,11 +19,9 @@ package uk.gov.hmrc.teamsandrepositories.services
 import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
-import com.kenshoo.play.metrics.Metrics
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
@@ -37,17 +35,13 @@ class Timestamper {
 
 @Singleton
 case class PersistingService @Inject()(
-  githubConfig            : GithubConfig,
-  persister               : TeamsAndReposPersister,
-  githubConnector         : GithubConnector,
-  timestamper             : Timestamper,
-  metrics                 : Metrics,
-  configuration           : Configuration,
-  futureHelpers           : FutureHelpers
+  githubConfig    : GithubConfig,
+  persister       : TeamsAndReposPersister,
+  githubConnector : GithubConnector,
+  timestamper     : Timestamper,
+  configuration   : Configuration
 ) {
   private val logger = Logger(this.getClass)
-
-  private val defaultMetricsRegistry = metrics.defaultRegistry
 
   val repositoriesToIgnore: List[String] =
     configuration.getOptional[Seq[String]]("shared.repositories").map(_.toList).getOrElse(List.empty[String])
@@ -57,9 +51,7 @@ case class PersistingService @Inject()(
       githubConfig           = githubConfig,
       githubConnector        = githubConnector,
       timestampF             = timestamper.timestampF,
-      defaultMetricsRegistry = defaultMetricsRegistry,
-      repositoriesToIgnore   = repositoriesToIgnore,
-      futureHelpers          = futureHelpers
+      repositoriesToIgnore   = repositoriesToIgnore
     )
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
@@ -94,6 +86,7 @@ case class PersistingService @Inject()(
         TeamRepositories(
           teamName     = TeamRepositories.TEAM_UNKNOWN,
           repositories = reposWithoutTeams,
+          createdDate  = None,
           updateDate   = timestamper.timestampF()
         )
       }
