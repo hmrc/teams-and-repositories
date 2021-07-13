@@ -85,9 +85,7 @@ class GithubConnector @Inject()(
         url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
         headers = Seq(authHeader, acceptsHeader)
       ).map(_.isDefined)
-       .recoverWith {
-         case e if isRateLimit(e) => rateLimitError(e)
-       }
+       .recoverWith(convertRateLimitErrors)
     }
 
   def existsContent(repo: GhRepository, path: String): Future[Boolean] =
@@ -99,9 +97,7 @@ class GithubConnector @Inject()(
         case None    => false
         case Some(e) => e.fold(throw _, _ => true)
       }
-      .recoverWith {
-        case e if isRateLimit(e) => rateLimitError(e)
-      }
+      .recoverWith(convertRateLimitErrors)
     }
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
@@ -129,9 +125,7 @@ class GithubConnector @Inject()(
     httpClient.GET[Option[A]](
       url     = url,
       headers = Seq(authHeader, acceptsHeader)
-    ).recoverWith {
-       case e if isRateLimit(e) => rateLimitError(e)
-     }
+    ).recoverWith(convertRateLimitErrors)
 
   private def requestPaginated[A](
     url: URL,
@@ -158,7 +152,7 @@ class GithubConnector @Inject()(
           requestPaginated(url"$nextUrl", acc2)
         )
       }
-      .recoverWith { case e if isRateLimit(e) => rateLimitError(e) }
+      .recoverWith(convertRateLimitErrors)
   }
 
   private def lookupNextUrl(link: String): Option[String] =
@@ -276,19 +270,24 @@ object RateLimitMetrics {
     )
 }
 
-case class APIRateLimitExceededException(
+case class ApiRateLimitExceededException(
+  exception: Throwable
+) extends RuntimeException(exception)
+
+case class ApiAbuseDetectedException(
   exception: Throwable
 ) extends RuntimeException(exception)
 
 object RateLimit {
   val logger: Logger = Logger(getClass)
 
-  def isRateLimit(e: Throwable): Boolean =
-    e.getMessage.toLowerCase.contains("api rate limit exceeded") ||
-    e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism")
+  def convertRateLimitErrors[A]: PartialFunction[Throwable, Future[A]] = {
+    case e if e.getMessage.toLowerCase.contains("api rate limit exceeded") =>
+      logger.error("=== Api rate limit has been reached ===", e)
+      Future.failed(ApiRateLimitExceededException(e))
 
-  def rateLimitError[T](e: Throwable): T = {
-    logger.error("=== API rate limit has been reached ===", e)
-    throw APIRateLimitExceededException(e)
+      case e if e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism") =>
+      logger.error("=== Api abuse detected ===", e)
+      Future.failed(ApiAbuseDetectedException(e))
   }
 }

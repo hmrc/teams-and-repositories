@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import java.util.{Timer, TimerTask}
 
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.connectors.APIRateLimitExceededException
+import uk.gov.hmrc.teamsandrepositories.connectors.{ApiAbuseDetectedException, ApiRateLimitExceededException}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -40,8 +40,12 @@ object RetryStrategy {
   def exponentialRetry[T](times: Int, duration: Duration = 10.millis)(f: => Future[T])(
     implicit executor: ExecutionContext): Future[T] =
     f.recoverWith {
-      case e: APIRateLimitExceededException =>
+      case e: ApiRateLimitExceededException =>
         logger.error(s"API rate limit is reached (skipping remaining $times retries)", e)
+        Future.failed(e)
+
+      case e: ApiAbuseDetectedException =>
+        logger.error(s"API abuse detected (skipping remaining $times retries)", e)
         Future.failed(e)
 
       case e if times > 0 =>

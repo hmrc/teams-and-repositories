@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import uk.gov.hmrc.teamsandrepositories.connectors.APIRateLimitExceededException
+import uk.gov.hmrc.teamsandrepositories.connectors.ApiRateLimitExceededException
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -36,11 +36,10 @@ class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with
     }
 
     def apiRateLimitThrower(throwAfterNumberOfCalls: Int): Future[Boolean] = {
-
       retriedCount += 1
 
       if (retriedCount == throwAfterNumberOfCalls)
-        Future.failed(APIRateLimitExceededException(new RuntimeException))
+        Future.failed(ApiRateLimitExceededException(new RuntimeException))
       else
         Future.failed(new RuntimeException)
     }
@@ -65,7 +64,6 @@ class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with
     }
 
     "should not retry if API rate limit exception is thrown" in {
-
       val dummy = new DummyThrower
 
       whenReady(
@@ -74,12 +72,10 @@ class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with
             dummy.apiRateLimitThrower(5)
           }
           .failed) { e =>
-        e shouldBe an[APIRateLimitExceededException]
+        e shouldBe an[ApiRateLimitExceededException]
       }
 
       dummy.retriedCount shouldBe 5
     }
-
   }
-
 }

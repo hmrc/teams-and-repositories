@@ -157,7 +157,7 @@ class GithubConnectorSpec
           )
       )
 
-      connector.getTeams().failed.futureValue shouldBe an[APIRateLimitExceededException]
+      connector.getTeams().failed.futureValue shouldBe an[ApiRateLimitExceededException]
     }
   }
 
@@ -207,7 +207,20 @@ class GithubConnectorSpec
           )
       )
 
-      connector.getTeamDetail(team).failed.futureValue shouldBe an[APIRateLimitExceededException]
+      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiRateLimitExceededException]
+    }
+
+    "throw abuse detected error" in {
+      stubFor(
+        get(urlPathEqualTo("/orgs/hmrc/teams"))
+          .willReturn(
+            aResponse()
+              .withStatus(403)
+              .withBody("You have triggered an abuse detection mechanism. Please wait a few minutes before you try again.")
+          )
+      )
+
+      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiAbuseDetectedException]
     }
   }
 
