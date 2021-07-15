@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 import java.time.Instant
 import java.util.concurrent.Executors
 
+import cats.data.EitherT
 import cats.implicits._
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
@@ -126,7 +127,7 @@ class GithubV3RepositoryDataSource(
           )
         )
       case Some(persistedRepository) if sharedRepos.contains(persistedRepository.name) =>
-        logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl}")
+        logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl} (shared repo)")
         logger.debug(s"Mapping repository (${repo.name}) as ${RepoType.Other}")
         Future.successful(
           buildGitRepository(
@@ -200,47 +201,39 @@ class GithubV3RepositoryDataSource(
     }
   }
 
-  private def getTypeFromGithub(repo: GhRepository): Future[RepoType] =
-    if (repo.name.endsWith("-prototype")) {
-      Future.successful(RepoType.Prototype)
-    } else {
-      isDeployable(repo).flatMap { deployable =>
-        if (deployable) {
-          Future.successful(RepoType.Service)
-        } else {
-          isReleasable(repo).map { releasable =>
-            if (releasable) RepoType.Library else RepoType.Other
-          }
-        }
-      }
-    }
+  private def getTypeFromGithub(repo: GhRepository): Future[RepoType] = {
+    def ifHalt(f: Future[Boolean], repoType: RepoType): EitherT[Future, RepoType, Unit] =
+      EitherT(f.map {
+        case true  => Left(repoType)
+        case false => Right(())
+      })
+    (for {
+       _ <- ifHalt(isPrototype(repo), RepoType.Prototype)
+       _ <- ifHalt(isService(repo)  , RepoType.Service  )
+       _ <- ifHalt(isLibrary(repo)  , RepoType.Library  )
+     } yield ()
+    ).fold(identity, _ => RepoType.Other)
+  }
 
-  private def isReleasable(repo: GhRepository): Future[Boolean] = {
+  private def isPrototype(repo: GhRepository): Future[Boolean] =
+    Future.successful(repo.name.endsWith("-prototype"))
+
+  private def isService(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
+    existsContent(repo, "conf/application.conf") ||
+      existsContent(repo, "deploy.properties") ||
+        existsContent(repo, "Procfile")
+  }
 
+  private def isLibrary(repo: GhRepository): Future[Boolean] = {
+    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
     // doesn't work for multi-module
     // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    def hasSrcMainScala = exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "src/main/scala"))
-    def hasSrcMainJava  = exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "src/main/java"))
-    def containsTags    = githubConnector.hasTags(repo)
-
-    (hasSrcMainScala || hasSrcMainJava) && containsTags
+    (existsContent(repo, "src/main/scala") || existsContent(repo, "src/main/java")) && githubConnector.hasTags(repo)
   }
 
-  private def isDeployable(repo: GhRepository): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-
-    def isPlayServiceF =
-      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "conf/application.conf"))
-
-    def hasProcFileF =
-      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "Procfile"))
-
-    def isJavaServiceF =
-      exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, "deploy.properties"))
-
-    isPlayServiceF || isJavaServiceF || hasProcFileF
-  }
+  private def existsContent(repo: GhRepository, path: String): Future[Boolean] =
+    exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, path))
 
   private def buildGitRepository(
     repo             : GhRepository,
@@ -262,6 +255,4 @@ class GithubV3RepositoryDataSource(
       isArchived         = repo.isArchived,
       defaultBranch      = repo.defaultBranch
     )
-
-
 }
