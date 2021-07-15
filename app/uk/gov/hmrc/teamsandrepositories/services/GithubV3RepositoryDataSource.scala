@@ -34,10 +34,10 @@ import scala.util.{Failure, Success, Try}
 
 
 class GithubV3RepositoryDataSource(
-  githubConfig              : GithubConfig,
-  githubConnector           : GithubConnector,
-  timestampF                : () => Instant,
-  repositoriesToIgnore      : List[String]
+  githubConfig    : GithubConfig,
+  githubConnector : GithubConnector,
+  timestampF      : () => Instant,
+  sharedRepos     : List[String]
 ) {
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
@@ -125,7 +125,7 @@ class GithubV3RepositoryDataSource(
             owningTeams        = persistedRepository.owningTeams
           )
         )
-      case Some(persistedRepository) if repositoriesToIgnore.contains(persistedRepository.name) =>
+      case Some(persistedRepository) if sharedRepos.contains(persistedRepository.name) =>
         logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl}")
         logger.debug(s"Mapping repository (${repo.name}) as ${RepoType.Other}")
         Future.successful(

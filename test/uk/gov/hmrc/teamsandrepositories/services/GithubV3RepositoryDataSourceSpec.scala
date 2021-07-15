@@ -52,10 +52,10 @@ class GithubV3RepositoryDataSourceSpec
 
     val dataSource =
       new GithubV3RepositoryDataSource(
-        githubConfig           = githubConfig,
-        githubConnector        = mockGithubConnector,
-        timestampF             = timestampF,
-        repositoriesToIgnore   = List("shared-repository")
+        githubConfig    = githubConfig,
+        githubConnector = mockGithubConnector,
+        timestampF      = timestampF,
+        sharedRepos     = List("shared-repository")
       )
 
     val ec = dataSource.ec

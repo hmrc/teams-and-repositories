@@ -75,27 +75,6 @@ object GitRepository {
     )(apply _, unlift(unapply))
   }
 
-  case class TeamActivityDates(
-    firstActiveDate         : Option[Instant] = None,
-    lastActiveDate          : Option[Instant] = None,
-  )
-
-  def getTeamActivityDatesOfNonSharedRepos(
-    repos      : Seq[GitRepository],
-    sharedRepos: List[String]
-  ): TeamActivityDates = {
-
-    val nonSharedRepos = repos.filterNot(r => sharedRepos.contains(r.name))
-
-    if (nonSharedRepos.nonEmpty)
-      TeamActivityDates(
-        firstActiveDate = Some(nonSharedRepos.map(_.createdDate).min),
-        lastActiveDate  = Some(nonSharedRepos.map(_.lastActiveDate).max)
-      )
-    else
-      TeamActivityDates()
-  }
-
   def primaryRepoType(repositories: Seq[GitRepository]): RepoType =
     if      (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
     else if (repositories.exists(_.repoType == RepoType.Service  )) RepoType.Service

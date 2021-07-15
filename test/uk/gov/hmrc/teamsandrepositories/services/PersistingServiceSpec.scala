@@ -375,6 +375,7 @@ class PersistingServiceSpec
     val mockGithubConfig          = mock[GithubConfig]
     val mockPersister             = mock[TeamsAndReposPersister]
     val mockGithubConnector       = mock[GithubConnector]
+    val configuration             = Configuration.from(Map("shared.repositories" -> Nil))
 
     when(mockGithubConfig.apiUrl)
       .thenReturn("open.com")
@@ -393,8 +394,8 @@ class PersistingServiceSpec
       persister       = mockPersister,
       githubConnector = mockGithubConnector,
       timestamper     = testTimestamper,
-      configuration   = Configuration(),
-      ) {
+      configuration   = configuration
+    ) {
         override val dataSource: GithubV3RepositoryDataSource = mockedDataSource
       }
   }
