@@ -21,7 +21,6 @@ import java.time.Instant
 import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
@@ -52,10 +51,10 @@ class GithubV3RepositoryDataSourceSpec
 
     val dataSource =
       new GithubV3RepositoryDataSource(
-        githubConfig           = githubConfig,
-        githubConnector        = mockGithubConnector,
-        timestampF             = timestampF,
-        repositoriesToIgnore   = List("shared-repository")
+        githubConfig    = githubConfig,
+        githubConnector = mockGithubConnector,
+        timestampF      = timestampF,
+        sharedRepos     = List("shared-repository")
       )
 
     val ec = dataSource.ec
@@ -975,66 +974,6 @@ class GithubV3RepositoryDataSourceSpec
           verify(mockGithubConnector, never).existsContent(any(), any())
         }
       }
-    }
-
-    "Retry up to 5 times in the event of a failed api call" in new Setup {
-      when(mockGithubConnector.getTeams())
-        .thenReturn(
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.successful(List(teamA))
-        )
-
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.successful(List(ghRepo))
-        )
-
-      when(mockGithubConnector.getFileContent(ghRepo, "app"))
-        .thenReturn(
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.successful(None)
-        )
-
-      when(mockGithubConnector.getFileContent(ghRepo, "Procfile"))
-        .thenReturn(
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.failed(new RuntimeException("testing retry logic")),
-          Future.successful(None)
-        )
-
-      dataSource
-        .mapTeam(teamA, persistedTeams = Nil)
-        .futureValue(Timeout(1.minute)) shouldBe
-        TeamRepositories(
-          teamName     = "A",
-          repositories = List(
-            GitRepository(
-              name               = "A_r",
-              description        = "some description",
-              url                = "url_A",
-              createdDate        = now,
-              lastActiveDate     = now,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
-        )
     }
 
     "not try to pull data from github for known shared repositories but still update the lastUpdate date" in new Setup {

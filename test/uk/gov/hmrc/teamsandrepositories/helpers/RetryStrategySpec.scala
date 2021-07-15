@@ -21,43 +21,45 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import uk.gov.hmrc.teamsandrepositories.connectors.ApiRateLimitExceededException
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationLong
 
 class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with IntegrationPatience {
 
   class DummyThrower() {
-
-    var retriedCount = 0
+    val retryCounter = new AtomicInteger(0)
 
     def normalExceptionThrower: Future[Boolean] = {
-      retriedCount += 1
+      retryCounter.incrementAndGet()
       Future.failed(new RuntimeException)
     }
 
     def apiRateLimitThrower(throwAfterNumberOfCalls: Int): Future[Boolean] = {
-      retriedCount += 1
+      val retriedCount = retryCounter.incrementAndGet()
 
       if (retriedCount == throwAfterNumberOfCalls)
         Future.failed(ApiRateLimitExceededException(new RuntimeException))
       else
         Future.failed(new RuntimeException)
     }
+
+    def retriedCount: Int =
+      retryCounter.get
   }
 
   "exponential retry" - {
     "should retry upto the max number of reties" in {
-
       val dummy = new DummyThrower
 
       whenReady(
         RetryStrategy
-          .exponentialRetry(times = 5) {
+          .exponentialRetry(times = 5, delay = 10.millis) {
             dummy.normalExceptionThrower
           }
-          .failed) { e =>
-        e shouldBe an[RuntimeException]
-      }
+          .failed
+      )(_ shouldBe an[RuntimeException])
 
       dummy.retriedCount shouldBe 6
 
@@ -68,12 +70,11 @@ class RetryStrategySpec extends AnyFreeSpec with Matchers with ScalaFutures with
 
       whenReady(
         RetryStrategy
-          .exponentialRetry(times = 10) {
+          .exponentialRetry(times = 10, delay = 10.millis) {
             dummy.apiRateLimitThrower(5)
           }
-          .failed) { e =>
-        e shouldBe an[ApiRateLimitExceededException]
-      }
+          .failed
+      )(_ shouldBe an[ApiRateLimitExceededException])
 
       dummy.retriedCount shouldBe 5
     }

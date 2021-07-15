@@ -34,7 +34,7 @@ class TeamsController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  lazy val repositoriesToIgnore: List[String] =
+  lazy val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
 
   private implicit val tf = Team.format
@@ -44,7 +44,7 @@ class TeamsController @Inject()(
       .map { allTeamsAndRepos =>
         val teams =
           allTeamsAndRepos
-            .map(_.toTeam(repositoriesToIgnore, includeRepos))
+            .map(_.toTeam(sharedRepos, includeRepos))
         Ok(toJson(teams))
       }
   }
@@ -55,7 +55,7 @@ class TeamsController @Inject()(
         val optTeam: Option[Team] =
           allTeamsAndRepos
             .find(_.teamName.equalsIgnoreCase(teamName))
-            .map(_.toTeam(repositoriesToIgnore, includeRepos))
+            .map(_.toTeam(sharedRepos, includeRepos))
         optTeam match {
           case None       => NotFound
           case Some(team) => Ok(toJson(team))

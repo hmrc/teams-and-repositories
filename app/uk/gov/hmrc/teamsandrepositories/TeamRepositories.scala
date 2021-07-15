@@ -31,9 +31,12 @@ case class TeamRepositories(
   createdDate : Option[Instant],
   updateDate  : Instant
 ) {
-  def toTeam(repositoriesToIgnore: List[String], includeRepos: Boolean) = {
-    val teamActivityDates =
-      GitRepository.getTeamActivityDatesOfNonSharedRepos(repositories, repositoriesToIgnore)
+  def toTeam(sharedRepos: List[String], includeRepos: Boolean) = {
+
+    val lastActiveDate = {
+      val exclusiveRepos = repositories.filterNot(r => sharedRepos.contains(r.name))
+      if (exclusiveRepos.isEmpty) None else Some(exclusiveRepos.map(_.lastActiveDate).max)
+    }
 
     val repos =
       if (!includeRepos)
@@ -51,11 +54,11 @@ case class TeamRepositories(
     }
 
     Team(
-      name                     = teamName,
-      createdDate              = createdDate.orElse(teamActivityDates.firstActiveDate), // once we have createdDate in mongo for all repos, we can ignore firstActiveDate
-      lastActiveDate           = teamActivityDates.lastActiveDate,
-      repos                    = repos,
-      ownedRepos               = ownedRepos
+      name           = teamName,
+      createdDate    = createdDate,
+      lastActiveDate = lastActiveDate,
+      repos          = repos,
+      ownedRepos     = ownedRepos
     )
   }
 }
@@ -64,8 +67,9 @@ object TeamRepositories {
   private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
 
   def findDigitalServiceDetails(
-    allTeamsAndRepos: Seq[TeamRepositories],
-    digitalServiceName: String): Option[DigitalService] = {
+    allTeamsAndRepos   : Seq[TeamRepositories],
+    digitalServiceName: String
+  ): Option[DigitalService] = {
 
     case class RepoAndTeam(repositoryName: String, teamName: String)
 
@@ -88,26 +92,22 @@ object TeamRepositories {
     gitReposForDigitalService.distinct
       .map(Repository.create)
       .sortBy(_.name.toUpperCase) match {
-      case Nil => None
-      case repos =>
-        Some(
-          DigitalService(
-            storedDigitalServiceName,
-            repos.map(_.lastUpdatedAt).max,
-            repos.map(
-              repo =>
-                DigitalServiceRepository(
-                  repo.name,
-                  repo.createdAt,
-                  repo.lastUpdatedAt,
-                  repo.repoType,
-                  repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
-                  repo.archived
-                ))
-          )
-        )
-
-    }
+        case Nil   => None
+        case repos => Some(DigitalService(
+                        name          = storedDigitalServiceName,
+                        lastUpdatedAt = repos.map(_.lastUpdatedAt).max,
+                        repositories  = repos.map(repo =>
+                                          DigitalServiceRepository(
+                                            repo.name,
+                                            repo.createdAt,
+                                            repo.lastUpdatedAt,
+                                            repo.repoType,
+                                            repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
+                                            repo.archived
+                                          )
+                                        )
+                     ))
+      }
   }
 
   val TEAM_UNKNOWN = "TEAM_UNKNOWN"
@@ -162,8 +162,8 @@ object TeamRepositories {
   }
 
   def getRepositoryDetailsList(
-    teamRepos: Seq[TeamRepositories],
-    repoType: RepoType,
+    teamRepos     : Seq[TeamRepositories],
+    repoType      : RepoType,
     ciUrlTemplates: UrlTemplates
   ): Seq[RepositoryDetails] = {
 

@@ -43,15 +43,15 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  val repositoriesToIgnore: List[String] =
-    configuration.getOptional[Seq[String]]("shared.repositories").map(_.toList).getOrElse(List.empty[String])
+  val sharedRepos: List[String] =
+    configuration.get[Seq[String]]("shared.repositories").toList
 
   val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
-      githubConfig           = githubConfig,
-      githubConnector        = githubConnector,
-      timestampF             = timestamper.timestampF,
-      repositoriesToIgnore   = repositoriesToIgnore
+      githubConfig    = githubConfig,
+      githubConnector = githubConnector,
+      timestampF      = timestamper.timestampF,
+      sharedRepos     = sharedRepos
     )
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =

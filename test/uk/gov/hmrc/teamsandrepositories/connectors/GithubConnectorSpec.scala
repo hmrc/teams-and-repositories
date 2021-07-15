@@ -62,6 +62,7 @@ class GithubConnectorSpec
     "return fileContent" in {
       val path        = "path"
       val fileContent = "fileContent"
+
       stubFor(
         get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
           .willReturn(aResponse().withBody(fileContent))
@@ -69,14 +70,15 @@ class GithubConnectorSpec
 
       connector.getFileContent(repo, path).futureValue.value shouldBe fileContent
 
-      wireMockServer.verify(
+      wireMockServer.verify(1,
         getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
     }
 
     "return None when file does not exist" in {
-      val path        = "path"
+      val path = "path"
+
       stubFor(
         get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
           .willReturn(aResponse().withStatus(404))
@@ -84,20 +86,25 @@ class GithubConnectorSpec
 
       connector.getFileContent(repo, path).futureValue shouldBe None
 
-      wireMockServer.verify(
+      wireMockServer.verify(1,
         getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
     }
 
     "fail when there is an error" in {
-      val path        = "path"
+      val path = "path"
+
       stubFor(
         get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
           .willReturn(aResponse().withStatus(500))
       )
 
       connector.getFileContent(repo, path).failed.futureValue shouldBe an[UpstreamErrorResponse]
+
+      wireMockServer.verify(6, // with retries
+        getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
+      )
     }
   }
 

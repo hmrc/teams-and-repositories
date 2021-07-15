@@ -35,258 +35,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
 
   private val description = "Some description"
 
-  "GitRepository.getTeamActivityDatesOfNonSharedRepos" should {
-    "calculate activity dates based on min of created and max of last active when there are multiple versions of the same repo" in {
-      val oldestLibraryRepo = GitRepository(
-        "repo1",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(1),
-        lastActiveDate     = Instant.ofEpochMilli(10),
-        // isInternal         = false,
-        repoType           = Library,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val oldDeployableRepo = GitRepository(
-        "repo2",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(2),
-        lastActiveDate     = Instant.ofEpochMilli(20),
-        // isInternal         = false,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val newDeployableRepo = GitRepository(
-        "repo3",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(3),
-        lastActiveDate     = Instant.ofEpochMilli(30),
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val oldOtherRepoWithLatestActiveDate = GitRepository(
-        "repo1",
-        description,
-        "",
-        createdDate        = Instant.ofEpochMilli(2),
-        lastActiveDate     = Instant.ofEpochMilli(40),
-        // isInternal         = true,
-        repoType           = Other,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val repositoriesToIgnore = List.empty
-
-      val result0 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(newDeployableRepo, oldestLibraryRepo), repositoriesToIgnore)
-      result0.firstActiveDate.value shouldBe oldestLibraryRepo.createdDate
-      result0.lastActiveDate.value  shouldBe newDeployableRepo.lastActiveDate
-
-      val result1 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldDeployableRepo, oldOtherRepoWithLatestActiveDate), repositoriesToIgnore)
-      result1.firstActiveDate.get shouldBe oldDeployableRepo.createdDate
-      result1.lastActiveDate.get  shouldBe oldOtherRepoWithLatestActiveDate.lastActiveDate
-
-      val result2 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List.empty, repositoriesToIgnore)
-      result2.firstActiveDate shouldBe None
-      result2.lastActiveDate  shouldBe None
-    }
-
-    "exclude specified repos in calculating activity max and min dates" in {
-      val oldLibraryRepo = GitRepository(
-        "repo1",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(2),
-        lastActiveDate     = Instant.ofEpochMilli(20),
-        // isInternal         = false,
-        repoType           = Library,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val oldDeployableRepo = GitRepository(
-        "repo2",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(3),
-        lastActiveDate     = Instant.ofEpochMilli(30),
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val newLibraryRepo = GitRepository(
-        "repo1",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(4),
-        lastActiveDate     = Instant.ofEpochMilli(40),
-        // isInternal         = false,
-        repoType           = Library,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val newDeployableRepo = GitRepository(
-        "repo2",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(5),
-        lastActiveDate     = Instant.ofEpochMilli(50),
-        // isInternal         = true,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val newIgnoreRepo = GitRepository(
-        "ignoreRepo",
-        "some desc",
-        "",
-        createdDate        = Instant.ofEpochMilli(1),
-        lastActiveDate     = Instant.ofEpochMilli(10000),
-        // isInternal         = false,
-        repoType           = Service,
-        digitalServiceName = None,
-        language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main"
-      )
-
-      val repositoriesToIgnore = List("ignoreRepo")
-
-      val result0 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldLibraryRepo, newDeployableRepo, newIgnoreRepo), repositoriesToIgnore)
-      result0.firstActiveDate.value shouldBe oldLibraryRepo.createdDate
-      result0.lastActiveDate.value  shouldBe newDeployableRepo.lastActiveDate
-
-      val result1 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List(oldDeployableRepo, newLibraryRepo, newIgnoreRepo), repositoriesToIgnore)
-      result1.firstActiveDate.get shouldBe oldDeployableRepo.createdDate
-      result1.lastActiveDate.get  shouldBe newLibraryRepo.lastActiveDate
-
-      val result2 = GitRepository.getTeamActivityDatesOfNonSharedRepos(List.empty, repositoriesToIgnore)
-      result2.firstActiveDate shouldBe None
-      result2.lastActiveDate  shouldBe None
-    }
-  }
-
-  "getServiceRepoDetailsList" should {
-    "include repository with type not Deployable as services if one of the repositories with same name is Deployable" in {
-      val teams = Seq(
-        TeamRepositories(
-          teamName     = "teamName",
-          repositories = List(
-                           GitRepository(
-                             "repo1",
-                             "some desc",
-                             "",
-                             createdDate        = now,
-                             lastActiveDate     = now,
-                             // isInternal         = false,
-                             repoType           = Service,
-                             digitalServiceName = None,
-                             language           = Some("Scala"),
-                             isArchived         = false,
-                             defaultBranch      = "main"
-                           ),
-                           GitRepository(
-                             "repo2",
-                             "some desc",
-                             "",
-                             createdDate        = now,
-                             lastActiveDate     = now,
-                             // isInternal         = true,
-                             repoType           = Service,
-                             digitalServiceName = None,
-                             language           = Some("Scala"),
-                             isArchived         = false,
-                             defaultBranch      = "main"
-                           ),
-                           GitRepository(
-                             "repo1",
-                             "some desc",
-                             "",
-                             createdDate        = now,
-                             lastActiveDate     = now,
-                             // isInternal         = true,
-                             repoType           = Other,
-                             digitalServiceName = None,
-                             language           = Some("Scala"),
-                             isArchived         = false,
-                             defaultBranch      = "main"
-                           ),
-                           GitRepository(
-                             "repo3",
-                             "some desc",
-                             "",
-                             createdDate        = now,
-                             lastActiveDate     = now,
-                             // isInternal         = true,
-                             repoType           = Library,
-                             digitalServiceName = None,
-                             language           = Some("Scala"),
-                             isArchived         = false,
-                             defaultBranch      = "main"
-                           )
-                         ),
-          createdDate  = Some(now),
-          updateDate   = now
-        ),
-        TeamRepositories(
-          teamName     = "teamNameOther",
-          repositories = List(
-                           GitRepository(
-                             "repo3",
-                             "some desc",
-                             "",
-                             createdDate        = now,
-                             lastActiveDate     = now,
-                             // isInternal         = true,
-                             repoType           = Library,
-                             digitalServiceName = None,
-                             language           = Some("Scala"),
-                             isArchived         = false,
-                             defaultBranch      = "main"
-                           )
-                         ),
-          createdDate = Some(now),
-          updateDate   = now
-        )
-      )
-
-      val result: Seq[Repository] = TeamRepositories.getAllRepositories(teams).filter(_.repoType == Service)
-
-      result.map(_.name)          shouldBe List("repo1", "repo2")
-      result.map(_.createdAt)     shouldBe List(now, now)
-      result.map(_.lastUpdatedAt) shouldBe List(now, now)
-    }
-  }
-
   "getAllRepositories" should {
     "deduplicate results" in {
       val teams = Seq(
@@ -294,9 +42,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "team1",
           repositories = List(
                           GitRepository(
-                            "repo1",
-                            "some desc",
-                            "",
+                            name               = "repo1",
+                            description        = "some desc",
+                            url                = "",
                             createdDate        = now,
                             lastActiveDate     = now,
                             repoType           = Library,
@@ -313,9 +61,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "team2",
           repositories = List(
                           GitRepository(
-                            "repo1",
-                            "some desc",
-                            "",
+                            name               = "repo1",
+                            description        = "some desc",
+                            url                = "",
                             createdDate        = now,
                             lastActiveDate     = now,
                             repoType           = Library,
@@ -341,9 +89,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "team1",
           repositories = List(
                            GitRepository(
-                             "repo1",
-                             "some desc",
-                             "",
+                             name               = "repo1",
+                             description        = "some desc",
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
                              repoType           = Library,
@@ -360,9 +108,9 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "team2",
           repositories = List(
                            GitRepository(
-                             "repo1",
-                             "some desc",
-                             "",
+                             name               = "repo1",
+                             description        = "some desc",
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now.minusSeconds(1000),
                              repoType           = Library,
@@ -390,12 +138,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "teamName",
           repositories = List(
                            GitRepository(
-                             "repo1",
-                             description,
-                             "",
+                             name               = "repo1",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = false,
                              repoType           = Library,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -417,12 +164,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "teamName",
           repositories = List(
                            GitRepository(
-                             "repo1",
-                             description,
-                             "",
+                             name               = "repo1",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = false,
                              repoType           = Library,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -450,12 +196,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "teamName",
           repositories = List(
                            GitRepository(
-                             "repo1-prototype",
-                             description,
-                             "",
+                             name               = "repo1-prototype",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = false,
                              repoType           = Service,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -470,12 +215,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "teamNameOther",
           repositories = List(
                            GitRepository(
-                             "repo3",
-                             description,
-                             "",
+                             name               = "repo3",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = true,
                              repoType           = Other,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -500,12 +244,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           teamName     = "team1",
           repositories = List(
                            GitRepository(
-                             "repo1",
-                             description,
-                             "",
+                             name               = "repo1",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = false,
                              repoType           = Service,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -513,12 +256,11 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
                              defaultBranch      = "main"
                            ),
                            GitRepository(
-                             "repo2",
-                             description,
-                             "",
+                             name               = "repo2",
+                             description        = description,
+                             url                = "",
                              createdDate        = now,
                              lastActiveDate     = now,
-                             // isInternal         = true,
                              repoType           = Library,
                              digitalServiceName = None,
                              language           = Some("Scala"),
@@ -538,7 +280,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -551,7 +292,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -571,7 +311,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -584,7 +323,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -604,7 +342,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -617,7 +354,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
               url                = "",
               createdDate        = now,
               lastActiveDate     = now,
-              // isInternal         = true,
               repoType           = Library,
               digitalServiceName = None,
               language           = Some("Scala"),
@@ -742,7 +478,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       url                = "",
       createdDate        = Instant.ofEpochMilli(1),
       lastActiveDate     = Instant.ofEpochMilli(10),
-      // isInternal         = false,
       repoType           = Service,
       digitalServiceName = None,
       language           = Some("Scala"),
@@ -756,7 +491,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       url                = "",
       createdDate        = Instant.ofEpochMilli(2),
       lastActiveDate     = Instant.ofEpochMilli(20),
-      // isInternal         = true,
       repoType           = Service,
       digitalServiceName = None,
       language           = Some("Scala"),
@@ -770,7 +504,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       url                = "",
       createdDate        = Instant.ofEpochMilli(3),
       lastActiveDate     = Instant.ofEpochMilli(30),
-      // isInternal         = true,
       repoType           = Library,
       digitalServiceName = None,
       language           = Some("Scala"),
@@ -784,7 +517,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
       url                = "",
       createdDate        = Instant.ofEpochMilli(4),
       lastActiveDate     = Instant.ofEpochMilli(40),
-      // isInternal         = true,
       repoType           = Other,
       digitalServiceName = None,
       language           = Some("Scala"),
@@ -800,7 +532,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         updateDate   = now
       )
 
-      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
+      val result = teamRepository.toTeam(sharedRepos = Nil, includeRepos = true)
 
       result shouldBe Team(
          name             = "teamName",
@@ -823,7 +555,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         updateDate   = now
       )
 
-      val result = teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true)
+      val result = teamRepository.toTeam(sharedRepos = Nil, includeRepos = true)
 
       result shouldBe Team(
         name            = "teamName",
@@ -952,7 +684,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           updateDate   = now
         )
 
-      teamRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
+      teamRepository.toTeam(sharedRepos = Nil, includeRepos = true) shouldEqual Team(
           name            = "teamName",
           createdDate     = Some(teamCreatedDate),
           lastActiveDate  = Some(Instant.ofEpochMilli(30)),
@@ -973,7 +705,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
           updateDate   = now
         )
 
-      teamOtherRepository.toTeam(repositoriesToIgnore = Nil, includeRepos = true) shouldEqual Team(
+      teamOtherRepository.toTeam(sharedRepos = Nil, includeRepos = true) shouldEqual Team(
         name            = "teamNameOther",
         createdDate     = Some(teamCreatedDate),
         lastActiveDate  = Some(Instant.ofEpochMilli(40)),
