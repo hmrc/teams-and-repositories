@@ -26,10 +26,8 @@ import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -44,8 +42,6 @@ class GithubV3RepositoryDataSource(
 
   private val logger = Logger(this.getClass)
 
-  val retries: Int              = 5
-  val initialDuration: Duration = 50.millis
 
   def getTeams(): Future[List[GhTeam]] =
     githubConnector.getTeams()
@@ -58,28 +54,26 @@ class GithubV3RepositoryDataSource(
 
   def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
-    exponentialRetry(retries, initialDuration) {
-      for {
-        ghRepos            <- githubConnector.getReposForTeam(team)
-        currentCreatedDate =  persistedTeams.find(_.teamName == team.name).flatMap(_.createdDate)
-        optCreatedDate     <- if (currentCreatedDate.isEmpty)
-                                githubConnector.getTeamDetail(team).map(_.map(_.createdDate))
-                              else
-                                Future.successful(currentCreatedDate)
-        repos              <- ghRepos
-                                .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                                .traverse(repo => mapRepository(team, repo, persistedTeams))
-      } yield TeamRepositories(
-          teamName     = team.name,
-          repositories = repos.toList,
-          createdDate  = optCreatedDate,
-          updateDate   = timestampF()
-        )
-    }.recover {
-      case e =>
-        logger.error("Could not map teams with organisations.", e)
-        throw e
-    }
+    for {
+      ghRepos            <- githubConnector.getReposForTeam(team)
+      currentCreatedDate =  persistedTeams.find(_.teamName == team.name).flatMap(_.createdDate)
+      optCreatedDate     <- if (currentCreatedDate.isEmpty)
+                              githubConnector.getTeamDetail(team).map(_.map(_.createdDate))
+                            else
+                              Future.successful(currentCreatedDate)
+      repos              <- ghRepos
+                              .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
+                              .traverse(repo => mapRepository(team, repo, persistedTeams))
+    } yield TeamRepositories(
+        teamName     = team.name,
+        repositories = repos.toList,
+        createdDate  = optCreatedDate,
+        updateDate   = timestampF()
+      )
+  }.recover {
+    case e =>
+      logger.error("Could not map teams with organisations.", e)
+      throw e
   }
 
   def getAllRepositories(): Future[List[GitRepository]] =
@@ -220,20 +214,19 @@ class GithubV3RepositoryDataSource(
 
   private def isService(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-    existsContent(repo, "conf/application.conf") ||
-      existsContent(repo, "deploy.properties") ||
-        existsContent(repo, "Procfile")
+    githubConnector.existsContent(repo, "conf/application.conf") ||
+      githubConnector.existsContent(repo, "deploy.properties") ||
+        githubConnector.existsContent(repo, "Procfile")
   }
 
   private def isLibrary(repo: GhRepository): Future[Boolean] = {
     import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
     // doesn't work for multi-module
     // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    (existsContent(repo, "src/main/scala") || existsContent(repo, "src/main/java")) && githubConnector.hasTags(repo)
+    (githubConnector.existsContent(repo, "src/main/scala") ||
+      githubConnector.existsContent(repo, "src/main/java")
+    ) && githubConnector.hasTags(repo)
   }
-
-  private def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    exponentialRetry(retries, initialDuration)(githubConnector.existsContent(repo, path))
 
   private def buildGitRepository(
     repo             : GhRepository,

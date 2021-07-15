@@ -22,22 +22,25 @@ import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.{ApiAbuseDetectedException, ApiRateLimitExceededException}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.Duration
 
 object RetryStrategy {
 
   private val logger = Logger(this.getClass)
 
-  private def delay[T](delay: Duration)(eventualT: => Future[T]): Future[T] = {
+  private def schedule[T](delay: Duration)(eventualT: => Future[T]): Future[T] = {
     val promise = Promise[T]()
-    new Timer().schedule(new TimerTask {
-      override def run() = promise.completeWith(eventualT)
-    }, delay.toMillis)
-
+    new Timer().schedule(
+      new TimerTask { override def run() = promise.completeWith(eventualT) },
+      delay.toMillis
+    )
     promise.future
   }
 
-  def exponentialRetry[T](times: Int, duration: Duration = 10.millis)(f: => Future[T])(
+  def exponentialRetry[T](
+    times: Int,
+    delay: Duration
+  )(f: => Future[T])(
     implicit executor: ExecutionContext): Future[T] =
     f.recoverWith {
       case e: ApiRateLimitExceededException =>
@@ -50,9 +53,9 @@ object RetryStrategy {
 
       case e if times > 0 =>
         logger.error("error making request Retrying :", e)
-        logger.debug(s"Retrying with delay $duration attempts remaining: ${times - 1}")
-        delay(duration) {
-          exponentialRetry(times - 1, duration * 2)(f)
+        logger.debug(s"Retrying with delay $delay attempts remaining: ${times - 1}")
+        schedule(delay) {
+          exponentialRetry(times - 1, delay * 2)(f)
         }
     }
 }

@@ -27,6 +27,7 @@ import play.api.libs.json.{Reads, OFormat, __}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -48,12 +49,13 @@ class GithubConnector @Inject()(
 
   private implicit val hc = HeaderCarrier()
 
-  def getFileContent(repo: GhRepository, path: String): Future[Option[String]] = {
-    httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-      url     = url"${githubConfig.rawUrl}/hmrc/${repo.name}/${repo.defaultBranch}/$path", // works with both escaped and non-escaped path
-      headers = Seq(authHeader)
-    ).map(_.map(_.fold(throw _, _.body)))
-  }
+  def getFileContent(repo: GhRepository, path: String): Future[Option[String]] =
+    withRetry {
+      httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
+        url     = url"${githubConfig.rawUrl}/hmrc/${repo.name}/${repo.defaultBranch}/$path", // works with both escaped and non-escaped path
+        headers = Seq(authHeader)
+      ).map(_.map(_.fold(throw _, _.body)))
+    }
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
@@ -61,15 +63,18 @@ class GithubConnector @Inject()(
       requestPaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
     }
 
-  def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] = {
-    implicit val rf = GhTeamDetail.format
-    requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
-  }
+  def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] =
+    withRetry {
+      implicit val rf = GhTeamDetail.format
+      requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
+    }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
-    withCounter(s"github.open.repos") {
-      implicit val rf = GhRepository.format
-      requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
+    withRetry {
+      withCounter(s"github.open.repos") {
+        implicit val rf = GhRepository.format
+        requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
+      }
     }
 
   def getRepos(): Future[List[GhRepository]] =
@@ -89,15 +94,17 @@ class GithubConnector @Inject()(
     }
 
   def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    withCounter(s"github.open.containsContent") {
-      httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-        url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
-        headers = Seq(authHeader, acceptsHeader)
-      ).map{
-        case None    => false
-        case Some(e) => e.fold(throw _, _ => true)
+    withRetry {
+      withCounter(s"github.open.containsContent") {
+        httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
+          url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
+          headers = Seq(authHeader, acceptsHeader)
+        ).map{
+          case None    => false
+          case Some(e) => e.fold(throw _, _ => true)
+        }
+        .recoverWith(convertRateLimitErrors)
       }
-      .recoverWith(convertRateLimitErrors)
     }
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
@@ -107,6 +114,9 @@ class GithubConnector @Inject()(
       headers = Seq("Authorization" -> s"token $token")
     )
   }
+
+  private def withRetry[T](f: => Future[T]): Future[T] =
+    RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
 
   private case class LinkParam(
     k: String,
