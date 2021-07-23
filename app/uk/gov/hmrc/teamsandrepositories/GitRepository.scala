@@ -81,8 +81,6 @@ object GitRepository {
     else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
     else RepoType.Other
 
-  private implicit val ldto: Ordering[Instant] = DateTimeUtils.instantOrdering
-
   def extractRepositoryGroupForType(
     repoType    : RepoType,
     repositories: Seq[GitRepository]

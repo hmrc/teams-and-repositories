@@ -52,7 +52,7 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
+  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories], updatedRepos: Seq[GitRepository]): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     for {
       ghRepos            <- githubConnector.getReposForTeam(team)
@@ -63,8 +63,14 @@ class GithubV3RepositoryDataSource(
                               Future.successful(currentCreatedDate)
       repos              <- ghRepos
                               .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                              .traverse(repo => mapRepository(team, repo, persistedTeams))
-    } yield TeamRepositories(
+                              .traverse(repo =>
+                                updatedRepos.find(_.name == repo.name) match {
+                                  case Some(repo) => Future.successful(repo)
+                                  case _          => mapRepository(team, repo, persistedTeams)
+                                }
+                              )
+    } yield
+      TeamRepositories(
         teamName     = team.name,
         repositories = repos.toList,
         createdDate  = optCreatedDate,
@@ -120,17 +126,7 @@ class GithubV3RepositoryDataSource(
             owningTeams        = persistedRepository.owningTeams
           )
         )
-      case Some(persistedRepository) if sharedRepos.contains(persistedRepository.name) =>
-        logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl} (shared repo)")
-        logger.debug(s"Mapping repository (${repo.name}) as ${RepoType.Other}")
-        Future.successful(
-          buildGitRepository(
-            repo               = repo,
-            repoType           = RepoType.Other,
-            digitalServiceName = None,
-            owningTeams        = persistedRepository.owningTeams
-          )
-        )
+
       case Some(persistedRepository) =>
         logger.info(
           s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +

@@ -142,10 +142,10 @@ class PersistingServiceSpec
       when(dataSource.getTeams())
         .thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
 
-      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any(), any()))
         .thenReturn(Future.successful(teamARepositories))
 
-      when(dataSource.mapTeam(eqTo(ghTeamB), any()))
+      when(dataSource.mapTeam(eqTo(ghTeamB), any(), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
       when(dataSource.getAllRepositories())
@@ -155,8 +155,8 @@ class PersistingServiceSpec
 
       persistingService.persistTeamRepoMapping.futureValue
 
-      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
-      verify(dataSource).mapTeam(eqTo(ghTeamB), any())
+      verify(dataSource).mapTeam(eqTo(ghTeamA), any(), any())
+      verify(dataSource).mapTeam(eqTo(ghTeamB), any(), any())
       verify(persistingService.persister).update(teamARepositories)
       verify(persistingService.persister).update(teamBRepositories)
       verify(persistingService.persister)
@@ -225,7 +225,7 @@ class PersistingServiceSpec
 
       when(dataSource.getTeams()).thenReturn(Future.successful(List(ghTeamA)))
 
-      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any(), any()))
         .thenReturn(Future.successful(teamARepositoriesInDataSource1))
 
       when(dataSource.getAllRepositories())
@@ -235,7 +235,7 @@ class PersistingServiceSpec
 
       persistingService.persistTeamRepoMapping.futureValue
 
-      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
+      verify(dataSource).mapTeam(eqTo(ghTeamA), any(), any())
 
       val mergedRepositories = teamARepositoriesInDataSource1.repositories.sortBy(_.name)
       verify(persistingService.persister)
@@ -303,10 +303,10 @@ class PersistingServiceSpec
       when(dataSource.getTeams())
         .thenReturn(Future.successful(List(ghTeamA, ghTeamB, ghTeamC, ghTeamD)))
 
-      when(dataSource.mapTeam(eqTo(ghTeamA), any())).thenReturn(Future.successful(teamARepositories))
-      when(dataSource.mapTeam(eqTo(ghTeamB), any())).thenReturn(Future.successful(teamBRepositories))
-      when(dataSource.mapTeam(eqTo(ghTeamC), any())).thenReturn(Future.successful(teamCRepositories))
-      when(dataSource.mapTeam(eqTo(ghTeamD), any())).thenReturn(Future.successful(teamDRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamA), any(), any())).thenReturn(Future.successful(teamARepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamB), any(), any())).thenReturn(Future.successful(teamBRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamC), any(), any())).thenReturn(Future.successful(teamCRepositories))
+      when(dataSource.mapTeam(eqTo(ghTeamD), any(), any())).thenReturn(Future.successful(teamDRepositories))
 
       when(dataSource.getAllRepositories()).thenReturn(Future(reposWithoutTeams))
 
@@ -325,10 +325,10 @@ class PersistingServiceSpec
 
       persistingService.persistTeamRepoMapping.futureValue
 
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamD), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamA), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamC), any())
-      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamB), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamD), any(), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamA), any(), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamC), any(), any())
+      mappingTeamsOrder.verify(dataSource).mapTeam(eqTo(ghTeamB), any(), any())
 
       persistenceOrder.verify(persistingService.persister).update(teamDRepositories)
       persistenceOrder.verify(persistingService.persister).update(teamARepositories)

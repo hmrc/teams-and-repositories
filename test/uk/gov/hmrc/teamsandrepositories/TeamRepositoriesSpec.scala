@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, Team}
+import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 
 
 import scala.collection.immutable.ListMap
