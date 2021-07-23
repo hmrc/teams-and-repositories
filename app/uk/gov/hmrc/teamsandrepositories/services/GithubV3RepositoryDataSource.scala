@@ -120,13 +120,16 @@ class GithubV3RepositoryDataSource(
             owningTeams        = persistedRepository.owningTeams
           )
         )
+
+      // This short circuit seems to attempt to stop sharedRepos which are referenced by many teams from making
+      // github calls. It means that they never refresh from github even when they are updated.
+      // TODO fix this (e.g. keep a record/check github to see if it has been updated already for another team on the same schedule run)
       case Some(persistedRepository) if sharedRepos.contains(persistedRepository.name) =>
         logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl} (shared repo)")
-        logger.debug(s"Mapping repository (${repo.name}) as ${RepoType.Other}")
         Future.successful(
           buildGitRepository(
             repo               = repo,
-            repoType           = RepoType.Other,
+            repoType           = persistedRepository.repoType,
             digitalServiceName = None,
             owningTeams        = persistedRepository.owningTeams
           )
