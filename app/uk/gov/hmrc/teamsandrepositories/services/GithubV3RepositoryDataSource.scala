@@ -52,7 +52,7 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories]): Future[TeamRepositories] = {
+  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories], updatedRepos: Seq[GitRepository]): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     for {
       ghRepos            <- githubConnector.getReposForTeam(team)
@@ -63,8 +63,14 @@ class GithubV3RepositoryDataSource(
                               Future.successful(currentCreatedDate)
       repos              <- ghRepos
                               .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                              .traverse(repo => mapRepository(team, repo, persistedTeams))
-    } yield TeamRepositories(
+                              .traverse(repo =>
+                                updatedRepos.find(_.name == repo.name) match {
+                                  case Some(repo) => Future.successful(repo)
+                                  case _          => mapRepository(team, repo, persistedTeams)
+                                }
+                              )
+    } yield
+      TeamRepositories(
         teamName     = team.name,
         repositories = repos.toList,
         createdDate  = optCreatedDate,
@@ -121,19 +127,6 @@ class GithubV3RepositoryDataSource(
           )
         )
 
-      // This short circuit seems to attempt to stop sharedRepos which are referenced by many teams from making
-      // github calls. It means that they never refresh from github even when they are updated.
-      // TODO fix this (e.g. keep a record/check github to see if it has been updated already for another team on the same schedule run)
-      case Some(persistedRepository) if sharedRepos.contains(persistedRepository.name) =>
-        logger.info(s"Team '${team.name}' - Partial reload of ${repo.htmlUrl} (shared repo)")
-        Future.successful(
-          buildGitRepository(
-            repo               = repo,
-            repoType           = persistedRepository.repoType,
-            digitalServiceName = None,
-            owningTeams        = persistedRepository.owningTeams
-          )
-        )
       case Some(persistedRepository) =>
         logger.info(
           s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +

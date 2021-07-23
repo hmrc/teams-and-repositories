@@ -20,7 +20,7 @@ import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
@@ -58,13 +58,18 @@ case class PersistingService @Inject()(
     (for {
        persistedTeams <- persister.getAllTeamsAndRepos(None)
        sortedGhTeams  <- teamsOrderedByUpdateDate(persistedTeams)
-       withTeams      <- sortedGhTeams.foldLeftM(Seq.empty[TeamRepositories]){ case (acc, ghTeam) =>
-                           dataSource
-                             .mapTeam(ghTeam, persistedTeams)
-                             .map(tr => tr.copy(repositories = tr.repositories.sortBy(_.name)))
-                             .flatMap(persister.update)
-                             .map(acc :+ _)
-                         }
+       withTeams      <- sortedGhTeams.foldLeftM[Future, (Seq[TeamRepositories], Seq[GitRepository])](
+                           (Seq.empty[TeamRepositories], Seq.empty[GitRepository])
+                         ){ case ((teamsAcc, updatedAcc), ghTeam) =>
+                           for {
+                             teamRepositories       <- dataSource.mapTeam(ghTeam, persistedTeams, updatedAcc)
+                             orderdTeamRepositories =  teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
+                             _                      <- persister.update(orderdTeamRepositories)
+                             } yield
+                              ( orderdTeamRepositories +: teamsAcc,
+                                teamRepositories.repositories ++ updatedAcc
+                              )
+                         }.map(_._1)
        withoutTeams   <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
      } yield withTeams :+ withoutTeams
     ).recoverWith {
