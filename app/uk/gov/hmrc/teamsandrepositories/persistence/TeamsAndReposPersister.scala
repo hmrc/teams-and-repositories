@@ -33,6 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import MongoTeamsAndRepositoriesPersister.caseInsensitiveCollation
 
+@Singleton
 class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAndRepositoriesPersister) {
   private val logger = Logger(this.getClass)
 
