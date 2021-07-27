@@ -21,7 +21,6 @@ import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 
 case class GitRepository(
   name              : String,
