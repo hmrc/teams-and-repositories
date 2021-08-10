@@ -28,7 +28,8 @@ case class Repository(
   lastUpdatedAt: Instant,
   repoType     : RepoType,
   language     : Option[String],
-  archived     : Boolean
+  archived     : Boolean,
+  defaultBranch: String
 )
 
 object Repository {
@@ -40,17 +41,19 @@ object Repository {
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
       language      = gr.language,
-      archived      = gr.isArchived
+      archived      = gr.isArchived,
+      defaultBranch = gr.defaultBranch
     )
 
   implicit val format: OFormat[Repository] = {
-    implicit val rtf = RepoType.format
+    implicit val rtf: Format[RepoType] = RepoType.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "createdAt"    ).format[Instant]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repoType"     ).format[RepoType]
     ~ (__ \ "language"     ).formatNullable[String]
     ~ (__ \ "archived"     ).format[Boolean]
+    ~ (__ \ "defaultBranch").format[String]
     )(apply, unlift(unapply))
   }
 }
@@ -66,30 +69,23 @@ case class Team(
 object Team {
 
   val mapFormat: Format[Map[RepoType, List[String]]] = {
-    val mapReads: Reads[Map[RepoType, List[String]]] = new Reads[Map[RepoType, List[String]]] {
-      def reads(jv: JsValue): JsResult[Map[RepoType, List[String]]] =
-        JsSuccess(
-          jv.as[Map[String, List[String]]].map {
-            case (k, v) =>
-              RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v.asInstanceOf[List[String]]
-          }
-        )
-    }
-
-    val mapWrites: Writes[Map[RepoType, List[String]]] =
-      new Writes[Map[RepoType, List[String]]] {
-        def writes(map: Map[RepoType, List[String]]): JsValue =
-          Json.obj(map.map {
-            case (s, o) =>
-              val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString.apply))
-              ret
-          }.toSeq: _*)
+    val mapReads: Reads[Map[RepoType, List[String]]] = jv => JsSuccess(
+      jv.as[Map[String, List[String]]].map {
+        case (k, v) =>
+          RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v
       }
+    )
+
+    val mapWrites: Writes[Map[RepoType, List[String]]] = (map: Map[RepoType, List[String]]) => Json.obj(map.map {
+        case (s, o) =>
+          val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString.apply))
+          ret
+      }.toSeq: _*)
     Format(mapReads, mapWrites)
   }
 
   val format: Format[Team] = {
-    implicit val mf = mapFormat
+    implicit val mf: Format[Map[RepoType, List[String]]] = mapFormat
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "createdDate"   ).formatNullable[Instant]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
