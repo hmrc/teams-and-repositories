@@ -90,7 +90,8 @@ object TeamRepositories {
       gitReposForDigitalService.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
 
     gitReposForDigitalService.distinct
-      .map(Repository.create)
+      .map(gitRepository => Repository.create(gitRepository,
+        repoNameToTeamNamesLookup.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN))))
       .sortBy(_.name.toUpperCase) match {
         case Nil   => None
         case repos => Some(DigitalService(
@@ -131,14 +132,21 @@ object TeamRepositories {
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
 
-  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
+  def agg(acc: Map[String, Seq[String]], current: TeamRepositories): Map[String, Seq[String]] =
+    acc ++ current.repositories.map(r => r.name -> (Seq(current.teamName) ++ acc.getOrElse(r.name, Nil)) ).toMap
+
+  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] = {
+    val repoTeams = teamRepos
+      .foldLeft(Map.empty[String, Seq[String]])(agg)
+
     teamRepos
       .flatMap(_.repositories)
       .groupBy(_.name)
-      .map { case (_ , v) => v.maxBy(_.lastActiveDate) }
-      .map(Repository.create)
+      .map { case (_, v) => v.maxBy(_.lastActiveDate) }
+      .map(gitRepository => Repository.create(gitRepository, repoTeams.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN))))
       .toSeq
       .sortBy(_.name.toUpperCase)
+  }
 
   def findRepositoryDetails(
     teamRepos: Seq[TeamRepositories],
