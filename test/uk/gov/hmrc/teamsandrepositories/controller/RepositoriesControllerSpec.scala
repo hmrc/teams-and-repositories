@@ -483,6 +483,12 @@ class RepositoriesControllerSpec
     }
   }
 
+  "return all the default branches of repositories" in new Setup {
+    val result       = controller.repositories(None)(FakeRequest())
+    val resultJson   = contentAsJson(result)
+    val repositories = resultJson.as[Seq[Repository]]
+    repositories.map(_.defaultBranch).distinct mustBe List("main")
+  }
   private def nameField(obj: JsValue): String =
     (obj \ "name").as[String]
 
