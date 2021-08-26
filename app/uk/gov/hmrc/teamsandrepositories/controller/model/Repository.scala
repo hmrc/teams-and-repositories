@@ -80,10 +80,10 @@ object Team {
     )
 
     val mapWrites: Writes[Map[RepoType, List[String]]] = (map: Map[RepoType, List[String]]) => Json.obj(map.map {
-      case (s, o) =>
-        val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString.apply))
-        ret
-    }.toSeq: _*)
+        case (s, o) =>
+          val ret: (String, JsValueWrapper) = s.toString -> JsArray(o.map(JsString.apply))
+          ret
+      }.toSeq: _*)
     Format(mapReads, mapWrites)
   }
 
