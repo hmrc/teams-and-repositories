@@ -35,7 +35,7 @@ case class Repository(
 
 object Repository {
 
-  def create(gr: GitRepository, teamNames: Seq[String] = Nil): Repository =
+  def create(gr: GitRepository, teamNames: Seq[String]): Repository =
     Repository(
       name          = gr.name,
       teamNames     = teamNames,

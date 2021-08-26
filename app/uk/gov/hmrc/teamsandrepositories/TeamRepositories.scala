@@ -132,12 +132,11 @@ object TeamRepositories {
     )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
   }
 
-  def agg(acc: Map[String, Seq[String]], current: TeamRepositories): Map[String, Seq[String]] =
-    acc ++ current.repositories.map(r => r.name -> (Seq(current.teamName) ++ acc.getOrElse(r.name, Nil)) ).toMap
-
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] = {
-    val repoTeams = teamRepos
-      .foldLeft(Map.empty[String, Seq[String]])(agg)
+    val repoTeams =
+      teamRepos
+        .flatMap(teamRepo => teamRepo.repositories.map(_.name -> teamRepo.teamName))
+        .groupBy(_._1).mapValues(_.map(a => a._2))
 
     teamRepos
       .flatMap(_.repositories)
