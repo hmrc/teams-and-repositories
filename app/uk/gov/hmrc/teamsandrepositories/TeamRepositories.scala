@@ -104,7 +104,7 @@ object TeamRepositories {
                                             repo.lastUpdatedAt,
                                             repo.repoType,
                                             repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
-                                            repo.archived
+                                            repo.isArchived
                                           )
                                         )
                      ))
