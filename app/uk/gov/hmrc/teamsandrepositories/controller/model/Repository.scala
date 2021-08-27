@@ -24,6 +24,7 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 case class Repository(
   name         : String,
+  teamNames    : Seq[String],
   createdAt    : Instant,
   lastUpdatedAt: Instant,
   repoType     : RepoType,
@@ -34,9 +35,10 @@ case class Repository(
 
 object Repository {
 
-  def create(gr: GitRepository): Repository =
+  def create(gr: GitRepository, teamNames: Seq[String]): Repository =
     Repository(
       name          = gr.name,
+      teamNames     = teamNames,
       createdAt     = gr.createdDate,
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
@@ -48,6 +50,7 @@ object Repository {
   implicit val format: OFormat[Repository] = {
     implicit val rtf: Format[RepoType] = RepoType.format
     ( (__ \ "name"         ).format[String]
+    ~ (__ \ "teamNames"    ).format[Seq[String]]
     ~ (__ \ "createdAt"    ).format[Instant]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repoType"     ).format[RepoType]

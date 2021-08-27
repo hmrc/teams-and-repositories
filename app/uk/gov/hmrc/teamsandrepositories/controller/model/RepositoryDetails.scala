@@ -68,7 +68,8 @@ case class RepositoryDetails(
   ci          : Seq[Link]        = Seq.empty,
   environments: Seq[Environment] = Seq.empty,
   language    : String,
-  isArchived  : Boolean
+  isArchived  : Boolean,
+  defaultBranch: String
 )
 
 object RepositoryDetails {
@@ -91,6 +92,7 @@ object RepositoryDetails {
     ~ (__ \ "environments").format[Seq[Environment]]
     ~ (__ \ "language"    ).format[String]
     ~ (__ \ "isArchived"  ).format[Boolean]
+    ~ (__ \ "defaultBranch").format[String]
     )(apply, unlift(unapply))
   }
 
@@ -107,7 +109,8 @@ object RepositoryDetails {
         teamNames   = teamNames,
         githubUrl   = Link("github-com", "GitHub.com", repo.url),
         language    = repo.language.getOrElse(""),
-        isArchived  = repo.isArchived
+        isArchived  = repo.isArchived,
+        defaultBranch = repo.defaultBranch
       )
 
     repo.repoType match {
