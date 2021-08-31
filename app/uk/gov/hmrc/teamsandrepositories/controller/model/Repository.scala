@@ -29,7 +29,7 @@ case class Repository(
   lastUpdatedAt: Instant,
   repoType     : RepoType,
   language     : Option[String],
-  archived     : Boolean,
+  isArchived   : Boolean,
   defaultBranch: String
 )
 
@@ -43,7 +43,7 @@ object Repository {
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
       language      = gr.language,
-      archived      = gr.isArchived,
+      isArchived    = gr.isArchived,
       defaultBranch = gr.defaultBranch
     )
 
@@ -55,7 +55,7 @@ object Repository {
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repoType"     ).format[RepoType]
     ~ (__ \ "language"     ).formatNullable[String]
-    ~ (__ \ "archived"     ).format[Boolean]
+    ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
     )(apply, unlift(unapply))
   }
