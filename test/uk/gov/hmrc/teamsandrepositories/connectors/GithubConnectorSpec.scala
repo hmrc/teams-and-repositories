@@ -193,7 +193,6 @@ class GithubConnectorSpec
     }
 
     "return None if not found" in {
-      val team = GhTeam(1, "A")
       stubFor(
         get(urlPathEqualTo("/orgs/hmrc/teams/a"))
           .willReturn(aResponse().withStatus(404))
@@ -206,7 +205,7 @@ class GithubConnectorSpec
 
     "throw ratelimit error" in {
       stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
+        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
           .willReturn(
             aResponse()
               .withStatus(400)
@@ -219,7 +218,7 @@ class GithubConnectorSpec
 
     "throw abuse detected error" in {
       stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
+        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
           .willReturn(
             aResponse()
               .withStatus(403)
