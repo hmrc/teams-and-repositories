@@ -75,9 +75,9 @@ class TeamsAndReposPersisterSpec
     }
 
     "delegate to MongoTeamsAndReposPersister for clearAll" in {
-      persister.clearAllData
+      persister.clearTestData(Seq("team1"))
 
-      verify(mongoTeamsAndRepositoriesPersister, times(1)).clearAllData
+      verify(mongoTeamsAndRepositoriesPersister, times(1)).clearTestData(Seq("team1"))
     }
 
     "delegate to MongoTeamsAndReposPersister for removing a team in mongo" in {

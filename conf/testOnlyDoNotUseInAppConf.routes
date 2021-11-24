@@ -12,7 +12,7 @@
 # Add all the application routes to the prod.routes file
 
 POST       /test-only/team            @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addTeams
-DELETE     /test-only/team            @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearAll
+DELETE     /test-only/team            @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearTestData(team: Seq[String])
 
 POST       /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addJenkinsLinks
 DELETE     /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearJenkins

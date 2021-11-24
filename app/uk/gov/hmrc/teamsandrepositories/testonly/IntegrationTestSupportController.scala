@@ -44,8 +44,8 @@ class IntegrationTestSupportController @Inject()(
     Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
   }
 
-  def clearAll() = Action.async {
-    teamsRepo.clearAllData.map(_ => Ok("Ok"))
+  def clearTestData(teams: Seq[String]) = Action.async {
+    teamsRepo.clearTestData(teams).map(_ => Ok("Ok"))
   }
 
   def addJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>

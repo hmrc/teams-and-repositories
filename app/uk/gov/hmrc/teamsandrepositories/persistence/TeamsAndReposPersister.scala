@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import java.time.Instant
-
 import com.google.inject.{Inject, Singleton}
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.Filters.{elemMatch, equal, or, regex}
@@ -30,7 +29,6 @@ import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import MongoTeamsAndRepositoriesPersister.caseInsensitiveCollation
 
 @Singleton
@@ -51,6 +49,9 @@ class TeamsAndReposPersister @Inject()(mongoTeamsAndReposPersister: MongoTeamsAn
 
   def clearAllData(implicit ec: ExecutionContext): Future[Unit] =
     mongoTeamsAndReposPersister.clearAllData
+
+  def clearTestData(teams: Seq[String])(implicit ec: ExecutionContext): Future[Unit] =
+    mongoTeamsAndReposPersister.clearTestData(teams)
 
   def deleteTeams(teamNames: Set[String])(implicit ec: ExecutionContext): Future[Set[String]] = {
     logger.debug(s"Deleting orphan teams: $teamNames")
@@ -133,7 +134,11 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
       .toFuture()
       .map(_ => ())
 
-  def deleteTeam(teamName: String)(implicit ec: ExecutionContext): Future[String] =
+  def clearTestData(teams: Seq[String])(implicit ec: ExecutionContext): Future[Unit] = {
+    Future.traverse(teams)(team => deleteTeam(team)).map(_ => ())
+  }
+
+  def deleteTeam(teamName: String)(implicit ec: ExecutionContext): Future[String] = {
     futureHelpers
       .withTimerAndCounter("mongo.cleanup") {
         collection
@@ -146,6 +151,7 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
           logger.error(s"Failed to remove $teamName", lastError)
           throw new RuntimeException(s"failed to remove $teamName")
       }
+  }
 
   def resetLastActiveDate(repoName: String)(implicit ec: ExecutionContext): Future[Option[Long]] =
     collection
