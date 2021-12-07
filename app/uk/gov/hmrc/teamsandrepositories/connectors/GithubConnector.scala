@@ -292,11 +292,12 @@ object RateLimit {
   val logger: Logger = Logger(getClass)
 
   def convertRateLimitErrors[A]: PartialFunction[Throwable, Future[A]] = {
-    case e if e.getMessage.toLowerCase.contains("api rate limit exceeded") =>
+    case e if e.getMessage.toLowerCase.contains("api rate limit exceeded")
+           || e.getMessage.toLowerCase.contains("have exceeded a secondary rate limit") =>
       logger.error("=== Api rate limit has been reached ===", e)
       Future.failed(ApiRateLimitExceededException(e))
 
-      case e if e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism") =>
+    case e if e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism") =>
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
   }

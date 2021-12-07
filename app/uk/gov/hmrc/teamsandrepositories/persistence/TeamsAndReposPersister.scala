@@ -137,7 +137,10 @@ class MongoTeamsAndRepositoriesPersister @Inject()(
     futureHelpers
       .withTimerAndCounter("mongo.cleanup") {
         collection
-          .deleteOne(equal("teamName", teamName))
+          .deleteOne(
+            filter  = equal("teamName", teamName),
+            options = DeleteOptions().collation(caseInsensitiveCollation)
+          )
           .toFuture()
           .map(_ => teamName)
       }
