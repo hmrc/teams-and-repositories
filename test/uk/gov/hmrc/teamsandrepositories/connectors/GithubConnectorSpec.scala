@@ -25,8 +25,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.BranchProtectionQueryResponse.Repository
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQueryResponse, PageInfo}
 
 import java.time.Instant
 
@@ -477,6 +480,62 @@ class GithubConnectorSpec
         getRequestedFor(urlPathEqualTo("/rate_limit"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
+    }
+  }
+
+  "GithubConnector.BranchProtectionQueryResponse" should {
+    "deserialise from JSON" in {
+      val json =
+        """
+        |{
+        |  "data": {
+        |    "organization": {
+        |      "repositories": {
+        |        "pageInfo": {
+        |          "hasNextPage": true,
+        |          "endCursor": "Y3Vyc29yOnYyOpHOAP2Djg=="
+        |        },
+        |        "nodes": [
+        |          {
+        |            "name": "repo-1",
+        |            "defaultBranchRef": {
+        |              "branchProtectionRule": {
+        |                "requiresApprovingReviews": true,
+        |                "dismissesStaleReviews": true
+        |              }
+        |            }
+        |          },
+        |          {
+        |            "name": "repo-2",
+        |            "defaultBranchRef": {}
+        |          },
+        |          {
+        |            "name": "repo-3"
+        |          }
+        |        ]
+        |      }
+        |    }
+        |  }
+        |}
+        |""".stripMargin
+
+      val expectedBranchProtectionQueryResponse =
+        BranchProtectionQueryResponse(
+          PageInfo(hasNextPage = true, Some("Y3Vyc29yOnYyOpHOAP2Djg==")),
+          List(
+            Repository("repo-1", Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))),
+            Repository("repo-2", None),
+            Repository("repo-3", None),
+          )
+        )
+
+      val branchProtectionQueryResponse =
+        Json
+          .parse(json)
+          .validate(BranchProtectionQueryResponse.reads)
+          .get
+
+      branchProtectionQueryResponse shouldBe expectedBranchProtectionQueryResponse
     }
   }
 

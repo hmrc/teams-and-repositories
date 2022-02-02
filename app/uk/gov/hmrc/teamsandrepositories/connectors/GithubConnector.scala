@@ -23,7 +23,7 @@ import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Reads, OFormat, __}
+import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -194,6 +194,86 @@ class GithubConnector @Inject()(
     }
 }
 
+object GithubConnector {
+
+  final case class BranchProtectionQuery(cursor: Option[String]) {
+
+    def asGqlQueryString: String = {
+      val after =
+        cursor.fold("")(c => s", after: $c")
+
+      s"""
+         |query {
+         |  organization(login: "hmrc") {
+         |    repositories(first: 100 $after) {
+         |      pageInfo {
+         |        hasNextPage
+         |        endCursor
+         |      }
+         |      nodes {
+         |        name
+         |        defaultBranchRef {
+         |          branchProtectionRule {
+         |            requiresApprovingReviews
+         |            dismissesStaleReviews
+         |          }
+         |        }
+         |      }
+         |    }
+         |  }
+         |}
+         |""".stripMargin
+    }
+  }
+
+  object BranchProtectionQuery {
+
+    val initial: BranchProtectionQuery =
+      BranchProtectionQuery(cursor = None)
+  }
+
+  final case class BranchProtectionQueryResponse(
+    pageInfo: PageInfo,
+    repositories: List[BranchProtectionQueryResponse.Repository]
+  )
+
+  object BranchProtectionQueryResponse {
+
+    final case class Repository(
+      name: String,
+      defaultBranchBranchProtection: Option[BranchProtection]
+    )
+
+    object Repository {
+      val reads: Reads[Repository] =
+        ( (__ \ "name"                                     ).read[String]
+        ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable[BranchProtection](BranchProtection.reads)
+        )(apply _)
+    }
+
+    val reads: Reads[BranchProtectionQueryResponse] = {
+      val root =
+        __ \ "data" \ "organization" \ "repositories"
+
+      ( (root \ "pageInfo").read[PageInfo](PageInfo.reads)
+      ~ (root \ "nodes"   ).read[List[Repository]](Reads.list(Repository.reads))
+      )(apply _)
+    }
+  }
+
+  final case class PageInfo(
+    hasNextPage: Boolean,
+    endCursor: Option[String]
+  )
+
+  object PageInfo {
+    val reads: Reads[PageInfo] =
+      ( (__ \ "hasNextPage").read[Boolean]
+      ~ (__ \ "endCursor"  ).readNullable[String]
+      )(apply _)
+  }
+}
+
 case class GhTeam(
   id  : Long,
   name: String
@@ -301,4 +381,17 @@ object RateLimit {
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
   }
+}
+
+final case class BranchProtection(
+  requiresApprovingReviews: Boolean,
+  dismissesStaleReviews: Boolean
+)
+
+object BranchProtection {
+
+  val reads: Reads[BranchProtection] =
+    ( (__ \ "requiresApprovingReviews").read[Boolean]
+    ~ (__ \ "dismissesStaleReviews"   ).read[Boolean]
+    )(apply _)
 }
