@@ -23,54 +23,57 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 case class GitRepository(
-  name              : String,
-  description       : String,
-  url               : String,
-  createdDate       : Instant,
-  lastActiveDate    : Instant,
-  isPrivate         : Boolean        = false,
-  repoType          : RepoType       = RepoType.Other,
-  digitalServiceName: Option[String] = None,
-  owningTeams       : Seq[String]    = Nil,
-  language          : Option[String],
-  isArchived        : Boolean,
-  defaultBranch     : String
+  name                   : String,
+  description            : String,
+  url                    : String,
+  createdDate            : Instant,
+  lastActiveDate         : Instant,
+  isPrivate              : Boolean        = false,
+  repoType               : RepoType       = RepoType.Other,
+  digitalServiceName     : Option[String] = None,
+  owningTeams            : Seq[String]    = Nil,
+  language               : Option[String],
+  isArchived             : Boolean,
+  defaultBranch          : String,
+  branchProtectionEnabled: Boolean        = false
 )
 
 object GitRepository {
 
   val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
-    ( (__ \ "name"              ).format[String]
-    ~ (__ \ "description"       ).format[String]
-    ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[Instant]
-    ~ (__ \ "lastActiveDate"    ).format[Instant]
-    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"          ).format[RepoType]
-    ~ (__ \ "digitalServiceName").formatNullable[String]
-    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"     ).format[String]
+    ( (__ \ "name"                   ).format[String]
+    ~ (__ \ "description"            ).format[String]
+    ~ (__ \ "url"                    ).format[String]
+    ~ (__ \ "createdDate"            ).format[Instant]
+    ~ (__ \ "lastActiveDate"         ).format[Instant]
+    ~ (__ \ "isPrivate"              ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"               ).format[RepoType]
+    ~ (__ \ "digitalServiceName"     ).formatNullable[String]
+    ~ (__ \ "owningTeams"            ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"               ).formatNullable[String]
+    ~ (__ \ "archived"               ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"          ).format[String]
+    ~ (__ \ "branchProtectionEnabled").format[Boolean]
     )(apply _, unlift(unapply))
   }
 
   val mongoFormat: OFormat[GitRepository] = {
     implicit val ldtf = MongoJavatimeFormats.instantFormat
     implicit val rtf = RepoType.format
-    ( (__ \ "name"              ).format[String]
-    ~ (__ \ "description"       ).format[String]
-    ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[Instant]
-    ~ (__ \ "lastActiveDate"    ).format[Instant]
-    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"          ).format[RepoType]
-    ~ (__ \ "digitalServiceName").formatNullable[String]
-    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
+    ( (__ \ "name"                   ).format[String]
+    ~ (__ \ "description"            ).format[String]
+    ~ (__ \ "url"                    ).format[String]
+    ~ (__ \ "createdDate"            ).format[Instant]
+    ~ (__ \ "lastActiveDate"         ).format[Instant]
+    ~ (__ \ "isPrivate"              ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"               ).format[RepoType]
+    ~ (__ \ "digitalServiceName"     ).formatNullable[String]
+    ~ (__ \ "owningTeams"            ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"               ).formatNullable[String]
+    ~ (__ \ "archived"               ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"          ).formatWithDefault[String]("master")
+    ~ (__ \ "branchProtectionEnabled").formatWithDefault[Boolean](false)
     )(apply _, unlift(unapply))
   }
 

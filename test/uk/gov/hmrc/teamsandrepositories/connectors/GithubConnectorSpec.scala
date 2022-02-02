@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -280,46 +279,85 @@ class GithubConnectorSpec
          }
       ]"""
 
+  val reposBranchProtectionPoliciesJson =
+    """{
+         "data": {
+           "organization": {
+             "repositories": {
+               "pageInfo": {
+                 "hasNextPage": false
+               },
+               "nodes": [
+                 {
+                   "name": "n1",
+                   "defaultBranchRef": {
+                     "branchProtectionRule": {
+                       "requiresApprovingReviews": true,
+                       "dismissesStaleReviews": true
+                     }
+                   }
+                 },
+                 {
+                   "name": "n2",
+                   "defaultBranchRef": {
+                     "branchProtectionRule": {
+                       "requiresApprovingReviews": true,
+                       "dismissesStaleReviews": true
+                     }
+                   }
+                 },
+                 {
+                   "name": "n3"
+                 }
+               ]
+             }
+           }
+         }
+       }"""
+
   val repos =
     List(
       GhRepository(
-        id             = 1,
-        name           = "n1",
-        description    = Some("d1"),
-        htmlUrl        = "url1",
-        fork           = false,
-        createdDate    = Instant.parse("2019-04-01T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-02T11:41:33Z"),
-        isPrivate      = true,
-        language       = Some("l1"),
-        isArchived     = false,
-        defaultBranch  = "b1"
+        id                      = 1,
+        name                    = "n1",
+        description             = Some("d1"),
+        htmlUrl                 = "url1",
+        fork                    = false,
+        createdDate             = Instant.parse("2019-04-01T11:41:33Z"),
+        lastActiveDate          = Instant.parse("2019-04-02T11:41:33Z"),
+        isPrivate               = true,
+        language                = Some("l1"),
+        isArchived              = false,
+        defaultBranch           = "b1",
+        branchProtectionEnabled = true
       ),
       GhRepository(
-        id             = 2,
-        name           = "n2",
-        description    = Some("d2"),
-        htmlUrl        = "url2",
-        fork           = false,
-        createdDate    = Instant.parse("2019-04-03T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-04T11:41:33Z"),
-        isPrivate      = false,
-        language       = Some("l2"),
-        isArchived     = true,
-        defaultBranch  = "b2"
+        id                      = 2,
+        name                    = "n2",
+        description             = Some("d2"),
+        htmlUrl                 = "url2",
+        fork                    = false,
+        createdDate             = Instant.parse("2019-04-03T11:41:33Z"),
+        lastActiveDate          = Instant.parse("2019-04-04T11:41:33Z"),
+        isPrivate               = false,
+        language                = Some("l2"),
+        isArchived              = true,
+        defaultBranch           = "b2",
+        branchProtectionEnabled = true
       ),
       GhRepository(
-        id             = 3,
-        name           = "n3",
-        description    = None,
-        htmlUrl        = "url3",
-        fork           = true,
-        createdDate    = Instant.parse("2019-04-05T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-06T11:41:33Z"),
-        isPrivate      = true,
-        language       = None,
-        isArchived     = false,
-        defaultBranch  = "b3"
+        id                      = 3,
+        name                    = "n3",
+        description             = None,
+        htmlUrl                 = "url3",
+        fork                    = true,
+        createdDate             = Instant.parse("2019-04-05T11:41:33Z"),
+        lastActiveDate          = Instant.parse("2019-04-06T11:41:33Z"),
+        isPrivate               = true,
+        language                = None,
+        isArchived              = false,
+        defaultBranch           = "b3",
+        branchProtectionEnabled = false
       )
     )
 
@@ -340,7 +378,17 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(reposJson2))
       )
 
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .willReturn(aResponse().withBody(reposBranchProtectionPoliciesJson))
+      )
+
       connector.getReposForTeam(team).futureValue shouldBe repos
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+      )
 
       wireMockServer.verify(
         getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a-team/repos"))
@@ -371,7 +419,17 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(reposJson2))
       )
 
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .willReturn(aResponse().withBody(reposBranchProtectionPoliciesJson))
+      )
+
       connector.getRepos().futureValue shouldBe repos
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+      )
 
       wireMockServer.verify(
         getRequestedFor(urlPathEqualTo("/orgs/hmrc/repos"))
@@ -662,16 +720,17 @@ class GithubConnectorSpec
 
   val repo =
     GhRepository(
-      id             = 1,
-      name           = "my-repo",
-      description    = Some("d1"),
-      htmlUrl        = "url1",
-      fork           = false,
-      createdDate    = Instant.parse("2019-04-01T11:41:33Z"),
-      lastActiveDate = Instant.parse("2019-04-02T11:41:33Z"),
-      isPrivate      = true,
-      language       = Some("l1"),
-      isArchived     = false,
-      defaultBranch  = "b1"
+      id                      = 1,
+      name                    = "my-repo",
+      description             = Some("d1"),
+      htmlUrl                 = "url1",
+      fork                    = false,
+      createdDate             = Instant.parse("2019-04-01T11:41:33Z"),
+      lastActiveDate          = Instant.parse("2019-04-02T11:41:33Z"),
+      isPrivate               = true,
+      language                = Some("l1"),
+      isArchived              = false,
+      defaultBranch           = "b1",
+      branchProtectionEnabled = false
     )
 }

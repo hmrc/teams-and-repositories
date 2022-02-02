@@ -71,17 +71,21 @@ class GithubConnector @Inject()(
     }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
-    withRetry {
-      withCounter(s"github.open.repos") {
-        implicit val rf = GhRepository.format
-        requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
+    withBranchProtectionPolicies {
+      withRetry {
+        withCounter(s"github.open.repos") {
+          implicit val rf = GhRepository.format
+          requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
+        }
       }
     }
 
   def getRepos(): Future[List[GhRepository]] =
-    withCounter(s"github.open.allRepos") {
-      implicit val rf = GhRepository.format
-      requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
+    withBranchProtectionPolicies {
+      withCounter(s"github.open.allRepos") {
+        implicit val rf = GhRepository.format
+        requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
+      }
     }
 
   def hasTags(repo: GhRepository): Future[Boolean] =
@@ -114,6 +118,29 @@ class GithubConnector @Inject()(
       url     = s"${githubConfig.apiUrl}/rate_limit",
       headers = Seq("Authorization" -> s"token $token")
     )
+  }
+
+  /**
+   * A combinator to augment a list of repositories with the branch protection policy of their default branches.
+   *
+   * This is performed after-the-fact and in-memory to avoid making an additional call-per-repository to the GitHub API
+   * (which would slow down the scheduled job and risk an altercation with GitHub's rate limiter.)
+   */
+  def withBranchProtectionPolicies(action: => Future[List[GhRepository]]): Future[List[GhRepository]] = {
+
+    def branchProtectionEnabled(repos: List[BranchProtectionQueryResponse.Repository]) =
+      repos
+        .map(r => (r.name, r.defaultBranchBranchProtection.isDefined))
+        .toMap
+        .withDefaultValue(false)
+        .apply(_)
+
+    for {
+      branchProtectionPolicies <- getBranchProtectionPolicies()
+      isEnabled = branchProtectionEnabled(branchProtectionPolicies.repositories)
+      repositories <- action
+      updated = repositories.map(r => r.copy(branchProtectionEnabled = isEnabled(r.name)))
+    } yield updated
   }
 
   def getBranchProtectionPolicies(): Future[BranchProtectionQueryResponse] = {
@@ -320,32 +347,34 @@ object GhTeamDetail {
 }
 
 case class GhRepository(
-  id            : Long,
-  name          : String,
-  description   : Option[String],
-  htmlUrl       : String,
-  fork          : Boolean,
-  createdDate   : Instant,
-  lastActiveDate: Instant,
-  isPrivate     : Boolean,
-  language      : Option[String],
-  isArchived    : Boolean,
-  defaultBranch : String
+  id                     : Long,
+  name                   : String,
+  description            : Option[String],
+  htmlUrl                : String,
+  fork                   : Boolean,
+  createdDate            : Instant,
+  lastActiveDate         : Instant,
+  isPrivate              : Boolean,
+  language               : Option[String],
+  isArchived             : Boolean,
+  defaultBranch          : String,
+  branchProtectionEnabled: Boolean
 )
 
 object GhRepository {
   val format: OFormat[GhRepository] =
-    ( (__ \ "id"            ).format[Long]
-    ~ (__ \ "name"          ).format[String]
-    ~ (__ \ "description"   ).formatNullable[String]
-    ~ (__ \ "html_url"      ).format[String]
-    ~ (__ \ "fork"          ).format[Boolean]
-    ~ (__ \ "created_at"    ).format[Instant]
-    ~ (__ \ "pushed_at"     ).format[Instant]
-    ~ (__ \ "private"       ).format[Boolean]
-    ~ (__ \ "language"      ).formatNullable[String]
-    ~ (__ \ "archived"      ).format[Boolean]
-    ~ (__ \ "default_branch").format[String]
+    ( (__ \ "id"                       ).format[Long]
+    ~ (__ \ "name"                     ).format[String]
+    ~ (__ \ "description"              ).formatNullable[String]
+    ~ (__ \ "html_url"                 ).format[String]
+    ~ (__ \ "fork"                     ).format[Boolean]
+    ~ (__ \ "created_at"               ).format[Instant]
+    ~ (__ \ "pushed_at"                ).format[Instant]
+    ~ (__ \ "private"                  ).format[Boolean]
+    ~ (__ \ "language"                 ).formatNullable[String]
+    ~ (__ \ "archived"                 ).format[Boolean]
+    ~ (__ \ "default_branch"           ).format[String]
+    ~ (__ \ "branch_protection_enabled").formatWithDefault[Boolean](false)
     )(apply, unlift(unapply))
 }
 
