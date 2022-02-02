@@ -18,8 +18,8 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 
 import java.net.URL
 import java.time.Instant
-
 import com.kenshoo.play.metrics.Metrics
+
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
@@ -27,6 +27,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQuery, BranchProtectionQueryResponse}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -115,6 +116,38 @@ class GithubConnector @Inject()(
     )
   }
 
+  def getBranchProtectionPolicies(): Future[BranchProtectionQueryResponse] = {
+
+    def executeQuery(
+      query: BranchProtectionQuery,
+      accumulatedResponse: Option[BranchProtectionQueryResponse]
+    ): Future[BranchProtectionQueryResponse] = {
+
+      implicit val branchProtectionQueryResponseReads =
+        BranchProtectionQueryResponse.reads
+
+      for {
+        response <-
+          httpClient
+            .POSTString[BranchProtectionQueryResponse](
+              url = url"${githubConfig.apiUrl}/graphql",
+              body = query.asGqlQueryString,
+              headers = Seq(authHeader, acceptsHeader)
+            )
+        updatedAccumulatedResponse =
+          accumulatedResponse
+            .fold(response)(acc => acc.copy(repositories = acc.repositories ++ response.repositories))
+        recurse <-
+          if (response.pageInfo.hasNextPage)
+            executeQuery(BranchProtectionQuery(response.pageInfo.endCursor), Some(updatedAccumulatedResponse))
+          else
+            Future.successful(updatedAccumulatedResponse)
+      } yield recurse
+    }
+
+    executeQuery(BranchProtectionQuery.initial, None)
+  }
+
   private def withRetry[T](f: => Future[T]): Future[T] =
     RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
 
@@ -200,29 +233,9 @@ object GithubConnector {
 
     def asGqlQueryString: String = {
       val after =
-        cursor.fold("")(c => s", after: $c")
+        cursor.fold("")(c => s""", after: \\"$c\\"""")
 
-      s"""
-         |query {
-         |  organization(login: "hmrc") {
-         |    repositories(first: 100 $after) {
-         |      pageInfo {
-         |        hasNextPage
-         |        endCursor
-         |      }
-         |      nodes {
-         |        name
-         |        defaultBranchRef {
-         |          branchProtectionRule {
-         |            requiresApprovingReviews
-         |            dismissesStaleReviews
-         |          }
-         |        }
-         |      }
-         |    }
-         |  }
-         |}
-         |""".stripMargin
+      s"""{ "query": "{ organization(login: \\"hmrc\\") { repositories(first: 100 $after) { pageInfo { hasNextPage endCursor } nodes { name defaultBranchRef { branchProtectionRule { requiresApprovingReviews dismissesStaleReviews } } } } } }" }"""
     }
   }
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -29,7 +30,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.BranchProtectionQueryResponse.Repository
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQueryResponse, PageInfo}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQuery, BranchProtectionQueryResponse, PageInfo}
 
 import java.time.Instant
 
@@ -536,6 +537,126 @@ class GithubConnectorSpec
           .get
 
       branchProtectionQueryResponse shouldBe expectedBranchProtectionQueryResponse
+    }
+  }
+
+  "GitHubConnector.getBranchProtectionPolicies" should {
+    "Page through and return the branch protection policy of the default branch for all repositories" in {
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .willReturn(aResponse().withBody(
+            """
+              |{
+              |  "data": {
+              |    "organization": {
+              |      "repositories": {
+              |        "pageInfo": {
+              |          "hasNextPage": true,
+              |          "endCursor": "cursor-1"
+              |        },
+              |        "nodes": [
+              |          {
+              |            "name": "repo-1",
+              |            "defaultBranchRef": {
+              |              "branchProtectionRule": {
+              |                "requiresApprovingReviews": true,
+              |                "dismissesStaleReviews": true
+              |              }
+              |            }
+              |          },
+              |          {
+              |            "name": "repo-2",
+              |            "defaultBranchRef": {
+              |              "branchProtectionRule": {
+              |                "requiresApprovingReviews": true,
+              |                "dismissesStaleReviews": true
+              |              }
+              |            }
+              |          }
+              |        ]
+              |      }
+              |    }
+              |  }
+              |}
+              |""".stripMargin))
+      )
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalTo(BranchProtectionQuery(Some("cursor-1")).asGqlQueryString))
+          .willReturn(aResponse().withBody(
+            """
+              |{
+              |  "data": {
+              |    "organization": {
+              |      "repositories": {
+              |        "pageInfo": {
+              |          "hasNextPage": true,
+              |          "endCursor": "cursor-2"
+              |        },
+              |        "nodes": [
+              |          {
+              |            "name": "repo-3"
+              |          },
+              |          {
+              |            "name": "repo-4",
+              |            "defaultBranchRef": {}
+              |          }
+              |        ]
+              |      }
+              |    }
+              |  }
+              |}
+              |""".stripMargin))
+      )
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalTo(BranchProtectionQuery(Some("cursor-2")).asGqlQueryString))
+          .willReturn(aResponse().withBody(
+            """
+              |{
+              |  "data": {
+              |    "organization": {
+              |      "repositories": {
+              |        "pageInfo": {
+              |          "hasNextPage": false
+              |        },
+              |        "nodes": [
+              |          {
+              |            "name": "repo-5"
+              |          },
+              |          {
+              |            "name": "repo-6",
+              |            "defaultBranchRef": {}
+              |          }
+              |        ]
+              |      }
+              |    }
+              |  }
+              |}
+              |""".stripMargin))
+      )
+
+      val branchProtectionPolicies =
+        connector
+          .getBranchProtectionPolicies()
+          .futureValue
+          .repositories
+
+      val expectedBranchProtectionPolicies =
+        List(
+          Repository("repo-1", Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))),
+          Repository("repo-2", Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))),
+          Repository("repo-3", None),
+          Repository("repo-4", None),
+          Repository("repo-5", None),
+          Repository("repo-6", None),
+        )
+
+      branchProtectionPolicies shouldBe expectedBranchProtectionPolicies
     }
   }
 
