@@ -25,11 +25,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.BranchProtectionQueryResponse.Repository
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQuery, BranchProtectionQueryResponse, PageInfo}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQueryResponse, GraphqlQuery, PageInfo, branchProtectionQuery}
 
 import java.time.Instant
 
@@ -380,7 +380,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .withRequestBody(equalTo(Json.stringify(branchProtectionQuery.asJson)))
           .willReturn(aResponse().withBody(reposBranchProtectionPoliciesJson))
       )
 
@@ -421,7 +421,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .withRequestBody(equalTo(Json.stringify(branchProtectionQuery.asJson)))
           .willReturn(aResponse().withBody(reposBranchProtectionPoliciesJson))
       )
 
@@ -603,7 +603,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(BranchProtectionQuery.initial.asGqlQueryString))
+          .withRequestBody(equalTo(Json.stringify(branchProtectionQuery.asJson)))
           .willReturn(aResponse().withBody(
             """
               |{
@@ -643,7 +643,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(BranchProtectionQuery(Some("cursor-1")).asGqlQueryString))
+          .withRequestBody(equalTo(Json.stringify(branchProtectionQuery.withVariable("cursor", JsString("cursor-1")).asJson)))
           .willReturn(aResponse().withBody(
             """
               |{
@@ -672,7 +672,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(BranchProtectionQuery(Some("cursor-2")).asGqlQueryString))
+          .withRequestBody(equalTo(Json.stringify(branchProtectionQuery.withVariable("cursor", JsString("cursor-2")).asJson)))
           .willReturn(aResponse().withBody(
             """
               |{

@@ -27,7 +27,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQuery, BranchProtectionQueryResponse}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQueryResponse, GraphqlQuery, branchProtectionQuery}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -145,35 +145,50 @@ class GithubConnector @Inject()(
 
   def getBranchProtectionPolicies(): Future[BranchProtectionQueryResponse] = {
 
-    def executeQuery(
-      query: BranchProtectionQuery,
-      accumulatedResponse: Option[BranchProtectionQueryResponse]
-    ): Future[BranchProtectionQueryResponse] = {
+    implicit val branchProtectionQueryResponseReads =
+      BranchProtectionQueryResponse.reads
 
-      implicit val branchProtectionQueryResponseReads =
-        BranchProtectionQueryResponse.reads
-
-      for {
-        response <-
-          httpClient
-            .POSTString[BranchProtectionQueryResponse](
-              url = url"${githubConfig.apiUrl}/graphql",
-              body = query.asGqlQueryString,
-              headers = Seq(authHeader, acceptsHeader)
-            )
-        updatedAccumulatedResponse =
-          accumulatedResponse
-            .fold(response)(acc => acc.copy(repositories = acc.repositories ++ response.repositories))
-        recurse <-
-          if (response.pageInfo.hasNextPage)
-            executeQuery(BranchProtectionQuery(response.pageInfo.endCursor), Some(updatedAccumulatedResponse))
-          else
-            Future.successful(updatedAccumulatedResponse)
-      } yield recurse
-    }
-
-    executeQuery(BranchProtectionQuery.initial, None)
+    executePagedGqlQuery[BranchProtectionQueryResponse](
+      query = branchProtectionQuery,
+      cursorPath = __ \ "data" \ "organization" \ "repositories" \ "pageInfo" \ "endCursor",
+      combine = (acc, x) => acc.copy(repositories = acc.repositories ++ x.repositories)
+    )
   }
+
+  private def executeGqlQuery[A](
+    query: GraphqlQuery
+  )(implicit
+    reads: Reads[A],
+    mf: Manifest[A]
+  ): Future[A] =
+    httpClient
+      .POST[JsValue, A](
+        url = url"${githubConfig.apiUrl}/graphql",
+        body = query.asJson,
+        headers = Seq(authHeader, acceptsHeader)
+      )
+
+  private def executePagedGqlQuery[A](
+    query: GraphqlQuery,
+    cursorPath: JsPath,
+    combine: (A, A) => A
+  )(implicit
+    reads: Reads[A],
+    mf: Manifest[A]
+  ): Future[A] = {
+    implicit val readsWithCursor: Reads[WithCursor[A]] =
+      (cursorPath.readNullable[String] ~ reads)(WithCursor(_, _))
+
+    for {
+      response <- executeGqlQuery[WithCursor[A]](query)
+      recurse  <- response.cursor.fold(Future.successful(response.value)) { cursor =>
+        executePagedGqlQuery(query.withVariable("cursor", JsString(cursor)), cursorPath, combine)
+          .map(combine(response.value, _))
+      }
+    } yield recurse
+  }
+
+  private case class WithCursor[A](cursor: Option[String], value: A)
 
   private def withRetry[T](f: => Future[T]): Future[T] =
     RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
@@ -256,21 +271,46 @@ class GithubConnector @Inject()(
 
 object GithubConnector {
 
-  final case class BranchProtectionQuery(cursor: Option[String]) {
+  final case class GraphqlQuery(
+    query: String,
+    variables: Map[String, JsValue] = Map.empty
+  ) {
 
-    def asGqlQueryString: String = {
-      val after =
-        cursor.fold("")(c => s""", after: \\"$c\\"""")
+    def withVariable(name: String, value: JsValue): GraphqlQuery =
+      copy(variables = variables + (name -> value))
 
-      s"""{ "query": "{ organization(login: \\"hmrc\\") { repositories(first: 100 $after) { pageInfo { hasNextPage endCursor } nodes { name defaultBranchRef { branchProtectionRule { requiresApprovingReviews dismissesStaleReviews } } } } } }" }"""
-    }
+    def asJson: JsValue =
+      JsObject(
+        Map(
+          "query"     -> JsString(query),
+          "variables" -> JsObject(variables)
+        )
+      )
   }
 
-  object BranchProtectionQuery {
-
-    val initial: BranchProtectionQuery =
-      BranchProtectionQuery(cursor = None)
-  }
+  val branchProtectionQuery: GraphqlQuery =
+    GraphqlQuery(
+      """
+        |query ($cursor: String) {
+        |  organization(login: "hmrc") {
+        |    repositories(first: 100, after: $cursor) {
+        |      pageInfo {
+        |        endCursor
+        |      }
+        |      nodes {
+        |        name
+        |        defaultBranchRef {
+        |          branchProtectionRule {
+        |            requiresApprovingReviews
+        |            dismissesStaleReviews
+        |          }
+        |        }
+        |      }
+        |    }
+        |  }
+        |}
+        |""".stripMargin
+    )
 
   final case class BranchProtectionQueryResponse(
     pageInfo: PageInfo,
