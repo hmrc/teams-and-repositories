@@ -17,10 +17,10 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.Instant
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.connectors.GhBranchProtection
 
 case class GitRepository(
   name              : String,
@@ -35,21 +35,8 @@ case class GitRepository(
   language          : Option[String],
   isArchived        : Boolean,
   defaultBranch     : String,
-  branchProtection  : Option[GitBranchProtection] = None
+  branchProtection  : Option[GhBranchProtection] = None
 )
-
-final case class GitBranchProtection(
-  requiresApprovingReviews: Boolean,
-  dismissesStaleReviews: Boolean
-)
-
-object GitBranchProtection {
-
-  val format: OFormat[GitBranchProtection] =
-    ( (__ \ "requiresApprovingReviews").format[Boolean]
-    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
-    )(apply _, unlift(unapply))
-}
 
 object GitRepository {
 
@@ -67,7 +54,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
-    ~ (__ \ "branchProtection"  ).formatNullable(GitBranchProtection.format)
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 
@@ -86,7 +73,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
-    ~ (__ \ "branchProtection"  ).formatNullable(GitBranchProtection.format)
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 

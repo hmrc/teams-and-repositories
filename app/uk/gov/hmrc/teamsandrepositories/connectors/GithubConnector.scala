@@ -382,7 +382,7 @@ object GhRepository {
     ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
-    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.reads)
+    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
     )(apply _)
 }
 
@@ -440,8 +440,8 @@ final case class GhBranchProtection(
 
 object GhBranchProtection {
 
-  val reads: Reads[GhBranchProtection] =
-    ( (__ \ "requiresApprovingReviews").read[Boolean]
-    ~ (__ \ "dismissesStaleReviews"   ).read[Boolean]
-    )(apply _)
+  val format: Format[GhBranchProtection] =
+    ( (__ \ "requiresApprovingReviews").format[Boolean]
+    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    )(apply _, unlift(unapply))
 }

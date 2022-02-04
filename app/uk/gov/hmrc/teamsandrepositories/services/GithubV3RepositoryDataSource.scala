@@ -22,7 +22,7 @@ import cats.data.EitherT
 import cats.implicits._
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.{GitBranchProtection, GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
@@ -242,12 +242,6 @@ class GithubV3RepositoryDataSource(
       language           = repo.language,
       isArchived         = repo.isArchived,
       defaultBranch      = repo.defaultBranch,
-      branchProtection   =
-        repo
-          .branchProtection
-          .map(bp => GitBranchProtection(
-            bp.requiresApprovingReviews,
-            bp.dismissesStaleReviews
-          ))
+      branchProtection   = repo.branchProtection
     )
 }
