@@ -79,9 +79,8 @@ class GithubConnector @Inject()(
 
     executePagedGqlQuery[List[GhRepository]](
       query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
-      cursorPath = root \ "pageInfo" \ "endCursor",
-      combine = _ ++ _
-    )
+      cursorPath = root \ "pageInfo" \ "endCursor"
+    ).map(_.flatten)
   }
 
   def getRepos(): Future[List[GhRepository]] = {
@@ -94,8 +93,7 @@ class GithubConnector @Inject()(
     executePagedGqlQuery[List[GhRepository]](
       query = getReposQuery,
       cursorPath = root \ "pageInfo" \ "endCursor",
-      combine = _ ++ _
-    )
+    ).map(_.flatten)
   }
 
   def hasTags(repo: GhRepository): Future[Boolean] =
@@ -145,20 +143,19 @@ class GithubConnector @Inject()(
 
   private def executePagedGqlQuery[A](
     query: GraphqlQuery,
-    cursorPath: JsPath,
-    combine: (A, A) => A
+    cursorPath: JsPath
   )(implicit
     reads: Reads[A],
     mf: Manifest[A]
-  ): Future[A] = {
+  ): Future[List[A]] = {
     implicit val readsWithCursor: Reads[WithCursor[A]] =
       (cursorPath.readNullable[String] ~ reads)(WithCursor(_, _))
 
     for {
       response <- executeGqlQuery[WithCursor[A]](query)
-      recurse  <- response.cursor.fold(Future.successful(response.value)) { cursor =>
-        executePagedGqlQuery(query.withVariable("cursor", JsString(cursor)), cursorPath, combine)
-          .map(combine(response.value, _))
+      recurse  <- response.cursor.fold(Future.successful(List(response.value))) { cursor =>
+        executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
+          .map(response.value :: _)
       }
     } yield recurse
   }
