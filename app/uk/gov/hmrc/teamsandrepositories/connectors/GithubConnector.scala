@@ -27,7 +27,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{BranchProtectionQueryResponse, GraphqlQuery, branchProtectionQuery, getReposForTeamQuery, getReposQuery}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{GraphqlQuery, getReposForTeamQuery, getReposQuery}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -127,17 +127,6 @@ class GithubConnector @Inject()(
     httpClient.GET[RateLimitMetrics](
       url     = s"${githubConfig.apiUrl}/rate_limit",
       headers = Seq("Authorization" -> s"token $token")
-    )
-  }
-
-  def getBranchProtectionPolicies(): Future[BranchProtectionQueryResponse] = {
-    implicit val branchProtectionQueryResponseReads =
-      BranchProtectionQueryResponse.reads
-
-    executePagedGqlQuery[BranchProtectionQueryResponse](
-      query = branchProtectionQuery,
-      cursorPath = __ \ "data" \ "organization" \ "repositories" \ "pageInfo" \ "endCursor",
-      combine = (acc, x) => acc.copy(repositories = acc.repositories ++ x.repositories)
     )
   }
 
@@ -334,71 +323,6 @@ object GithubConnector {
         }
       """
     )
-
-  val branchProtectionQuery: GraphqlQuery =
-    GraphqlQuery(
-      """
-        |query ($cursor: String) {
-        |  organization(login: "hmrc") {
-        |    repositories(first: 100, after: $cursor) {
-        |      pageInfo {
-        |        endCursor
-        |      }
-        |      nodes {
-        |        name
-        |        defaultBranchRef {
-        |          branchProtectionRule {
-        |            requiresApprovingReviews
-        |            dismissesStaleReviews
-        |          }
-        |        }
-        |      }
-        |    }
-        |  }
-        |}
-        |""".stripMargin
-    )
-
-  final case class BranchProtectionQueryResponse(
-    pageInfo: PageInfo,
-    repositories: List[BranchProtectionQueryResponse.Repository]
-  )
-
-  object BranchProtectionQueryResponse {
-
-    final case class Repository(
-      name: String,
-      defaultBranchBranchProtection: Option[GhBranchProtection]
-    )
-
-    object Repository {
-      val reads: Reads[Repository] =
-        ( (__ \ "name"                                     ).read[String]
-        ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable[GhBranchProtection](GhBranchProtection.reads)
-        )(apply _)
-    }
-
-    val reads: Reads[BranchProtectionQueryResponse] = {
-      val root =
-        __ \ "data" \ "organization" \ "repositories"
-
-      ( (root \ "pageInfo").read[PageInfo](PageInfo.reads)
-      ~ (root \ "nodes"   ).read[List[Repository]](Reads.list(Repository.reads))
-      )(apply _)
-    }
-  }
-
-  final case class PageInfo(
-    hasNextPage: Boolean,
-    endCursor: Option[String]
-  )
-
-  object PageInfo {
-    val reads: Reads[PageInfo] =
-      ( (__ \ "hasNextPage").read[Boolean]
-      ~ (__ \ "endCursor"  ).readNullable[String]
-      )(apply _)
-  }
 }
 
 case class GhTeam(
