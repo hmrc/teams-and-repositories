@@ -84,18 +84,18 @@ class GithubV3RepositoryDataSourceSpec
 
   val ghRepo =
     GhRepository(
-      id                      = 1,
-      name                    = "A_r",
-      description             = Some("some description"),
-      htmlUrl                 = "url_A",
-      fork                    = false,
-      createdDate             = now,
-      lastActiveDate          = now,
-      isPrivate               = false,
-      language                = Some("Scala"),
-      isArchived              = false,
-      defaultBranch           = "main",
-      branchProtectionEnabled = false
+      id               = 1,
+      name             = "A_r",
+      description      = Some("some description"),
+      htmlUrl          = "url_A",
+      fork             = false,
+      createdDate      = now,
+      lastActiveDate   = now,
+      isPrivate        = false,
+      language         = Some("Scala"),
+      isArchived       = false,
+      defaultBranch    = "main",
+      branchProtection = None
     )
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
@@ -120,32 +120,32 @@ class GithubV3RepositoryDataSourceSpec
   "GithubV3RepositoryDataSource.getAllRepositories" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val repo1 = GhRepository(
-        id                      = 0,
-        name                    = "repo1",
-        description             = Some("a test repo"),
-        htmlUrl                 = "http://github.com/repo1",
-        fork                    = false,
-        createdDate             = now,
-        lastActiveDate          = now,
-        isPrivate               = false,
-        language                = Some("Scala"),
-        isArchived              = false,
-        defaultBranch           = "main",
-        branchProtectionEnabled = false
+        id               = 0,
+        name             = "repo1",
+        description      = Some("a test repo"),
+        htmlUrl          = "http://github.com/repo1",
+        fork             = false,
+        createdDate      = now,
+        lastActiveDate   = now,
+        isPrivate        = false,
+        language         = Some("Scala"),
+        isArchived       = false,
+        defaultBranch    = "main",
+        branchProtection = None
       )
       private val repo2 = GhRepository(
-        id                      = 0,
-        name                    = "repo2",
-        description             = Some("another test repo"),
-        htmlUrl                 = "http://github.com/repo2",
-        fork                    = false,
-        createdDate             = now,
-        lastActiveDate          = now,
-        isPrivate               = false,
-        language                = Some("Scala"),
-        isArchived              = false,
-        defaultBranch           = "main",
-        branchProtectionEnabled = false
+        id               = 0,
+        name             = "repo2",
+        description      = Some("another test repo"),
+        htmlUrl          = "http://github.com/repo2",
+        fork             = false,
+        createdDate      = now,
+        lastActiveDate   = now,
+        isPrivate        = false,
+        language         = Some("Scala"),
+        isArchived       = false,
+        defaultBranch    = "main",
+        branchProtection = None
       )
       when(mockGithubConnector.getRepos())
         .thenReturn(Future.successful(List(repo1, repo2)))
@@ -193,32 +193,32 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id                      = 1,
-            name                    = "hidden_repo1",
-            description             = Some("some description"),
-            htmlUrl                 = "url_A",
-            fork                    = false,
-            createdDate             = now,
-            lastActiveDate          = now,
-            isPrivate               = false,
-            language                = Some("Scala"),
-            isArchived              = false,
-            defaultBranch           = "main",
-            branchProtectionEnabled = false
+            id               = 1,
+            name             = "hidden_repo1",
+            description      = Some("some description"),
+            htmlUrl          = "url_A",
+            fork             = false,
+            createdDate      = now,
+            lastActiveDate   = now,
+            isPrivate        = false,
+            language         = Some("Scala"),
+            isArchived       = false,
+            defaultBranch    = "main",
+            branchProtection = None
           ),
           GhRepository(
-            id                      = 2,
-            name                    = "A_r",
-            description             = Some("some description"),
-            htmlUrl                 = "url_A",
-            fork                    = false,
-            createdDate             = now,
-            lastActiveDate          = now,
-            isPrivate               = false,
-            language                = Some("Scala"),
-            isArchived              = false,
-            defaultBranch           = "main",
-            branchProtectionEnabled = false
+            id               = 2,
+            name             = "A_r",
+            description      = Some("some description"),
+            htmlUrl          = "url_A",
+            fork             = false,
+            createdDate      = now,
+            lastActiveDate   = now,
+            isPrivate        = false,
+            language         = Some("Scala"),
+            isArchived       = false,
+            defaultBranch    = "main",
+            branchProtection = None
           )
         )))
 

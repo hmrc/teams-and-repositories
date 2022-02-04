@@ -23,57 +23,70 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 case class GitRepository(
-  name                   : String,
-  description            : String,
-  url                    : String,
-  createdDate            : Instant,
-  lastActiveDate         : Instant,
-  isPrivate              : Boolean        = false,
-  repoType               : RepoType       = RepoType.Other,
-  digitalServiceName     : Option[String] = None,
-  owningTeams            : Seq[String]    = Nil,
-  language               : Option[String],
-  isArchived             : Boolean,
-  defaultBranch          : String,
-  branchProtectionEnabled: Boolean        = false
+  name              : String,
+  description       : String,
+  url               : String,
+  createdDate       : Instant,
+  lastActiveDate    : Instant,
+  isPrivate         : Boolean                     = false,
+  repoType          : RepoType                    = RepoType.Other,
+  digitalServiceName: Option[String]              = None,
+  owningTeams       : Seq[String]                 = Nil,
+  language          : Option[String],
+  isArchived        : Boolean,
+  defaultBranch     : String,
+  branchProtection  : Option[GitBranchProtection] = None
 )
+
+final case class GitBranchProtection(
+  requiresApprovingReviews: Boolean,
+  dismissesStaleReviews: Boolean
+)
+
+object GitBranchProtection {
+
+  val format: OFormat[GitBranchProtection] =
+    ( (__ \ "requiresApprovingReviews").format[Boolean]
+    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    )(apply _, unlift(unapply))
+}
 
 object GitRepository {
 
   val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
-    ( (__ \ "name"                   ).format[String]
-    ~ (__ \ "description"            ).format[String]
-    ~ (__ \ "url"                    ).format[String]
-    ~ (__ \ "createdDate"            ).format[Instant]
-    ~ (__ \ "lastActiveDate"         ).format[Instant]
-    ~ (__ \ "isPrivate"              ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"               ).format[RepoType]
-    ~ (__ \ "digitalServiceName"     ).formatNullable[String]
-    ~ (__ \ "owningTeams"            ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"               ).formatNullable[String]
-    ~ (__ \ "archived"               ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"          ).format[String]
-    ~ (__ \ "branchProtectionEnabled").format[Boolean]
+    ( (__ \ "name"              ).format[String]
+    ~ (__ \ "description"       ).format[String]
+    ~ (__ \ "url"               ).format[String]
+    ~ (__ \ "createdDate"       ).format[Instant]
+    ~ (__ \ "lastActiveDate"    ).format[Instant]
+    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"          ).format[RepoType]
+    ~ (__ \ "digitalServiceName").formatNullable[String]
+    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"          ).formatNullable[String]
+    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"     ).format[String]
+    ~ (__ \ "branchProtection"  ).formatNullable(GitBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 
   val mongoFormat: OFormat[GitRepository] = {
     implicit val ldtf = MongoJavatimeFormats.instantFormat
     implicit val rtf = RepoType.format
-    ( (__ \ "name"                   ).format[String]
-    ~ (__ \ "description"            ).format[String]
-    ~ (__ \ "url"                    ).format[String]
-    ~ (__ \ "createdDate"            ).format[Instant]
-    ~ (__ \ "lastActiveDate"         ).format[Instant]
-    ~ (__ \ "isPrivate"              ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"               ).format[RepoType]
-    ~ (__ \ "digitalServiceName"     ).formatNullable[String]
-    ~ (__ \ "owningTeams"            ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"               ).formatNullable[String]
-    ~ (__ \ "archived"               ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"          ).formatWithDefault[String]("master")
-    ~ (__ \ "branchProtectionEnabled").formatWithDefault[Boolean](false)
+    ( (__ \ "name"              ).format[String]
+    ~ (__ \ "description"       ).format[String]
+    ~ (__ \ "url"               ).format[String]
+    ~ (__ \ "createdDate"       ).format[Instant]
+    ~ (__ \ "lastActiveDate"    ).format[Instant]
+    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"          ).format[RepoType]
+    ~ (__ \ "digitalServiceName").formatNullable[String]
+    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"          ).formatNullable[String]
+    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
+    ~ (__ \ "branchProtection"  ).formatNullable(GitBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 

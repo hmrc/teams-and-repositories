@@ -18,12 +18,11 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
-
 import cats.data.EitherT
 import cats.implicits._
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.{GitBranchProtection, GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
@@ -231,18 +230,24 @@ class GithubV3RepositoryDataSource(
     owningTeams       : Seq[String]
   ): GitRepository =
     GitRepository(
-      name                    = repo.name,
-      description             = repo.description.getOrElse(""),
-      url                     = repo.htmlUrl,
-      createdDate             = repo.createdDate,
-      lastActiveDate          = repo.lastActiveDate,
-      isPrivate               = repo.isPrivate,
-      repoType                = repoType,
-      digitalServiceName      = digitalServiceName,
-      owningTeams             = owningTeams,
-      language                = repo.language,
-      isArchived              = repo.isArchived,
-      defaultBranch           = repo.defaultBranch,
-      branchProtectionEnabled = repo.branchProtectionEnabled
+      name               = repo.name,
+      description        = repo.description.getOrElse(""),
+      url                = repo.htmlUrl,
+      createdDate        = repo.createdDate,
+      lastActiveDate     = repo.lastActiveDate,
+      isPrivate          = repo.isPrivate,
+      repoType           = repoType,
+      digitalServiceName = digitalServiceName,
+      owningTeams        = owningTeams,
+      language           = repo.language,
+      isArchived         = repo.isArchived,
+      defaultBranch      = repo.defaultBranch,
+      branchProtection   =
+        repo
+          .branchProtection
+          .map(bp => GitBranchProtection(
+            bp.requiresApprovingReviews,
+            bp.dismissesStaleReviews
+          ))
     )
 }
