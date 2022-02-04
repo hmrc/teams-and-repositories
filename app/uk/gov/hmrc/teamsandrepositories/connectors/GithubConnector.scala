@@ -70,31 +70,33 @@ class GithubConnector @Inject()(
       requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
     }
 
-  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] = {
-    val root =
-      __ \ "data" \ "organization" \ "team" \ "repositories"
+  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
+    withCounter("github.open.repos") {
+      val root =
+        __ \ "data" \ "organization" \ "team" \ "repositories"
 
-    implicit val reads =
-      (root \ "nodes").read(Reads.list(GhRepository.reads))
+      implicit val reads =
+        (root \ "nodes").read(Reads.list(GhRepository.reads))
 
-    executePagedGqlQuery[List[GhRepository]](
-      query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
-      cursorPath = root \ "pageInfo" \ "endCursor"
-    ).map(_.flatten)
-  }
+      executePagedGqlQuery[List[GhRepository]](
+        query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
+        cursorPath = root \ "pageInfo" \ "endCursor"
+      ).map(_.flatten)
+    }
 
-  def getRepos(): Future[List[GhRepository]] = {
-    val root =
-      __ \ "data" \ "organization" \ "repositories"
+  def getRepos(): Future[List[GhRepository]] =
+    withCounter("github.open.repos") {
+      val root =
+        __ \ "data" \ "organization" \ "repositories"
 
-    implicit val reads =
-      (root \ "nodes").read(Reads.list(GhRepository.reads))
+      implicit val reads =
+        (root \ "nodes").read(Reads.list(GhRepository.reads))
 
-    executePagedGqlQuery[List[GhRepository]](
-      query = getReposQuery,
-      cursorPath = root \ "pageInfo" \ "endCursor",
-    ).map(_.flatten)
-  }
+      executePagedGqlQuery[List[GhRepository]](
+        query = getReposQuery,
+        cursorPath = root \ "pageInfo" \ "endCursor",
+      ).map(_.flatten)
+    }
 
   def hasTags(repo: GhRepository): Future[Boolean] =
     withCounter(s"github.open.tags") {
