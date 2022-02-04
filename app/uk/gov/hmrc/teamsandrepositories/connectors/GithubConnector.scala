@@ -267,7 +267,6 @@ object GithubConnector {
 
   private val repositoryFields =
     """
-      databaseId
       name
       description
       url

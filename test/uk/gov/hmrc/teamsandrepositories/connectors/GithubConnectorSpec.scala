@@ -25,7 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.JsString
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
