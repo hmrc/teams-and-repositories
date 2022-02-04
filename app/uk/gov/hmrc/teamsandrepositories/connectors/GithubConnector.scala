@@ -27,7 +27,6 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{GraphqlQuery, getReposForTeamQuery, getReposQuery}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,6 +40,7 @@ class GithubConnector @Inject()(
   metrics      : Metrics,
 )(implicit ec: ExecutionContext) {
   import RateLimit._
+  import GithubConnector._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
