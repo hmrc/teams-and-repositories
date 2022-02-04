@@ -84,7 +84,6 @@ class GithubV3RepositoryDataSourceSpec
 
   val ghRepo =
     GhRepository(
-      id               = 1,
       name             = "A_r",
       description      = Some("some description"),
       htmlUrl          = "url_A",
@@ -120,7 +119,6 @@ class GithubV3RepositoryDataSourceSpec
   "GithubV3RepositoryDataSource.getAllRepositories" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val repo1 = GhRepository(
-        id               = 0,
         name             = "repo1",
         description      = Some("a test repo"),
         htmlUrl          = "http://github.com/repo1",
@@ -134,7 +132,6 @@ class GithubV3RepositoryDataSourceSpec
         branchProtection = None
       )
       private val repo2 = GhRepository(
-        id               = 0,
         name             = "repo2",
         description      = Some("another test repo"),
         htmlUrl          = "http://github.com/repo2",
@@ -193,7 +190,6 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id               = 1,
             name             = "hidden_repo1",
             description      = Some("some description"),
             htmlUrl          = "url_A",
@@ -207,7 +203,6 @@ class GithubV3RepositoryDataSourceSpec
             branchProtection = None
           ),
           GhRepository(
-            id               = 2,
             name             = "A_r",
             description      = Some("some description"),
             htmlUrl          = "url_A",

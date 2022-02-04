@@ -361,7 +361,6 @@ class GithubConnectorSpec
   val repos =
     List(
       GhRepository(
-        id               = 1,
         name             = "n1",
         description      = Some("d1"),
         htmlUrl          = "url1",
@@ -375,7 +374,6 @@ class GithubConnectorSpec
         branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
       ),
       GhRepository(
-        id               = 2,
         name             = "n2",
         description      = Some("d2"),
         htmlUrl          = "url2",
@@ -389,7 +387,6 @@ class GithubConnectorSpec
         branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
       ),
       GhRepository(
-        id               = 3,
         name             = "n3",
         description      = None,
         htmlUrl          = "url3",
@@ -575,7 +572,6 @@ class GithubConnectorSpec
 
   val repo =
     GhRepository(
-      id               = 1,
       name             = "my-repo",
       description      = Some("d1"),
       htmlUrl          = "url1",

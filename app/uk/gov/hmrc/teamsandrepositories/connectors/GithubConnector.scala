@@ -358,7 +358,6 @@ object GhTeamDetail {
 }
 
 case class GhRepository(
-  id              : Long,
   name            : String,
   description     : Option[String],
   htmlUrl         : String,
@@ -374,8 +373,7 @@ case class GhRepository(
 
 object GhRepository {
   val reads: Reads[GhRepository] =
-    ( (__ \ "databaseId"                               ).read[Long]
-    ~ (__ \ "name"                                     ).read[String]
+    ( (__ \ "name"                                     ).read[String]
     ~ (__ \ "description"                              ).readNullable[String]
     ~ (__ \ "url"                                      ).read[String]
     ~ (__ \ "isFork"                                   ).read[Boolean]
