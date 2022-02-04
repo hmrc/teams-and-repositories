@@ -76,7 +76,7 @@ class GithubConnector @Inject()(
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
       implicit val reads =
-        (root \ "nodes").read(Reads.list(GhRepository.reads))
+        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads))
 
       executePagedGqlQuery[List[GhRepository]](
         query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),

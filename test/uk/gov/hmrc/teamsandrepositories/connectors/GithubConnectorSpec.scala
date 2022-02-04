@@ -438,6 +438,41 @@ class GithubConnectorSpec
           .withRequestBody(equalToJson(query2.asJsonString))
       )
     }
+
+    "return an empty list when a team does not exist" in {
+      val team =
+        GhTeam(id = 1, name = "A Team")
+
+      val query =
+        getReposForTeamQuery
+          .withVariable("team", JsString(team.githubSlug))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(
+            aResponse()
+              .withBody(
+                """
+                  {
+                    "data": {
+                      "organization": {
+                        "team": null
+                      }
+                    }
+                  }
+                """
+              )
+          )
+      )
+
+      connector.getReposForTeam(team).futureValue shouldBe empty
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+      )
+    }
   }
 
   "GithubConnector.getRepos" should {
