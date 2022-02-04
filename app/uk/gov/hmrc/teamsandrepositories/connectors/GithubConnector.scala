@@ -260,6 +260,9 @@ object GithubConnector {
           "variables" -> JsObject(variables)
         )
       )
+
+    def asJsonString: String =
+      Json.stringify(asJson)
   }
 
   private val repositoryFields =

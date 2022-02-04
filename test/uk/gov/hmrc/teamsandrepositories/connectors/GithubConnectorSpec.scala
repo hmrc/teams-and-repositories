@@ -412,7 +412,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query1.asJson)))
+          .withRequestBody(equalToJson(query1.asJsonString))
           .willReturn(aResponse().withBody(reposForTeamJson1))
       )
 
@@ -422,7 +422,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query2.asJson)))
+          .withRequestBody(equalToJson(query2.asJsonString))
           .willReturn(aResponse().withBody(reposForTeamJson2))
       )
 
@@ -430,12 +430,12 @@ class GithubConnectorSpec
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query1.asJson)))
+          .withRequestBody(equalToJson(query1.asJsonString))
       )
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query2.asJson)))
+          .withRequestBody(equalToJson(query2.asJsonString))
       )
     }
   }
@@ -444,7 +444,7 @@ class GithubConnectorSpec
     "return repos" in {
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(getReposQuery.asJson)))
+          .withRequestBody(equalToJson(getReposQuery.asJsonString))
           .willReturn(aResponse().withBody(allReposJson1))
       )
 
@@ -454,7 +454,7 @@ class GithubConnectorSpec
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query2.asJson)))
+          .withRequestBody(equalToJson(query2.asJsonString))
           .willReturn(aResponse().withBody(allReposJson2))
       )
 
@@ -462,12 +462,12 @@ class GithubConnectorSpec
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(getReposQuery.asJson)))
+          .withRequestBody(equalToJson(getReposQuery.asJsonString))
       )
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
-          .withRequestBody(equalTo(Json.stringify(query2.asJson)))
+          .withRequestBody(equalToJson(query2.asJsonString))
       )
     }
   }
