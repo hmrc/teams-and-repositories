@@ -46,7 +46,7 @@ case class GitRepository(
         htmlUrl          = url,
         fork             = ghRepository.fork,
         createdDate      = createdDate,
-        lastActiveDate   = lastActiveDate,
+        pushedAt         = lastActiveDate,
         isPrivate        = isPrivate,
         language         = language,
         isArchived       = isArchived,

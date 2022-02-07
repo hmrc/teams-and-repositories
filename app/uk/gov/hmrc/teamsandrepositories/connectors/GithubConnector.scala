@@ -364,7 +364,7 @@ case class GhRepository(
   htmlUrl         : String,
   fork            : Boolean,
   createdDate     : Instant,
-  lastActiveDate  : Instant,
+  pushedAt        : Instant,
   isPrivate       : Boolean,
   language        : Option[String],
   isArchived      : Boolean,

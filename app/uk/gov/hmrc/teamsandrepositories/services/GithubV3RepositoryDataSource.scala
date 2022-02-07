@@ -130,7 +130,7 @@ class GithubV3RepositoryDataSource(
         logger.info(
           s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${repo.lastActiveDate}"
+            s"github repository last updated -> ${repo.pushedAt}"
         )
         buildGitRepositoryFromGithub(repo)
       case None =>
@@ -234,7 +234,7 @@ class GithubV3RepositoryDataSource(
       description        = repo.description.getOrElse(""),
       url                = repo.htmlUrl,
       createdDate        = repo.createdDate,
-      lastActiveDate     = repo.lastActiveDate,
+      lastActiveDate     = repo.pushedAt,
       isPrivate          = repo.isPrivate,
       repoType           = repoType,
       digitalServiceName = digitalServiceName,

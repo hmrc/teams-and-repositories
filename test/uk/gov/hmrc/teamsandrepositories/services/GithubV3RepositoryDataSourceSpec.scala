@@ -89,7 +89,7 @@ class GithubV3RepositoryDataSourceSpec
       htmlUrl          = "url_A",
       fork             = false,
       createdDate      = now,
-      lastActiveDate   = now,
+      pushedAt         = now,
       isPrivate        = false,
       language         = Some("Scala"),
       isArchived       = false,
@@ -124,7 +124,7 @@ class GithubV3RepositoryDataSourceSpec
         htmlUrl          = "http://github.com/repo1",
         fork             = false,
         createdDate      = now,
-        lastActiveDate   = now,
+        pushedAt         = now,
         isPrivate        = false,
         language         = Some("Scala"),
         isArchived       = false,
@@ -137,7 +137,7 @@ class GithubV3RepositoryDataSourceSpec
         htmlUrl          = "http://github.com/repo2",
         fork             = false,
         createdDate      = now,
-        lastActiveDate   = now,
+        pushedAt         = now,
         isPrivate        = false,
         language         = Some("Scala"),
         isArchived       = false,
@@ -195,7 +195,7 @@ class GithubV3RepositoryDataSourceSpec
             htmlUrl          = "url_A",
             fork             = false,
             createdDate      = now,
-            lastActiveDate   = now,
+            pushedAt         = now,
             isPrivate        = false,
             language         = Some("Scala"),
             isArchived       = false,
@@ -208,7 +208,7 @@ class GithubV3RepositoryDataSourceSpec
             htmlUrl          = "url_A",
             fork             = false,
             createdDate      = now,
-            lastActiveDate   = now,
+            pushedAt         = now,
             isPrivate        = false,
             language         = Some("Scala"),
             isArchived       = false,
@@ -792,7 +792,7 @@ class GithubV3RepositoryDataSourceSpec
               .thenReturn(Future.successful(List(teamA)))
 
             val lastActiveDate = Instant.ofEpochMilli(1234L)
-            val githubRepository = ghRepo.copy(lastActiveDate = lastActiveDate)
+            val githubRepository = ghRepo.copy(pushedAt = lastActiveDate)
 
             when(mockGithubConnector.getReposForTeam(teamA))
               .thenReturn(Future.successful(List(githubRepository)))
@@ -851,7 +851,7 @@ class GithubV3RepositoryDataSourceSpec
       "be called" when {
         "the repository inputs from GitHub have changed" should {
           "also repo type and digital service name should be obtained from github" in new Setup {
-            val githubRepository = ghRepo.copy(lastActiveDate = now.plusSeconds(1))
+            val githubRepository = ghRepo.copy(pushedAt = now.plusSeconds(1))
             when(mockGithubConnector.getTeams())
               .thenReturn(Future.successful(List(teamA)))
 
@@ -928,7 +928,7 @@ class GithubV3RepositoryDataSourceSpec
             .thenReturn(Future.successful(List(teamA)))
 
           val lastActiveDate = Instant.ofEpochMilli(1234L)
-          val githubRepository = ghRepo.copy(lastActiveDate = lastActiveDate)
+          val githubRepository = ghRepo.copy(pushedAt = lastActiveDate)
 
           when(mockGithubConnector.getReposForTeam(teamA))
             .thenReturn(Future.successful(List(githubRepository)))
@@ -977,8 +977,8 @@ class GithubV3RepositoryDataSourceSpec
     "not update repostiories in updatedRepos list" in new Setup {
       val githubRepository =
         ghRepo.copy(
-          createdDate    = Instant.ofEpochMilli(0L),
-          lastActiveDate = now
+          createdDate = Instant.ofEpochMilli(0L),
+          pushedAt    = now
         )
 
       when(mockGithubConnector.getReposForTeam(teamA))
