@@ -786,7 +786,7 @@ class GithubV3RepositoryDataSourceSpec
 
     "github api for determining the repo type" should {
       "not be called" when {
-        "the last updated date from github is the same as the saved one" should {
+        "the repository inputs from GitHub are unchanged" should {
           "also repo type and digital service name should be copied from the previously persisted record)" in new Setup {
             when(mockGithubConnector.getTeams())
               .thenReturn(Future.successful(List(teamA)))
@@ -849,7 +849,7 @@ class GithubV3RepositoryDataSourceSpec
       }
 
       "be called" when {
-        "the last updated date from github is newer than the saved one" should {
+        "the repository inputs from GitHub have changed" should {
           "also repo type and digital service name should be obtained from github" in new Setup {
             val githubRepository = ghRepo.copy(lastActiveDate = now.plusSeconds(1))
             when(mockGithubConnector.getTeams())

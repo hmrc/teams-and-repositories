@@ -20,7 +20,7 @@ import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.teamsandrepositories.connectors.GhBranchProtection
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhBranchProtection, GhRepository}
 
 case class GitRepository(
   name              : String,
@@ -36,7 +36,27 @@ case class GitRepository(
   isArchived        : Boolean,
   defaultBranch     : String,
   branchProtection  : Option[GhBranchProtection] = None
-)
+) {
+
+  def inputsAreUnchanged(ghRepository: GhRepository): Boolean = {
+    val projection =
+      GhRepository(
+        name             = name,
+        description      = Some(description),
+        htmlUrl          = url,
+        fork             = ghRepository.fork,
+        createdDate      = createdDate,
+        lastActiveDate   = lastActiveDate,
+        isPrivate        = isPrivate,
+        language         = language,
+        isArchived       = isArchived,
+        defaultBranch    = defaultBranch,
+        branchProtection = branchProtection
+      )
+
+    ghRepository == projection
+  }
+}
 
 object GitRepository {
 

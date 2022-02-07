@@ -115,7 +115,7 @@ class GithubV3RepositoryDataSource(
         .flatMap(_.repositories.find(_.url == repo.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repo.lastActiveDate.toEpochMilli =>
+      case Some(persistedRepository) if persistedRepository.inputsAreUnchanged(repo) =>
         logger.info(s"Team '${team.name}' - Repository '${repo.htmlUrl}' already up to date")
         Future.successful(
           buildGitRepository(
