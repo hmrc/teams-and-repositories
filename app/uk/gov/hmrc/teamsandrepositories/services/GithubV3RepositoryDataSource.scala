@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
-
 import cats.data.EitherT
 import cats.implicits._
 import org.yaml.snakeyaml.Yaml
@@ -116,7 +115,7 @@ class GithubV3RepositoryDataSource(
         .flatMap(_.repositories.find(_.url == repo.htmlUrl))
 
     optPersistedRepository match {
-      case Some(persistedRepository) if persistedRepository.lastActiveDate.toEpochMilli >= repo.lastActiveDate.toEpochMilli =>
+      case Some(persistedRepository) if persistedRepository.inputsAreUnchanged(repo) =>
         logger.info(s"Team '${team.name}' - Repository '${repo.htmlUrl}' already up to date")
         Future.successful(
           buildGitRepository(
@@ -131,7 +130,7 @@ class GithubV3RepositoryDataSource(
         logger.info(
           s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +
             s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${repo.lastActiveDate}"
+            s"github repository last updated -> ${repo.pushedAt}"
         )
         buildGitRepositoryFromGithub(repo)
       case None =>
@@ -235,13 +234,14 @@ class GithubV3RepositoryDataSource(
       description        = repo.description.getOrElse(""),
       url                = repo.htmlUrl,
       createdDate        = repo.createdDate,
-      lastActiveDate     = repo.lastActiveDate,
+      lastActiveDate     = repo.pushedAt,
       isPrivate          = repo.isPrivate,
       repoType           = repoType,
       digitalServiceName = digitalServiceName,
       owningTeams        = owningTeams,
       language           = repo.language,
       isArchived         = repo.isArchived,
-      defaultBranch      = repo.defaultBranch
+      defaultBranch      = repo.defaultBranch,
+      branchProtection   = repo.branchProtection
     )
 }

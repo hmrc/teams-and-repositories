@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.Instant
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhBranchProtection, GhRepository}
 
 case class GitRepository(
   name              : String,
@@ -28,14 +28,41 @@ case class GitRepository(
   url               : String,
   createdDate       : Instant,
   lastActiveDate    : Instant,
-  isPrivate         : Boolean        = false,
-  repoType          : RepoType       = RepoType.Other,
-  digitalServiceName: Option[String] = None,
-  owningTeams       : Seq[String]    = Nil,
+  isPrivate         : Boolean                     = false,
+  repoType          : RepoType                    = RepoType.Other,
+  digitalServiceName: Option[String]              = None,
+  owningTeams       : Seq[String]                 = Nil,
   language          : Option[String],
   isArchived        : Boolean,
-  defaultBranch     : String
-)
+  defaultBranch     : String,
+  branchProtection  : Option[GhBranchProtection] = None
+) {
+
+  /**
+   * Returns true if this `GitRepository`'s inputs (in terms of a `GhRepository`) are unchanged, false otherwise.
+   *
+   * This ensures that a cache entry for a given repository may be correctly invalidated for non-code data changes that
+   * would not be picked up by inspecting a repository's last `pushedAt` timestamp.
+   */
+  def inputsAreUnchanged(ghRepository: GhRepository): Boolean = {
+    val projection =
+      GhRepository(
+        name             = name,
+        description      = Some(description),
+        htmlUrl          = url,
+        fork             = ghRepository.fork,
+        createdDate      = createdDate,
+        pushedAt         = lastActiveDate,
+        isPrivate        = isPrivate,
+        language         = language,
+        isArchived       = isArchived,
+        defaultBranch    = defaultBranch,
+        branchProtection = branchProtection
+      )
+
+    ghRepository == projection
+  }
+}
 
 object GitRepository {
 
@@ -53,6 +80,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 
@@ -71,6 +99,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 

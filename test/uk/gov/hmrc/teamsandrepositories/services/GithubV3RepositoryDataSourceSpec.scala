@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,17 +84,17 @@ class GithubV3RepositoryDataSourceSpec
 
   val ghRepo =
     GhRepository(
-      id             = 1,
-      name           = "A_r",
-      description    = Some("some description"),
-      htmlUrl        = "url_A",
-      fork           = false,
-      createdDate    = now,
-      lastActiveDate = now,
-      isPrivate      = false,
-      language       = Some("Scala"),
-      isArchived     = false,
-      defaultBranch  = "main"
+      name             = "A_r",
+      description      = Some("some description"),
+      htmlUrl          = "url_A",
+      fork             = false,
+      createdDate      = now,
+      pushedAt         = now,
+      isPrivate        = false,
+      language         = Some("Scala"),
+      isArchived       = false,
+      defaultBranch    = "main",
+      branchProtection = None
     )
 
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
@@ -119,30 +119,30 @@ class GithubV3RepositoryDataSourceSpec
   "GithubV3RepositoryDataSource.getAllRepositories" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val repo1 = GhRepository(
-        id             = 0,
-        name           = "repo1",
-        description    = Some("a test repo"),
-        htmlUrl        = "http://github.com/repo1",
-        fork           = false,
-        createdDate    = now,
-        lastActiveDate = now,
-        isPrivate      = false,
-        language       = Some("Scala"),
-        isArchived     = false,
-        defaultBranch  = "main"
+        name             = "repo1",
+        description      = Some("a test repo"),
+        htmlUrl          = "http://github.com/repo1",
+        fork             = false,
+        createdDate      = now,
+        pushedAt         = now,
+        isPrivate        = false,
+        language         = Some("Scala"),
+        isArchived       = false,
+        defaultBranch    = "main",
+        branchProtection = None
       )
       private val repo2 = GhRepository(
-        id             = 0,
-        name           = "repo2",
-        description    = Some("another test repo"),
-        htmlUrl        = "http://github.com/repo2",
-        fork           = false,
-        createdDate    = now,
-        lastActiveDate = now,
-        isPrivate      = false,
-        language       = Some("Scala"),
-        isArchived     = false,
-        defaultBranch  = "main"
+        name             = "repo2",
+        description      = Some("another test repo"),
+        htmlUrl          = "http://github.com/repo2",
+        fork             = false,
+        createdDate      = now,
+        pushedAt         = now,
+        isPrivate        = false,
+        language         = Some("Scala"),
+        isArchived       = false,
+        defaultBranch    = "main",
+        branchProtection = None
       )
       when(mockGithubConnector.getRepos())
         .thenReturn(Future.successful(List(repo1, repo2)))
@@ -190,30 +190,30 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(Future.successful(List(
           GhRepository(
-            id             = 1,
-            name           = "hidden_repo1",
-            description    = Some("some description"),
-            htmlUrl        = "url_A",
-            fork           = false,
-            createdDate    = now,
-            lastActiveDate = now,
-            isPrivate      = false,
-            language       = Some("Scala"),
-            isArchived     = false,
-            defaultBranch  = "main"
+            name             = "hidden_repo1",
+            description      = Some("some description"),
+            htmlUrl          = "url_A",
+            fork             = false,
+            createdDate      = now,
+            pushedAt         = now,
+            isPrivate        = false,
+            language         = Some("Scala"),
+            isArchived       = false,
+            defaultBranch    = "main",
+            branchProtection = None
           ),
           GhRepository(
-            id             = 2,
-            name           = "A_r",
-            description    = Some("some description"),
-            htmlUrl        = "url_A",
-            fork           = false,
-            createdDate    = now,
-            lastActiveDate = now,
-            isPrivate      = false,
-            language       = Some("Scala"),
-            isArchived     = false,
-            defaultBranch  = "main"
+            name             = "A_r",
+            description      = Some("some description"),
+            htmlUrl          = "url_A",
+            fork             = false,
+            createdDate      = now,
+            pushedAt         = now,
+            isPrivate        = false,
+            language         = Some("Scala"),
+            isArchived       = false,
+            defaultBranch    = "main",
+            branchProtection = None
           )
         )))
 
@@ -786,13 +786,13 @@ class GithubV3RepositoryDataSourceSpec
 
     "github api for determining the repo type" should {
       "not be called" when {
-        "the last updated date from github is the same as the saved one" should {
+        "the repository inputs from GitHub are unchanged" should {
           "also repo type and digital service name should be copied from the previously persisted record)" in new Setup {
             when(mockGithubConnector.getTeams())
               .thenReturn(Future.successful(List(teamA)))
 
             val lastActiveDate = Instant.ofEpochMilli(1234L)
-            val githubRepository = ghRepo.copy(lastActiveDate = lastActiveDate)
+            val githubRepository = ghRepo.copy(pushedAt = lastActiveDate)
 
             when(mockGithubConnector.getReposForTeam(teamA))
               .thenReturn(Future.successful(List(githubRepository)))
@@ -849,9 +849,9 @@ class GithubV3RepositoryDataSourceSpec
       }
 
       "be called" when {
-        "the last updated date from github is newer than the saved one" should {
+        "the repository inputs from GitHub have changed" should {
           "also repo type and digital service name should be obtained from github" in new Setup {
-            val githubRepository = ghRepo.copy(lastActiveDate = now.plusSeconds(1))
+            val githubRepository = ghRepo.copy(pushedAt = now.plusSeconds(1))
             when(mockGithubConnector.getTeams())
               .thenReturn(Future.successful(List(teamA)))
 
@@ -928,7 +928,7 @@ class GithubV3RepositoryDataSourceSpec
             .thenReturn(Future.successful(List(teamA)))
 
           val lastActiveDate = Instant.ofEpochMilli(1234L)
-          val githubRepository = ghRepo.copy(lastActiveDate = lastActiveDate)
+          val githubRepository = ghRepo.copy(pushedAt = lastActiveDate)
 
           when(mockGithubConnector.getReposForTeam(teamA))
             .thenReturn(Future.successful(List(githubRepository)))
@@ -977,8 +977,8 @@ class GithubV3RepositoryDataSourceSpec
     "not update repostiories in updatedRepos list" in new Setup {
       val githubRepository =
         ghRepo.copy(
-          createdDate    = Instant.ofEpochMilli(0L),
-          lastActiveDate = now
+          createdDate = Instant.ofEpochMilli(0L),
+          pushedAt    = now
         )
 
       when(mockGithubConnector.getReposForTeam(teamA))

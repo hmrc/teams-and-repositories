@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 
 import java.net.URL
 import java.time.Instant
-
 import com.kenshoo.play.metrics.Metrics
+
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Reads, OFormat, __}
+import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -40,6 +40,7 @@ class GithubConnector @Inject()(
   metrics      : Metrics,
 )(implicit ec: ExecutionContext) {
   import RateLimit._
+  import GithubConnector._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
@@ -70,17 +71,31 @@ class GithubConnector @Inject()(
     }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
-    withRetry {
-      withCounter(s"github.open.repos") {
-        implicit val rf = GhRepository.format
-        requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}/repos?per_page=100")
-      }
+    withCounter("github.open.repos") {
+      val root =
+        __ \ "data" \ "organization" \ "team" \ "repositories"
+
+      implicit val reads =
+        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads))
+
+      executePagedGqlQuery[List[GhRepository]](
+        query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
+        cursorPath = root \ "pageInfo" \ "endCursor"
+      ).map(_.flatten)
     }
 
   def getRepos(): Future[List[GhRepository]] =
-    withCounter(s"github.open.allRepos") {
-      implicit val rf = GhRepository.format
-      requestPaginated[GhRepository](url"${githubConfig.apiUrl}/orgs/$org/repos?per_page=100")
+    withCounter("github.open.repos") {
+      val root =
+        __ \ "data" \ "organization" \ "repositories"
+
+      implicit val reads =
+        (root \ "nodes").read(Reads.list(GhRepository.reads))
+
+      executePagedGqlQuery[List[GhRepository]](
+        query = getReposQuery,
+        cursorPath = root \ "pageInfo" \ "endCursor",
+      ).map(_.flatten)
     }
 
   def hasTags(repo: GhRepository): Future[Boolean] =
@@ -114,6 +129,40 @@ class GithubConnector @Inject()(
       headers = Seq("Authorization" -> s"token $token")
     )
   }
+
+  private def executeGqlQuery[A](
+    query: GraphqlQuery
+  )(implicit
+    reads: Reads[A],
+    mf: Manifest[A]
+  ): Future[A] =
+    httpClient
+      .POST[JsValue, A](
+        url = url"${githubConfig.apiUrl}/graphql",
+        body = query.asJson,
+        headers = Seq(authHeader, acceptsHeader)
+      )
+
+  private def executePagedGqlQuery[A](
+    query: GraphqlQuery,
+    cursorPath: JsPath
+  )(implicit
+    reads: Reads[A],
+    mf: Manifest[A]
+  ): Future[List[A]] = {
+    implicit val readsWithCursor: Reads[WithCursor[A]] =
+      (cursorPath.readNullable[String] ~ reads)(WithCursor(_, _))
+
+    for {
+      response <- executeGqlQuery[WithCursor[A]](query)
+      recurse  <- response.cursor.fold(Future.successful(List(response.value))) { cursor =>
+        executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
+          .map(response.value :: _)
+      }
+    } yield recurse
+  }
+
+  private case class WithCursor[A](cursor: Option[String], value: A)
 
   private def withRetry[T](f: => Future[T]): Future[T] =
     RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
@@ -194,6 +243,89 @@ class GithubConnector @Inject()(
     }
 }
 
+object GithubConnector {
+
+  final case class GraphqlQuery(
+    query: String,
+    variables: Map[String, JsValue] = Map.empty
+  ) {
+
+    def withVariable(name: String, value: JsValue): GraphqlQuery =
+      copy(variables = variables + (name -> value))
+
+    def asJson: JsValue =
+      JsObject(
+        Map(
+          "query"     -> JsString(query),
+          "variables" -> JsObject(variables)
+        )
+      )
+
+    def asJsonString: String =
+      Json.stringify(asJson)
+  }
+
+  private val repositoryFields =
+    """
+      name
+      description
+      url
+      isFork
+      createdAt
+      pushedAt
+      isPrivate
+      primaryLanguage {
+        name
+      }
+      isArchived
+      defaultBranchRef {
+        name
+        branchProtectionRule {
+          requiresApprovingReviews
+          dismissesStaleReviews
+        }
+      }
+    """
+
+  val getReposForTeamQuery: GraphqlQuery =
+    GraphqlQuery(
+      s"""
+        query($$team: String!, $$cursor: String) {
+          organization(login: "hmrc") {
+            team(slug: $$team) {
+              repositories(first: 100, after: $$cursor) {
+                pageInfo {
+                  endCursor
+                }
+                nodes {
+                  $repositoryFields
+                }
+              }
+            }
+          }
+        }
+      """
+    )
+
+  val getReposQuery: GraphqlQuery =
+    GraphqlQuery(
+      s"""
+        query($$cursor: String) {
+          organization(login: "hmrc") {
+            repositories(first: 100, after: $$cursor) {
+              pageInfo {
+                endCursor
+              }
+              nodes {
+                $repositoryFields
+              }
+            }
+          }
+        }
+      """
+    )
+}
+
 case class GhTeam(
   id  : Long,
   name: String
@@ -227,33 +359,33 @@ object GhTeamDetail {
 }
 
 case class GhRepository(
-  id            : Long,
-  name          : String,
-  description   : Option[String],
-  htmlUrl       : String,
-  fork          : Boolean,
-  createdDate   : Instant,
-  lastActiveDate: Instant,
-  isPrivate     : Boolean,
-  language      : Option[String],
-  isArchived    : Boolean,
-  defaultBranch : String
+  name            : String,
+  description     : Option[String],
+  htmlUrl         : String,
+  fork            : Boolean,
+  createdDate     : Instant,
+  pushedAt        : Instant,
+  isPrivate       : Boolean,
+  language        : Option[String],
+  isArchived      : Boolean,
+  defaultBranch   : String,
+  branchProtection: Option[GhBranchProtection]
 )
 
 object GhRepository {
-  val format: OFormat[GhRepository] =
-    ( (__ \ "id"            ).format[Long]
-    ~ (__ \ "name"          ).format[String]
-    ~ (__ \ "description"   ).formatNullable[String]
-    ~ (__ \ "html_url"      ).format[String]
-    ~ (__ \ "fork"          ).format[Boolean]
-    ~ (__ \ "created_at"    ).format[Instant]
-    ~ (__ \ "pushed_at"     ).format[Instant]
-    ~ (__ \ "private"       ).format[Boolean]
-    ~ (__ \ "language"      ).formatNullable[String]
-    ~ (__ \ "archived"      ).format[Boolean]
-    ~ (__ \ "default_branch").format[String]
-    )(apply, unlift(unapply))
+  val reads: Reads[GhRepository] =
+    ( (__ \ "name"                                     ).read[String]
+    ~ (__ \ "description"                              ).readNullable[String]
+    ~ (__ \ "url"                                      ).read[String]
+    ~ (__ \ "isFork"                                   ).read[Boolean]
+    ~ (__ \ "createdAt"                                ).read[Instant]
+    ~ (__ \ "pushedAt"                                 ).readWithDefault(Instant.MIN)
+    ~ (__ \ "isPrivate"                                ).read[Boolean]
+    ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
+    ~ (__ \ "isArchived"                               ).read[Boolean]
+    ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
+    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    )(apply _)
 }
 
 case class GhTag(name: String)
@@ -301,4 +433,17 @@ object RateLimit {
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
   }
+}
+
+final case class GhBranchProtection(
+  requiresApprovingReviews: Boolean,
+  dismissesStaleReviews: Boolean
+)
+
+object GhBranchProtection {
+
+  val format: Format[GhBranchProtection] =
+    ( (__ \ "requiresApprovingReviews").format[Boolean]
+    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    )(apply _, unlift(unapply))
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.JsString
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
 
 import java.time.Instant
 
@@ -229,124 +231,246 @@ class GithubConnectorSpec
       connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiAbuseDetectedException]
     }
   }
-
-
   val reposJson1 =
     """[
        {
-         "id"            : 1,
-         "name"          : "n1",
-         "description"   : "d1",
-         "html_url"      : "url1",
-         "fork"          : false,
-         "created_at"    : "2019-04-01T11:41:33Z",
-         "pushed_at"     : "2019-04-02T11:41:33Z",
-         "private"       : true,
-         "language"      : "l1",
-         "archived"      : false,
-         "default_branch": "b1"
+         "databaseId": 1,
+         "name": "n1",
+         "description": "d1",
+         "url": "url1",
+         "isFork": false,
+         "createdAt": "2019-04-01T11:41:33Z",
+         "pushedAt": "2019-04-02T11:41:33Z",
+         "isPrivate": true,
+         "primaryLanguage": {
+           "name": "l1"
+         },
+         "isArchived": false,
+         "defaultBranchRef": {
+           "name": "b1",
+           "branchProtectionRule": {
+             "requiresApprovingReviews": true,
+             "dismissesStaleReviews": true
+           }
+         }
        },
        {
-         "id"            : 2,
-         "name"          : "n2",
-         "description"   : "d2",
-         "html_url"      : "url2",
-         "fork"          : false,
-         "created_at"    : "2019-04-03T11:41:33Z",
-         "pushed_at"     : "2019-04-04T11:41:33Z",
-         "private"       : false,
-         "language"      : "l2",
-         "archived"      : true,
-         "default_branch": "b2"
+         "databaseId": 2,
+         "name": "n2",
+         "description": "d2",
+         "url": "url2",
+         "isFork": false,
+         "createdAt": "2019-04-03T11:41:33Z",
+         "pushedAt": "2019-04-04T11:41:33Z",
+         "isPrivate": false,
+         "primaryLanguage": {
+           "name": "l2"
+         },
+         "isArchived": true,
+         "defaultBranchRef": {
+           "name": "b2",
+           "branchProtectionRule": {
+             "requiresApprovingReviews": true,
+             "dismissesStaleReviews": true
+           }
+         }
        }
     ]"""
 
   val reposJson2 =
     """[
          {
-           "id"            : 3,
-           "name"          : "n3",
-           "html_url"      : "url3",
-           "fork"          : true,
-           "created_at"    : "2019-04-05T11:41:33Z",
-           "pushed_at"     : "2019-04-06T11:41:33Z",
-           "private"       : true,
-           "archived"      : false,
-           "default_branch": "b3"
+           "databaseId": 3,
+           "name": "n3",
+           "url": "url3",
+           "isFork": true,
+           "createdAt": "2019-04-05T11:41:33Z",
+           "pushedAt": "2019-04-06T11:41:33Z",
+           "isPrivate": true,
+           "isArchived": false,
+           "defaultBranchRef": {
+             "name": "b3"
+           }
          }
       ]"""
+
+  val reposForTeamJson1 =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "team": {
+              "repositories": {
+                "pageInfo": {
+                  "endCursor": "cursor-1"
+                },
+                "nodes": $reposJson1
+              }
+            }
+          }
+        }
+      }
+     """
+
+  val reposForTeamJson2 =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "team": {
+              "repositories": {
+                "pageInfo": {},
+                "nodes": $reposJson2
+              }
+            }
+          }
+        }
+      }
+     """
+
+  val allReposJson1 =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "repositories": {
+              "pageInfo": {
+                "endCursor": "cursor-1"
+              },
+              "nodes": $reposJson1
+            }
+          }
+        }
+      }
+     """
+
+  val allReposJson2 =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "repositories": {
+              "pageInfo": {},
+              "nodes": $reposJson2
+            }
+          }
+        }
+      }
+     """
 
   val repos =
     List(
       GhRepository(
-        id             = 1,
-        name           = "n1",
-        description    = Some("d1"),
-        htmlUrl        = "url1",
-        fork           = false,
-        createdDate    = Instant.parse("2019-04-01T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-02T11:41:33Z"),
-        isPrivate      = true,
-        language       = Some("l1"),
-        isArchived     = false,
-        defaultBranch  = "b1"
+        name             = "n1",
+        description      = Some("d1"),
+        htmlUrl          = "url1",
+        fork             = false,
+        createdDate      = Instant.parse("2019-04-01T11:41:33Z"),
+        pushedAt         = Instant.parse("2019-04-02T11:41:33Z"),
+        isPrivate        = true,
+        language         = Some("l1"),
+        isArchived       = false,
+        defaultBranch    = "b1",
+        branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
       ),
       GhRepository(
-        id             = 2,
-        name           = "n2",
-        description    = Some("d2"),
-        htmlUrl        = "url2",
-        fork           = false,
-        createdDate    = Instant.parse("2019-04-03T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-04T11:41:33Z"),
-        isPrivate      = false,
-        language       = Some("l2"),
-        isArchived     = true,
-        defaultBranch  = "b2"
+        name             = "n2",
+        description      = Some("d2"),
+        htmlUrl          = "url2",
+        fork             = false,
+        createdDate      = Instant.parse("2019-04-03T11:41:33Z"),
+        pushedAt         = Instant.parse("2019-04-04T11:41:33Z"),
+        isPrivate        = false,
+        language         = Some("l2"),
+        isArchived       = true,
+        defaultBranch    = "b2",
+        branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
       ),
       GhRepository(
-        id             = 3,
-        name           = "n3",
-        description    = None,
-        htmlUrl        = "url3",
-        fork           = true,
-        createdDate    = Instant.parse("2019-04-05T11:41:33Z"),
-        lastActiveDate = Instant.parse("2019-04-06T11:41:33Z"),
-        isPrivate      = true,
-        language       = None,
-        isArchived     = false,
-        defaultBranch  = "b3"
+        name             = "n3",
+        description      = None,
+        htmlUrl          = "url3",
+        fork             = true,
+        createdDate      = Instant.parse("2019-04-05T11:41:33Z"),
+        pushedAt         = Instant.parse("2019-04-06T11:41:33Z"),
+        isPrivate        = true,
+        language         = None,
+        isArchived       = false,
+        defaultBranch    = "b3",
+        branchProtection = None
       )
     )
 
   "GithubConnector.getReposForTeam" should {
     "return repos" in {
-      val team = GhTeam(id = 1, name = "A Team")
-      stubFor(
-        get(urlPathEqualTo(s"/orgs/hmrc/teams/a-team/repos"))
-          .willReturn(
-            aResponse()
-              .withBody(reposJson1)
-              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/nextPage>; rel="last"""")
-          )
-      )
+      val team =
+        GhTeam(id = 1, name = "A Team")
+
+      val query1 =
+        getReposForTeamQuery
+          .withVariable("team", JsString(team.githubSlug))
 
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(aResponse().withBody(reposJson2))
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query1.asJsonString))
+          .willReturn(aResponse().withBody(reposForTeamJson1))
+      )
+
+      val query2 =
+        query1
+          .withVariable("cursor", JsString("cursor-1"))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
+          .willReturn(aResponse().withBody(reposForTeamJson2))
       )
 
       connector.getReposForTeam(team).futureValue shouldBe repos
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a-team/repos"))
-          .withQueryParam("per_page", equalTo("100"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query1.asJsonString))
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/nextPage"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
+      )
+    }
+
+    "return an empty list when a team does not exist" in {
+      val team =
+        GhTeam(id = 1, name = "A Team")
+
+      val query =
+        getReposForTeamQuery
+          .withVariable("team", JsString(team.githubSlug))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(
+            aResponse()
+              .withBody(
+                """
+                  {
+                    "data": {
+                      "organization": {
+                        "team": null
+                      }
+                    }
+                  }
+                """
+              )
+          )
+      )
+
+      connector.getReposForTeam(team).futureValue shouldBe empty
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
       )
     }
   }
@@ -354,30 +478,31 @@ class GithubConnectorSpec
   "GithubConnector.getRepos" should {
     "return repos" in {
       stubFor(
-        get(urlPathEqualTo(s"/orgs/hmrc/repos"))
-          .willReturn(
-            aResponse()
-              .withBody(reposJson1)
-              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/lastPage>; rel="last"""")
-          )
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getReposQuery.asJsonString))
+          .willReturn(aResponse().withBody(allReposJson1))
       )
 
+      val query2 =
+        getReposQuery
+          .withVariable("cursor", JsString("cursor-1"))
+
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(aResponse().withBody(reposJson2))
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
+          .willReturn(aResponse().withBody(allReposJson2))
       )
 
       connector.getRepos().futureValue shouldBe repos
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/repos"))
-          .withQueryParam("per_page", equalTo("100"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getReposQuery.asJsonString))
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/nextPage"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
       )
     }
   }
@@ -482,16 +607,16 @@ class GithubConnectorSpec
 
   val repo =
     GhRepository(
-      id             = 1,
-      name           = "my-repo",
-      description    = Some("d1"),
-      htmlUrl        = "url1",
-      fork           = false,
-      createdDate    = Instant.parse("2019-04-01T11:41:33Z"),
-      lastActiveDate = Instant.parse("2019-04-02T11:41:33Z"),
-      isPrivate      = true,
-      language       = Some("l1"),
-      isArchived     = false,
-      defaultBranch  = "b1"
+      name             = "my-repo",
+      description      = Some("d1"),
+      htmlUrl          = "url1",
+      fork             = false,
+      createdDate      = Instant.parse("2019-04-01T11:41:33Z"),
+      pushedAt         = Instant.parse("2019-04-02T11:41:33Z"),
+      isPrivate        = true,
+      language         = Some("l1"),
+      isArchived       = false,
+      defaultBranch    = "b1",
+      branchProtection = None
     )
 }
