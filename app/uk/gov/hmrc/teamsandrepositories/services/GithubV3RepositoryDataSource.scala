@@ -18,15 +18,14 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
-import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 
 class GithubV3RepositoryDataSource(
@@ -60,7 +59,7 @@ class GithubV3RepositoryDataSource(
                               Future.successful(currentCreatedDate)
       repos              =  ghRepos
                               .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                              .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(mapRepository(repo)))
+                              .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(buildGitRepository(repo)))
     } yield
       TeamRepositories(
         teamName     = team.name,
@@ -76,86 +75,22 @@ class GithubV3RepositoryDataSource(
 
   def getAllRepositories(): Future[List[GitRepository]] =
     githubConnector.getRepos()
-      .map(_.map(repo => buildGitRepository(repo, RepoType.Other, None, Seq.empty)))
+      .map(_.map(repo =>
+        buildGitRepository(repo.copy(manifestDetails = ManifestDetails(Some(RepoType.Other), None, Nil)))
+      ))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve repo list for organisation.", ex)
           Future.failed(ex)
       }
 
-  private def mapRepository(repo: GhRepository): GitRepository = {
-      val manifestDetails =
-        repo
-          .repoTypeHeuristics
-          .repositoryYamlText
-          .flatMap(parseManifest(repo.name, _))
-          .getOrElse(ManifestDetails(None, None, Nil))
+  private def buildGitRepository(repo: GhRepository): GitRepository = {
+    val repoType =
+      repo
+        .manifestDetails
+        .repoType
+        .getOrElse(RepoType.inferFromGhRepository(repo))
 
-      val repoType =
-        manifestDetails
-          .repoType
-          .getOrElse(RepoType.inferFromGhRepository(repo))
-
-      buildGitRepository(repo, repoType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
-    }
-
-  private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
-    Try(new Yaml().load[java.util.Map[String, Object]](contents))
-
-  case class ManifestDetails(
-    repoType          : Option[RepoType],
-    digitalServiceName: Option[String],
-    owningTeams       : Seq[String]
-  )
-
-  private def parseManifest(repoName: String, manifest: String): Option[ManifestDetails] = {
-    import scala.collection.JavaConverters._
-
-    parseAppConfigFile(manifest) match {
-      case Failure(exception) =>
-        logger.warn(
-          s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
-        None
-
-      case Success(yamlMap) =>
-        val config = yamlMap.asScala
-
-        val manifestDetails =
-          ManifestDetails(
-            repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-                                   case "service" => Some(RepoType.Service)
-                                   case "library" => Some(RepoType.Library)
-                                   case _         => None
-                                 },
-            digitalServiceName = config.get("digital-service").map(_.toString),
-            owningTeams        = try {
-                                   config
-                                     .getOrElse("owning-teams", new java.util.ArrayList[String])
-                                     .asInstanceOf[java.util.List[String]]
-                                     .asScala
-                                     .toList
-                                 } catch {
-                                   case NonFatal(ex) =>
-                                     logger.warn(
-                                       s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
-                                     Nil
-                                 }
-          )
-
-        logger.info(
-          s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
-        )
-
-        Some(manifestDetails)
-    }
-  }
-
-  private def buildGitRepository(
-    repo             : GhRepository,
-    repoType          : RepoType,
-    digitalServiceName: Option[String],
-    owningTeams       : Seq[String]
-  ): GitRepository =
     GitRepository(
       name               = repo.name,
       description        = repo.description.getOrElse(""),
@@ -164,11 +99,12 @@ class GithubV3RepositoryDataSource(
       lastActiveDate     = repo.pushedAt,
       isPrivate          = repo.isPrivate,
       repoType           = repoType,
-      digitalServiceName = digitalServiceName,
-      owningTeams        = owningTeams,
+      digitalServiceName = repo.manifestDetails.digitalServiceName,
+      owningTeams        = repo.manifestDetails.owningTeams,
       language           = repo.language,
       isArchived         = repo.isArchived,
       defaultBranch      = repo.defaultBranch,
       branchProtection   = repo.branchProtection
     )
+  }
 }

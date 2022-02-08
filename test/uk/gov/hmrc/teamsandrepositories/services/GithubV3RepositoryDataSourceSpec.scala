@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import org.mockito.MockitoSugar
-import org.mockito.ArgumentMatchers.{any, anyString}
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
@@ -26,7 +26,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GhTeamDetail, GithubConnector}
 
 import scala.concurrent.Future
@@ -73,9 +73,15 @@ class GithubV3RepositoryDataSourceSpec
 
   val teamA = GhTeam(id = 1, name = "A")
 
+  val dummyManifestDetails =
+    ManifestDetails(
+      repoType = None,
+      digitalServiceName = None,
+      owningTeams = Nil
+    )
+
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
-      repositoryYamlText  = None,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,
@@ -97,6 +103,7 @@ class GithubV3RepositoryDataSourceSpec
       isArchived         = false,
       defaultBranch      = "main",
       branchProtection   = None,
+      manifestDetails    = dummyManifestDetails,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 
@@ -133,6 +140,7 @@ class GithubV3RepositoryDataSourceSpec
         isArchived         = false,
         defaultBranch      = "main",
         branchProtection   = None,
+        manifestDetails    = dummyManifestDetails,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
       private val repo2 = GhRepository(
@@ -147,6 +155,7 @@ class GithubV3RepositoryDataSourceSpec
         isArchived         = false,
         defaultBranch      = "main",
         branchProtection   = None,
+        manifestDetails    = dummyManifestDetails,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
       when(mockGithubConnector.getRepos())
@@ -206,6 +215,7 @@ class GithubV3RepositoryDataSourceSpec
             isArchived         = false,
             defaultBranch      = "main",
             branchProtection   = None,
+            manifestDetails    = dummyManifestDetails,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           ),
           GhRepository(
@@ -220,6 +230,7 @@ class GithubV3RepositoryDataSourceSpec
             isArchived         = false,
             defaultBranch      = "main",
             branchProtection   = None,
+            manifestDetails    = dummyManifestDetails,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           )
         )))
@@ -374,7 +385,7 @@ class GithubV3RepositoryDataSourceSpec
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some("type: service")))
+                  .copy(manifestDetails = ghRepo.manifestDetails.copy(repoType = Some(RepoType.Service)))
               )
             )
         )
@@ -412,8 +423,8 @@ class GithubV3RepositoryDataSourceSpec
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some("digital-service: service-abcd")))
+                  .copy(manifestDetails =
+                    ghRepo.manifestDetails.copy(digitalServiceName = Some("service-abcd")))
               )
             )
         )
@@ -445,20 +456,17 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
 
-      val manifestYaml =
-        """
-          |digital-service: service-abcd
-          |type: service
-        """.stripMargin
-
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(
           Future
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some(manifestYaml)))
+                  .copy(manifestDetails =
+                    ghRepo.manifestDetails.copy(
+                      repoType = Some(RepoType.Service),
+                      digitalServiceName = Some("service-abcd")
+                    ))
               )
             )
         )
@@ -496,8 +504,8 @@ class GithubV3RepositoryDataSourceSpec
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some("type: library")))
+                  .copy(manifestDetails =
+                    ghRepo.manifestDetails.copy(repoType = Some(RepoType.Library)))
               )
             )
         )
@@ -525,45 +533,6 @@ class GithubV3RepositoryDataSourceSpec
         )
     }
 
-    "set type as Other if the repository.yaml contains any other value for type" in new Setup {
-      when(mockGithubConnector.getTeams())
-        .thenReturn(Future.successful(List(teamA)))
-
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(
-          Future
-            .successful(
-              List(
-                ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some("type: somethingelse")))
-              )
-            )
-        )
-
-      dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
-        .futureValue shouldBe TeamRepositories(
-          teamName     = "A",
-          repositories = List(
-            GitRepository(
-              name               = "A_r",
-              description        = "some description",
-              url                = "url_A",
-              createdDate        = now,
-              lastActiveDate     = now,
-              repoType           = RepoType.Other,
-              digitalServiceName = None,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main"
-            )
-          ),
-          createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
-        )
-    }
-
     "set type as Other if the repository.yaml does not contain a type" in new Setup {
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
@@ -574,8 +543,8 @@ class GithubV3RepositoryDataSourceSpec
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(repositoryYamlText = Some("description: not a type")))
+                  .copy(manifestDetails =
+                    ghRepo.manifestDetails.copy(repoType = None))
               )
             )
         )
@@ -762,22 +731,15 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
 
-      val repositoryYamlContents =
-        """
-          owning-teams:
-            - team1
-            - team2
-        """
-
       when(mockGithubConnector.getReposForTeam(teamA))
         .thenReturn(
           Future
             .successful(
               List(
                 ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(
-                      repositoryYamlText = Some(repositoryYamlContents)
+                  .copy(manifestDetails =
+                    ghRepo.manifestDetails.copy(
+                      owningTeams = Seq("team1", "team2")
                     )
                   )
               )
@@ -806,38 +768,6 @@ class GithubV3RepositoryDataSourceSpec
           createdDate  = Some(teamCreatedDate),
           updateDate   = timestampF()
         )
-    }
-
-    "set owning teams to an empty list if value not specified as a list" in new Setup {
-      when(mockGithubConnector.getTeams())
-        .thenReturn(Future.successful(List(teamA)))
-
-      val repositoryYamlContents =
-        """
-          owning-teams: not-a-list
-        """
-
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(
-          Future
-            .successful(
-              List(
-                ghRepo
-                  .copy(repoTypeHeuristics =
-                    ghRepo.repoTypeHeuristics.copy(
-                      repositoryYamlText = Some(repositoryYamlContents)
-                    )
-                  )
-              )
-            )
-        )
-
-      private val result =
-        dataSource
-          .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
-          .futureValue
-
-      result.repositories.head.owningTeams shouldBe Nil
     }
 
     "set isPrivate to true if the repo is private" in new Setup {

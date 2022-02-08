@@ -28,7 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
 
 import java.time.Instant
@@ -309,9 +309,15 @@ class GithubConnectorSpec
       }
      """
 
+  val dummyManifestDetails =
+    ManifestDetails(
+      repoType = None,
+      digitalServiceName = None,
+      owningTeams = Nil
+    )
+
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
-      repositoryYamlText  = None,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,
@@ -334,6 +340,7 @@ class GithubConnectorSpec
         isArchived         = false,
         defaultBranch      = "b1",
         branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        manifestDetails    = dummyManifestDetails,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
@@ -348,6 +355,7 @@ class GithubConnectorSpec
         isArchived         = true,
         defaultBranch      = "b2",
         branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        manifestDetails    = dummyManifestDetails,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
@@ -362,6 +370,7 @@ class GithubConnectorSpec
         isArchived         = false,
         defaultBranch      = "b3",
         branchProtection   = None,
+        manifestDetails    = dummyManifestDetails,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
     )
@@ -517,6 +526,7 @@ class GithubConnectorSpec
       isArchived         = false,
       defaultBranch      = "b1",
       branchProtection   = None,
+      manifestDetails    = dummyManifestDetails,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 }

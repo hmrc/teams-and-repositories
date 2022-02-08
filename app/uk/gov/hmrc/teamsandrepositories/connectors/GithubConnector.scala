@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import java.net.URL
 import java.time.Instant
 import com.kenshoo.play.metrics.Metrics
+import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
@@ -26,12 +27,14 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.teamsandrepositories.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 
 @Singleton
@@ -362,13 +365,79 @@ case class GhRepository(
   isArchived        : Boolean,
   defaultBranch     : String,
   branchProtection  : Option[GhBranchProtection],
+  manifestDetails   : ManifestDetails,
   repoTypeHeuristics: RepoTypeHeuristics
 )
 
 object GhRepository {
 
+  final case class ManifestDetails(
+    repoType: Option[RepoType],
+    digitalServiceName: Option[String],
+    owningTeams: Seq[String]
+  )
+
+  object ManifestDetails {
+
+    private val logger =
+      Logger(this.getClass)
+
+    val reads: Reads[ManifestDetails] =
+      ( (__ \ "name"                   ).read[String]
+      ~ (__ \ "repositoryYaml" \ "text").readNullable[String]
+      )((name, repositoryYamlText) =>
+        repositoryYamlText
+          .flatMap(parseManifest(name, _))
+          .getOrElse(ManifestDetails(None, None, Seq.empty))
+      )
+
+    private def parseManifest(repoName: String, manifest: String): Option[ManifestDetails] = {
+      import scala.collection.JavaConverters._
+
+      parseAppConfigFile(manifest) match {
+        case Failure(exception) =>
+          logger.warn(
+            s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          None
+
+        case Success(yamlMap) =>
+          val config = yamlMap.asScala
+
+          val manifestDetails =
+            ManifestDetails(
+              repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+                case "service" => Some(RepoType.Service)
+                case "library" => Some(RepoType.Library)
+                case _         => None
+              },
+              digitalServiceName = config.get("digital-service").map(_.toString),
+              owningTeams        = try {
+                config
+                  .getOrElse("owning-teams", new java.util.ArrayList[String])
+                  .asInstanceOf[java.util.List[String]]
+                  .asScala
+                  .toList
+              } catch {
+                case NonFatal(ex) =>
+                  logger.warn(
+                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
+                  Nil
+              }
+            )
+
+          logger.info(
+            s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
+          )
+
+          Some(manifestDetails)
+      }
+    }
+
+    private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
+      Try(new Yaml().load[java.util.Map[String, Object]](contents))
+  }
+
   final case class RepoTypeHeuristics(
-    repositoryYamlText: Option[String],
     hasApplicationConf: Boolean,
     hasDeployProperties: Boolean,
     hasProcfile: Boolean,
@@ -379,8 +448,7 @@ object GhRepository {
 
   object RepoTypeHeuristics {
     val reads: Reads[RepoTypeHeuristics] =
-      ( (__ \ "repositoryYaml" \ "text"   ).readNullable[String]
-      ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
+      ( (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasSrcMainScala" \ "id"    ).readNullable[String].map(_.isDefined)
@@ -401,17 +469,17 @@ object GhRepository {
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
     ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    ~ ManifestDetails.reads
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }
 
 case class GhTag(name: String)
+
 object GhTag {
   val format: OFormat[GhTag] =
     (__ \ "name").format[String].inmap(apply, unlift(unapply))
 }
-
-
 
 case class RateLimitMetrics(
   limit    : Int,
