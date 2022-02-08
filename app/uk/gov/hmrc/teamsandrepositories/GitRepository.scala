@@ -36,34 +36,7 @@ case class GitRepository(
   isArchived        : Boolean,
   defaultBranch     : String,
   branchProtection  : Option[GhBranchProtection] = None
-) {
-
-  /**
-   * Returns true if this `GitRepository`'s inputs (in terms of a `GhRepository`) are unchanged, false otherwise.
-   *
-   * This ensures that a cache entry for a given repository may be correctly invalidated for non-code data changes that
-   * would not be picked up by inspecting a repository's last `pushedAt` timestamp.
-   */
-  def inputsAreUnchanged(ghRepository: GhRepository): Boolean = {
-    val projection =
-      GhRepository(
-        name               = name,
-        description        = Some(description),
-        htmlUrl            = url,
-        fork               = ghRepository.fork,
-        createdDate        = createdDate,
-        pushedAt           = lastActiveDate,
-        isPrivate          = isPrivate,
-        language           = language,
-        isArchived         = isArchived,
-        defaultBranch      = defaultBranch,
-        branchProtection   = branchProtection,
-        repoTypeHeuristics = ghRepository.repoTypeHeuristics
-      )
-
-    ghRepository == projection
-  }
-}
+)
 
 object GitRepository {
 
