@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
-import cats.data.EitherT
 import cats.implicits._
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
@@ -92,11 +91,11 @@ class GithubV3RepositoryDataSource(
 
   private def buildGitRepositoryFromGithub(repo: GhRepository): Future[GitRepository] =
     for {
-      optManifest     <- githubConnector.getFileContent(repo, "repository.yaml")
+      optManifest     <- Future.successful(repo.repoTypeHeuristics.repositoryYamlText)
       manifestDetails =  optManifest.flatMap(parseManifest(repo.name, _))
                            .getOrElse(ManifestDetails(None, None, Nil))
       repoType        <- manifestDetails.repoType match {
-                           case None           => getTypeFromGithub(repo)
+                           case None           => Future.successful(RepoType.inferFromGhRepository(repo))
                            case Some(repoType) => Future.successful(repoType)
                          }
     } yield {
@@ -188,39 +187,6 @@ class GithubV3RepositoryDataSource(
 
         Some(manifestDetails)
     }
-  }
-
-  private def getTypeFromGithub(repo: GhRepository): Future[RepoType] = {
-    def ifHalt(f: Future[Boolean], repoType: RepoType): EitherT[Future, RepoType, Unit] =
-      EitherT(f.map {
-        case true  => Left(repoType)
-        case false => Right(())
-      })
-    (for {
-       _ <- ifHalt(isPrototype(repo), RepoType.Prototype)
-       _ <- ifHalt(isService(repo)  , RepoType.Service  )
-       _ <- ifHalt(isLibrary(repo)  , RepoType.Library  )
-     } yield ()
-    ).fold(identity, _ => RepoType.Other)
-  }
-
-  private def isPrototype(repo: GhRepository): Future[Boolean] =
-    Future.successful(repo.name.endsWith("-prototype"))
-
-  private def isService(repo: GhRepository): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-    githubConnector.existsContent(repo, "conf/application.conf") ||
-      githubConnector.existsContent(repo, "deploy.properties") ||
-        githubConnector.existsContent(repo, "Procfile")
-  }
-
-  private def isLibrary(repo: GhRepository): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-    // doesn't work for multi-module
-    // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    (githubConnector.existsContent(repo, "src/main/scala") ||
-      githubConnector.existsContent(repo, "src/main/java")
-    ) && githubConnector.hasTags(repo)
   }
 
   private def buildGitRepository(

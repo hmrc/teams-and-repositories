@@ -28,6 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsString
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.http.test.WireMockSupport
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
 
 import java.time.Instant
@@ -358,46 +359,60 @@ class GithubConnectorSpec
       }
      """
 
+  val dummyRepoTypeHeuristics =
+    RepoTypeHeuristics(
+      repositoryYamlText  = None,
+      hasApplicationConf  = false,
+      hasDeployProperties = false,
+      hasProcfile         = false,
+      hasSrcMainScala     = false,
+      hasSrcMainJava      = false,
+      hasTags             = false
+    )
+
   val repos =
     List(
       GhRepository(
-        name             = "n1",
-        description      = Some("d1"),
-        htmlUrl          = "url1",
-        fork             = false,
-        createdDate      = Instant.parse("2019-04-01T11:41:33Z"),
-        pushedAt         = Instant.parse("2019-04-02T11:41:33Z"),
-        isPrivate        = true,
-        language         = Some("l1"),
-        isArchived       = false,
-        defaultBranch    = "b1",
-        branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
+        name               = "n1",
+        description        = Some("d1"),
+        htmlUrl            = "url1",
+        fork               = false,
+        createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
+        pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
+        isPrivate          = true,
+        language           = Some("l1"),
+        isArchived         = false,
+        defaultBranch      = "b1",
+        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
-        name             = "n2",
-        description      = Some("d2"),
-        htmlUrl          = "url2",
-        fork             = false,
-        createdDate      = Instant.parse("2019-04-03T11:41:33Z"),
-        pushedAt         = Instant.parse("2019-04-04T11:41:33Z"),
-        isPrivate        = false,
-        language         = Some("l2"),
-        isArchived       = true,
-        defaultBranch    = "b2",
-        branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true))
+        name               = "n2",
+        description        = Some("d2"),
+        htmlUrl            = "url2",
+        fork               = false,
+        createdDate        = Instant.parse("2019-04-03T11:41:33Z"),
+        pushedAt           = Instant.parse("2019-04-04T11:41:33Z"),
+        isPrivate          = false,
+        language           = Some("l2"),
+        isArchived         = true,
+        defaultBranch      = "b2",
+        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
-        name             = "n3",
-        description      = None,
-        htmlUrl          = "url3",
-        fork             = true,
-        createdDate      = Instant.parse("2019-04-05T11:41:33Z"),
-        pushedAt         = Instant.parse("2019-04-06T11:41:33Z"),
-        isPrivate        = true,
-        language         = None,
-        isArchived       = false,
-        defaultBranch    = "b3",
-        branchProtection = None
+        name               = "n3",
+        description        = None,
+        htmlUrl            = "url3",
+        fork               = true,
+        createdDate        = Instant.parse("2019-04-05T11:41:33Z"),
+        pushedAt           = Instant.parse("2019-04-06T11:41:33Z"),
+        isPrivate          = true,
+        language           = None,
+        isArchived         = false,
+        defaultBranch      = "b3",
+        branchProtection   = None,
+        repoTypeHeuristics = dummyRepoTypeHeuristics
       )
     )
 
@@ -607,16 +622,17 @@ class GithubConnectorSpec
 
   val repo =
     GhRepository(
-      name             = "my-repo",
-      description      = Some("d1"),
-      htmlUrl          = "url1",
-      fork             = false,
-      createdDate      = Instant.parse("2019-04-01T11:41:33Z"),
-      pushedAt         = Instant.parse("2019-04-02T11:41:33Z"),
-      isPrivate        = true,
-      language         = Some("l1"),
-      isArchived       = false,
-      defaultBranch    = "b1",
-      branchProtection = None
+      name               = "my-repo",
+      description        = Some("d1"),
+      htmlUrl            = "url1",
+      fork               = false,
+      createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
+      pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
+      isPrivate          = true,
+      language           = Some("l1"),
+      isArchived         = false,
+      defaultBranch      = "b1",
+      branchProtection   = None,
+      repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 }

@@ -27,6 +27,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -285,6 +286,29 @@ object GithubConnector {
           dismissesStaleReviews
         }
       }
+      repositoryYaml: object(expression: "HEAD:repository.yaml") {
+        ... on Blob {
+          text
+        }
+      }
+      hasApplicationConf: object(expression: "HEAD:conf/application.conf") {
+        id
+      }
+      hasDeployProperties: object(expression: "HEAD:deploy.properties") {
+        id
+      }
+      hasProcfile: object(expression: "HEAD:Procfile") {
+        id
+      }
+      hasSrcMainScala: object(expression: "HEAD:src/main/scala") {
+        id
+      }
+      hasSrcMainJava: object(expression: "HEAD:src/main/java") {
+        id
+      }
+      tags: refs(refPrefix: "refs/tags/") {
+        totalCount
+      }
     """
 
   val getReposForTeamQuery: GraphqlQuery =
@@ -293,7 +317,7 @@ object GithubConnector {
         query($$team: String!, $$cursor: String) {
           organization(login: "hmrc") {
             team(slug: $$team) {
-              repositories(first: 100, after: $$cursor) {
+              repositories(first: 50, after: $$cursor) {
                 pageInfo {
                   endCursor
                 }
@@ -312,7 +336,7 @@ object GithubConnector {
       s"""
         query($$cursor: String) {
           organization(login: "hmrc") {
-            repositories(first: 100, after: $$cursor) {
+            repositories(first: 50, after: $$cursor) {
               pageInfo {
                 endCursor
               }
@@ -359,20 +383,44 @@ object GhTeamDetail {
 }
 
 case class GhRepository(
-  name            : String,
-  description     : Option[String],
-  htmlUrl         : String,
-  fork            : Boolean,
-  createdDate     : Instant,
-  pushedAt        : Instant,
-  isPrivate       : Boolean,
-  language        : Option[String],
-  isArchived      : Boolean,
-  defaultBranch   : String,
-  branchProtection: Option[GhBranchProtection]
+  name              : String,
+  description       : Option[String],
+  htmlUrl           : String,
+  fork              : Boolean,
+  createdDate       : Instant,
+  pushedAt          : Instant,
+  isPrivate         : Boolean,
+  language          : Option[String],
+  isArchived        : Boolean,
+  defaultBranch     : String,
+  branchProtection  : Option[GhBranchProtection],
+  repoTypeHeuristics: RepoTypeHeuristics
 )
 
 object GhRepository {
+
+  final case class RepoTypeHeuristics(
+    repositoryYamlText: Option[String],
+    hasApplicationConf: Boolean,
+    hasDeployProperties: Boolean,
+    hasProcfile: Boolean,
+    hasSrcMainScala: Boolean,
+    hasSrcMainJava: Boolean,
+    hasTags: Boolean
+  )
+
+  object RepoTypeHeuristics {
+    val reads: Reads[RepoTypeHeuristics] =
+      ( (__ \ "repositoryYaml" \ "text"   ).readNullable[String]
+      ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasSrcMainScala" \ "id"    ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasSrcMainJava" \ "id"     ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "tags" \ "totalCount"       ).readNullable[Int].map(_.exists(_ > 0))
+      )(apply _)
+  }
+
   val reads: Reads[GhRepository] =
     ( (__ \ "name"                                     ).read[String]
     ~ (__ \ "description"                              ).readNullable[String]
@@ -385,6 +433,7 @@ object GhRepository {
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
     ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    ~ RepoTypeHeuristics.reads
     )(apply _)
 }
 

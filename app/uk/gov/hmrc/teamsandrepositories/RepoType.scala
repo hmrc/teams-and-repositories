@@ -17,9 +17,12 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import play.api.libs.json._
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository
 
 sealed trait RepoType { def asString: String }
+
 object RepoType {
+
   case object Service   extends RepoType { override val asString = "Service"   }
   case object Library   extends RepoType { override val asString = "Library"   }
   case object Prototype extends RepoType { override val asString = "Prototype" }
@@ -31,6 +34,20 @@ object RepoType {
     values
       .find(_.asString == s)
       .toRight(s"Invalid repoType - should be one of: ${values.map(_.asString).mkString(", ")}")
+
+  def inferFromGhRepository(repo: GhRepository): RepoType = {
+    val heuristics =
+      repo.repoTypeHeuristics
+
+    if (repo.name.endsWith("-prototype"))
+      Prototype
+    else if (heuristics.hasApplicationConf || heuristics.hasDeployProperties || heuristics.hasProcfile)
+      Service
+    else if ((heuristics.hasSrcMainScala || heuristics.hasSrcMainJava) && heuristics.hasTags)
+      Library
+    else
+      Other
+  }
 
   val format: Format[RepoType] = new Format[RepoType] {
     override def reads(json: JsValue): JsResult[RepoType] =

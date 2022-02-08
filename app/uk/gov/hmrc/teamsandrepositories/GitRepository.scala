@@ -47,17 +47,18 @@ case class GitRepository(
   def inputsAreUnchanged(ghRepository: GhRepository): Boolean = {
     val projection =
       GhRepository(
-        name             = name,
-        description      = Some(description),
-        htmlUrl          = url,
-        fork             = ghRepository.fork,
-        createdDate      = createdDate,
-        pushedAt         = lastActiveDate,
-        isPrivate        = isPrivate,
-        language         = language,
-        isArchived       = isArchived,
-        defaultBranch    = defaultBranch,
-        branchProtection = branchProtection
+        name               = name,
+        description        = Some(description),
+        htmlUrl            = url,
+        fork               = ghRepository.fork,
+        createdDate        = createdDate,
+        pushedAt           = lastActiveDate,
+        isPrivate          = isPrivate,
+        language           = language,
+        isArchived         = isArchived,
+        defaultBranch      = defaultBranch,
+        branchProtection   = branchProtection,
+        repoTypeHeuristics = ghRepository.repoTypeHeuristics
       )
 
     ghRepository == projection
