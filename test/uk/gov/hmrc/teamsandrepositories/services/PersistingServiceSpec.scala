@@ -136,8 +136,10 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam(id = 1, name = "teamA")
-      val ghTeamB = GhTeam(id = 2, name = "teamB")
+      val createdAt = Instant.now()
+
+      val ghTeamA = GhTeam(name = "teamA", createdAt = createdAt)
+      val ghTeamB = GhTeam(name = "teamB", createdAt = createdAt)
 
       when(dataSource.getTeams())
         .thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
@@ -221,7 +223,8 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam(id = 1, name = "teamA")
+      val createdAt = Instant.now()
+      val ghTeamA = GhTeam(name = "teamA", createdAt = createdAt)
 
       when(dataSource.getTeams()).thenReturn(Future.successful(List(ghTeamA)))
 
@@ -273,10 +276,11 @@ class PersistingServiceSpec
 
       val dataSource = mock[GithubV3RepositoryDataSource]
 
-      val ghTeamA = GhTeam(id = 1, name = "teamA")
-      val ghTeamB = GhTeam(id = 2, name = "teamB")
-      val ghTeamC = GhTeam(id = 3, name = "teamC")
-      val ghTeamD = GhTeam(id = 4, name = "teamD")
+      val createdAt = Instant.now()
+      val ghTeamA = GhTeam(name = "teamA", createdAt = createdAt)
+      val ghTeamB = GhTeam(name = "teamB", createdAt = createdAt)
+      val ghTeamC = GhTeam(name = "teamC", createdAt = createdAt)
+      val ghTeamD = GhTeam(name = "teamD", createdAt = createdAt)
 
       val reposWithoutTeams =
         List(

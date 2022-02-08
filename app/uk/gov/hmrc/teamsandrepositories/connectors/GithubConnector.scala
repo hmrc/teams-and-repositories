@@ -56,8 +56,16 @@ class GithubConnector @Inject()(
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      implicit val tf = GhTeam.format
-      requestPaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
+      val root =
+        __ \ "data" \ "organization" \ "teams"
+
+      implicit val reads =
+        (root \ "nodes").read(Reads.list(GhTeam.reads))
+
+      executePagedGqlQuery(
+        query = getTeamsQuery,
+        cursorPath = root \ "pageInfo" \ "endCursor"
+      ).map(_.flatten)
     }
 
   def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] =
@@ -319,21 +327,41 @@ object GithubConnector {
         }
       """
     )
+
+  val getTeamsQuery: GraphqlQuery =
+    GraphqlQuery(
+      s"""
+        query ($$cursor: String) {
+          organization(login: "hmrc") {
+            teams(first: 50, after: $$cursor) {
+              pageInfo {
+                endCursor
+              }
+              nodes {
+                name
+                createdAt
+              }
+            }
+          }
+        }
+      """
+    )
 }
 
 case class GhTeam(
-  id  : Long,
-  name: String
+  name: String,
+  createdAt: Instant
 ) {
   def githubSlug: String =
     name.replaceAll(" - | |\\.", "-").toLowerCase
 }
 
 object GhTeam {
-  val format: OFormat[GhTeam] =
-  ( (__ \ "id"  ).format[Long]
-  ~ (__ \ "name").format[String]
-  )(apply, unlift(unapply))
+
+  val reads: Reads[GhTeam] =
+    ( (__ \ "name"     ).read[String]
+    ~ (__ \ "createdAt").read[Instant]
+    )(apply _)
 }
 
 case class GhTeamDetail(

@@ -43,6 +43,7 @@ class GithubV3RepositoryDataSourceSpec
   private val nowMillis = System.currentTimeMillis()
   private val now = Instant.ofEpochMilli(nowMillis)
   private val timestampF = () => now
+  private val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
 
   trait Setup {
     val mockGithubConnector = mock[GithubConnector]
@@ -59,10 +60,8 @@ class GithubV3RepositoryDataSourceSpec
 
     val ec = dataSource.ec
 
-    val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
-
     when(mockGithubConnector.getTeamDetail(any()))
-      .thenAnswer { team: GhTeam => Future.successful(Some(GhTeamDetail(team.id, team.name, teamCreatedDate))) }
+      .thenAnswer { team: GhTeam => Future.successful(Some(GhTeamDetail(1, team.name, teamCreatedDate))) }
 
     when(githubConfig.hiddenRepositories)
       .thenReturn(testHiddenRepositories)
@@ -71,7 +70,7 @@ class GithubV3RepositoryDataSourceSpec
       .thenReturn(testHiddenTeams)
   }
 
-  val teamA = GhTeam(id = 1, name = "A")
+  val teamA = GhTeam(name = "A", createdAt = teamCreatedDate)
 
   val dummyManifestDetails =
     ManifestDetails(
@@ -110,11 +109,10 @@ class GithubV3RepositoryDataSourceSpec
   val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
   val testHiddenTeams        = List("hidden_team1", "hidden_team2")
 
-
   "GithubV3RepositoryDataSource.getTeams" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
-      private val teamB       = GhTeam(id = 2, name = "B"           )
-      private val hiddenTeam1 = GhTeam(id = 5, name = "hidden_team1")
+      private val teamB       = GhTeam(name = "B"           , createdAt = teamCreatedDate)
+      private val hiddenTeam1 = GhTeam(name = "hidden_team1", createdAt = teamCreatedDate)
 
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA, teamB, hiddenTeam1)))

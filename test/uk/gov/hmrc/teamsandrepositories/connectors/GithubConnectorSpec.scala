@@ -29,7 +29,7 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery, getTeamsQuery}
 
 import java.time.Instant
 
@@ -61,68 +61,89 @@ class GithubConnectorSpec
 
   implicit val headerCarrier = HeaderCarrier()
 
+  val createdAt =
+    Instant.parse("2019-03-01T12:00:00Z")
+
   "GithubConnector.getTeams" should {
     "return teams" in {
       stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """[
-                  {"id": 1, "name": "A"},
-                  {"id": 2, "name": "B"}
-                ]"""
-              )
-              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/lastPage>; rel="last"""")
-          )
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getTeamsQuery.asJsonString))
+          .willReturn(aResponse().withBody(
+            """
+             {
+               "data": {
+                 "organization": {
+                   "teams": {
+                     "pageInfo": {
+                       "endCursor": "cursor-1"
+                     },
+                     "nodes": [
+                       {
+                         "name": "A",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       },
+                       {
+                         "name": "B",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       }
+                     ]
+                   }
+                 }
+               }
+             }
+            """
+          ))
       )
 
+      val query2 =
+        getTeamsQuery
+          .withVariable("cursor", JsString("cursor-1"))
+
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """[
-                  {"id": 3, "name": "C"}
-                ]"""
-              )
-          )
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
+          .willReturn(aResponse().withBody(
+            """
+             {
+               "data": {
+                 "organization": {
+                   "teams": {
+                     "pageInfo": {},
+                     "nodes": [
+                       {
+                         "name": "C",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       }
+                     ]
+                   }
+                 }
+               }
+             }
+            """
+          ))
       )
 
       connector.getTeams().futureValue shouldBe List(
-        GhTeam(1, "A"),
-        GhTeam(2, "B"),
-        GhTeam(3, "C")
+        GhTeam("A", createdAt),
+        GhTeam("B", createdAt),
+        GhTeam("C", createdAt)
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams"))
-          .withQueryParam("per_page", equalTo("100"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getTeamsQuery.asJsonString))
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/nextPage"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
-
-    "throw ratelimit error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
-          .willReturn(
-            aResponse()
-              .withStatus(400)
-              .withBody("asdsad api rate limit exceeded dsadsa")
-          )
-      )
-
-      connector.getTeams().failed.futureValue shouldBe an[ApiRateLimitExceededException]
     }
   }
 
   "GithubConnector.getTeamDetail" should {
-    val team = GhTeam(1, "A")
+    val team = GhTeam("A", createdAt)
 
     "return team detail" in {
       stubFor(
@@ -378,7 +399,7 @@ class GithubConnectorSpec
   "GithubConnector.getReposForTeam" should {
     "return repos" in {
       val team =
-        GhTeam(id = 1, name = "A Team")
+        GhTeam(name = "A Team", createdAt = createdAt)
 
       val query1 =
         getReposForTeamQuery
@@ -415,7 +436,7 @@ class GithubConnectorSpec
 
     "return an empty list when a team does not exist" in {
       val team =
-        GhTeam(id = 1, name = "A Team")
+        GhTeam(name = "A Team", createdAt = createdAt)
 
       val query =
         getReposForTeamQuery

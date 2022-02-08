@@ -52,11 +52,6 @@ class GithubV3RepositoryDataSource(
     logger.debug(s"Mapping team (${team.name})")
     for {
       ghRepos            <- githubConnector.getReposForTeam(team)
-      currentCreatedDate =  persistedTeams.find(_.teamName == team.name).flatMap(_.createdDate)
-      optCreatedDate     <- if (currentCreatedDate.isEmpty)
-                              githubConnector.getTeamDetail(team).map(_.map(_.createdDate))
-                            else
-                              Future.successful(currentCreatedDate)
       repos              =  ghRepos
                               .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
                               .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(buildGitRepository(repo)))
@@ -64,7 +59,7 @@ class GithubV3RepositoryDataSource(
       TeamRepositories(
         teamName     = team.name,
         repositories = repos,
-        createdDate  = optCreatedDate,
+        createdDate  = Some(team.createdAt),
         updateDate   = timestampF()
       )
   }.recover {
