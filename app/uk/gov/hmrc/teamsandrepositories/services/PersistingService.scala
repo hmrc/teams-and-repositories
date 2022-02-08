@@ -56,21 +56,18 @@ case class PersistingService @Inject()(
 
   def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
     (for {
-       persistedTeams <- persister.getAllTeamsAndRepos(None)
-       sortedGhTeams  <- teamsOrderedByUpdateDate(persistedTeams)
-       withTeams      <- sortedGhTeams.foldLeftM[Future, (Seq[TeamRepositories], Seq[GitRepository])](
+       ghTeams      <- dataSource.getTeams()
+       withTeams    <- ghTeams
+                         .foldLeftM[Future, (Seq[TeamRepositories], Seq[GitRepository])](
                            (Seq.empty[TeamRepositories], Seq.empty[GitRepository])
-                         ){ case ((teamsAcc, updatedAcc), ghTeam) =>
-                           for {
-                             teamRepositories       <- dataSource.mapTeam(ghTeam, persistedTeams, updatedAcc)
-                             orderdTeamRepositories =  teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
-                             _                      <- persister.update(orderdTeamRepositories)
-                             } yield
-                              ( orderdTeamRepositories +: teamsAcc,
-                                teamRepositories.repositories ++ updatedAcc
-                              )
-                         }.map(_._1)
-       withoutTeams   <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
+                         ) { case ((teamsAcc, updatedAcc), ghTeam) =>
+                               for {
+                                 teamRepositories        <- dataSource.mapTeam(ghTeam, updatedAcc)
+                                 orderedTeamRepositories =  teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
+                                 _                       <- persister.update(orderedTeamRepositories)
+                                 } yield (orderedTeamRepositories +: teamsAcc, teamRepositories.repositories ++ updatedAcc)
+                           }.map(_._1)
+       withoutTeams <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
      } yield withTeams :+ withoutTeams
     ).recoverWith {
       case NonFatal(ex) =>
@@ -95,17 +92,6 @@ case class PersistingService @Inject()(
           updateDate   = timestamper.timestampF()
         )
       }
-
-  private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
-
-  private def teamsOrderedByUpdateDate(
-      persistedTeams: Seq[TeamRepositories]
-    )( implicit ec: ExecutionContext
-    ): Future[List[GhTeam]] =
-      dataSource.getTeams
-        .map(
-          _.sortBy(ghTeam => persistedTeams.find(_.teamName == ghTeam.name).fold(Instant.MIN)(_.updateDate))
-        )
 
   def removeOrphanTeamsFromMongo(
        teamRepositoriesFromGh: Seq[TeamRepositories]

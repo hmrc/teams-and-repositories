@@ -230,7 +230,7 @@ class GithubV3RepositoryDataSourceSpec
         )))
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -270,7 +270,7 @@ class GithubV3RepositoryDataSourceSpec
       )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -308,7 +308,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -347,7 +347,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
         teamName     = "A",
         repositories = List(
@@ -385,7 +385,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -424,7 +424,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -466,7 +466,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -505,7 +505,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -544,7 +544,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -587,7 +587,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       val repositories = dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -632,7 +632,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       val repositories = dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -665,7 +665,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(catoRepo)))
 
       val repositories = dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -697,7 +697,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(ghRepo)))
 
       val repositories = dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -741,7 +741,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -773,7 +773,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(privateRepo)))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(teamA, persistedTeams = Nil, updatedRepos = Seq.empty)
+        .mapTeam(teamA, updatedRepos = Seq.empty)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -827,14 +827,6 @@ class GithubV3RepositoryDataSourceSpec
       dataSource
         .mapTeam(
           teamA,
-          persistedTeams = Seq(
-            TeamRepositories(
-              teamName     = "A",
-              repositories = List(repository),
-              createdDate  = Some(teamCreatedDate),
-              updateDate   = Instant.ofEpochMilli(0)
-            )
-          ),
           updatedRepos = Seq(updatedRepo)
         )
         .futureValue shouldBe TeamRepositories(

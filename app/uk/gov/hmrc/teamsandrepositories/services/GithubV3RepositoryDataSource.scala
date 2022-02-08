@@ -38,7 +38,6 @@ class GithubV3RepositoryDataSource(
 
   private val logger = Logger(this.getClass)
 
-
   def getTeams(): Future[List[GhTeam]] =
     githubConnector.getTeams()
       .map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
@@ -48,13 +47,13 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  def mapTeam(team: GhTeam, persistedTeams: Seq[TeamRepositories], updatedRepos: Seq[GitRepository]): Future[TeamRepositories] = {
+  def mapTeam(team: GhTeam, updatedRepos: Seq[GitRepository]): Future[TeamRepositories] = {
     logger.debug(s"Mapping team (${team.name})")
     for {
-      ghRepos            <- githubConnector.getReposForTeam(team)
-      repos              =  ghRepos
-                              .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                              .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(buildGitRepository(repo)))
+      ghRepos <- githubConnector.getReposForTeam(team)
+      repos   =  ghRepos
+                   .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
+                   .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(buildGitRepository(repo)))
     } yield
       TeamRepositories(
         teamName     = team.name,
