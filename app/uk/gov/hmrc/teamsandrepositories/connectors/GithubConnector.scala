@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import java.net.URL
 import java.time.Instant
 import com.kenshoo.play.metrics.Metrics
 import org.yaml.snakeyaml.Yaml
@@ -25,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.RepoType
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -43,12 +42,10 @@ class GithubConnector @Inject()(
   httpClient   : HttpClient,
   metrics      : Metrics,
 )(implicit ec: ExecutionContext) {
-  import RateLimit._
   import GithubConnector._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
-  private val org = "hmrc"
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
@@ -66,12 +63,6 @@ class GithubConnector @Inject()(
         query = getTeamsQuery,
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
-    }
-
-  def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] =
-    withRetry {
-      implicit val rf = GhTeamDetail.format
-      requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
     }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
@@ -146,73 +137,6 @@ class GithubConnector @Inject()(
 
   private def withRetry[T](f: => Future[T]): Future[T] =
     RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
-
-  private case class LinkParam(
-    k: String,
-    v: String
-  )
-  private case class PaginatedResult[A](
-    results: List[A],
-    nextUrl: Option[String]
-  )
-
-  private def requestOptional[A : HttpReads](
-    url: URL
-  )(implicit
-    hc: HeaderCarrier
-  ): Future[Option[A]] =
-    httpClient.GET[Option[A]](
-      url     = url,
-      headers = Seq(authHeader, acceptsHeader)
-    ).recoverWith(convertRateLimitErrors)
-
-  private def requestPaginated[A](
-    url: URL,
-    acc: List[A] = List.empty
-  )(implicit
-    hc: HeaderCarrier,
-    r : HttpReads[List[A]]
-  ): Future[List[A]] = {
-    implicit val read: HttpReads[PaginatedResult[A]] =
-      for {
-        nextUrl <- HttpReadsInstances.readRaw
-                     .map(_.header("link").flatMap(lookupNextUrl))
-        res     <- r
-      } yield PaginatedResult(res, nextUrl)
-
-    httpClient
-      .GET[PaginatedResult[A]](
-        url     = url"$url",
-        headers = Seq(authHeader, acceptsHeader)
-      )
-      .flatMap { response =>
-        val acc2 = acc ++ response.results
-        response.nextUrl.fold(Future.successful(acc2))(nextUrl =>
-          requestPaginated(url"$nextUrl", acc2)
-        )
-      }
-      .recoverWith(convertRateLimitErrors)
-  }
-
-  private def lookupNextUrl(link: String): Option[String] =
-    parseLink(link).collectFirst {
-      case (url, params) if params.contains(LinkParam("rel", "next")) => url
-    }
-
-  // RFC 5988 link header
-  private def parseLink(link: String): Seq[(String, List[LinkParam])] =
-    link
-      .split(",")
-      .map { linkEntry =>
-        val urlRef :: params = linkEntry.split(";").toList
-        val url = urlRef.trim.stripPrefix("<").stripSuffix(">")
-        val linkParams = params.map { param =>
-          val k :: v :: Nil = param.split("=").toList
-          LinkParam(k.trim, v.trim.stripPrefix("\"").stripSuffix("\""))
-        }
-        url -> linkParams
-      }
-      .toSeq
 
   def withCounter[T](name: String)(f: Future[T]) =
     f.andThen {
@@ -364,23 +288,6 @@ object GhTeam {
     )(apply _)
 }
 
-case class GhTeamDetail(
-  id         : Long,
-  name       : String,
-  createdDate: Instant
-) {
-  def githubSlug: String =
-    name.replaceAll(" - | |\\.", "-").toLowerCase
-}
-
-object GhTeamDetail {
-  val format: OFormat[GhTeamDetail] =
-  ( (__ \ "id"        ).format[Long]
-  ~ (__ \ "name"      ).format[String]
-  ~ (__ \ "created_at").format[Instant]
-  )(apply, unlift(unapply))
-}
-
 case class GhRepository(
   name              : String,
   description       : Option[String],
@@ -500,13 +407,6 @@ object GhRepository {
     ~ ManifestDetails.reads
     ~ RepoTypeHeuristics.reads
     )(apply _)
-}
-
-case class GhTag(name: String)
-
-object GhTag {
-  val format: OFormat[GhTag] =
-    (__ \ "name").format[String].inmap(apply, unlift(unapply))
 }
 
 case class RateLimitMetrics(

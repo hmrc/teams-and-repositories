@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import org.mockito.MockitoSugar
-import org.mockito.ArgumentMatchers.any
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
@@ -27,7 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GhTeamDetail, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
 import scala.concurrent.Future
 
@@ -59,9 +58,6 @@ class GithubV3RepositoryDataSourceSpec
       )
 
     val ec = dataSource.ec
-
-    when(mockGithubConnector.getTeamDetail(any()))
-      .thenAnswer { team: GhTeam => Future.successful(Some(GhTeamDetail(1, team.name, teamCreatedDate))) }
 
     when(githubConfig.hiddenRepositories)
       .thenReturn(testHiddenRepositories)

@@ -142,67 +142,6 @@ class GithubConnectorSpec
     }
   }
 
-  "GithubConnector.getTeamDetail" should {
-    val team = GhTeam("A", createdAt)
-
-    "return team detail" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """{"id": 1, "name": "A", "created_at": "2019-03-01T12:00:00Z"}"""
-              )
-          )
-      )
-
-      connector.getTeamDetail(team).futureValue shouldBe Some(
-        GhTeamDetail(1, "A", Instant.parse("2019-03-01T12:00:00Z"))
-      )
-
-      wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "return None if not found" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(aResponse().withStatus(404))
-      )
-
-      connector.getTeamDetail(team).futureValue shouldBe None
-
-      wireMockServer.verify(getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a")))
-    }
-
-    "throw ratelimit error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withStatus(400)
-              .withBody("asdsad api rate limit exceeded dsadsa")
-          )
-      )
-
-      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiRateLimitExceededException]
-    }
-
-    "throw abuse detected error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withStatus(403)
-              .withBody("You have triggered an abuse detection mechanism. Please wait a few minutes before you try again.")
-          )
-      )
-
-      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiAbuseDetectedException]
-    }
-  }
   val reposJson1 =
     """[
        {
