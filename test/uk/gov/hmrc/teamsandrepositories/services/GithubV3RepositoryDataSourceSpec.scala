@@ -59,19 +59,10 @@ class GithubV3RepositoryDataSourceSpec
 
     val ec = dataSource.ec
 
-    when(mockGithubConnector.existsContent(any(), anyString()))
-      .thenReturn(Future.successful(false))
-
-    when(mockGithubConnector.getFileContent(any(), anyString()))
-      .thenReturn(Future.successful(None))
-
     val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
 
     when(mockGithubConnector.getTeamDetail(any()))
       .thenAnswer { team: GhTeam => Future.successful(Some(GhTeamDetail(team.id, team.name, teamCreatedDate))) }
-
-    when(mockGithubConnector.hasTags(any()))
-      .thenReturn(Future.successful(false))
 
     when(githubConfig.hiddenRepositories)
       .thenReturn(testHiddenRepositories)
@@ -426,9 +417,6 @@ class GithubV3RepositoryDataSourceSpec
               )
             )
         )
-
-      when(mockGithubConnector.getFileContent(ghRepo, "repository.yaml"))
-        .thenReturn(Future.successful(Some("digital-service: service-abcd")))
 
       dataSource
         .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
@@ -824,21 +812,30 @@ class GithubV3RepositoryDataSourceSpec
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
 
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(ghRepo)))
-
       val repositoryYamlContents =
         """
           owning-teams: not-a-list
         """
-      when(mockGithubConnector.getFileContent(ghRepo, "repository.yaml"))
-        .thenReturn(Future.successful(Some(repositoryYamlContents)))
+
+      when(mockGithubConnector.getReposForTeam(teamA))
+        .thenReturn(
+          Future
+            .successful(
+              List(
+                ghRepo
+                  .copy(repoTypeHeuristics =
+                    ghRepo.repoTypeHeuristics.copy(
+                      repositoryYamlText = Some(repositoryYamlContents)
+                    )
+                  )
+              )
+            )
+        )
 
       private val result =
         dataSource
           .mapTeam(teamA, persistedTeams = Seq.empty, updatedRepos = Seq.empty)
           .futureValue
-
 
       result.repositories.head.owningTeams shouldBe Nil
     }

@@ -26,7 +26,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsString
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
@@ -60,56 +60,6 @@ class GithubConnectorSpec
   private val connector = app.injector.instanceOf[GithubConnector]
 
   implicit val headerCarrier = HeaderCarrier()
-
-  "GithubConnector.getFileContent" should {
-    "return fileContent" in {
-      val path        = "path"
-      val fileContent = "fileContent"
-
-      stubFor(
-        get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-          .willReturn(aResponse().withBody(fileContent))
-      )
-
-      connector.getFileContent(repo, path).futureValue.value shouldBe fileContent
-
-      wireMockServer.verify(1,
-        getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "return None when file does not exist" in {
-      val path = "path"
-
-      stubFor(
-        get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-          .willReturn(aResponse().withStatus(404))
-      )
-
-      connector.getFileContent(repo, path).futureValue shouldBe None
-
-      wireMockServer.verify(1,
-        getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "fail when there is an error" in {
-      val path = "path"
-
-      stubFor(
-        get(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-          .willReturn(aResponse().withStatus(500))
-      )
-
-      connector.getFileContent(repo, path).failed.futureValue shouldBe an[UpstreamErrorResponse]
-
-      wireMockServer.verify(6, // with retries
-        getRequestedFor(urlPathEqualTo(s"/raw/hmrc/my-repo/b1/$path"))
-      )
-    }
-  }
 
   "GithubConnector.getTeams" should {
     "return teams" in {
@@ -519,72 +469,6 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
-  }
-
-  "GithubConnector.hasTags" should {
-    "return true when there are tags" in {
-      stubFor(
-        get(urlPathEqualTo("/repos/hmrc/my-repo/tags"))
-          .willReturn(
-            aResponse()
-              .withBody("""[{"name": "tag1"}]""")
-          )
-      )
-
-      connector.hasTags(repo).futureValue shouldBe true
-
-      wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/repos/hmrc/my-repo/tags"))
-          .withQueryParam("per_page", equalTo("1"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "return false when there are no tags" in {
-      stubFor(
-        get(urlPathEqualTo("/repos/hmrc/my-repo/tags"))
-          .willReturn(aResponse().withStatus(404))
-      )
-
-      connector.hasTags(repo).futureValue shouldBe false
-    }
-  }
-
-  "GithubConnector.existsContent" should {
-    "return true when there is content" in {
-      stubFor(
-        get(urlPathEqualTo("/repos/hmrc/my-repo/contents/path"))
-          .willReturn(
-            aResponse()
-              .withBody("""{content:"any-content"}""")
-          )
-      )
-
-      connector.existsContent(repo, "path").futureValue shouldBe true
-
-      wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/repos/hmrc/my-repo/contents/path"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "return false when there is no content" in {
-      stubFor(
-        get(urlPathEqualTo("/repos/hmrc/my-repo/contents/path"))
-          .willReturn(aResponse().withStatus(404))
-      )
-
-      connector.existsContent(repo, "path").futureValue shouldBe false
-    }
-
-    "fail when there is an error" in {
-      stubFor(
-        get(urlPathEqualTo("/repos/hmrc/my-repo/contents/path"))
-          .willReturn(aResponse().withStatus(500))
-      )
-
-      connector.existsContent(repo, "path").failed.futureValue shouldBe an[UpstreamErrorResponse]
     }
   }
 

@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
@@ -50,14 +50,6 @@ class GithubConnector @Inject()(
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
   private implicit val hc = HeaderCarrier()
-
-  def getFileContent(repo: GhRepository, path: String): Future[Option[String]] =
-    withRetry {
-      httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-        url     = url"${githubConfig.rawUrl}/hmrc/${repo.name}/${repo.defaultBranch}/$path", // works with both escaped and non-escaped path
-        headers = Seq(authHeader)
-      ).map(_.map(_.fold(throw _, _.body)))
-    }
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
@@ -97,30 +89,6 @@ class GithubConnector @Inject()(
         query = getReposQuery,
         cursorPath = root \ "pageInfo" \ "endCursor",
       ).map(_.flatten)
-    }
-
-  def hasTags(repo: GhRepository): Future[Boolean] =
-    withCounter(s"github.open.tags") {
-      implicit val tf = GhTag.format
-      httpClient.GET[Option[List[GhTag]]](
-        url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
-        headers = Seq(authHeader, acceptsHeader)
-      ).map(_.isDefined)
-       .recoverWith(convertRateLimitErrors)
-    }
-
-  def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    withRetry {
-      withCounter(s"github.open.containsContent") {
-        httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-          url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
-          headers = Seq(authHeader, acceptsHeader)
-        ).map{
-          case None    => false
-          case Some(e) => e.fold(throw _, _ => true)
-        }
-        .recoverWith(convertRateLimitErrors)
-      }
     }
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
