@@ -18,8 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
 import java.util.concurrent.Executors
-import cats.data.EitherT
-import cats.implicits._
 import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
@@ -60,18 +58,13 @@ class GithubV3RepositoryDataSource(
                               githubConnector.getTeamDetail(team).map(_.map(_.createdDate))
                             else
                               Future.successful(currentCreatedDate)
-      repos              <- ghRepos
+      repos              =  ghRepos
                               .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                              .traverse(repo =>
-                                updatedRepos.find(_.name == repo.name) match {
-                                  case Some(repo) => Future.successful(repo)
-                                  case _          => mapRepository(team, repo, persistedTeams)
-                                }
-                              )
+                              .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(mapRepository(repo)))
     } yield
       TeamRepositories(
         teamName     = team.name,
-        repositories = repos.toList,
+        repositories = repos,
         createdDate  = optCreatedDate,
         updateDate   = timestampF()
       )
@@ -90,54 +83,21 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  private def buildGitRepositoryFromGithub(repo: GhRepository): Future[GitRepository] =
-    for {
-      optManifest     <- githubConnector.getFileContent(repo, "repository.yaml")
-      manifestDetails =  optManifest.flatMap(parseManifest(repo.name, _))
-                           .getOrElse(ManifestDetails(None, None, Nil))
-      repoType        <- manifestDetails.repoType match {
-                           case None           => getTypeFromGithub(repo)
-                           case Some(repoType) => Future.successful(repoType)
-                         }
-    } yield {
-      logger.debug(s"Mapping repository (${repo.name}) as $repoType")
+  private def mapRepository(repo: GhRepository): GitRepository = {
+      val manifestDetails =
+        repo
+          .repoTypeHeuristics
+          .repositoryYamlText
+          .flatMap(parseManifest(repo.name, _))
+          .getOrElse(ManifestDetails(None, None, Nil))
+
+      val repoType =
+        manifestDetails
+          .repoType
+          .getOrElse(RepoType.inferFromGhRepository(repo))
+
       buildGitRepository(repo, repoType, manifestDetails.digitalServiceName, manifestDetails.owningTeams)
     }
-
-  private def mapRepository(
-    team          : GhTeam,
-    repo          : GhRepository,
-    persistedTeams: Seq[TeamRepositories]
-  ): Future[GitRepository] = {
-    val optPersistedRepository =
-      persistedTeams
-        .find(tr => tr.repositories.exists(r => r.name == repo.name && team.name == tr.teamName))
-        .flatMap(_.repositories.find(_.url == repo.htmlUrl))
-
-    optPersistedRepository match {
-      case Some(persistedRepository) if persistedRepository.inputsAreUnchanged(repo) =>
-        logger.info(s"Team '${team.name}' - Repository '${repo.htmlUrl}' already up to date")
-        Future.successful(
-          buildGitRepository(
-            repo               = repo,
-            repoType           = persistedRepository.repoType,
-            digitalServiceName = persistedRepository.digitalServiceName,
-            owningTeams        = persistedRepository.owningTeams
-          )
-        )
-
-      case Some(persistedRepository) =>
-        logger.info(
-          s"Team '${team.name}' - Full reload of ${repo.htmlUrl}: " +
-            s"persisted repository last updated -> ${persistedRepository.lastActiveDate}, " +
-            s"github repository last updated -> ${repo.pushedAt}"
-        )
-        buildGitRepositoryFromGithub(repo)
-      case None =>
-        logger.info(s"Team '${team.name}' - Full reload of ${repo.name} from github: never persisted before")
-        buildGitRepositoryFromGithub(repo)
-    }
-  }
 
   private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
     Try(new Yaml().load[java.util.Map[String, Object]](contents))
@@ -188,39 +148,6 @@ class GithubV3RepositoryDataSource(
 
         Some(manifestDetails)
     }
-  }
-
-  private def getTypeFromGithub(repo: GhRepository): Future[RepoType] = {
-    def ifHalt(f: Future[Boolean], repoType: RepoType): EitherT[Future, RepoType, Unit] =
-      EitherT(f.map {
-        case true  => Left(repoType)
-        case false => Right(())
-      })
-    (for {
-       _ <- ifHalt(isPrototype(repo), RepoType.Prototype)
-       _ <- ifHalt(isService(repo)  , RepoType.Service  )
-       _ <- ifHalt(isLibrary(repo)  , RepoType.Library  )
-     } yield ()
-    ).fold(identity, _ => RepoType.Other)
-  }
-
-  private def isPrototype(repo: GhRepository): Future[Boolean] =
-    Future.successful(repo.name.endsWith("-prototype"))
-
-  private def isService(repo: GhRepository): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-    githubConnector.existsContent(repo, "conf/application.conf") ||
-      githubConnector.existsContent(repo, "deploy.properties") ||
-        githubConnector.existsContent(repo, "Procfile")
-  }
-
-  private def isLibrary(repo: GhRepository): Future[Boolean] = {
-    import uk.gov.hmrc.teamsandrepositories.helpers.FutureExtras._
-    // doesn't work for multi-module
-    // guess we don't look at build.sbt since test project are not libraries, and seem to use src/test rather than src/main
-    (githubConnector.existsContent(repo, "src/main/scala") ||
-      githubConnector.existsContent(repo, "src/main/java")
-    ) && githubConnector.hasTags(repo)
   }
 
   private def buildGitRepository(

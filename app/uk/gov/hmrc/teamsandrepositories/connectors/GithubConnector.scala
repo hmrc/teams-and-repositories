@@ -24,9 +24,10 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -49,14 +50,6 @@ class GithubConnector @Inject()(
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
   private implicit val hc = HeaderCarrier()
-
-  def getFileContent(repo: GhRepository, path: String): Future[Option[String]] =
-    withRetry {
-      httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-        url     = url"${githubConfig.rawUrl}/hmrc/${repo.name}/${repo.defaultBranch}/$path", // works with both escaped and non-escaped path
-        headers = Seq(authHeader)
-      ).map(_.map(_.fold(throw _, _.body)))
-    }
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
@@ -96,30 +89,6 @@ class GithubConnector @Inject()(
         query = getReposQuery,
         cursorPath = root \ "pageInfo" \ "endCursor",
       ).map(_.flatten)
-    }
-
-  def hasTags(repo: GhRepository): Future[Boolean] =
-    withCounter(s"github.open.tags") {
-      implicit val tf = GhTag.format
-      httpClient.GET[Option[List[GhTag]]](
-        url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/tags?per_page=1",
-        headers = Seq(authHeader, acceptsHeader)
-      ).map(_.isDefined)
-       .recoverWith(convertRateLimitErrors)
-    }
-
-  def existsContent(repo: GhRepository, path: String): Future[Boolean] =
-    withRetry {
-      withCounter(s"github.open.containsContent") {
-        httpClient.GET[Option[Either[UpstreamErrorResponse, HttpResponse]]](
-          url     = url"${githubConfig.apiUrl}/repos/$org/${repo.name}/contents/$path", // works with both escaped and non-escaped path
-          headers = Seq(authHeader, acceptsHeader)
-        ).map{
-          case None    => false
-          case Some(e) => e.fold(throw _, _ => true)
-        }
-        .recoverWith(convertRateLimitErrors)
-      }
     }
 
   def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
@@ -285,6 +254,29 @@ object GithubConnector {
           dismissesStaleReviews
         }
       }
+      repositoryYaml: object(expression: "HEAD:repository.yaml") {
+        ... on Blob {
+          text
+        }
+      }
+      hasApplicationConf: object(expression: "HEAD:conf/application.conf") {
+        id
+      }
+      hasDeployProperties: object(expression: "HEAD:deploy.properties") {
+        id
+      }
+      hasProcfile: object(expression: "HEAD:Procfile") {
+        id
+      }
+      hasSrcMainScala: object(expression: "HEAD:src/main/scala") {
+        id
+      }
+      hasSrcMainJava: object(expression: "HEAD:src/main/java") {
+        id
+      }
+      tags: refs(refPrefix: "refs/tags/") {
+        totalCount
+      }
     """
 
   val getReposForTeamQuery: GraphqlQuery =
@@ -293,7 +285,7 @@ object GithubConnector {
         query($$team: String!, $$cursor: String) {
           organization(login: "hmrc") {
             team(slug: $$team) {
-              repositories(first: 100, after: $$cursor) {
+              repositories(first: 50, after: $$cursor) {
                 pageInfo {
                   endCursor
                 }
@@ -312,7 +304,7 @@ object GithubConnector {
       s"""
         query($$cursor: String) {
           organization(login: "hmrc") {
-            repositories(first: 100, after: $$cursor) {
+            repositories(first: 50, after: $$cursor) {
               pageInfo {
                 endCursor
               }
@@ -359,20 +351,44 @@ object GhTeamDetail {
 }
 
 case class GhRepository(
-  name            : String,
-  description     : Option[String],
-  htmlUrl         : String,
-  fork            : Boolean,
-  createdDate     : Instant,
-  pushedAt        : Instant,
-  isPrivate       : Boolean,
-  language        : Option[String],
-  isArchived      : Boolean,
-  defaultBranch   : String,
-  branchProtection: Option[GhBranchProtection]
+  name              : String,
+  description       : Option[String],
+  htmlUrl           : String,
+  fork              : Boolean,
+  createdDate       : Instant,
+  pushedAt          : Instant,
+  isPrivate         : Boolean,
+  language          : Option[String],
+  isArchived        : Boolean,
+  defaultBranch     : String,
+  branchProtection  : Option[GhBranchProtection],
+  repoTypeHeuristics: RepoTypeHeuristics
 )
 
 object GhRepository {
+
+  final case class RepoTypeHeuristics(
+    repositoryYamlText: Option[String],
+    hasApplicationConf: Boolean,
+    hasDeployProperties: Boolean,
+    hasProcfile: Boolean,
+    hasSrcMainScala: Boolean,
+    hasSrcMainJava: Boolean,
+    hasTags: Boolean
+  )
+
+  object RepoTypeHeuristics {
+    val reads: Reads[RepoTypeHeuristics] =
+      ( (__ \ "repositoryYaml" \ "text"   ).readNullable[String]
+      ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasSrcMainScala" \ "id"    ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasSrcMainJava" \ "id"     ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "tags" \ "totalCount"       ).readNullable[Int].map(_.exists(_ > 0))
+      )(apply _)
+  }
+
   val reads: Reads[GhRepository] =
     ( (__ \ "name"                                     ).read[String]
     ~ (__ \ "description"                              ).readNullable[String]
@@ -385,6 +401,7 @@ object GhRepository {
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
     ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    ~ RepoTypeHeuristics.reads
     )(apply _)
 }
 
