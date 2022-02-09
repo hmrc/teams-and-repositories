@@ -23,8 +23,7 @@ import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 

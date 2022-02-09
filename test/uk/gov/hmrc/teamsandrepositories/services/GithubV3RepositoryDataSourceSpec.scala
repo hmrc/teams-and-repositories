@@ -77,6 +77,7 @@ class GithubV3RepositoryDataSourceSpec
 
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
+      prototypeInName     = false,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,
@@ -657,7 +658,11 @@ class GithubV3RepositoryDataSourceSpec
     }
 
     "set type Prototype if the repository name ends in '-prototype'" in new Setup {
-      val catoRepo = ghRepo.copy(name = ghRepo.name + "-prototype")
+      val catoRepo =
+        ghRepo.copy(
+          name = ghRepo.name + "-prototype",
+          repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(prototypeInName = true)
+        )
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
 

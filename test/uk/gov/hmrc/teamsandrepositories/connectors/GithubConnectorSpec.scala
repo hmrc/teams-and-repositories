@@ -278,6 +278,7 @@ class GithubConnectorSpec
 
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
+      prototypeInName     = false,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,

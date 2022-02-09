@@ -22,7 +22,7 @@ import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
@@ -53,7 +53,7 @@ class GithubV3RepositoryDataSource(
       ghRepos <- githubConnector.getReposForTeam(team)
       repos   =  ghRepos
                    .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                   .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(buildGitRepository(repo)))
+                   .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(repo.toGitRepository))
     } yield
       TeamRepositories(
         teamName     = team.name,
@@ -70,7 +70,9 @@ class GithubV3RepositoryDataSource(
   def getAllRepositories(): Future[List[GitRepository]] =
     githubConnector.getRepos()
       .map(_.map(repo =>
-        buildGitRepository(repo.copy(manifestDetails = ManifestDetails(Some(RepoType.Other), None, Nil)))
+        repo
+          .copy(manifestDetails = ManifestDetails(Some(RepoType.Other), None, Nil))
+          .toGitRepository
       ))
       .recoverWith {
         case NonFatal(ex) =>
@@ -78,27 +80,4 @@ class GithubV3RepositoryDataSource(
           Future.failed(ex)
       }
 
-  private def buildGitRepository(repo: GhRepository): GitRepository = {
-    val repoType =
-      repo
-        .manifestDetails
-        .repoType
-        .getOrElse(RepoType.inferFromGhRepository(repo))
-
-    GitRepository(
-      name               = repo.name,
-      description        = repo.description.getOrElse(""),
-      url                = repo.htmlUrl,
-      createdDate        = repo.createdDate,
-      lastActiveDate     = repo.pushedAt,
-      isPrivate          = repo.isPrivate,
-      repoType           = repoType,
-      digitalServiceName = repo.manifestDetails.digitalServiceName,
-      owningTeams        = repo.manifestDetails.owningTeams,
-      language           = repo.language,
-      isArchived         = repo.isArchived,
-      defaultBranch      = repo.defaultBranch,
-      branchProtection   = repo.branchProtection
-    )
-  }
 }

@@ -26,7 +26,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.RepoType
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
@@ -302,7 +303,31 @@ case class GhRepository(
   branchProtection  : Option[GhBranchProtection],
   manifestDetails   : ManifestDetails,
   repoTypeHeuristics: RepoTypeHeuristics
-)
+) {
+
+  def toGitRepository: GitRepository = {
+    val repoType =
+      manifestDetails
+        .repoType
+        .getOrElse(repoTypeHeuristics.inferredRepoType)
+
+    GitRepository(
+      name               = name,
+      description        = description.getOrElse(""),
+      url                = htmlUrl,
+      createdDate        = createdDate,
+      lastActiveDate     = pushedAt,
+      isPrivate          = isPrivate,
+      repoType           = repoType,
+      digitalServiceName = manifestDetails.digitalServiceName,
+      owningTeams        = manifestDetails.owningTeams,
+      language           = language,
+      isArchived         = isArchived,
+      defaultBranch      = defaultBranch,
+      branchProtection   = branchProtection
+    )
+  }
+}
 
 object GhRepository {
 
@@ -373,17 +398,31 @@ object GhRepository {
   }
 
   final case class RepoTypeHeuristics(
+    prototypeInName: Boolean,
     hasApplicationConf: Boolean,
     hasDeployProperties: Boolean,
     hasProcfile: Boolean,
     hasSrcMainScala: Boolean,
     hasSrcMainJava: Boolean,
     hasTags: Boolean
-  )
+  ) {
+
+    def inferredRepoType: RepoType = {
+      if (prototypeInName)
+        Prototype
+      else if (hasApplicationConf || hasDeployProperties || hasProcfile)
+        Service
+      else if ((hasSrcMainScala || hasSrcMainJava) && hasTags)
+        Library
+      else
+        Other
+    }
+  }
 
   object RepoTypeHeuristics {
     val reads: Reads[RepoTypeHeuristics] =
-      ( (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
+      ( (__ \ "name"                      ).read[String].map(_.endsWith("-prototype"))
+      ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasSrcMainScala" \ "id"    ).readNullable[String].map(_.isDefined)
