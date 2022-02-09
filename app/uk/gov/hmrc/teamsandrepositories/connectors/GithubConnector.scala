@@ -456,7 +456,7 @@ case class RateLimitMetrics(
 
 object RateLimitMetrics {
   val reads: Reads[RateLimitMetrics] =
-    Reads.at(__ \ "rate")(
+    Reads.at(__ \ "resources" \ "core")(
       ( (__ \ "limit"    ).read[Int]
       ~ (__ \ "remaining").read[Int]
       ~ (__ \ "reset"    ).read[Int]

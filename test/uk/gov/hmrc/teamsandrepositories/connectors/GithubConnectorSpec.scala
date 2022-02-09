@@ -450,21 +450,74 @@ class GithubConnectorSpec
           .willReturn(
             aResponse()
               .withBody(
-                """{
-                  "rate": {
-                    "limit"     : 1,
-                    "remaining" : 2,
-                    "reset"     : 3
+                """
+                  {
+                    "resources": {
+                      "core": {
+                        "limit": 5000,
+                        "used": 0,
+                        "remaining": 5000,
+                        "reset": 1644407813
+                      },
+                      "search": {
+                        "limit": 30,
+                        "used": 0,
+                        "remaining": 30,
+                        "reset": 1644404273
+                      },
+                      "graphql": {
+                        "limit": 5000,
+                        "used": 0,
+                        "remaining": 5000,
+                        "reset": 1644407813
+                      },
+                      "integration_manifest": {
+                        "limit": 5000,
+                        "used": 0,
+                        "remaining": 5000,
+                        "reset": 1644407813
+                      },
+                      "source_import": {
+                        "limit": 100,
+                        "used": 0,
+                        "remaining": 100,
+                        "reset": 1644404273
+                      },
+                      "code_scanning_upload": {
+                        "limit": 500,
+                        "used": 0,
+                        "remaining": 500,
+                        "reset": 1644407813
+                      },
+                      "actions_runner_registration": {
+                        "limit": 10000,
+                        "used": 0,
+                        "remaining": 10000,
+                        "reset": 1644407813
+                      },
+                      "scim": {
+                        "limit": 15000,
+                        "used": 0,
+                        "remaining": 15000,
+                        "reset": 1644407813
+                      }
+                    },
+                    "rate": {
+                      "limit": 5000,
+                      "used": 0,
+                      "remaining": 5000,
+                      "reset": 1644407813
+                    }
                   }
-                }"""
+                """
               )
           )
       )
 
       connector.getRateLimitMetrics(token).futureValue shouldBe RateLimitMetrics(
-        limit     = 1,
-        remaining = 2,
-        reset     = 3
+        limit     = 5000,
+        remaining = 5000,
+        reset     = 1644407813
       )
 
       wireMockServer.verify(
