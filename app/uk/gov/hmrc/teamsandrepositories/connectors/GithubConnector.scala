@@ -254,10 +254,10 @@ object GithubConnector {
 
   val getTeamsQuery: GraphqlQuery =
     GraphqlQuery(
-      s"""
-        query ($$cursor: String) {
+      """
+        query ($cursor: String) {
           organization(login: "hmrc") {
-            teams(first: 50, after: $$cursor) {
+            teams(first: 50, after: $cursor) {
               pageInfo {
                 endCursor
               }
