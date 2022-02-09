@@ -19,9 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.services
 import java.time.Instant
 import java.util.concurrent.Executors
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -71,7 +70,7 @@ class GithubV3RepositoryDataSource(
     githubConnector.getRepos()
       .map(_.map(repo =>
         repo
-          .copy(manifestDetails = ManifestDetails(Some(RepoType.Other), None, Nil))
+          .copy(repositoryYamlText = None)
           .toGitRepository
       ))
       .recoverWith {

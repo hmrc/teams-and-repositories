@@ -302,11 +302,16 @@ case class GhRepository(
   isArchived        : Boolean,
   defaultBranch     : String,
   branchProtection  : Option[GhBranchProtection],
-  manifestDetails   : ManifestDetails,
+  repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
 
   def toGitRepository: GitRepository = {
+    val manifestDetails =
+      repositoryYamlText
+        .flatMap(ManifestDetails.parse(name, _))
+        .getOrElse(ManifestDetails(None, None, Seq.empty))
+
     val repoType =
       manifestDetails
         .repoType
@@ -343,16 +348,7 @@ object GhRepository {
     private val logger =
       Logger(this.getClass)
 
-    val reads: Reads[ManifestDetails] =
-      ( (__ \ "name"                   ).read[String]
-      ~ (__ \ "repositoryYaml" \ "text").readNullable[String]
-      )((name, repositoryYamlText) =>
-        repositoryYamlText
-          .flatMap(parseManifest(name, _))
-          .getOrElse(ManifestDetails(None, None, Seq.empty))
-      )
-
-    private def parseManifest(repoName: String, manifest: String): Option[ManifestDetails] = {
+    def parse(repoName: String, manifest: String): Option[ManifestDetails] = {
       import scala.collection.JavaConverters._
 
       parseAppConfigFile(manifest) match {
@@ -444,7 +440,7 @@ object GhRepository {
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
     ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
-    ~ ManifestDetails.reads
+    ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }
