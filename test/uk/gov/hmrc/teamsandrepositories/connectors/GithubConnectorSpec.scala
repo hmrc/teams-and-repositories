@@ -454,9 +454,9 @@ class GithubConnectorSpec
                   {
                     "resources": {
                       "core": {
-                        "limit": 5000,
+                        "limit": 100,
                         "used": 0,
-                        "remaining": 5000,
+                        "remaining": 100,
                         "reset": 1644407813
                       },
                       "search": {
@@ -466,9 +466,9 @@ class GithubConnectorSpec
                         "reset": 1644404273
                       },
                       "graphql": {
-                        "limit": 5000,
+                        "limit": 200,
                         "used": 0,
-                        "remaining": 5000,
+                        "remaining": 200,
                         "reset": 1644407813
                       },
                       "integration_manifest": {
@@ -514,13 +514,22 @@ class GithubConnectorSpec
           )
       )
 
-      connector.getRateLimitMetrics(token).futureValue shouldBe RateLimitMetrics(
-        limit     = 5000,
-        remaining = 5000,
+      import RateLimitMetrics.Resource._
+
+      connector.getRateLimitMetrics(token, Core).futureValue shouldBe RateLimitMetrics(
+        limit     = 100,
+        remaining = 100,
+        reset     = 1644407813
+      )
+
+      connector.getRateLimitMetrics(token, GraphQl).futureValue shouldBe RateLimitMetrics(
+        limit     = 200,
+        remaining = 200,
         reset     = 1644407813
       )
 
       wireMockServer.verify(
+        2,
         getRequestedFor(urlPathEqualTo("/rate_limit"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )

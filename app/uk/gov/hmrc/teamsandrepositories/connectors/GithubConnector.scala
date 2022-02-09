@@ -30,6 +30,7 @@ import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -94,8 +95,8 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-  def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
-    implicit val rlmr = RateLimitMetrics.reads
+  def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
+    implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClient.GET[RateLimitMetrics](
       url     = s"${githubConfig.apiUrl}/rate_limit",
       headers = Seq("Authorization" -> s"token $token")
@@ -455,8 +456,18 @@ case class RateLimitMetrics(
 )
 
 object RateLimitMetrics {
-  val reads: Reads[RateLimitMetrics] =
-    Reads.at(__ \ "resources" \ "core")(
+
+  sealed trait Resource {
+    def asString: String
+  }
+
+  object Resource {
+    final case object Core extends Resource { val asString = "core" }
+    final case object GraphQl extends Resource { val asString = "graphql" }
+  }
+
+  def reads(resource: Resource): Reads[RateLimitMetrics] =
+    Reads.at(__ \ "resources" \ resource.asString)(
       ( (__ \ "limit"    ).read[Int]
       ~ (__ \ "remaining").read[Int]
       ~ (__ \ "reset"    ).read[Int]
