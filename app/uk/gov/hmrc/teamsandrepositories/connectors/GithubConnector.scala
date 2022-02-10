@@ -16,22 +16,26 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import java.net.URL
 import java.time.Instant
 import com.kenshoo.play.metrics.Metrics
+import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpReadsInstances, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 
 @Singleton
@@ -40,12 +44,10 @@ class GithubConnector @Inject()(
   httpClient   : HttpClient,
   metrics      : Metrics,
 )(implicit ec: ExecutionContext) {
-  import RateLimit._
   import GithubConnector._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
 
-  private val org = "hmrc"
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
@@ -53,14 +55,16 @@ class GithubConnector @Inject()(
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      implicit val tf = GhTeam.format
-      requestPaginated[GhTeam](url"${githubConfig.apiUrl}/orgs/$org/teams?per_page=100")
-    }
+      val root =
+        __ \ "data" \ "organization" \ "teams"
 
-  def getTeamDetail(team: GhTeam): Future[Option[GhTeamDetail]] =
-    withRetry {
-      implicit val rf = GhTeamDetail.format
-      requestOptional[GhTeamDetail](url"${githubConfig.apiUrl}/orgs/$org/teams/${team.githubSlug}")
+      implicit val reads =
+        (root \ "nodes").read(Reads.list(GhTeam.reads))
+
+      executePagedGqlQuery(
+        query = getTeamsQuery,
+        cursorPath = root \ "pageInfo" \ "endCursor"
+      ).map(_.flatten)
     }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
@@ -91,8 +95,8 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-  def getRateLimitMetrics(token: String): Future[RateLimitMetrics] = {
-    implicit val rlmr = RateLimitMetrics.reads
+  def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
+    implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClient.GET[RateLimitMetrics](
       url     = s"${githubConfig.apiUrl}/rate_limit",
       headers = Seq("Authorization" -> s"token $token")
@@ -135,73 +139,6 @@ class GithubConnector @Inject()(
 
   private def withRetry[T](f: => Future[T]): Future[T] =
     RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
-
-  private case class LinkParam(
-    k: String,
-    v: String
-  )
-  private case class PaginatedResult[A](
-    results: List[A],
-    nextUrl: Option[String]
-  )
-
-  private def requestOptional[A : HttpReads](
-    url: URL
-  )(implicit
-    hc: HeaderCarrier
-  ): Future[Option[A]] =
-    httpClient.GET[Option[A]](
-      url     = url,
-      headers = Seq(authHeader, acceptsHeader)
-    ).recoverWith(convertRateLimitErrors)
-
-  private def requestPaginated[A](
-    url: URL,
-    acc: List[A] = List.empty
-  )(implicit
-    hc: HeaderCarrier,
-    r : HttpReads[List[A]]
-  ): Future[List[A]] = {
-    implicit val read: HttpReads[PaginatedResult[A]] =
-      for {
-        nextUrl <- HttpReadsInstances.readRaw
-                     .map(_.header("link").flatMap(lookupNextUrl))
-        res     <- r
-      } yield PaginatedResult(res, nextUrl)
-
-    httpClient
-      .GET[PaginatedResult[A]](
-        url     = url"$url",
-        headers = Seq(authHeader, acceptsHeader)
-      )
-      .flatMap { response =>
-        val acc2 = acc ++ response.results
-        response.nextUrl.fold(Future.successful(acc2))(nextUrl =>
-          requestPaginated(url"$nextUrl", acc2)
-        )
-      }
-      .recoverWith(convertRateLimitErrors)
-  }
-
-  private def lookupNextUrl(link: String): Option[String] =
-    parseLink(link).collectFirst {
-      case (url, params) if params.contains(LinkParam("rel", "next")) => url
-    }
-
-  // RFC 5988 link header
-  private def parseLink(link: String): Seq[(String, List[LinkParam])] =
-    link
-      .split(",")
-      .map { linkEntry =>
-        val urlRef :: params = linkEntry.split(";").toList
-        val url = urlRef.trim.stripPrefix("<").stripSuffix(">")
-        val linkParams = params.map { param =>
-          val k :: v :: Nil = param.split("=").toList
-          LinkParam(k.trim, v.trim.stripPrefix("\"").stripSuffix("\""))
-        }
-        url -> linkParams
-      }
-      .toSeq
 
   def withCounter[T](name: String)(f: Future[T]) =
     f.andThen {
@@ -252,6 +189,7 @@ object GithubConnector {
         branchProtectionRule {
           requiresApprovingReviews
           dismissesStaleReviews
+          requiresCommitSignatures
         }
       }
       repositoryYaml: object(expression: "HEAD:repository.yaml") {
@@ -316,38 +254,41 @@ object GithubConnector {
         }
       """
     )
+
+  val getTeamsQuery: GraphqlQuery =
+    GraphqlQuery(
+      """
+        query ($cursor: String) {
+          organization(login: "hmrc") {
+            teams(first: 50, after: $cursor) {
+              pageInfo {
+                endCursor
+              }
+              nodes {
+                name
+                createdAt
+              }
+            }
+          }
+        }
+      """
+    )
 }
 
 case class GhTeam(
-  id  : Long,
-  name: String
+  name: String,
+  createdAt: Instant
 ) {
   def githubSlug: String =
     name.replaceAll(" - | |\\.", "-").toLowerCase
 }
 
 object GhTeam {
-  val format: OFormat[GhTeam] =
-  ( (__ \ "id"  ).format[Long]
-  ~ (__ \ "name").format[String]
-  )(apply, unlift(unapply))
-}
 
-case class GhTeamDetail(
-  id         : Long,
-  name       : String,
-  createdDate: Instant
-) {
-  def githubSlug: String =
-    name.replaceAll(" - | |\\.", "-").toLowerCase
-}
-
-object GhTeamDetail {
-  val format: OFormat[GhTeamDetail] =
-  ( (__ \ "id"        ).format[Long]
-  ~ (__ \ "name"      ).format[String]
-  ~ (__ \ "created_at").format[Instant]
-  )(apply, unlift(unapply))
+  val reads: Reads[GhTeam] =
+    ( (__ \ "name"     ).read[String]
+    ~ (__ \ "createdAt").read[Instant]
+    )(apply _)
 }
 
 case class GhRepository(
@@ -362,24 +303,125 @@ case class GhRepository(
   isArchived        : Boolean,
   defaultBranch     : String,
   branchProtection  : Option[GhBranchProtection],
+  repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
-)
+) {
+
+  def toGitRepository: GitRepository = {
+    val manifestDetails =
+      repositoryYamlText
+        .flatMap(ManifestDetails.parse(name, _))
+        .getOrElse(ManifestDetails(None, None, Seq.empty))
+
+    val repoType =
+      manifestDetails
+        .repoType
+        .getOrElse(repoTypeHeuristics.inferredRepoType)
+
+    GitRepository(
+      name               = name,
+      description        = description.getOrElse(""),
+      url                = htmlUrl,
+      createdDate        = createdDate,
+      lastActiveDate     = pushedAt,
+      isPrivate          = isPrivate,
+      repoType           = repoType,
+      digitalServiceName = manifestDetails.digitalServiceName,
+      owningTeams        = manifestDetails.owningTeams,
+      language           = language,
+      isArchived         = isArchived,
+      defaultBranch      = defaultBranch,
+      branchProtection   = branchProtection
+    )
+  }
+}
 
 object GhRepository {
 
+  final case class ManifestDetails(
+    repoType: Option[RepoType],
+    digitalServiceName: Option[String],
+    owningTeams: Seq[String]
+  )
+
+  object ManifestDetails {
+
+    private val logger =
+      Logger(this.getClass)
+
+    def parse(repoName: String, manifest: String): Option[ManifestDetails] = {
+      import scala.collection.JavaConverters._
+
+      parseAppConfigFile(manifest) match {
+        case Failure(exception) =>
+          logger.warn(
+            s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          None
+
+        case Success(yamlMap) =>
+          val config = yamlMap.asScala
+
+          val manifestDetails =
+            ManifestDetails(
+              repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
+                case "service" => Some(RepoType.Service)
+                case "library" => Some(RepoType.Library)
+                case _         => None
+              },
+              digitalServiceName = config.get("digital-service").map(_.toString),
+              owningTeams        = try {
+                config
+                  .getOrElse("owning-teams", new java.util.ArrayList[String])
+                  .asInstanceOf[java.util.List[String]]
+                  .asScala
+                  .toList
+              } catch {
+                case NonFatal(ex) =>
+                  logger.warn(
+                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
+                  Nil
+              }
+            )
+
+          logger.info(
+            s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
+          )
+
+          Some(manifestDetails)
+      }
+    }
+
+    private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
+      Try(yaml.load[java.util.Map[String, Object]](contents))
+
+    private val yaml = new Yaml()
+  }
+
   final case class RepoTypeHeuristics(
-    repositoryYamlText: Option[String],
+    prototypeInName: Boolean,
     hasApplicationConf: Boolean,
     hasDeployProperties: Boolean,
     hasProcfile: Boolean,
     hasSrcMainScala: Boolean,
     hasSrcMainJava: Boolean,
     hasTags: Boolean
-  )
+  ) {
+
+    def inferredRepoType: RepoType = {
+      if (prototypeInName)
+        Prototype
+      else if (hasApplicationConf || hasDeployProperties || hasProcfile)
+        Service
+      else if ((hasSrcMainScala || hasSrcMainJava) && hasTags)
+        Library
+      else
+        Other
+    }
+  }
 
   object RepoTypeHeuristics {
     val reads: Reads[RepoTypeHeuristics] =
-      ( (__ \ "repositoryYaml" \ "text"   ).readNullable[String]
+      ( (__ \ "name"                      ).read[String].map(_.endsWith("-prototype"))
       ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
@@ -401,17 +443,10 @@ object GhRepository {
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
     ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }
-
-case class GhTag(name: String)
-object GhTag {
-  val format: OFormat[GhTag] =
-    (__ \ "name").format[String].inmap(apply, unlift(unapply))
-}
-
-
 
 case class RateLimitMetrics(
   limit    : Int,
@@ -420,8 +455,18 @@ case class RateLimitMetrics(
 )
 
 object RateLimitMetrics {
-  val reads: Reads[RateLimitMetrics] =
-    Reads.at(__ \ "rate")(
+
+  sealed trait Resource {
+    def asString: String
+  }
+
+  object Resource {
+    final case object Core extends Resource { val asString = "core" }
+    final case object GraphQl extends Resource { val asString = "graphql" }
+  }
+
+  def reads(resource: Resource): Reads[RateLimitMetrics] =
+    Reads.at(__ \ "resources" \ resource.asString)(
       ( (__ \ "limit"    ).read[Int]
       ~ (__ \ "remaining").read[Int]
       ~ (__ \ "reset"    ).read[Int]
@@ -454,7 +499,8 @@ object RateLimit {
 
 final case class GhBranchProtection(
   requiresApprovingReviews: Boolean,
-  dismissesStaleReviews: Boolean
+  dismissesStaleReviews: Boolean,
+  requiresCommitSignatures: Boolean
 )
 
 object GhBranchProtection {
@@ -462,5 +508,6 @@ object GhBranchProtection {
   val format: Format[GhBranchProtection] =
     ( (__ \ "requiresApprovingReviews").format[Boolean]
     ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    ~ (__ \ "requiresCommitSignatures").format[Boolean]
     )(apply _, unlift(unapply))
 }

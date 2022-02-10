@@ -53,15 +53,14 @@ class DataReloadScheduler @Inject()(
     } yield ()
   }
 
-  def reload: Future[Seq[TeamRepositories]] =
+  def reload: Future[Unit] =
     mongoLocks.dataReloadLock
       .withLock {
         logger.info(s"Starting mongo update")
         persistingService.persistTeamRepoMapping
       }
       .map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
-      .map { r =>
+      .map { _ =>
         logger.info(s"mongo update completed")
-        r
       }
 }

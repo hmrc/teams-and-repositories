@@ -111,6 +111,14 @@ object TeamRepositories {
       }
   }
 
+  def unknown(repositories: List[GitRepository], updateDate: Instant): TeamRepositories =
+    TeamRepositories(
+      teamName     = TEAM_UNKNOWN,
+      repositories = repositories,
+      createdDate  = None,
+      updateDate   = updateDate
+    )
+
   val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
   val apiFormat: OFormat[TeamRepositories] = {

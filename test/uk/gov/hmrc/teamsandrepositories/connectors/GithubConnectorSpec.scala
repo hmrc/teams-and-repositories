@@ -29,7 +29,7 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery, getTeamsQuery}
 
 import java.time.Instant
 
@@ -61,127 +61,87 @@ class GithubConnectorSpec
 
   implicit val headerCarrier = HeaderCarrier()
 
+  val createdAt =
+    Instant.parse("2019-03-01T12:00:00Z")
+
   "GithubConnector.getTeams" should {
     "return teams" in {
       stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """[
-                  {"id": 1, "name": "A"},
-                  {"id": 2, "name": "B"}
-                ]"""
-              )
-              .withHeader("link", s"""<$wireMockUrl/nextPage>; rel="next", <$wireMockUrl/lastPage>; rel="last"""")
-          )
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getTeamsQuery.asJsonString))
+          .willReturn(aResponse().withBody(
+            """
+             {
+               "data": {
+                 "organization": {
+                   "teams": {
+                     "pageInfo": {
+                       "endCursor": "cursor-1"
+                     },
+                     "nodes": [
+                       {
+                         "name": "A",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       },
+                       {
+                         "name": "B",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       }
+                     ]
+                   }
+                 }
+               }
+             }
+            """
+          ))
       )
 
+      val query2 =
+        getTeamsQuery
+          .withVariable("cursor", JsString("cursor-1"))
+
       stubFor(
-        get(urlPathEqualTo("/nextPage"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """[
-                  {"id": 3, "name": "C"}
-                ]"""
-              )
-          )
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
+          .willReturn(aResponse().withBody(
+            """
+             {
+               "data": {
+                 "organization": {
+                   "teams": {
+                     "pageInfo": {},
+                     "nodes": [
+                       {
+                         "name": "C",
+                         "createdAt": "2019-03-01T12:00:00Z"
+                       }
+                     ]
+                   }
+                 }
+               }
+             }
+            """
+          ))
       )
 
       connector.getTeams().futureValue shouldBe List(
-        GhTeam(1, "A"),
-        GhTeam(2, "B"),
-        GhTeam(3, "C")
+        GhTeam("A", createdAt),
+        GhTeam("B", createdAt),
+        GhTeam("C", createdAt)
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams"))
-          .withQueryParam("per_page", equalTo("100"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getTeamsQuery.asJsonString))
       )
 
       wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/nextPage"))
-          .withHeader("Authorization", equalTo(s"token $token"))
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
-
-    "throw ratelimit error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams"))
-          .willReturn(
-            aResponse()
-              .withStatus(400)
-              .withBody("asdsad api rate limit exceeded dsadsa")
-          )
-      )
-
-      connector.getTeams().failed.futureValue shouldBe an[ApiRateLimitExceededException]
     }
   }
 
-  "GithubConnector.getTeamDetail" should {
-    val team = GhTeam(1, "A")
-
-    "return team detail" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withBody(
-                """{"id": 1, "name": "A", "created_at": "2019-03-01T12:00:00Z"}"""
-              )
-          )
-      )
-
-      connector.getTeamDetail(team).futureValue shouldBe Some(
-        GhTeamDetail(1, "A", Instant.parse("2019-03-01T12:00:00Z"))
-      )
-
-      wireMockServer.verify(
-        getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .withHeader("Authorization", equalTo(s"token $token"))
-      )
-    }
-
-    "return None if not found" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(aResponse().withStatus(404))
-      )
-
-      connector.getTeamDetail(team).futureValue shouldBe None
-
-      wireMockServer.verify(getRequestedFor(urlPathEqualTo("/orgs/hmrc/teams/a")))
-    }
-
-    "throw ratelimit error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withStatus(400)
-              .withBody("asdsad api rate limit exceeded dsadsa")
-          )
-      )
-
-      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiRateLimitExceededException]
-    }
-
-    "throw abuse detected error" in {
-      stubFor(
-        get(urlPathEqualTo("/orgs/hmrc/teams/a"))
-          .willReturn(
-            aResponse()
-              .withStatus(403)
-              .withBody("You have triggered an abuse detection mechanism. Please wait a few minutes before you try again.")
-          )
-      )
-
-      connector.getTeamDetail(team).failed.futureValue shouldBe an[ApiAbuseDetectedException]
-    }
-  }
   val reposJson1 =
     """[
        {
@@ -201,7 +161,8 @@ class GithubConnectorSpec
            "name": "b1",
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
            }
          }
        },
@@ -222,7 +183,8 @@ class GithubConnectorSpec
            "name": "b2",
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
            }
          }
        }
@@ -311,7 +273,7 @@ class GithubConnectorSpec
 
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
-      repositoryYamlText  = None,
+      prototypeInName     = false,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,
@@ -333,7 +295,8 @@ class GithubConnectorSpec
         language           = Some("l1"),
         isArchived         = false,
         defaultBranch      = "b1",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)),
+        repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
@@ -347,7 +310,8 @@ class GithubConnectorSpec
         language           = Some("l2"),
         isArchived         = true,
         defaultBranch      = "b2",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)),
+        repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
       GhRepository(
@@ -362,6 +326,7 @@ class GithubConnectorSpec
         isArchived         = false,
         defaultBranch      = "b3",
         branchProtection   = None,
+        repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
     )
@@ -369,7 +334,7 @@ class GithubConnectorSpec
   "GithubConnector.getReposForTeam" should {
     "return repos" in {
       val team =
-        GhTeam(id = 1, name = "A Team")
+        GhTeam(name = "A Team", createdAt = createdAt)
 
       val query1 =
         getReposForTeamQuery
@@ -406,7 +371,7 @@ class GithubConnectorSpec
 
     "return an empty list when a team does not exist" in {
       val team =
-        GhTeam(id = 1, name = "A Team")
+        GhTeam(name = "A Team", createdAt = createdAt)
 
       val query =
         getReposForTeamQuery
@@ -480,24 +445,86 @@ class GithubConnectorSpec
           .willReturn(
             aResponse()
               .withBody(
-                """{
-                  "rate": {
-                    "limit"     : 1,
-                    "remaining" : 2,
-                    "reset"     : 3
+                """
+                  {
+                    "resources": {
+                      "core": {
+                        "limit": 100,
+                        "used": 0,
+                        "remaining": 100,
+                        "reset": 1644407813
+                      },
+                      "search": {
+                        "limit": 30,
+                        "used": 0,
+                        "remaining": 30,
+                        "reset": 1644404273
+                      },
+                      "graphql": {
+                        "limit": 200,
+                        "used": 0,
+                        "remaining": 200,
+                        "reset": 1644407813
+                      },
+                      "integration_manifest": {
+                        "limit": 5000,
+                        "used": 0,
+                        "remaining": 5000,
+                        "reset": 1644407813
+                      },
+                      "source_import": {
+                        "limit": 100,
+                        "used": 0,
+                        "remaining": 100,
+                        "reset": 1644404273
+                      },
+                      "code_scanning_upload": {
+                        "limit": 500,
+                        "used": 0,
+                        "remaining": 500,
+                        "reset": 1644407813
+                      },
+                      "actions_runner_registration": {
+                        "limit": 10000,
+                        "used": 0,
+                        "remaining": 10000,
+                        "reset": 1644407813
+                      },
+                      "scim": {
+                        "limit": 15000,
+                        "used": 0,
+                        "remaining": 15000,
+                        "reset": 1644407813
+                      }
+                    },
+                    "rate": {
+                      "limit": 5000,
+                      "used": 0,
+                      "remaining": 5000,
+                      "reset": 1644407813
+                    }
                   }
-                }"""
+                """
               )
           )
       )
 
-      connector.getRateLimitMetrics(token).futureValue shouldBe RateLimitMetrics(
-        limit     = 1,
-        remaining = 2,
-        reset     = 3
+      import RateLimitMetrics.Resource._
+
+      connector.getRateLimitMetrics(token, Core).futureValue shouldBe RateLimitMetrics(
+        limit     = 100,
+        remaining = 100,
+        reset     = 1644407813
+      )
+
+      connector.getRateLimitMetrics(token, GraphQl).futureValue shouldBe RateLimitMetrics(
+        limit     = 200,
+        remaining = 200,
+        reset     = 1644407813
       )
 
       wireMockServer.verify(
+        2,
         getRequestedFor(urlPathEqualTo("/rate_limit"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
@@ -517,6 +544,7 @@ class GithubConnectorSpec
       isArchived         = false,
       defaultBranch      = "b1",
       branchProtection   = None,
+      repositoryYamlText = None,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 }

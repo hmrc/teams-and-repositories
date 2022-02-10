@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories
 import akka.actor.ActorSystem
 import cats.implicits._
 import com.kenshoo.play.metrics.Metrics
+
 import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
@@ -27,7 +28,7 @@ import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRe
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,13 +49,21 @@ class GithubRatelimitMetricsScheduler @Inject()(
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  val metricsDefinitions: Map[String, () => Future[Int]] =
+  val metricsDefinitions: Map[String, () => Future[Int]] = {
+    import RateLimitMetrics.Resource._
+
     githubConfig.tokens
-      .map { case (username, token) =>
-        s"github.token.$username.rate.remaining" -> { () =>
-          githubConnector.getRateLimitMetrics(token).map(_.remaining)
-        }
+      .flatMap { case (username, token) =>
+        List(
+          s"github.token.$username.rate.remaining" -> { () =>
+            githubConnector.getRateLimitMetrics(token, Core).map(_.remaining)
+          },
+          s"github.token.$username.graphql.rate.remaining" -> { () =>
+            githubConnector.getRateLimitMetrics(token, GraphQl).map(_.remaining)
+          },
+        )
       }.toMap
+  }
 
   val source: MetricSource =
     new MetricSource {
