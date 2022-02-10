@@ -33,11 +33,11 @@ class GithubConfig @Inject()(configuration: Configuration) {
 
   val hiddenRepositories: Set[String] =
     configuration.getOptional[String]("github.hidden.repositories")
-      .fold(Set.empty[String])(_.split(",").toList.toSet)
+      .fold(Set.empty[String])(_.split(",").toSet)
 
   val hiddenTeams: Set[String] =
     configuration.getOptional[String]("github.hidden.teams")
-      .fold(Set.empty[String])(_.split(",").toList.toSet)
+      .fold(Set.empty[String])(_.split(",").toSet)
 
   val retryCount        = configuration.get[Int]("github.retry.count")
   val retryInitialDelay = configuration.get[Duration]("github.retry.initialDelay")
