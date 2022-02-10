@@ -38,12 +38,12 @@ class GithubV3RepositoryDataSource(
   private val logger = Logger(this.getClass)
 
   def getTeams(): Future[List[GhTeam]] = {
-    val notHidden: String => Boolean =
-      !githubConfig.hiddenTeams.toSet.contains(_)
+    def notHidden(team: GhTeam) =
+      !githubConfig.hiddenTeams.contains(team.name)
 
     githubConnector
       .getTeams()
-      .map(_.filter(team => notHidden(team.name)))
+      .map(_.filter(team => notHidden(team)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve teams for organisation list.", ex)
@@ -57,8 +57,8 @@ class GithubV3RepositoryDataSource(
   ): Future[TeamRepositories] = {
     logger.info(s"Fetching TeamRepositories for team: ${team.name}")
 
-    val notHidden: String => Boolean =
-      !githubConfig.hiddenRepositories.toSet.contains(_)
+    def notHidden(repoName: String) =
+      !githubConfig.hiddenRepositories.contains(repoName)
 
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
@@ -77,8 +77,8 @@ class GithubV3RepositoryDataSource(
   }
 
   def getAllRepositories(): Future[List[GitRepository]] = {
-    val notHidden: String => Boolean =
-      !githubConfig.hiddenRepositories.toSet.contains(_)
+    def notHidden(repoName: String) =
+      !githubConfig.hiddenRepositories.contains(repoName)
 
     logger.info("Fetching all repositories from GitHub")
 

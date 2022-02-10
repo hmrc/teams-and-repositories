@@ -96,8 +96,8 @@ class GithubV3RepositoryDataSourceSpec
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 
-  val testHiddenRepositories = List("hidden_repo1", "hidden_repo2")
-  val testHiddenTeams        = List("hidden_team1", "hidden_team2")
+  val testHiddenRepositories = Set("hidden_repo1", "hidden_repo2")
+  val testHiddenTeams        = Set("hidden_team1", "hidden_team2")
 
   "GithubV3RepositoryDataSource.getTeams" should {
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
