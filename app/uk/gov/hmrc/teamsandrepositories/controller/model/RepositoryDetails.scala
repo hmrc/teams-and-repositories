@@ -18,11 +18,11 @@ package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.net.URI
 import java.time.Instant
-
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
+import uk.gov.hmrc.teamsandrepositories.connectors.GhBranchProtection
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.util.{Failure, Success, Try}
@@ -56,20 +56,21 @@ object Link {
 }
 
 case class RepositoryDetails(
-  name        : String,
-  description : String,
-  isPrivate   : Boolean,
-  createdAt   : Instant,
-  lastActive  : Instant,
-  repoType    : RepoType,
-  owningTeams : Seq[String],
-  teamNames   : Seq[String],
-  githubUrl   : Link,
-  ci          : Seq[Link]        = Seq.empty,
-  environments: Seq[Environment] = Seq.empty,
-  language    : String,
-  isArchived  : Boolean,
-  defaultBranch: String
+  name            : String,
+  description     : String,
+  isPrivate       : Boolean,
+  createdAt       : Instant,
+  lastActive      : Instant,
+  repoType        : RepoType,
+  owningTeams     : Seq[String],
+  teamNames       : Seq[String],
+  githubUrl       : Link,
+  ci              : Seq[Link]        = Seq.empty,
+  environments    : Seq[Environment] = Seq.empty,
+  language        : String,
+  isArchived      : Boolean,
+  defaultBranch   : String,
+  branchProtection: Option[GhBranchProtection]
 )
 
 object RepositoryDetails {
@@ -79,38 +80,40 @@ object RepositoryDetails {
     implicit val rtf = RepoType.format
     implicit val lf  = Link.format
     implicit val ef  = Environment.format
-    ( (__ \ "name"        ).format[String]
-    ~ (__ \ "description" ).format[String]
-    ~ (__ \ "isPrivate"   ).format[Boolean]
-    ~ (__ \ "createdAt"   ).format[Instant]
-    ~ (__ \ "lastActive"  ).format[Instant]
-    ~ (__ \ "repoType"    ).format[RepoType]
-    ~ (__ \ "owningTeams" ).format[Seq[String]]
-    ~ (__ \ "teamNames"   ).format[Seq[String]]
-    ~ (__ \ "githubUrl"   ).format[Link]
-    ~ (__ \ "ci"          ).format[Seq[Link]]
-    ~ (__ \ "environments").format[Seq[Environment]]
-    ~ (__ \ "language"    ).format[String]
-    ~ (__ \ "isArchived"  ).format[Boolean]
-    ~ (__ \ "defaultBranch").format[String]
+    ( (__ \ "name"            ).format[String]
+    ~ (__ \ "description"     ).format[String]
+    ~ (__ \ "isPrivate"       ).format[Boolean]
+    ~ (__ \ "createdAt"       ).format[Instant]
+    ~ (__ \ "lastActive"      ).format[Instant]
+    ~ (__ \ "repoType"        ).format[RepoType]
+    ~ (__ \ "owningTeams"     ).format[Seq[String]]
+    ~ (__ \ "teamNames"       ).format[Seq[String]]
+    ~ (__ \ "githubUrl"       ).format[Link]
+    ~ (__ \ "ci"              ).format[Seq[Link]]
+    ~ (__ \ "environments"    ).format[Seq[Environment]]
+    ~ (__ \ "language"        ).format[String]
+    ~ (__ \ "isArchived"      ).format[Boolean]
+    ~ (__ \ "defaultBranch"   ).format[String]
+    ~ (__ \ "branchProtection").formatNullable(GhBranchProtection.format)
     )(apply, unlift(unapply))
   }
 
   def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
     val repoDetails =
       RepositoryDetails(
-        name        = repo.name,
-        description = repo.description,
-        isPrivate   = repo.isPrivate,
-        createdAt   = repo.createdDate,
-        lastActive  = repo.lastActiveDate,
-        repoType    = repo.repoType,
-        owningTeams = repo.owningTeams,
-        teamNames   = teamNames,
-        githubUrl   = Link("github-com", "GitHub.com", repo.url),
-        language    = repo.language.getOrElse(""),
-        isArchived  = repo.isArchived,
-        defaultBranch = repo.defaultBranch
+        name             = repo.name,
+        description      = repo.description,
+        isPrivate        = repo.isPrivate,
+        createdAt        = repo.createdDate,
+        lastActive       = repo.lastActiveDate,
+        repoType         = repo.repoType,
+        owningTeams      = repo.owningTeams,
+        teamNames        = teamNames,
+        githubUrl        = Link("github-com", "GitHub.com", repo.url),
+        language         = repo.language.getOrElse(""),
+        isArchived       = repo.isArchived,
+        defaultBranch    = repo.defaultBranch,
+        branchProtection = repo.branchProtection
       )
 
     repo.repoType match {
