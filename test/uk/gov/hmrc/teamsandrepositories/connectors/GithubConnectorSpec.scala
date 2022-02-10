@@ -293,7 +293,7 @@ class GithubConnectorSpec
         language           = Some("l1"),
         isArchived         = false,
         defaultBranch      = "b1",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -308,7 +308,7 @@ class GithubConnectorSpec
         language           = Some("l2"),
         isArchived         = true,
         defaultBranch      = "b2",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true)),
+        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -323,7 +323,7 @@ class GithubConnectorSpec
         language           = None,
         isArchived         = false,
         defaultBranch      = "b3",
-        branchProtection   = None,
+        branchProtection   = GhBranchProtection.none,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -541,7 +541,7 @@ class GithubConnectorSpec
       language           = Some("l1"),
       isArchived         = false,
       defaultBranch      = "b1",
-      branchProtection   = None,
+      branchProtection   = GhBranchProtection.none,
       repositoryYamlText = None,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )

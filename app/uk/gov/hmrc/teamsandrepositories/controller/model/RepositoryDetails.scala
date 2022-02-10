@@ -70,7 +70,7 @@ case class RepositoryDetails(
   language        : String,
   isArchived      : Boolean,
   defaultBranch   : String,
-  branchProtection: Option[GhBranchProtection]
+  branchProtection: GhBranchProtection
 )
 
 object RepositoryDetails {
@@ -94,7 +94,7 @@ object RepositoryDetails {
     ~ (__ \ "language"        ).format[String]
     ~ (__ \ "isArchived"      ).format[Boolean]
     ~ (__ \ "defaultBranch"   ).format[String]
-    ~ (__ \ "branchProtection").formatNullable(GhBranchProtection.format)
+    ~ (__ \ "branchProtection").format(GhBranchProtection.format)
     )(apply, unlift(unapply))
   }
 

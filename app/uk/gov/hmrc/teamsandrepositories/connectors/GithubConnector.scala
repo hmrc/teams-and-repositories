@@ -301,7 +301,7 @@ case class GhRepository(
   language          : Option[String],
   isArchived        : Boolean,
   defaultBranch     : String,
-  branchProtection  : Option[GhBranchProtection],
+  branchProtection  : GhBranchProtection,
   repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
@@ -441,7 +441,7 @@ object GhRepository {
     ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
-    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
+    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readWithDefault(GhBranchProtection.none)(GhBranchProtection.format)
     ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
@@ -507,4 +507,10 @@ object GhBranchProtection {
     ( (__ \ "requiresApprovingReviews").format[Boolean]
     ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
     )(apply _, unlift(unapply))
+
+  val none: GhBranchProtection =
+    GhBranchProtection(
+      requiresApprovingReviews = false,
+      dismissesStaleReviews    = false
+    )
 }
