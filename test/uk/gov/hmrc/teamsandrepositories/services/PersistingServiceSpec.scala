@@ -63,7 +63,7 @@ class PersistingServiceSpec
               language         = Some("Scala"),
               isArchived       = false,
               defaultBranch    = "main",
-              branchProtection = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)
+              branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true))
             ),
             GitRepository(
               name           = "repo2",

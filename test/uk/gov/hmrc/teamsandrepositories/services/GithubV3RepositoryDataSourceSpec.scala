@@ -26,7 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhBranchProtection, GhRepository, GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
 import scala.concurrent.Future
 
@@ -91,7 +91,7 @@ class GithubV3RepositoryDataSourceSpec
       language           = Some("Scala"),
       isArchived         = false,
       defaultBranch      = "main",
-      branchProtection   = GhBranchProtection.none,
+      branchProtection   = None,
       repositoryYamlText = None,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
@@ -127,7 +127,7 @@ class GithubV3RepositoryDataSourceSpec
         language           = Some("Scala"),
         isArchived         = false,
         defaultBranch      = "main",
-        branchProtection   = GhBranchProtection.none,
+        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -142,7 +142,7 @@ class GithubV3RepositoryDataSourceSpec
         language           = Some("Scala"),
         isArchived         = false,
         defaultBranch      = "main",
-        branchProtection   = GhBranchProtection.none,
+        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -202,7 +202,7 @@ class GithubV3RepositoryDataSourceSpec
             language           = Some("Scala"),
             isArchived         = false,
             defaultBranch      = "main",
-            branchProtection   = GhBranchProtection.none,
+            branchProtection   = None,
             repositoryYamlText = None,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           ),
@@ -217,7 +217,7 @@ class GithubV3RepositoryDataSourceSpec
             language           = Some("Scala"),
             isArchived         = false,
             defaultBranch      = "main",
-            branchProtection   = GhBranchProtection.none,
+            branchProtection   = None,
             repositoryYamlText = None,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           )
@@ -845,7 +845,7 @@ class GithubV3RepositoryDataSourceSpec
           language           = Some("Scala"),
           isArchived         = false,
           defaultBranch      = "main",
-          branchProtection   = GhBranchProtection.none,
+          branchProtection   = None,
           repositoryYamlText = None,
           repoTypeHeuristics = dummyRepoTypeHeuristics
         )

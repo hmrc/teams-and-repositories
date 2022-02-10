@@ -28,14 +28,14 @@ case class GitRepository(
   url               : String,
   createdDate       : Instant,
   lastActiveDate    : Instant,
-  isPrivate         : Boolean            = false,
-  repoType          : RepoType           = RepoType.Other,
-  digitalServiceName: Option[String]     = None,
-  owningTeams       : Seq[String]        = Nil,
+  isPrivate         : Boolean                     = false,
+  repoType          : RepoType                    = RepoType.Other,
+  digitalServiceName: Option[String]              = None,
+  owningTeams       : Seq[String]                 = Nil,
   language          : Option[String],
   isArchived        : Boolean,
   defaultBranch     : String,
-  branchProtection  : GhBranchProtection = GhBranchProtection.none
+  branchProtection  : Option[GhBranchProtection] = None
 )
 
 object GitRepository {
@@ -54,7 +54,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
-    ~ (__ \ "branchProtection"  ).format(GhBranchProtection.format)
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 
@@ -73,7 +73,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
-    ~ (__ \ "branchProtection"  ).formatWithDefault(GhBranchProtection.none)(GhBranchProtection.format)
+    ~ (__ \ "branchProtection"  ).formatNullable(GhBranchProtection.format)
     )(apply _, unlift(unapply))
   }
 
