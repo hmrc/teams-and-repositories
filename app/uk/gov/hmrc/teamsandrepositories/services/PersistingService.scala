@@ -20,10 +20,11 @@ import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -53,53 +54,33 @@ case class PersistingService @Inject()(
       sharedRepos     = sharedRepos
     )
 
-  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[Seq[TeamRepositories]] =
+  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[List[GhTeam]] =
     (for {
-       ghTeams      <- dataSource.getTeams()
-       withTeams    <- ghTeams
-                         .foldLeftM[Future, (Seq[TeamRepositories], Seq[GitRepository])](
-                           (Seq.empty[TeamRepositories], Seq.empty[GitRepository])
-                         ) { case ((teamsAcc, updatedAcc), ghTeam) =>
-                               for {
-                                 teamRepositories        <- dataSource.mapTeam(ghTeam, updatedAcc)
-                                 orderedTeamRepositories =  teamRepositories.copy(repositories = teamRepositories.repositories.sortBy(_.name))
-                                 _                       <- persister.update(orderedTeamRepositories)
-                                 } yield (orderedTeamRepositories +: teamsAcc, teamRepositories.repositories ++ updatedAcc)
-                           }.map(_._1)
-       withoutTeams <- getRepositoriesWithoutTeams(withTeams).flatMap(persister.update)
-     } yield withTeams :+ withoutTeams
-    ).recoverWith {
+      teams                   <- dataSource.getTeams()
+      reposByName             <- dataSource.getAllRepositoriesByName()
+      repoNamesWithTeams      <- teams.foldLeftM(Set.empty[String]) { case (acc, team) =>
+                                   for {
+                                     repos     <- dataSource.getTeamRepositories(team, reposByName)
+                                     _         <- persister.update(repos)
+                                     repoNames =  repos.repositories.map(_.name).toSet
+                                   } yield acc ++ repoNames
+                                 }
+      reposWithoutTeams       =  (reposByName -- repoNamesWithTeams).values.toList.sortBy(_.name)
+      _                       <- persister.update(TeamRepositories.unknown(reposWithoutTeams, timestamper.timestampF()))
+    } yield teams).recoverWith {
       case NonFatal(ex) =>
         logger.error("Could not persist to teams repo.", ex)
         Future.failed(ex)
     }
 
-  def getRepositoriesWithoutTeams(
-      persistedReposWithTeams: Seq[TeamRepositories]
-    )( implicit ec: ExecutionContext
-    ): Future[TeamRepositories] =
-    dataSource.getAllRepositories
-      .map { repos =>
-        val reposWithoutTeams = {
-          val urlsOfPersistedRepos = persistedReposWithTeams.flatMap(_.repositories.map(_.url)).toSet
-          repos.filterNot(r => urlsOfPersistedRepos.contains(r.url))
-        }
-        TeamRepositories(
-          teamName     = TeamRepositories.TEAM_UNKNOWN,
-          repositories = reposWithoutTeams,
-          createdDate  = None,
-          updateDate   = timestamper.timestampF()
-        )
-      }
-
   def removeOrphanTeamsFromMongo(
-       teamRepositoriesFromGh: Seq[TeamRepositories]
+    teamsFromGithub: List[GhTeam]
     )( implicit ec: ExecutionContext
     ): Future[Set[String]] =
     (for {
        mongoTeams      <- persister.getAllTeamsAndRepos(None).map(_.map(_.teamName).toSet)
-       teamNamesFromGh =  teamRepositoriesFromGh.map(_.teamName)
-       orphanTeams     =  mongoTeams.filterNot(teamNamesFromGh.toSet)
+       teamNamesFromGh =  teamsFromGithub.map(_.name)
+       orphanTeams     =  (mongoTeams.filterNot(teamNamesFromGh.toSet) - TeamRepositories.TEAM_UNKNOWN)
        _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
        deleted         <- persister.deleteTeams(orphanTeams)
      } yield deleted

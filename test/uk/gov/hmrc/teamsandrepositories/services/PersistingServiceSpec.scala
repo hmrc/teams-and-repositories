@@ -143,21 +143,21 @@ class PersistingServiceSpec
       when(dataSource.getTeams())
         .thenReturn(Future.successful(List(ghTeamA, ghTeamB)))
 
-      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
+      when(dataSource.getTeamRepositories(eqTo(ghTeamA), any()))
         .thenReturn(Future.successful(teamARepositories))
 
-      when(dataSource.mapTeam(eqTo(ghTeamB), any()))
+      when(dataSource.getTeamRepositories(eqTo(ghTeamB), any()))
         .thenReturn(Future.successful(teamBRepositories))
 
-      when(dataSource.getAllRepositories())
-        .thenReturn(Future(reposWithoutTeams))
+      when(dataSource.getAllRepositoriesByName())
+        .thenReturn(Future.successful(reposWithoutTeams.map(r => r.name -> r).toMap))
 
       val persistingService = buildPersistingService(dataSource, Nil)
 
       persistingService.persistTeamRepoMapping.futureValue
 
-      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
-      verify(dataSource).mapTeam(eqTo(ghTeamB), any())
+      verify(dataSource).getTeamRepositories(eqTo(ghTeamA), any())
+      verify(dataSource).getTeamRepositories(eqTo(ghTeamB), any())
       verify(persistingService.persister).update(teamARepositories)
       verify(persistingService.persister).update(teamBRepositories)
       verify(persistingService.persister)
@@ -166,84 +166,6 @@ class PersistingServiceSpec
           repositories = reposWithoutTeams,
           createdDate  = None,
           updateDate   = now))
-    }
-
-    "persist a team's repositories sorted alphabetically by name" in {
-      val teamARepositoriesInDataSource1 =
-        TeamRepositories(
-          teamName = "teamA",
-          repositories = List(
-            GitRepository(
-              name           = "repoB2",
-              description    = "Some Description",
-              url            = "urlB2",
-              createdDate    = now,
-              lastActiveDate = now,
-              language       = Some("Scala"),
-              isArchived     = false,
-              defaultBranch  = "main"
-            ),
-            GitRepository(
-              name           = "repoA1",
-              description    = "Some Description",
-              url            = "urlA1",
-              createdDate    = now,
-              lastActiveDate = now,
-              language       = Some("Scala"),
-              isArchived     = false,
-              defaultBranch  = "main"
-            )
-          ),
-          createdDate = Some(teamCreatedDate),
-          updateDate  = timestampF()
-        )
-
-      val dataSource1ReposWithoutTeams =
-        List(
-          GitRepository(
-            name           = "repo6",
-            description    = "Some Description",
-            url            = "url6",
-            createdDate    = now,
-            lastActiveDate = now,
-            language       = Some("Scala"),
-            isArchived     = false,
-            defaultBranch  = "main"
-          )
-        )
-
-      val unknownTeamRepositories =
-        TeamRepositories(
-          teamName     = TeamRepositories.TEAM_UNKNOWN,
-          repositories = dataSource1ReposWithoutTeams,
-          createdDate  = None,
-          updateDate   = now
-        )
-
-      val dataSource = mock[GithubV3RepositoryDataSource]
-
-      val createdAt = Instant.now()
-      val ghTeamA = GhTeam(name = "teamA", createdAt = createdAt)
-
-      when(dataSource.getTeams()).thenReturn(Future.successful(List(ghTeamA)))
-
-      when(dataSource.mapTeam(eqTo(ghTeamA), any()))
-        .thenReturn(Future.successful(teamARepositoriesInDataSource1))
-
-      when(dataSource.getAllRepositories())
-        .thenReturn(Future(dataSource1ReposWithoutTeams))
-
-      val persistingService = buildPersistingService(dataSource, Nil)
-
-      persistingService.persistTeamRepoMapping.futureValue
-
-      verify(dataSource).mapTeam(eqTo(ghTeamA), any())
-
-      val mergedRepositories = teamARepositoriesInDataSource1.repositories.sortBy(_.name)
-      verify(persistingService.persister)
-        .update(teamARepositoriesInDataSource1.copy(repositories = mergedRepositories))
-      verify(persistingService.persister)
-        .update(unknownTeamRepositories)
     }
   }
 
@@ -266,9 +188,9 @@ class PersistingServiceSpec
         .thenReturn(Future.successful(Set("something not important")))
 
       persistingService.removeOrphanTeamsFromMongo(
-        Seq(
-          TeamRepositories(teamName = "team-a", repositories = Nil, createdDate = Some(teamCreatedDate), updateDate = Instant.now()),
-          TeamRepositories(teamName = "team-c", repositories = Nil, createdDate = Some(teamCreatedDate), updateDate = Instant.now())
+        List(
+          GhTeam(name = "team-a", createdAt = teamCreatedDate),
+          GhTeam(name = "team-c", createdAt = teamCreatedDate)
         )
       )(scala.concurrent.ExecutionContext.global)
 

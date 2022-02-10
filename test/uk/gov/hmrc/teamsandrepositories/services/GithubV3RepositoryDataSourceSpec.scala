@@ -185,7 +185,7 @@ class GithubV3RepositoryDataSourceSpec
     }
   }
 
-  "GithubV3RepositoryDataSource.mapTeam" should {
+  "GithubV3RepositoryDataSource.getTeamRepositories" should {
     "filter out repositories according to the hidden config" in new Setup {
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
@@ -224,7 +224,7 @@ class GithubV3RepositoryDataSourceSpec
         )))
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -264,7 +264,7 @@ class GithubV3RepositoryDataSourceSpec
       )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -302,7 +302,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe
         TeamRepositories(
           teamName     = "A",
@@ -341,7 +341,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
         teamName     = "A",
         repositories = List(
@@ -379,7 +379,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -417,7 +417,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -458,7 +458,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -493,7 +493,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -528,7 +528,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -571,7 +571,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       val repositories = dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -616,7 +616,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       val repositories = dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -653,7 +653,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(catoRepo)))
 
       val repositories = dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -685,7 +685,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(ghRepo)))
 
       val repositories = dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -732,7 +732,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
           repositories = List(
@@ -764,7 +764,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(privateRepo)))
 
       val repositories: TeamRepositories = dataSource
-        .mapTeam(teamA, updatedRepos = Seq.empty)
+        .getTeamRepositories(teamA)
         .futureValue
 
       repositories shouldBe TeamRepositories(
@@ -816,9 +816,9 @@ class GithubV3RepositoryDataSourceSpec
         repository.copy(lastActiveDate = now)
 
       dataSource
-        .mapTeam(
+        .getTeamRepositories(
           teamA,
-          updatedRepos = Seq(updatedRepo)
+          cache = Map(updatedRepo.name -> updatedRepo)
         )
         .futureValue shouldBe TeamRepositories(
           teamName     = "A",
@@ -829,6 +829,46 @@ class GithubV3RepositoryDataSourceSpec
 
       verify(mockGithubConnector).getReposForTeam(teamA)
       verifyNoMoreInteractions(mockGithubConnector)
+    }
+
+    "ensure repositories are sorted alphabetically" in new Setup {
+
+      val repo1 =
+        GhRepository(
+          name               = "b",
+          description        = Some("a test repo"),
+          htmlUrl            = "http://github.com/repo1",
+          fork               = false,
+          createdDate        = now,
+          pushedAt           = now,
+          isPrivate          = false,
+          language           = Some("Scala"),
+          isArchived         = false,
+          defaultBranch      = "main",
+          branchProtection   = None,
+          repositoryYamlText = None,
+          repoTypeHeuristics = dummyRepoTypeHeuristics
+        )
+
+      val repo2 =
+        repo1.copy(name = "c")
+
+      val repo3 =
+        repo1.copy(name = "a")
+
+      when(mockGithubConnector.getReposForTeam(teamA))
+        .thenReturn(Future.successful(List(repo1, repo2, repo3)))
+
+      val result =
+        dataSource
+          .getTeamRepositories(teamA)
+          .futureValue
+          .repositories
+          .map(_.name)
+
+      result shouldBe List("a", "b", "c")
+
+      verify(mockGithubConnector).getReposForTeam(teamA)
     }
   }
 }

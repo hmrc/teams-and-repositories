@@ -391,7 +391,9 @@ object GhRepository {
     }
 
     private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
-      Try(new Yaml().load[java.util.Map[String, Object]](contents))
+      Try(yaml.load[java.util.Map[String, Object]](contents))
+
+    private val yaml = new Yaml()
   }
 
   final case class RepoTypeHeuristics(

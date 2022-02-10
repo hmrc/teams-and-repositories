@@ -37,46 +37,66 @@ class GithubV3RepositoryDataSource(
 
   private val logger = Logger(this.getClass)
 
-  def getTeams(): Future[List[GhTeam]] =
-    githubConnector.getTeams()
-      .map(_.filterNot(team => githubConfig.hiddenTeams.contains(team.name)))
+  def getTeams(): Future[List[GhTeam]] = {
+    val notHidden: String => Boolean =
+      !githubConfig.hiddenTeams.toSet.contains(_)
+
+    githubConnector
+      .getTeams()
+      .map(_.filter(team => notHidden(team.name)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve teams for organisation list.", ex)
           Future.failed(ex)
       }
+  }
 
-  def mapTeam(team: GhTeam, updatedRepos: Seq[GitRepository]): Future[TeamRepositories] = {
-    logger.debug(s"Mapping team (${team.name})")
+  def getTeamRepositories(
+    team: GhTeam,
+    cache: Map[String, GitRepository] = Map.empty
+  ): Future[TeamRepositories] = {
+    logger.info(s"Fetching TeamRepositories for team: ${team.name}")
+
+    val notHidden: String => Boolean =
+      !githubConfig.hiddenRepositories.toSet.contains(_)
+
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos
-                   .filterNot(repo => githubConfig.hiddenRepositories.contains(repo.name))
-                   .map(repo => updatedRepos.find(_.name == repo.name).getOrElse(repo.toGitRepository))
+      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository) }
     } yield
-      TeamRepositories(
-        teamName     = team.name,
-        repositories = repos,
-        createdDate  = Some(team.createdAt),
-        updateDate   = timestampF()
-      )
+        TeamRepositories(
+          teamName     = team.name,
+          repositories = repos.sortBy(_.name),
+          createdDate  = Some(team.createdAt),
+          updateDate   = timestampF()
+        )
   }.recover {
     case e =>
-      logger.error("Could not map teams with organisations.", e)
+      logger.error(s"Could not fetch TeamRepositories for team: ${team.name}")
       throw e
   }
 
-  def getAllRepositories(): Future[List[GitRepository]] =
+  def getAllRepositories(): Future[List[GitRepository]] = {
+    val notHidden: String => Boolean =
+      !githubConfig.hiddenRepositories.toSet.contains(_)
+
+    logger.info("Fetching all repositories from GitHub")
+
     githubConnector.getRepos()
-      .map(_.map(repo =>
-        repo
-          .copy(repositoryYamlText = None)
-          .toGitRepository
-      ))
+      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository })
+      .map { repos =>
+        logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
+        repos
+      }
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve repo list for organisation.", ex)
           Future.failed(ex)
       }
+  }
+
+  def getAllRepositoriesByName(): Future[Map[String, GitRepository]] =
+    getAllRepositories()
+      .map(_.map(r => r.name -> r).toMap)
 
 }
