@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import java.time.Instant
-
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -26,7 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhBranchProtection, GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.Future
@@ -56,14 +55,15 @@ class PersistingServiceSpec
           teamName     = "teamA",
           repositories = List(
             GitRepository(
-              name           = "repo1",
-              description    = "Some Description",
-              url            = "url1",
-              createdDate    = now,
-              lastActiveDate = now,
-              language       = Some("Scala"),
-              isArchived     = false,
-              defaultBranch  = "main"
+              name             = "repo1",
+              description      = "Some Description",
+              url              = "url1",
+              createdDate      = now,
+              lastActiveDate   = now,
+              language         = Some("Scala"),
+              isArchived       = false,
+              defaultBranch    = "main",
+              branchProtection = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)
             ),
             GitRepository(
               name           = "repo2",

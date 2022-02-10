@@ -189,6 +189,7 @@ object GithubConnector {
         branchProtectionRule {
           requiresApprovingReviews
           dismissesStaleReviews
+          requiresCommitSignatures
         }
       }
       repositoryYaml: object(expression: "HEAD:repository.yaml") {
@@ -498,7 +499,8 @@ object RateLimit {
 
 final case class GhBranchProtection(
   requiresApprovingReviews: Boolean,
-  dismissesStaleReviews: Boolean
+  dismissesStaleReviews: Boolean,
+  requiresCommitSignatures: Boolean
 )
 
 object GhBranchProtection {
@@ -506,11 +508,13 @@ object GhBranchProtection {
   val format: Format[GhBranchProtection] =
     ( (__ \ "requiresApprovingReviews").format[Boolean]
     ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    ~ (__ \ "requiresCommitSignatures").format[Boolean]
     )(apply _, unlift(unapply))
 
   val none: GhBranchProtection =
     GhBranchProtection(
       requiresApprovingReviews = false,
-      dismissesStaleReviews    = false
+      dismissesStaleReviews    = false,
+      requiresCommitSignatures = false
     )
 }

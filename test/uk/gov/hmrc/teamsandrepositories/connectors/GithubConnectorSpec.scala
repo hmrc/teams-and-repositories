@@ -161,7 +161,8 @@ class GithubConnectorSpec
            "name": "b1",
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
            }
          }
        },
@@ -182,7 +183,8 @@ class GithubConnectorSpec
            "name": "b2",
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
            }
          }
        }
@@ -293,7 +295,7 @@ class GithubConnectorSpec
         language           = Some("l1"),
         isArchived         = false,
         defaultBranch      = "b1",
-        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true),
+        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -308,7 +310,7 @@ class GithubConnectorSpec
         language           = Some("l2"),
         isArchived         = true,
         defaultBranch      = "b2",
-        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true),
+        branchProtection   = GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
