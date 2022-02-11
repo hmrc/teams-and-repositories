@@ -22,7 +22,6 @@ import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.connectors.GhBranchProtection
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
 
 import scala.util.{Failure, Success, Try}
@@ -69,8 +68,7 @@ case class RepositoryDetails(
   environments    : Seq[Environment] = Seq.empty,
   language        : String,
   isArchived      : Boolean,
-  defaultBranch   : String,
-  branchProtection: Option[GhBranchProtection]
+  defaultBranch   : String
 )
 
 object RepositoryDetails {
@@ -94,7 +92,6 @@ object RepositoryDetails {
     ~ (__ \ "language"        ).format[String]
     ~ (__ \ "isArchived"      ).format[Boolean]
     ~ (__ \ "defaultBranch"   ).format[String]
-    ~ (__ \ "branchProtection").formatNullable(GhBranchProtection.format)
     )(apply, unlift(unapply))
   }
 
@@ -112,8 +109,7 @@ object RepositoryDetails {
         githubUrl        = Link("github-com", "GitHub.com", repo.url),
         language         = repo.language.getOrElse(""),
         isArchived       = repo.isArchived,
-        defaultBranch    = repo.defaultBranch,
-        branchProtection = repo.branchProtection
+        defaultBranch    = repo.defaultBranch
       )
 
     repo.repoType match {

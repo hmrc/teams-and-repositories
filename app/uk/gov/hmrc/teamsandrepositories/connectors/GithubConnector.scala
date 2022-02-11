@@ -186,11 +186,6 @@ object GithubConnector {
       isArchived
       defaultBranchRef {
         name
-        branchProtectionRule {
-          requiresApprovingReviews
-          dismissesStaleReviews
-          requiresCommitSignatures
-        }
       }
       repositoryYaml: object(expression: "HEAD:repository.yaml") {
         ... on Blob {
@@ -302,7 +297,6 @@ case class GhRepository(
   language          : Option[String],
   isArchived        : Boolean,
   defaultBranch     : String,
-  branchProtection  : Option[GhBranchProtection],
   repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
@@ -330,8 +324,7 @@ case class GhRepository(
       owningTeams        = manifestDetails.owningTeams,
       language           = language,
       isArchived         = isArchived,
-      defaultBranch      = defaultBranch,
-      branchProtection   = branchProtection
+      defaultBranch      = defaultBranch
     )
   }
 }
@@ -442,7 +435,6 @@ object GhRepository {
     ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
     ~ (__ \ "isArchived"                               ).read[Boolean]
     ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
-    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(GhBranchProtection.format)
     ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
@@ -495,19 +487,4 @@ object RateLimit {
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
   }
-}
-
-final case class GhBranchProtection(
-  requiresApprovingReviews: Boolean,
-  dismissesStaleReviews: Boolean,
-  requiresCommitSignatures: Boolean
-)
-
-object GhBranchProtection {
-
-  val format: Format[GhBranchProtection] =
-    ( (__ \ "requiresApprovingReviews").format[Boolean]
-    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
-    ~ (__ \ "requiresCommitSignatures").format[Boolean]
-    )(apply _, unlift(unapply))
 }
