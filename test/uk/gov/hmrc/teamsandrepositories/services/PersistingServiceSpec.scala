@@ -25,7 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhBranchProtection, GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.Future
@@ -62,8 +62,7 @@ class PersistingServiceSpec
               lastActiveDate   = now,
               language         = Some("Scala"),
               isArchived       = false,
-              defaultBranch    = "main",
-              branchProtection = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true))
+              defaultBranch    = "main"
             ),
             GitRepository(
               name           = "repo2",

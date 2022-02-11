@@ -158,12 +158,7 @@ class GithubConnectorSpec
          },
          "isArchived": false,
          "defaultBranchRef": {
-           "name": "b1",
-           "branchProtectionRule": {
-             "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true,
-             "requiresCommitSignatures": true
-           }
+           "name": "b1"
          }
        },
        {
@@ -180,12 +175,7 @@ class GithubConnectorSpec
          },
          "isArchived": true,
          "defaultBranchRef": {
-           "name": "b2",
-           "branchProtectionRule": {
-             "requiresApprovingReviews": true,
-             "dismissesStaleReviews": true,
-             "requiresCommitSignatures": true
-           }
+           "name": "b2"
          }
        }
     ]"""
@@ -295,7 +285,6 @@ class GithubConnectorSpec
         language           = Some("l1"),
         isArchived         = false,
         defaultBranch      = "b1",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -310,7 +299,6 @@ class GithubConnectorSpec
         language           = Some("l2"),
         isArchived         = true,
         defaultBranch      = "b2",
-        branchProtection   = Some(GhBranchProtection(requiresApprovingReviews = true, dismissesStaleReviews = true, requiresCommitSignatures = true)),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -325,7 +313,6 @@ class GithubConnectorSpec
         language           = None,
         isArchived         = false,
         defaultBranch      = "b3",
-        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -543,7 +530,6 @@ class GithubConnectorSpec
       language           = Some("l1"),
       isArchived         = false,
       defaultBranch      = "b1",
-      branchProtection   = None,
       repositoryYamlText = None,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
