@@ -22,11 +22,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with MockitoSugar {

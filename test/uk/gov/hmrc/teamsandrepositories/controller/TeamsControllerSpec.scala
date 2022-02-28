@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.time.Instant
-
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
@@ -29,8 +28,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 
 import scala.concurrent.Future

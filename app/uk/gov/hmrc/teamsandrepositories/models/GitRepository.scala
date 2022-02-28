@@ -14,26 +14,28 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.models
 
-import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
+
 case class GitRepository(
-  name              : String,
-  description       : String,
-  url               : String,
-  createdDate       : Instant,
-  lastActiveDate    : Instant,
-  isPrivate         : Boolean                     = false,
-  repoType          : RepoType                    = RepoType.Other,
-  digitalServiceName: Option[String]              = None,
-  owningTeams       : Seq[String]                 = Nil,
-  language          : Option[String],
-  isArchived        : Boolean,
-  defaultBranch     : String,
+  name                : String,
+  description         : String,
+  url                 : String,
+  createdDate         : Instant,
+  lastActiveDate      : Instant,
+  isPrivate           : Boolean        = false,
+  repoType            : RepoType       = RepoType.Other,
+  digitalServiceName  : Option[String] = None,
+  owningTeams         : Seq[String]    = Nil,
+  language            : Option[String],
+  isArchived          : Boolean,
+  defaultBranch       : String,
+  isDeprecated        : Boolean        = false
 )
 
 object GitRepository {
@@ -52,7 +54,8 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
-    )(apply _, unlift(unapply))
+    ~ (__ \ "deprecated"        ).formatWithDefault[Boolean](false)
+    )(apply, unlift(unapply))
   }
 
   val mongoFormat: OFormat[GitRepository] = {
@@ -70,7 +73,8 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
-    )(apply _, unlift(unapply))
+    ~ (__ \ "deprecated"        ).formatWithDefault[Boolean](false)
+    )(apply, unlift(unapply))
   }
 
   def primaryRepoType(repositories: Seq[GitRepository]): RepoType =

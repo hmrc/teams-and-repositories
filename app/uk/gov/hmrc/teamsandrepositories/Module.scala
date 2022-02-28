@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories
 import akka.actor.ActorSystem
 import com.google.inject.AbstractModule
 import com.typesafe.config.Config
+
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSProxyServer}
@@ -26,6 +27,7 @@ import uk.gov.hmrc.http.HttpClient
 import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.http.ws.{WSHttp, WSProxy, WSProxyConfiguration}
+import uk.gov.hmrc.teamsandrepositories.schedulers.{DataReloadScheduler, GithubRatelimitMetricsScheduler, JenkinsScheduler}
 
 class Module() extends AbstractModule {
   override def configure(): Unit = {

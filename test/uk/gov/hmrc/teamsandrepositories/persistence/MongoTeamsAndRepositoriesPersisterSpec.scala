@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import java.time.Instant
-
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -25,7 +24,9 @@ import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, Module, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.Module
+import uk.gov.hmrc.teamsandrepositories.models._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

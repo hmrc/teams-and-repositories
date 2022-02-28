@@ -26,7 +26,7 @@ import org.mongodb.scala.model._
 import play.api.Logger
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 
 import scala.concurrent.{ExecutionContext, Future}

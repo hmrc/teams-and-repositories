@@ -20,7 +20,7 @@ import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}

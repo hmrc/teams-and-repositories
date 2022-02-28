@@ -26,7 +26,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.teamsandrepositories.{Module, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.Module
+import uk.gov.hmrc.teamsandrepositories.models._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

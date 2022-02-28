@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.DataReloadScheduler
+import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 
 import scala.concurrent.ExecutionContext
 

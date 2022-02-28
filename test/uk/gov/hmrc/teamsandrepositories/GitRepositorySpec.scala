@@ -22,6 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates}
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Environment, Link, RepositoryDetails}
+import uk.gov.hmrc.teamsandrepositories.models._
 
 import scala.collection.immutable.ListMap
 
@@ -51,7 +52,7 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           repoType       = RepoType.Library,
           language       = Some("Scala"),
           isArchived     = false,
-          defaultBranch  = "main"
+          defaultBranch  = "main",
         )
 
       val repoDetails = RepositoryDetails.create(repo, Seq("a-team"), urlTemplates)

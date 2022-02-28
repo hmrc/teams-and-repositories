@@ -28,8 +28,8 @@ import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.DataReloadScheduler
 import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

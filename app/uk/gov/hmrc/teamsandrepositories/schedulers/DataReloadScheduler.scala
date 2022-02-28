@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import akka.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}

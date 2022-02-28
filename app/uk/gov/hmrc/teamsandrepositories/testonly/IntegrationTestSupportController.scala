@@ -20,8 +20,9 @@ import javax.inject.Inject
 import play.api.libs.json.{JsError, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.{BuildJob, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, TeamsAndReposPersister}
 
 import scala.concurrent.{ExecutionContext, Future}

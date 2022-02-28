@@ -20,7 +20,7 @@ import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
 case class Repository(
   name         : String,

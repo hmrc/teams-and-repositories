@@ -19,9 +19,10 @@ package uk.gov.hmrc.teamsandrepositories.services
 import java.time.Instant
 import java.util.concurrent.Executors
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal

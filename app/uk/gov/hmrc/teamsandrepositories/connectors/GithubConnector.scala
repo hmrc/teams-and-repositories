@@ -26,12 +26,12 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
-import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
+import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
 import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -302,12 +302,12 @@ case class GhRepository(
 ) {
 
   def toGitRepository: GitRepository = {
-    val manifestDetails =
+    val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(None, None, Seq.empty))
+        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, deprecated = false))
 
-    val repoType =
+    val repoType: RepoType =
       manifestDetails
         .repoType
         .getOrElse(repoTypeHeuristics.inferredRepoType)
@@ -324,18 +324,19 @@ case class GhRepository(
       owningTeams        = manifestDetails.owningTeams,
       language           = language,
       isArchived         = isArchived,
-      defaultBranch      = defaultBranch
+      defaultBranch      = defaultBranch,
+      isDeprecated       = manifestDetails.deprecated
     )
   }
 }
 
 object GhRepository {
 
-  final case class ManifestDetails(
-    repoType: Option[RepoType],
-    digitalServiceName: Option[String],
-    owningTeams: Seq[String]
-  )
+  final case class ManifestDetails( repoType:           Option[RepoType],
+                                    digitalServiceName: Option[String],
+                                    owningTeams:        Seq[String],
+                                    deprecated:         Boolean = false
+                                  )
 
   object ManifestDetails {
 
@@ -357,23 +358,23 @@ object GhRepository {
           val manifestDetails =
             ManifestDetails(
               repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-                case "service" => Some(RepoType.Service)
-                case "library" => Some(RepoType.Library)
-                case _         => None
-              },
+                                      case "service" => Some(RepoType.Service)
+                                      case "library" => Some(RepoType.Library)
+                                      case _         => None
+                                    },
               digitalServiceName = config.get("digital-service").map(_.toString),
-              owningTeams        = try {
-                config
-                  .getOrElse("owning-teams", new java.util.ArrayList[String])
-                  .asInstanceOf[java.util.List[String]]
-                  .asScala
-                  .toList
-              } catch {
-                case NonFatal(ex) =>
-                  logger.warn(
-                    s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
-                  Nil
-              }
+              owningTeams        = try { config
+                                            .getOrElse("owning-teams", new java.util.ArrayList[String])
+                                            .asInstanceOf[java.util.List[String]]
+                                            .asScala
+                                            .toList
+                                        } catch {
+                                          case NonFatal(ex) =>
+                                            logger.warn(
+                                              s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
+                                            Nil
+                                        },
+              deprecated         = config.getOrElse("deprecated", false).asInstanceOf[Boolean]
             )
 
           logger.info(
@@ -425,17 +426,17 @@ object GhRepository {
   }
 
   val reads: Reads[GhRepository] =
-    ( (__ \ "name"                                     ).read[String]
-    ~ (__ \ "description"                              ).readNullable[String]
-    ~ (__ \ "url"                                      ).read[String]
-    ~ (__ \ "isFork"                                   ).read[Boolean]
-    ~ (__ \ "createdAt"                                ).read[Instant]
-    ~ (__ \ "pushedAt"                                 ).readWithDefault(Instant.MIN)
-    ~ (__ \ "isPrivate"                                ).read[Boolean]
-    ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
-    ~ (__ \ "isArchived"                               ).read[Boolean]
-    ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
-    ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
+    ( (__ \ "name"                        ).read[String]
+    ~ (__ \ "description"                 ).readNullable[String]
+    ~ (__ \ "url"                         ).read[String]
+    ~ (__ \ "isFork"                      ).read[Boolean]
+    ~ (__ \ "createdAt"                   ).read[Instant]
+    ~ (__ \ "pushedAt"                    ).readWithDefault(Instant.MIN)
+    ~ (__ \ "isPrivate"                   ).read[Boolean]
+    ~ (__ \ "primaryLanguage" \ "name"    ).readNullable[String]
+    ~ (__ \ "isArchived"                  ).read[Boolean]
+    ~ (__ \ "defaultBranchRef" \ "name"   ).readWithDefault("main")
+    ~ (__ \ "repositoryYaml" \ "text"     ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }
