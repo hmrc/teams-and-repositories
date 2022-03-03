@@ -31,7 +31,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
-import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.LegacyPersistence
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
@@ -501,7 +501,7 @@ class RepositoriesControllerSpec
     (obj \ "teamNames").as[Seq[String]]
 
   private trait Setup {
-    val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
+    val mockTeamsAndReposPersister = mock[LegacyPersistence]
     val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))

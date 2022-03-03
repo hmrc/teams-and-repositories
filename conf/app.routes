@@ -5,16 +5,23 @@ GET         /api/teams/:team                     uk.gov.hmrc.teamsandrepositorie
 GET         /api/teams_with_repositories         uk.gov.hmrc.teamsandrepositories.controller.TeamsController.allTeamsAndRepositories
 
 GET         /api/repository_teams                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryTeams
+
 GET         /api/services                        @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.services(details: Boolean ?= false)
 GET         /api/libraries                       @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.libraries(details: Boolean ?= false)
+
 GET         /api/repositories/:name              @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositoryDetails(name)
 GET         /api/repositories                    @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.repositories(archived: Option[Boolean])
 GET         /api/digital-services/:name          @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServiceDetails(name)
 GET         /api/digital-services                @uk.gov.hmrc.teamsandrepositories.controller.RepositoriesController.digitalServices
-GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 
+GET         /api/jenkins-url/:service            @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 
 # admin
 GET         /api/cache/reload                    uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
 POST        /api/cache/clear                     uk.gov.hmrc.teamsandrepositories.controller.AdminController.clearCache
-PUT         /api/cache/repo/:name/reset-date     uk.gov.hmrc.teamsandrepositories.controller.AdminController.resetLastActiveDate(name: String)
+
+
+# v2 api
+GET         /api/v2/repositories                @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allRepos(team: Option[String], archived: Option[Boolean])
+GET         /api/v2/repositories/:repoName      @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)
+GET         /api/v2/teams                       @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()

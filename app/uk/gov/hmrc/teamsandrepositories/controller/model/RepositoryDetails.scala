@@ -69,7 +69,7 @@ case class RepositoryDetails(
   language         : String,
   isArchived       : Boolean,
   defaultBranch    : String,
-  deprecated       : Boolean          = false
+  isDeprecated       : Boolean          = false
 )
 
 object RepositoryDetails {
@@ -93,7 +93,7 @@ object RepositoryDetails {
     ~ (__ \ "language"     ).format[String]
     ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
-    ~ (__ \ "deprecated"   ).format[Boolean]
+    ~ (__ \ "isDeprecated"   ).format[Boolean]
     )(apply, unlift(unapply))
   }
 
@@ -112,7 +112,7 @@ object RepositoryDetails {
         language      = repo.language.getOrElse(""),
         isArchived    = repo.isArchived,
         defaultBranch = repo.defaultBranch,
-        deprecated    = repo.isDeprecated
+        isDeprecated    = repo.isDeprecated
       )
 
     repo.repoType match {

@@ -31,7 +31,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.LegacyPersistence
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -419,7 +419,7 @@ class TeamsControllerSpec
   }
 
   private trait Setup {
-    val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
+    val mockTeamsAndReposPersister = mock[LegacyPersistence]
     val mockConfiguration          = mock[Configuration]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))

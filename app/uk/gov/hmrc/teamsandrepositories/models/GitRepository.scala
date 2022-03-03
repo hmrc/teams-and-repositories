@@ -35,7 +35,8 @@ case class GitRepository(
   language            : Option[String],
   isArchived          : Boolean,
   defaultBranch       : String,
-  isDeprecated        : Boolean        = false
+  isDeprecated        : Boolean        = false,
+  teams               : Seq[String]    = Nil
 )
 
 object GitRepository {
@@ -52,9 +53,10 @@ object GitRepository {
     ~ (__ \ "digitalServiceName").formatNullable[String]
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
-    ~ (__ \ "deprecated"        ).formatWithDefault[Boolean](false)
+    ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
+    ~ (__ \ "teamNames"         ).formatWithDefault[Seq[String]](Nil)
     )(apply, unlift(unapply))
   }
 
@@ -71,9 +73,10 @@ object GitRepository {
     ~ (__ \ "digitalServiceName").formatNullable[String]
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "archived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
-    ~ (__ \ "deprecated"        ).formatWithDefault[Boolean](false)
+    ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
+    ~ (__ \ "teamNames"         ).formatWithDefault[Seq[String]](Nil)
     )(apply, unlift(unapply))
   }
 

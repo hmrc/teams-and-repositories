@@ -46,10 +46,8 @@ class DataReloadScheduler @Inject()(
 
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {
-      teamRepositoriesFromGh <- persistingService.persistTeamRepoMapping
-      _ =  logger.info("Finished updating Teams and Repos - Now removing orphan Teams")
-      _ <- persistingService.removeOrphanTeamsFromMongo(teamRepositoriesFromGh)
-      _ =  logger.info("Finished removing orphan Teams")
+      count <- persistingService.updateRepositories()
+      _ =  logger.info(s"Finished updating Teams and Repos - $count records updated")
     } yield ()
   }
 
@@ -57,7 +55,7 @@ class DataReloadScheduler @Inject()(
     mongoLocks.dataReloadLock
       .withLock {
         logger.info(s"Starting mongo update")
-        persistingService.persistTeamRepoMapping
+        persistingService.updateRepositories()
       }
       .map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
       .map { _ =>

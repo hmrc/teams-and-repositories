@@ -17,32 +17,32 @@
 package uk.gov.hmrc.teamsandrepositories.testonly
 
 import javax.inject.Inject
-import play.api.libs.json.{JsError, Reads}
+import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
-import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, TeamsAndReposPersister}
+import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, RepositoriesPersistence}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
-  teamsRepo    : TeamsAndReposPersister,
-  jenkinsRepo  : BuildJobRepo,
-  futureHelpers: FutureHelpers,
-  cc           : ControllerComponents
+                                                  teamsRepo    : RepositoriesPersistence,
+                                                  jenkinsRepo  : BuildJobRepo,
+                                                  futureHelpers: FutureHelpers,
+                                                  cc           : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
   private implicit val trf: Reads[TeamRepositories] = TeamRepositories.apiFormat
   private implicit val bjf: Reads[BuildJob]         = BuildJob.mongoFormat
+  private implicit val ghf: OFormat[GitRepository]  = GitRepository.apiFormat
 
   private def validateJson[A: Reads] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
-  def addTeams() = Action.async(validateJson[Seq[TeamRepositories]]) { implicit request =>
-    Future.sequence(request.body.map(teamsRepo.update)).map(_ => Ok("Done"))
+  def addRepositories() = Action.async(validateJson[Seq[GitRepository]]){ implicit request =>
+    teamsRepo.updateRepos(request.body).map( _ => Ok("Ok"))
   }
 
   def clearAll() = Action.async {
