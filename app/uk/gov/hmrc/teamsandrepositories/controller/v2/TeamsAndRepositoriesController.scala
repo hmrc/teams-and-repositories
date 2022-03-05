@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.controller.v2
 import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import javax.inject.Inject
@@ -30,6 +30,7 @@ class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: Reposito
                                               )(implicit ec: ExecutionContext
                                               ) extends BackendController(cc) {
   implicit val grf = GitRepository.apiFormat
+  implicit val tnf = TeamName.format
 
   def allRepos(team: Option[String], archived: Option[Boolean]) = Action.async { request =>
     repositoriesPersistence.search(team, archived)

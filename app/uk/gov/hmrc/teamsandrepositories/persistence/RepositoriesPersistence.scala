@@ -19,7 +19,7 @@ import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitiveCollation
 
 import javax.inject.Inject
@@ -31,11 +31,11 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   domainFormat   = GitRepository.mongoFormat,
   indexes        = Seq(
     IndexModel(
-      Indexes.ascending("name", "archived"),
+      Indexes.ascending("name", "isArchived"),
       IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitiveCollation).unique(true)
     )
   ),
-  replaceIndexes = false
+  replaceIndexes = true
 ) {
 
   def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
@@ -52,10 +52,10 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection.find(filter = Filters.equal("name", repoName)).headOption()
 
-  def findTeamNames(): Future[Seq[String]] =
+  def findTeamNames(): Future[Seq[TeamName]] =
     collection
       .aggregate[BsonDocument](Seq(Aggregates.unwind("$teamNames"), Aggregates.group("$teamNames")))
-      .map(_.getString("_id").getValue)
+      .map(t => TeamName(t.getString("_id").getValue))
       .toFuture()
 
   def updateRepos(repos: Seq[GitRepository]): Future[Int] = {

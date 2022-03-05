@@ -28,9 +28,9 @@ import uk.gov.hmrc.teamsandrepositories.persistence.LegacyPersistence
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersistence,
-                                        urlTemplatesProvider    : UrlTemplatesProvider,
-                                        cc                      : ControllerComponents
+class RepositoriesController @Inject()(legacyPersistence : LegacyPersistence,
+                                       urlTemplatesProvider    : UrlTemplatesProvider,
+                                       cc                      : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
@@ -38,19 +38,19 @@ class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersiste
   private implicit val dsf = DigitalService.format
 
   def repositoryTeams = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
+    legacyPersistence.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getRepositoryToTeamNames(allTeamsAndRepos)))
     }
   }
 
   def repositories(archived: Option[Boolean]) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+    legacyPersistence.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def repositoryDetails(name: String) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
+    legacyPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match {
           case None                    => NotFound
@@ -60,7 +60,7 @@ class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersiste
   }
 
   def services(details: Boolean) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
+    legacyPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val json =
           if (details)
@@ -72,7 +72,7 @@ class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersiste
   }
 
   def libraries(details: Boolean) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
+    legacyPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val json =
           if (details)
@@ -84,7 +84,7 @@ class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersiste
   }
 
   def digitalServices = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
+    legacyPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val digitalServices: Seq[String] =
           allTeamsAndRepos
@@ -98,7 +98,7 @@ class RepositoriesController @Inject()( repositoriesPersistence : LegacyPersiste
   }
 
   def digitalServiceDetails(name: String) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
+    legacyPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match {
           case None                 => NotFound

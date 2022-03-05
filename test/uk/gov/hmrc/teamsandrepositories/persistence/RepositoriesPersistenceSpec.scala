@@ -20,7 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, DefaultPlayMongoRepositorySupport, PlayMongoRepositorySupport}
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
 
 import java.time.Instant
@@ -66,7 +66,7 @@ class RepositoriesPersistenceSpec
     "return all the unique team names" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.findTeamNames().futureValue
-      results must contain allOf("team1", "team2", "team3")
+      results must contain allOf(TeamName("team1"), TeamName("team2"), TeamName("team3"))
     }
   }
 

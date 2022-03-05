@@ -32,7 +32,7 @@ class LegacyPersistence  @Inject()(mongoComponent: MongoComponent)(implicit ec: 
   domainFormat   = TeamRepositories.mongoFormat,
   indexes        = Seq(
     IndexModel(
-      Indexes.ascending("name", "archived"),
+      Indexes.ascending("name", "isArchived"),
       IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitiveCollation).unique(true)
     )
   ),
@@ -41,7 +41,7 @@ class LegacyPersistence  @Inject()(mongoComponent: MongoComponent)(implicit ec: 
 
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] = {
     collection.aggregate(Seq(
-        archived.map(a => Aggregates.`match`(Filters.eq("archived", a))).getOrElse( Aggregates.`match`(BsonDocument())),
+        archived.map(a => Aggregates.`match`(Filters.eq("isArchived", a))).getOrElse( Aggregates.`match`(BsonDocument())),
         Aggregates.unwind("$teamNames"),
         Aggregates.addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
         Aggregates.group(id = "$teamid", first("teamName","$teamid"), addToSet("repositories", "$$ROOT"), min("createdDate", "$createdDate"), max("updateDate", "$lastActiveDate") ),
