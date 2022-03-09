@@ -54,7 +54,11 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
 
   def findTeamNames(): Future[Seq[TeamName]] =
     collection
-      .aggregate[BsonDocument](Seq(Aggregates.unwind("$teamNames"), Aggregates.group("$teamNames")))
+      .aggregate[BsonDocument](Seq(
+        Aggregates.unwind("$teamNames"),
+        Aggregates.group("$teamNames"),
+        Aggregates.sort(Sorts.ascending("_id"))
+      ))
       .map(t => TeamName(t.getString("_id").getValue))
       .toFuture()
 
