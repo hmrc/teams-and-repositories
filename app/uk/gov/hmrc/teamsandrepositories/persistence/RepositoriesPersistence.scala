@@ -25,6 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName, TeamRep
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
+import play.api.Logger
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,6 +36,8 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   domainFormat   = GitRepository.mongoFormat,
   indexes        = RepositoriesPersistence.indexes
 ) {
+
+  private val logger = Logger(this.getClass)
 
   val legacyCollection: MongoCollection[TeamRepositories] = CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
 
@@ -62,10 +65,17 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
       .toFuture()
 
   def updateRepos(repos: Seq[GitRepository]): Future[Int] = {
-    collection
-      .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
-      .toFuture()
-      .map(_.getModifiedCount)
+    for {
+      oldRepos <- collection.find().map(_.name).toFuture().map(_.toSet)
+      update   <- collection
+                    .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
+                    .toFuture()
+                    .map(_.getModifiedCount)
+      toDelete  = (oldRepos -- repos.map(_.name)).toSeq
+      _         = logger.info(s"about to removed ${toDelete.length} deleted repos")
+      deleted  <- if(toDelete.nonEmpty) collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture().map(_.getModifiedCount) else Future.successful(0)
+      _         = logger.info(s"removed $deleted deleted repos")
+    } yield update
   }
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!

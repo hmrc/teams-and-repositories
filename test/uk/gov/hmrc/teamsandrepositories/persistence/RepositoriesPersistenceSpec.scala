@@ -77,9 +77,18 @@ class RepositoriesPersistenceSpec
     }
 
     "update existing repositories" in {
-      insert(repo1.copy(description = "the old description"))
+      insert(repo1.copy(description = "the old description")).futureValue
       repository.updateRepos(Seq(repo1,repo2)).futureValue
       findAll().futureValue must contain allOf(repo1, repo2)
+    }
+
+    "delete repos not in the update list" in {
+      insert(repo1).futureValue
+      insert(repo2).futureValue
+      repository.updateRepos(Seq(repo1)).futureValue
+      findAll().futureValue must contain (repo1)
+      findAll().futureValue must not contain (repo2)
+
     }
   }
 }
