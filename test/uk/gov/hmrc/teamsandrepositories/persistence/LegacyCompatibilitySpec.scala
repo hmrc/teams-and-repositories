@@ -26,7 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class LegacyPersistenceSpec
+class LegacyCompatibilitySpec
   extends AnyWordSpecLike
   with Matchers
   with MockitoSugar
@@ -35,7 +35,7 @@ class LegacyPersistenceSpec
 
   override protected def repository = new RepositoriesPersistence(mongoComponent)
 
-  val legacyPersistence = new LegacyPersistence(mongoComponent)
+  val legacyPersistence = new RepositoriesPersistence(mongoComponent)
 
   private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = false, "main", isDeprecated = false, Seq("team1"))
   private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = true, "main", isDeprecated = false, Seq("team1"))

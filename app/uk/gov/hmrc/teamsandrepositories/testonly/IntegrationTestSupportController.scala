@@ -16,20 +16,18 @@
 
 package uk.gov.hmrc.teamsandrepositories.testonly
 
-import javax.inject.Inject
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, TeamRepositories}
-import uk.gov.hmrc.teamsandrepositories.helpers.FutureHelpers
 import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, RepositoriesPersistence}
 
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.Inject
+import scala.concurrent.ExecutionContext
 
 class IntegrationTestSupportController @Inject()(
                                                   teamsRepo    : RepositoriesPersistence,
                                                   jenkinsRepo  : BuildJobRepo,
-                                                  futureHelpers: FutureHelpers,
                                                   cc           : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {

@@ -19,16 +19,16 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import com.google.inject.{Inject, Singleton}
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class AdminController @Inject()(
-   dataReloadScheduler : DataReloadScheduler,
-   repo                : RepositoriesPersistence,
-   cc                  : ControllerComponents
+                                 dataReloadScheduler     : DataReloadScheduler,
+                                 repositoriesPersistence : RepositoriesPersistence,
+                                 cc                      : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
@@ -38,7 +38,7 @@ class AdminController @Inject()(
   }
 
   def clearCache() = Action.async {
-    repo.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
+    repositoriesPersistence.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
   }
 
 }

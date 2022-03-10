@@ -22,14 +22,17 @@ import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-import uk.gov.hmrc.teamsandrepositories.persistence.{LegacyPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import scala.concurrent.ExecutionContext
 
+/*
+ Continues to exist to provide api compatibility to services that have yet to migrate to the V2 api.
+ */
 @Singleton
-class TeamsController @Inject()(legacyPersistence : LegacyPersistence,
-                                configuration     : Configuration,
-                                cc                : ControllerComponents
+class LegacyTeamsController @Inject()(repositoriesPersistence: RepositoriesPersistence,
+                                      configuration          : Configuration,
+                                      cc                     : ControllerComponents
 )(implicit ec: ExecutionContext) extends BackendController(cc) {
 
   lazy val sharedRepos: List[String] =
@@ -38,7 +41,7 @@ class TeamsController @Inject()(legacyPersistence : LegacyPersistence,
   private implicit val tf = Team.format
 
   def teams(includeRepos: Boolean) = Action.async {
-    legacyPersistence.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val teams =
           allTeamsAndRepos
@@ -48,7 +51,7 @@ class TeamsController @Inject()(legacyPersistence : LegacyPersistence,
   }
 
   def team(teamName: String, includeRepos: Boolean) = Action.async {
-    legacyPersistence.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val optTeam: Option[Team] =
           allTeamsAndRepos

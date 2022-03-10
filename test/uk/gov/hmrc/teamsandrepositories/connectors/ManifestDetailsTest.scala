@@ -36,7 +36,7 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
 
       details.isDefined             mustBe true
       details.get.repoType          mustBe Some(RepoType.Library)
-      details.get.deprecated        mustBe true
+      details.get.isDeprecated        mustBe true
 
     }
 
@@ -50,7 +50,7 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
 
       details.isDefined             mustBe true
       details.get.repoType          mustBe Some(RepoType.Library)
-      details.get.deprecated        mustBe false
+      details.get.isDeprecated        mustBe false
     }
 
   }

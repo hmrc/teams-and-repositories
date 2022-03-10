@@ -305,7 +305,7 @@ case class GhRepository(
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, deprecated = false))
+        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false))
 
     val repoType: RepoType =
       manifestDetails
@@ -325,23 +325,21 @@ case class GhRepository(
       language           = language,
       isArchived         = isArchived,
       defaultBranch      = defaultBranch,
-      isDeprecated       = manifestDetails.deprecated
+      isDeprecated       = manifestDetails.isDeprecated
     )
   }
 }
 
 object GhRepository {
 
-  final case class ManifestDetails( repoType:           Option[RepoType],
-                                    digitalServiceName: Option[String],
-                                    owningTeams:        Seq[String],
-                                    deprecated:         Boolean = false
-                                  )
+  final case class ManifestDetails(repoType:           Option[RepoType],
+                                   digitalServiceName: Option[String],
+                                   owningTeams:        Seq[String],
+                                   isDeprecated:       Boolean = false)
 
   object ManifestDetails {
 
-    private val logger =
-      Logger(this.getClass)
+    private val logger = Logger(this.getClass)
 
     def parse(repoName: String, manifest: String): Option[ManifestDetails] = {
       import scala.collection.JavaConverters._
@@ -374,7 +372,7 @@ object GhRepository {
                                               s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
                                             Nil
                                         },
-              deprecated         = config.getOrElse("deprecated", false).asInstanceOf[Boolean]
+              isDeprecated       = config.getOrElse("deprecated", false).asInstanceOf[Boolean]
             )
 
           logger.info(

@@ -56,13 +56,13 @@ case class PersistingService @Inject()(
   def updateRepositories()(implicit ec: ExecutionContext) = {
     for {
       teams     <- dataSource.getTeams()
-      teamRepos <- teams.take(5).foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+      teamRepos <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
         dataSource.getTeamRepositories(team).map(_ +: acc)
       }
       reposWithTeams  = teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
         trs.repositories.foldLeft(acc) { case (acc, repo) =>
           val r = acc.getOrElse(repo.name, repo)
-          acc + (r.name -> r.copy( teams = r.teams :+ trs.teamName))
+          acc + (r.name -> r.copy( teams = (r.teams :+ trs.teamName)))
         }
       }
       _ = logger.info(s"found ${reposWithTeams.values.size} repos")

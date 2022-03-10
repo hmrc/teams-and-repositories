@@ -31,12 +31,12 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.LegacyPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TeamsControllerSpec
+class LegacyTeamsControllerSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
@@ -198,11 +198,11 @@ class TeamsControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsController.teams(includeRepos = true).url mustBe "/api/teams?includeRepos=true"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController.teams(includeRepos = true).url mustBe "/api/teams?includeRepos=true"
     }
 
     "have the correct url set up for a team's services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.TeamsController
+      uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController
         .team("test-team", includeRepos = true)
         .url mustBe "/api/teams/test-team?includeRepos=true"
     }
@@ -419,7 +419,7 @@ class TeamsControllerSpec
   }
 
   private trait Setup {
-    val mockTeamsAndReposPersister = mock[LegacyPersistence]
+    val mockTeamsAndReposPersister = mock[RepositoriesPersistence]
     val mockConfiguration          = mock[Configuration]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
@@ -428,7 +428,7 @@ class TeamsControllerSpec
     when(mockConfiguration.get[Seq[String]]("shared.repositories"))
       .thenReturn(List.empty)
 
-    val controller = new TeamsController(
+    val controller = new LegacyTeamsController(
       mockTeamsAndReposPersister,
       mockConfiguration,
       stubControllerComponents()
