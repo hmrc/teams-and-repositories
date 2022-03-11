@@ -20,18 +20,20 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.{DigitalService, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplatesProvider
 import uk.gov.hmrc.teamsandrepositories.controller.model.RepositoryDetails
-import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import scala.concurrent.ExecutionContext
 
+/*
+ Continues to exist to provide api compatibility to services that have yet to migrate to the V2 api.
+ */
 @Singleton
-class RepositoriesController @Inject()(
-  teamsAndReposPersister: TeamsAndReposPersister,
-  urlTemplatesProvider  : UrlTemplatesProvider,
-  cc                    : ControllerComponents
+class LegacyRepositoriesController @Inject()(repositoriesPersistence : RepositoriesPersistence,
+                                             urlTemplatesProvider    : UrlTemplatesProvider,
+                                             cc                      : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
@@ -39,19 +41,19 @@ class RepositoriesController @Inject()(
   private implicit val dsf = DigitalService.format
 
   def repositoryTeams = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getRepositoryToTeamNames(allTeamsAndRepos)))
     }
   }
 
   def repositories(archived: Option[Boolean]) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+    repositoriesPersistence.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
     }
   }
 
   def repositoryDetails(name: String) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match {
           case None                    => NotFound
@@ -61,7 +63,7 @@ class RepositoriesController @Inject()(
   }
 
   def services(details: Boolean) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val json =
           if (details)
@@ -73,7 +75,7 @@ class RepositoriesController @Inject()(
   }
 
   def libraries(details: Boolean) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val json =
           if (details)
@@ -85,7 +87,7 @@ class RepositoriesController @Inject()(
   }
 
   def digitalServices = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         val digitalServices: Seq[String] =
           allTeamsAndRepos
@@ -99,7 +101,7 @@ class RepositoriesController @Inject()(
   }
 
   def digitalServiceDetails(name: String) = Action.async {
-    teamsAndReposPersister.getAllTeamsAndRepos(archived = None)
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
       .map { allTeamsAndRepos =>
         TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match {
           case None                 => NotFound
@@ -107,4 +109,5 @@ class RepositoriesController @Inject()(
         }
       }
   }
+
 }

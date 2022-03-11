@@ -1,3 +1,24 @@
+# Migration to 11.23.0
+
+Data model changes from teams with repos, to repos with teams. 
+
+```javascript
+db.getCollection('teamsAndRepositories').aggregate([
+     {$unwind: "$repositories"}
+    ,{$group: {
+        _id: "$repositories.name", 
+        repositories: {$max: "$repositories"},
+        teams: {$addToSet: "$teamName"},
+        }
+     }
+    ,{$addFields: {"repositories.teamNames":"$teams" }}
+    ,{$replaceRoot: {newRoot: "$repositories"} }
+    ,{$addFields: {"isArchived": "$archived"}}
+    ,{$project: {archived: 0}}
+    ,{$out: "repositories"}
+])
+```
+
 # Migration to 11.0.0
 
 ```javascript
@@ -35,3 +56,4 @@ db.getCollection('teamsAndRepositories-bak').aggregate([
   { $out: "teamsAndRepositories" }
 ]);
 ```
+

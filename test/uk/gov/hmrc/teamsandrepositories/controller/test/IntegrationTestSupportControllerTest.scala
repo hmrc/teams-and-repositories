@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.controller.test
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
+import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 
 class IntegrationTestSupportControllerTest extends AnyWordSpec {
 

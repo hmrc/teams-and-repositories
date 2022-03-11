@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories
+package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import akka.actor.ActorSystem
 import cats.implicits._
 import com.kenshoo.play.metrics.Metrics
-
-import javax.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

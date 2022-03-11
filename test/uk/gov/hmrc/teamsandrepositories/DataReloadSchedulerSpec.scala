@@ -30,6 +30,7 @@ import play.api.mvc.Results
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
+import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -71,8 +72,7 @@ class DataReloadSchedulerSpec
     val mockSchedulerConfigs  = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
     val mockPersistingService = mock[PersistingService]
 
-    when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
-    when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
+    when(mockPersistingService.updateRepositories()(any())).thenReturn(Future(1))
 
     when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(100.millisecond)
     when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(100.millisecond)
@@ -86,8 +86,7 @@ class DataReloadSchedulerSpec
       applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
     )
 
-    verify(mockPersistingService, timeout(500).atLeast(2)).persistTeamRepoMapping(any())
-    verify(mockPersistingService, timeout(500).atLeast(2)).removeOrphanTeamsFromMongo(any())(any())
+    verify(mockPersistingService, timeout(500).atLeast(2)).updateRepositories()(any())
   }
 
   "reloading the cache" should {
@@ -95,8 +94,7 @@ class DataReloadSchedulerSpec
       val mockSchedulerConfigs  = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
       val mockPersistingService = mock[PersistingService]
 
-      when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future(Nil))
-      when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any())).thenReturn(Future(Set.empty[String]))
+      when(mockPersistingService.updateRepositories()(any())).thenReturn(Future(1))
 
       when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(100.millisecond)
       when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(100.millisecond)
@@ -110,8 +108,7 @@ class DataReloadSchedulerSpec
         applicationLifecycle = app.injector.instanceOf[ApplicationLifecycle]
       )
 
-      verify(mockPersistingService, timeout(500).times(0)).persistTeamRepoMapping(any())
-      verify(mockPersistingService, timeout(500).times(0)).removeOrphanTeamsFromMongo(any())(any())
+      verify(mockPersistingService, timeout(500).times(0)).updateRepositories()(any())
     }
   }
 }

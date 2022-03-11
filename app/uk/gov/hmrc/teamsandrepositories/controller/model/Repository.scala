@@ -20,7 +20,7 @@ import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
 case class Repository(
   name         : String,
@@ -30,7 +30,8 @@ case class Repository(
   repoType     : RepoType,
   language     : Option[String],
   isArchived   : Boolean,
-  defaultBranch: String
+  defaultBranch: String,
+  isDeprecated : Boolean
 )
 
 object Repository {
@@ -44,7 +45,8 @@ object Repository {
       repoType      = gr.repoType,
       language      = gr.language,
       isArchived    = gr.isArchived,
-      defaultBranch = gr.defaultBranch
+      defaultBranch = gr.defaultBranch,
+      isDeprecated  = gr.isDeprecated
     )
 
   implicit val format: OFormat[Repository] = {
@@ -57,6 +59,7 @@ object Repository {
     ~ (__ \ "language"     ).formatNullable[String]
     ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
+    ~ (__ \ "isDeprecated" ).format[Boolean]
     )(apply, unlift(unapply))
   }
 }

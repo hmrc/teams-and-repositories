@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import java.time.Instant
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.TeamRepositories
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
+import java.time.Instant
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class Timestamper {
@@ -36,7 +35,7 @@ class Timestamper {
 @Singleton
 case class PersistingService @Inject()(
   githubConfig    : GithubConfig,
-  persister       : TeamsAndReposPersister,
+  persister       : RepositoriesPersistence,
   githubConnector : GithubConnector,
   timestamper     : Timestamper,
   configuration   : Configuration
@@ -54,39 +53,21 @@ case class PersistingService @Inject()(
       sharedRepos     = sharedRepos
     )
 
-  def persistTeamRepoMapping(implicit ec: ExecutionContext): Future[List[GhTeam]] =
-    (for {
-      teams                   <- dataSource.getTeams()
-      reposByName             <- dataSource.getAllRepositoriesByName()
-      repoNamesWithTeams      <- teams.foldLeftM(Set.empty[String]) { case (acc, team) =>
-                                   for {
-                                     repos     <- dataSource.getTeamRepositories(team, reposByName)
-                                     _         <- persister.update(repos)
-                                     repoNames =  repos.repositories.map(_.name).toSet
-                                   } yield acc ++ repoNames
-                                 }
-      reposWithoutTeams       =  (reposByName -- repoNamesWithTeams).values.toList.sortBy(_.name)
-      _                       <- persister.update(TeamRepositories.unknown(reposWithoutTeams, timestamper.timestampF()))
-    } yield teams).recoverWith {
-      case NonFatal(ex) =>
-        logger.error("Could not persist to teams repo.", ex)
-        Future.failed(ex)
-    }
+  def updateRepositories()(implicit ec: ExecutionContext) = {
+    for {
+      teams     <- dataSource.getTeams()
+      teamRepos <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+        dataSource.getTeamRepositories(team).map(_ :: acc)
+      }
+      reposWithTeams  = teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
+        trs.repositories.foldLeft(acc) { case (acc, repo) =>
+          val r = acc.getOrElse(repo.name, repo)
+          acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
+        }
+      }
+      _ = logger.info(s"found ${reposWithTeams.values.size} repos")
+      count <- persister.updateRepos(reposWithTeams.values.toSeq)
+    } yield count
+  }
 
-  def removeOrphanTeamsFromMongo(
-    teamsFromGithub: List[GhTeam]
-    )( implicit ec: ExecutionContext
-    ): Future[Set[String]] =
-    (for {
-       mongoTeams      <- persister.getAllTeamsAndRepos(None).map(_.map(_.teamName).toSet)
-       teamNamesFromGh =  teamsFromGithub.map(_.name)
-       orphanTeams     =  (mongoTeams.filterNot(teamNamesFromGh.toSet) - TeamRepositories.TEAM_UNKNOWN)
-       _               =  logger.info(s"Removing these orphan teams:[$orphanTeams]")
-       deleted         <- persister.deleteTeams(orphanTeams)
-     } yield deleted
-    ).recover {
-      case e =>
-        logger.error("Could not remove orphan teams from mongo.", e)
-        throw e
-    }
 }

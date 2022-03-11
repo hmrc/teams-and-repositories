@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.time.Instant
-
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
@@ -29,17 +28,16 @@ import play.api.libs.json._
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.{GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
-import uk.gov.hmrc.teamsandrepositories.persistence.TeamsAndReposPersister
+import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RepositoriesControllerSpec
+class LegacyRepositoriesControllerSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
@@ -205,7 +203,7 @@ class RepositoriesControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the list of all services" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.RepositoriesController.services(details = false).url mustBe "/api/services"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyRepositoriesController.services(details = false).url mustBe "/api/services"
     }
   }
 
@@ -503,7 +501,7 @@ class RepositoriesControllerSpec
     (obj \ "teamNames").as[Seq[String]]
 
   private trait Setup {
-    val mockTeamsAndReposPersister = mock[TeamsAndReposPersister]
+    val mockTeamsAndReposPersister = mock[RepositoriesPersistence]
     val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
@@ -519,7 +517,7 @@ class RepositoriesControllerSpec
         )
       )
 
-    val controller = new RepositoriesController(
+    val controller = new LegacyRepositoriesController(
       mockTeamsAndReposPersister,
       mockUrlTemplateProvider,
       stubControllerComponents()

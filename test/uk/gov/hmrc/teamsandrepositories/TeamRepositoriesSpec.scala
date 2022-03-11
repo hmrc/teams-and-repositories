@@ -17,20 +17,18 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import java.time.Instant
-
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.teamsandrepositories.RepoType.{Library, Other, Prototype, Service}
+import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-
+import uk.gov.hmrc.teamsandrepositories.models.{DigitalServiceRepository, GitRepository, TeamRepositories}
 
 import scala.collection.immutable.ListMap
 
 class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
   import TeamRepositories._
-
   val now = Instant.now()
 
   private val description = "Some description"

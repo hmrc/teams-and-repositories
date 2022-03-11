@@ -32,6 +32,7 @@ import play.api.mvc.Results
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
+import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
 
 import scala.concurrent.duration._
@@ -73,9 +74,7 @@ class ModuleSpec
 
   val mockPersistingService: PersistingService = mock[PersistingService]
 
-  when(mockPersistingService.persistTeamRepoMapping(any())).thenReturn(Future.successful(Nil))
-  when(mockPersistingService.removeOrphanTeamsFromMongo(any())(any()))
-    .thenReturn(Future.successful(Set.empty[String]))
+  when(mockPersistingService.updateRepositories()(any())).thenReturn(Future.successful(1))
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
@@ -97,6 +96,6 @@ class ModuleSpec
     val key = Key.get(new TypeLiteral[DataReloadScheduler]() {})
 
     guiceInjector.getInstance(key).isInstanceOf[DataReloadScheduler] mustBe true
-    verify(mockPersistingService, timeout(500).atLeast(2)).persistTeamRepoMapping(any())
+    verify(mockPersistingService, timeout(500).atLeast(2)).updateRepositories()(any())
   }
 }
