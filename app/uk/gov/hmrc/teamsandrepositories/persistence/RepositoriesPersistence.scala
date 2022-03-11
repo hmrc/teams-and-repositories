@@ -34,7 +34,9 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   mongoComponent = mongoComponent,
   collectionName = "repositories",
   domainFormat   = GitRepository.mongoFormat,
-  indexes        = RepositoriesPersistence.indexes
+  indexes        = Seq(IndexModel(
+                           Indexes.ascending("name", "isArchived"), IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)
+                   ))
 ) {
 
   private val logger = Logger(this.getClass)
@@ -89,14 +91,4 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
     )).toFuture()
   }
 
-}
-
-object RepositoriesPersistence {
-
-  val indexes = Seq(
-    IndexModel(
-      Indexes.ascending("name", "isArchived"),
-      IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)
-    )
-  )
 }

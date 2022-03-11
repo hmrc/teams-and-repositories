@@ -36,7 +36,7 @@ case class GitRepository(
   isArchived          : Boolean,
   defaultBranch       : String,
   isDeprecated        : Boolean        = false,
-  teams               : Seq[String]    = Nil
+  teams               : List[String]   = Nil
 )
 
 object GitRepository {
@@ -56,7 +56,7 @@ object GitRepository {
     ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"         ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     )(apply, unlift(unapply))
   }
 
@@ -76,7 +76,7 @@ object GitRepository {
     ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"         ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     )(apply, unlift(unapply))
   }
 

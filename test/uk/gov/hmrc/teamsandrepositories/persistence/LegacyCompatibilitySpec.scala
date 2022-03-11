@@ -37,8 +37,8 @@ class LegacyCompatibilitySpec
 
   val legacyPersistence = new RepositoriesPersistence(mongoComponent)
 
-  private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = false, "main", isDeprecated = false, Seq("team1"))
-  private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = true, "main", isDeprecated = false, Seq("team1"))
+  private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = false, "main", isDeprecated = false, List("team1"))
+  private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = true, "main", isDeprecated = false, List("team1"))
 
   "search" must {
 
