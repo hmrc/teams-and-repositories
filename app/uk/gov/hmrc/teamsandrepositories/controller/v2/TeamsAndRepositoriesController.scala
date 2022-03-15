@@ -30,7 +30,7 @@ class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: Reposito
                                               )(implicit ec: ExecutionContext
                                               ) extends BackendController(cc) {
   implicit val grf = GitRepository.apiFormat
-  implicit val tnf = TeamName.format
+  implicit val tnf = TeamName.apiFormat
 
   def allRepos(team: Option[String], archived: Option[Boolean]) = Action.async { request =>
     repositoriesPersistence.search(team, archived)
