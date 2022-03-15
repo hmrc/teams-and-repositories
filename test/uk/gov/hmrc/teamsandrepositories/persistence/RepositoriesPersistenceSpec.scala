@@ -66,7 +66,7 @@ class RepositoriesPersistenceSpec
     "return all the unique team names" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.findTeamNames().futureValue
-      results must contain allOf(TeamName("team1"), TeamName("team2"), TeamName("team3"))
+      results.map(_.name) must contain allOf("team1", "team2", "team3")
     }
   }
 

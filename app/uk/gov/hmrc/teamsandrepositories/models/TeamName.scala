@@ -16,10 +16,30 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat, __}
+import play.api.libs.functional.syntax._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-case class TeamName (name: String)
+import java.time.Instant
+
+case class TeamName (name: String, createdDate: Instant, lastActiveDate: Instant, repos: Int)
 
 object TeamName {
-  val format = Json.format[TeamName]
+
+  val apiFormat: OFormat[TeamName] = {
+    ( (__ \ "name"          ).format[String]
+    ~ (__ \ "createdDate"   ).format[Instant]
+    ~ (__ \ "lastActiveDate").format[Instant]
+    ~ (__ \ "repos"         ).format[Int]
+    )(TeamName.apply, unlift(TeamName.unapply))
+  }
+
+  val mongoFormat: OFormat[TeamName] = {
+    implicit val inf = MongoJavatimeFormats.instantFormat
+    ( (__ \ "_id"          ).format[String]
+    ~ (__ \ "createdDate"   ).format[Instant]
+    ~ (__ \ "lastActiveDate").format[Instant]
+    ~ (__ \ "repos"         ).format[Int]
+    )(TeamName.apply, unlift(TeamName.unapply))
+  }
 }

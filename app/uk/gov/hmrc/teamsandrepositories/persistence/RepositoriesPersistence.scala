@@ -17,14 +17,13 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonArray, BsonDocument}
-import org.mongodb.scala.model.Aggregates.{group, sort, unwind}
+import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, project, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{CollectionFactory, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
-import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import play.api.Logger
 
 import javax.inject.Inject
@@ -42,6 +41,7 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   private val logger = Logger(this.getClass)
 
   val legacyCollection: MongoCollection[TeamRepositories] = CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
+  val teamsCollection: MongoCollection[TeamName] = CollectionFactory.collection(mongoComponent.database, collectionName, TeamName.mongoFormat)
 
   def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
 
@@ -57,13 +57,14 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
     collection.find(filter = Filters.equal("name", repoName)).headOption()
 
   def findTeamNames(): Future[Seq[TeamName]] =
-    collection
-      .aggregate[BsonDocument](Seq(
+    teamsCollection
+      .aggregate(Seq(
+        addFields(Field("teamSize", BsonDocument("$size" -> "$teamNames"))),
+        `match`(Filters.lt("teamSize",8)), // ignore repos shared by more than n teams
         unwind("$teamNames"),
-        group("$teamNames"),
+        group("$teamNames", Accumulators.min("createdDate", "$createdDate"), Accumulators.max("lastActiveDate", "$lastActiveDate"), Accumulators.sum("repos", 1)),
         sort(Sorts.ascending("_id"))
       ))
-      .map(t => TeamName(t.getString("_id").getValue))
       .toFuture()
 
   def updateRepos(repos: Seq[GitRepository]): Future[Int] = {
