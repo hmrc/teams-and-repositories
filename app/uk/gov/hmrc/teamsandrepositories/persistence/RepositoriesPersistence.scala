@@ -21,7 +21,7 @@ import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, project, s
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import play.api.Logger
@@ -33,9 +33,10 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   mongoComponent = mongoComponent,
   collectionName = "repositories",
   domainFormat   = GitRepository.mongoFormat,
-  indexes        = Seq(IndexModel(
-                           Indexes.ascending("name", "isArchived"), IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)
-                   ))
+  indexes        = Seq(
+                       IndexModel(Indexes.ascending("name", "isArchived"), IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)),
+                       IndexModel(Indexes.ascending("repoType"), IndexOptions().name("repoTypeIdx").background(true))
+                      )
 ) {
 
   private val logger = Logger(this.getClass)
@@ -45,8 +46,12 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
 
   def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
 
-  def search(team: Option[String] = None, isArchived: Option[Boolean] = None): Future[Seq[GitRepository]] = {
-    val filters = Seq( team.map(t => Filters.equal("teamNames", t)), isArchived.map(b => Filters.equal("isArchived", b))).flatten
+  def search(team: Option[String] = None, isArchived: Option[Boolean] = None, repoType: Option[RepoType] = None): Future[Seq[GitRepository]] = {
+    val filters = Seq(
+            team.map(t  => Filters.equal("teamNames", t)),
+      isArchived.map(b  => Filters.equal("isArchived", b)),
+        repoType.map(rt => Filters.equal("repoType", rt.asString)),
+    ).flatten
     filters match {
       case Nil  => collection.find().toFuture()
       case more => collection.find(Filters.and(more:_*)).toFuture()

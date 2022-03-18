@@ -1,3 +1,4 @@
+import play.sbt.routes.RoutesKeys
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 
 val silencerVersion = "1.7.5"
@@ -18,4 +19,9 @@ lazy val microservice = Project("teams-and-repositories", file("."))
       compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
     )
+  )
+  .settings(
+    RoutesKeys.routesImport ++= Seq(
+      "uk.gov.hmrc.teamsandrepositories.models.RepoType"
+    ),
   )

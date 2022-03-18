@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, DefaultPlayMongoRepositorySupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
-import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
+import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,7 +37,7 @@ class RepositoriesPersistenceSpec
 
   private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = false, "main", isDeprecated = false, List("team1", "team2"))
   private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = true, "main", isDeprecated = false, List("team2", "team3"))
-
+  private val repo3 = GitRepository("repo3", "desc 3", "git/repo3", Instant.now(), Instant.now(), isPrivate = false, Prototype, None, Nil, None, isArchived = true, "main", isDeprecated = false, List("team1","team2", "team3"))
   "search" must  {
 
     "find all repos" in {
@@ -57,8 +57,16 @@ class RepositoriesPersistenceSpec
     "find repos belonging to a team" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.search(team = Some("team3")).futureValue
-      results must contain (repo2)
-      results must not contain (repo1)
+      results must contain only (repo2)
+    }
+
+    "find repos by type" in {
+      repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
+      val results = repository.search(repoType = Some(Prototype)).futureValue
+      results must contain only (repo3)
+      val results2 = repository.search(repoType = Some(Service)).futureValue
+      results2 must contain only (repo1, repo2)
+
     }
   }
 
