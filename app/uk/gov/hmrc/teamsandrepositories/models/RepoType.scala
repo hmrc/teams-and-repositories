@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.models
 
 import play.api.libs.json._
+import play.api.mvc.QueryStringBindable
 
 sealed trait RepoType { def asString: String }
 
@@ -45,4 +46,18 @@ object RepoType {
     override def writes(o: RepoType): JsValue =
       JsString(o.asString)
   }
+
+  implicit val queryStringBindable: QueryStringBindable[RepoType] =
+    new QueryStringBindable[RepoType] {
+
+      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, RepoType]] =
+        params.get(key).map {
+          case Nil         => Left("missing repoType value")
+          case head :: Nil => RepoType.parse(head)
+          case _           => Left("too many repoType values")
+        }
+
+      override def unbind(key: String, value: RepoType): String =
+        s"$key=${value.asString}"
+    }
 }
