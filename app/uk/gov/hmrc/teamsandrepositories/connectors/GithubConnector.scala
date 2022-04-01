@@ -218,7 +218,7 @@ object GithubConnector {
         query($$team: String!, $$cursor: String) {
           organization(login: "hmrc") {
             team(slug: $$team) {
-              repositories(first: 50, after: $$cursor) {
+              repositories(first: 30, after: $$cursor) {
                 pageInfo {
                   endCursor
                 }
@@ -237,7 +237,7 @@ object GithubConnector {
       s"""
         query($$cursor: String) {
           organization(login: "hmrc") {
-            repositories(first: 50, after: $$cursor) {
+            repositories(first: 30, after: $$cursor) {
               pageInfo {
                 endCursor
               }
