@@ -186,6 +186,11 @@ object GithubConnector {
       isArchived
       defaultBranchRef {
         name
+        branchProtectionRule {
+          requiresApprovingReviews
+          dismissesStaleReviews
+          requiresCommitSignatures
+        }
       }
       repositoryYaml: object(expression: "HEAD:repository.yaml") {
         ... on Blob {
@@ -297,6 +302,7 @@ case class GhRepository(
   language          : Option[String],
   isArchived        : Boolean,
   defaultBranch     : String,
+  branchProtection  : Option[BranchProtection],
   repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
@@ -325,6 +331,7 @@ case class GhRepository(
       language           = language,
       isArchived         = isArchived,
       defaultBranch      = defaultBranch,
+      branchProtection   = branchProtection,
       isDeprecated       = manifestDetails.isDeprecated
     )
   }
@@ -424,17 +431,18 @@ object GhRepository {
   }
 
   val reads: Reads[GhRepository] =
-    ( (__ \ "name"                        ).read[String]
-    ~ (__ \ "description"                 ).readNullable[String]
-    ~ (__ \ "url"                         ).read[String]
-    ~ (__ \ "isFork"                      ).read[Boolean]
-    ~ (__ \ "createdAt"                   ).read[Instant]
-    ~ (__ \ "pushedAt"                    ).readWithDefault(Instant.MIN)
-    ~ (__ \ "isPrivate"                   ).read[Boolean]
-    ~ (__ \ "primaryLanguage" \ "name"    ).readNullable[String]
-    ~ (__ \ "isArchived"                  ).read[Boolean]
-    ~ (__ \ "defaultBranchRef" \ "name"   ).readWithDefault("main")
-    ~ (__ \ "repositoryYaml" \ "text"     ).readNullable[String]
+    ( (__ \ "name"                                     ).read[String]
+    ~ (__ \ "description"                              ).readNullable[String]
+    ~ (__ \ "url"                                      ).read[String]
+    ~ (__ \ "isFork"                                   ).read[Boolean]
+    ~ (__ \ "createdAt"                                ).read[Instant]
+    ~ (__ \ "pushedAt"                                 ).readWithDefault(Instant.MIN)
+    ~ (__ \ "isPrivate"                                ).read[Boolean]
+    ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
+    ~ (__ \ "isArchived"                               ).read[Boolean]
+    ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
+    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(BranchProtection.format)
+    ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }
@@ -486,4 +494,19 @@ object RateLimit {
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
   }
+}
+
+final case class BranchProtection(
+  requiresApprovingReviews: Boolean,
+  dismissesStaleReview: Boolean,
+  requiresCommitSignatures: Boolean
+)
+
+object BranchProtection {
+
+  val format: Format[BranchProtection] =
+    ( (__ \ "requiresApprovingReviews").format[Boolean]
+    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
+    ~ (__ \ "requiresCommitSignatures").format[Boolean]
+    )(apply, unlift(unapply))
 }

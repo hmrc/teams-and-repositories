@@ -91,6 +91,7 @@ class GithubV3RepositoryDataSourceSpec
       language           = Some("Scala"),
       isArchived         = false,
       defaultBranch      = "main",
+      branchProtection   = None,
       repositoryYamlText = None,
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
@@ -126,6 +127,7 @@ class GithubV3RepositoryDataSourceSpec
         language           = Some("Scala"),
         isArchived         = false,
         defaultBranch      = "main",
+        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -140,6 +142,7 @@ class GithubV3RepositoryDataSourceSpec
         language           = Some("Scala"),
         isArchived         = false,
         defaultBranch      = "main",
+        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -199,6 +202,7 @@ class GithubV3RepositoryDataSourceSpec
             language           = Some("Scala"),
             isArchived         = false,
             defaultBranch      = "main",
+            branchProtection   = None,
             repositoryYamlText = None,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           ),
@@ -213,6 +217,7 @@ class GithubV3RepositoryDataSourceSpec
             language           = Some("Scala"),
             isArchived         = false,
             defaultBranch      = "main",
+            branchProtection   = None,
             repositoryYamlText = None,
             repoTypeHeuristics = dummyRepoTypeHeuristics
           )
@@ -840,6 +845,7 @@ class GithubV3RepositoryDataSourceSpec
           language           = Some("Scala"),
           isArchived         = false,
           defaultBranch      = "main",
+          branchProtection   = None,
           repositoryYamlText = None,
           repoTypeHeuristics = dummyRepoTypeHeuristics
         )

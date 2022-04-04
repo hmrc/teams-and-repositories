@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.models
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
 import java.time.Instant
 
@@ -28,15 +29,16 @@ case class GitRepository(
   url                 : String,
   createdDate         : Instant,
   lastActiveDate      : Instant,
-  isPrivate           : Boolean        = false,
-  repoType            : RepoType       = RepoType.Other,
-  digitalServiceName  : Option[String] = None,
-  owningTeams         : Seq[String]    = Nil,
+  isPrivate           : Boolean                  = false,
+  repoType            : RepoType                 = RepoType.Other,
+  digitalServiceName  : Option[String]           = None,
+  owningTeams         : Seq[String]              = Nil,
   language            : Option[String],
   isArchived          : Boolean,
   defaultBranch       : String,
-  isDeprecated        : Boolean        = false,
-  teams               : List[String]   = Nil
+  branchProtection    : Option[BranchProtection] = None,
+  isDeprecated        : Boolean                  = false,
+  teams               : List[String]             = Nil
 )
 
 object GitRepository {
@@ -55,6 +57,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).format[String]
+    ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     )(apply, unlift(unapply))
@@ -75,6 +78,7 @@ object GitRepository {
     ~ (__ \ "language"          ).formatNullable[String]
     ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
     ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
+    ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     )(apply, unlift(unapply))
