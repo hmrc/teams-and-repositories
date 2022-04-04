@@ -83,27 +83,4 @@ object GitRepository {
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     )(apply, unlift(unapply))
   }
-
-  def primaryRepoType(repositories: Seq[GitRepository]): RepoType =
-    if      (repositories.exists(_.repoType == RepoType.Prototype)) RepoType.Prototype
-    else if (repositories.exists(_.repoType == RepoType.Service  )) RepoType.Service
-    else if (repositories.exists(_.repoType == RepoType.Library  )) RepoType.Library
-    else RepoType.Other
-
-  def extractRepositoryGroupForType(
-    repoType    : RepoType,
-    repositories: Seq[GitRepository]
-  ): List[GitRepository] =
-    repositories
-      .groupBy(_.name)
-      .filter {
-        case (_, repos) if repoType == RepoType.Service =>  repos.exists(_.repoType == RepoType.Service)
-        case (_, repos) if repoType == RepoType.Library => !repos.exists(_.repoType == RepoType.Service) &&
-                                                            repos.exists(_.repoType == RepoType.Library)
-        case (_, repos)                                 => !repos.exists(_.repoType == RepoType.Service) &&
-                                                           !repos.exists(_.repoType == RepoType.Library) &&
-                                                            repos.exists(_.repoType == repoType)
-      }
-      .flatMap(_._2)
-      .toList
 }
