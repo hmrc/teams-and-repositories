@@ -158,7 +158,12 @@ class GithubConnectorSpec
          },
          "isArchived": false,
          "defaultBranchRef": {
-           "name": "b1"
+           "name": "b1",
+           "branchProtectionRule": {
+             "requiresApprovingReviews": true,
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
+           }
          }
        },
        {
@@ -175,7 +180,12 @@ class GithubConnectorSpec
          },
          "isArchived": true,
          "defaultBranchRef": {
-           "name": "b2"
+           "name": "b2",
+           "branchProtectionRule": {
+             "requiresApprovingReviews": true,
+             "dismissesStaleReviews": true,
+             "requiresCommitSignatures": true
+           }
          }
        }
     ]"""
@@ -285,6 +295,7 @@ class GithubConnectorSpec
         language           = Some("l1"),
         isArchived         = false,
         defaultBranch      = "b1",
+        branchProtection   = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -299,6 +310,7 @@ class GithubConnectorSpec
         language           = Some("l2"),
         isArchived         = true,
         defaultBranch      = "b2",
+        branchProtection   = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       ),
@@ -313,6 +325,7 @@ class GithubConnectorSpec
         language           = None,
         isArchived         = false,
         defaultBranch      = "b3",
+        branchProtection   = None,
         repositoryYamlText = None,
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
@@ -517,20 +530,4 @@ class GithubConnectorSpec
       )
     }
   }
-
-  val repo =
-    GhRepository(
-      name               = "my-repo",
-      description        = Some("d1"),
-      htmlUrl            = "url1",
-      fork               = false,
-      createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
-      pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
-      isPrivate          = true,
-      language           = Some("l1"),
-      isArchived         = false,
-      defaultBranch      = "b1",
-      repositoryYamlText = None,
-      repoTypeHeuristics = dummyRepoTypeHeuristics
-    )
 }

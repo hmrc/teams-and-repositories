@@ -20,6 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, DefaultPlayMongoRepositorySupport, PlayMongoRepositorySupport}
+import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
@@ -35,9 +36,63 @@ class RepositoriesPersistenceSpec
 
   override protected def repository = new RepositoriesPersistence(mongoComponent)
 
-  private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = false, "main", isDeprecated = false, List("team1", "team2"))
-  private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, None, Nil, None, isArchived = true, "main", isDeprecated = false, List("team2", "team3"))
-  private val repo3 = GitRepository("repo3", "desc 3", "git/repo3", Instant.now(), Instant.now(), isPrivate = false, Prototype, None, Nil, None, isArchived = true, "main", isDeprecated = false, List("team1","team2", "team3"))
+  private val repo1 =
+    GitRepository(
+      "repo1",
+      "desc 1",
+      "git/repo1",
+      Instant.now(),
+      Instant.now(),
+      isPrivate = false,
+      Service,
+      None,
+      Nil,
+      None,
+      isArchived = false,
+      "main",
+      branchProtection = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
+      isDeprecated = false,
+      List("team1", "team2")
+    )
+
+  private val repo2 =
+    GitRepository(
+      "repo2",
+      "desc 2",
+      "git/repo2",
+      Instant.now(),
+      Instant.now(),
+      isPrivate = false,
+      Service,
+      None,
+      Nil,
+      None,
+      isArchived = true,
+      "main",
+      branchProtection = None,
+      isDeprecated = false,
+      List("team2", "team3")
+    )
+
+  private val repo3 =
+    GitRepository(
+      "repo3",
+      "desc 3",
+      "git/repo3",
+      Instant.now(),
+      Instant.now(),
+      isPrivate = false,
+      Prototype,
+      None,
+      Nil,
+      None,
+      isArchived = true,
+      "main",
+      branchProtection = None,
+      isDeprecated = false,
+      List("team1","team2", "team3")
+    )
+
   "search" must  {
 
     "find all repos" in {
