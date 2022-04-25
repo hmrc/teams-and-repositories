@@ -12,7 +12,8 @@ object AppDependencies {
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % hmrcMongoVersion,
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-metrix-play-28" % hmrcMongoVersion,
     "org.yaml"          %  "snakeyaml"                 % "1.28",
-    "org.typelevel"     %% "cats-core"                 % "2.6.1"
+    "org.typelevel"     %% "cats-core"                 % "2.6.1",
+    "io.ticofab"        %% "aws-request-signer"        % "0.5.2"
   )
 
   val test = Seq(
