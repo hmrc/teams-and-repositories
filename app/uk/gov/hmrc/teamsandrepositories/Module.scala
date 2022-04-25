@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import akka.actor.ActorSystem
+import com.amazonaws.auth.{AWSCredentialsProvider, DefaultAWSCredentialsProviderChain}
 import com.google.inject.AbstractModule
 import com.typesafe.config.Config
 
@@ -34,6 +35,12 @@ class Module() extends AbstractModule {
     bind(classOf[DataReloadScheduler]).asEagerSingleton()
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
     bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
+  }
+}
+
+class AwsCredentialsModule extends AbstractModule {
+  override def configure(): Unit = {
+    bind(classOf[AWSCredentialsProvider]).toInstance(DefaultAWSCredentialsProviderChain.getInstance())
   }
 }
 

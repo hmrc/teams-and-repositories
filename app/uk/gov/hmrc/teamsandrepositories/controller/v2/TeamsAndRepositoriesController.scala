@@ -19,17 +19,23 @@ package uk.gov.hmrc.teamsandrepositories.controller.v2
 import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtectionApiConnector
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: RepositoriesPersistence,
-                                                cc                      : ControllerComponents
-                                              )(implicit ec: ExecutionContext
-                                              ) extends BackendController(cc) {
+class TeamsAndRepositoriesController @Inject()(
+  repositoriesPersistence: RepositoriesPersistence,
+  branchProtectionService: BranchProtectionService,
+  cc: ControllerComponents
+)(implicit
+  ec: ExecutionContext
+) extends BackendController(cc) {
+
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamName.apiFormat
 
@@ -47,6 +53,12 @@ class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: Reposito
       case None       => NotFound
       case Some(repo) => Ok(Json.toJson(repo))
     }
+  }
+
+  def setBranchProtection(repoName: String) = Action.async { _ =>
+    branchProtectionService
+      .setBranchProtection(repoName)
+      .map(_ => Ok)
   }
 
 }
