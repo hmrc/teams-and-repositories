@@ -49,20 +49,23 @@ class BranchProtectionApiConnector @Inject()(
 
   def setBranchProtection(repoName: String): Future[Unit] = {
 
+    val url =
+      url"${config.baseUrl}/v1/UpdateGithubDefaultBranchProtection"
+
     val payload =
       BranchProtectionPayload(List(repoName), enable = true)
 
     val signedHeaders =
       awsSigner.getSignedHeaders(
-        config.url.getPath,
+        url.getPath,
         "POST",
         Map.empty,
-        Map("host" -> config.host.getOrElse(config.url.getHost)),
+        Map("host" -> config.host.getOrElse(url.getHost)),
         Some(Json.toBytes(Json.toJson(payload)))
       ).toSeq
 
     httpClient
-      .POST[BranchProtectionPayload, HttpResponse](config.url, payload, signedHeaders)
+      .POST[BranchProtectionPayload, HttpResponse](config.baseUrl, payload, signedHeaders)
       .map { r => logger.info(s"Setting BP for $repoName: Status code = ${r.status}; Body = ${r.body}") }
   }
 
