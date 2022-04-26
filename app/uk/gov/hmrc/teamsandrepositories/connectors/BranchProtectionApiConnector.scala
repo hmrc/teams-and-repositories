@@ -57,11 +57,9 @@ class BranchProtectionApiConnector @Inject()(
         config.url.getPath,
         "POST",
         Map.empty,
-        Map("host" -> config.url.getHost),
+        Map("host" -> config.host.getOrElse(config.url.getHost)),
         Some(Json.toBytes(Json.toJson(payload)))
       ).toSeq
-
-    logger.info(s"Setting BP for $repoName. Headers: $signedHeaders")
 
     httpClient
       .POST[BranchProtectionPayload, HttpResponse](config.url, payload, signedHeaders)
