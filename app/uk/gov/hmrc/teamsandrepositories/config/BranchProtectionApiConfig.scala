@@ -17,15 +17,12 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import play.api.Configuration
-import uk.gov.hmrc.http._
-
-import java.net.URL
 import javax.inject.Inject
 
 class BranchProtectionApiConfig @Inject()(config: Configuration) {
 
-  val url: URL =
-    url"${config.get[String]("branch-protection-api.url")}"
+  val baseUrl: String =
+    config.get[String]("branch-protection-api.url")
 
   val host: Option[String] =
     config.getOptional[String]("branch-protection-api.host")
