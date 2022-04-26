@@ -65,7 +65,7 @@ class BranchProtectionApiConnector @Inject()(
       ).toSeq
 
     httpClient
-      .POST[BranchProtectionPayload, HttpResponse](config.baseUrl, payload, signedHeaders)
+      .POST[BranchProtectionPayload, HttpResponse](url, payload, signedHeaders)
       .map { r => logger.info(s"Setting BP for $repoName: Status code = ${r.status}; Body = ${r.body}") }
   }
 
