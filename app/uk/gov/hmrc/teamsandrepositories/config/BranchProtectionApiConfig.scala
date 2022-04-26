@@ -28,7 +28,7 @@ class BranchProtectionApiConfig @Inject()(config: Configuration) {
     url"${config.get[String]("branch-protection-api.url")}"
 
   val host: Option[String] =
-    config.getOptional("branch-protection-api.host")
+    config.getOptional[String]("branch-protection-api.host")
 
   val awsRegion: String =
     config.get[String]("branch-protection-api.aws-region")
