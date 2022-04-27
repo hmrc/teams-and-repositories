@@ -59,15 +59,17 @@ case class PersistingService @Inject()(
       teamRepos <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
         dataSource.getTeamRepositories(team).map(_ :: acc)
       }
-      reposWithTeams  = teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
+      reposWithTeams = teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
         trs.repositories.foldLeft(acc) { case (acc, repo) =>
           val r = acc.getOrElse(repo.name, repo)
           acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
         }
       }
-      _ = logger.info(s"found ${reposWithTeams.values.size} repos")
-      count <- persister.updateRepos(reposWithTeams.values.toSeq)
+      allRepos      <- dataSource.getAllRepositoriesByName()
+      orphanRepos    = (allRepos -- reposWithTeams.keys).values
+      reposToPersist = reposWithTeams.values.toSeq ++ orphanRepos
+      _              = logger.info(s"found ${reposToPersist.length} repos")
+      count         <- persister.updateRepos(reposToPersist)
     } yield count
   }
-
 }
