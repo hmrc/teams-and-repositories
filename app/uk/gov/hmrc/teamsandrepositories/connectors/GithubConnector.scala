@@ -95,6 +95,14 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
+  def getRepo(repoName: String): Future[Option[GhRepository]] = {
+    implicit val reads =
+      (__ \ "data" \ "organization" \ "repository")
+        .readNullable(GhRepository.reads)
+
+    executeGqlQuery[Option[GhRepository]](getRepoQuery.withVariable("repo", JsString(repoName)))
+  }
+
   def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
     implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClient.GET[RateLimitMetrics](
@@ -249,6 +257,19 @@ object GithubConnector {
               nodes {
                 $repositoryFields
               }
+            }
+          }
+        }
+      """
+    )
+
+  val getRepoQuery: GraphqlQuery =
+    GraphqlQuery(
+      s"""
+        query($$repo: String!) {
+          organization(login: "hmrc") {
+            repository(name: $$repo) {
+              $repositoryFields
             }
           }
         }
