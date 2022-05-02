@@ -16,22 +16,22 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.auth.AWSCredentialsProvider
 import io.ticofab.AwsSigner
 import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, _}
+import uk.gov.hmrc.teamsandrepositories.config.BranchProtectionApiConfig
 
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.teamsandrepositories.config.BranchProtectionApiConfig
 
 @Singleton
 class BranchProtectionApiConnector @Inject()(
   httpClient: HttpClient,
+  awsCredentialsProvider: AWSCredentialsProvider,
   config: BranchProtectionApiConfig
 )(
   implicit ec: ExecutionContext
@@ -39,21 +39,12 @@ class BranchProtectionApiConnector @Inject()(
 
   private implicit val hc = HeaderCarrier()
 
-  private val awsSigner =
-    AwsSigner(
-      DefaultAWSCredentialsProviderChain.getInstance(),
-      config.awsRegion,
-      "execute-api",
-      () => LocalDateTime.now()
-    )
-
   def setBranchProtection(repoName: String): Future[Unit] = {
-
     val url =
       url"${config.baseUrl}/v1/UpdateGithubDefaultBranchProtection"
 
     val payload =
-      Json.toJson(BranchProtectionPayload(List(repoName), enable = true))
+      Json.toJson(BranchProtectionApiConnector.Request(repoName, enable = true))
 
     val signedHeaders =
       awsSigner.getSignedHeaders(
@@ -64,18 +55,53 @@ class BranchProtectionApiConnector @Inject()(
         Some(Json.toBytes(payload))
       ).toSeq
 
-    httpClient
-      .POST[JsValue, HttpResponse](url, payload, signedHeaders)
-      .map { r => logger.info(s"Setting BP for $repoName: Status code = ${r.status}; Body = ${r.body}") }
+    for {
+      response <- httpClient.POST[JsValue, BranchProtectionApiConnector.Response](url, payload, signedHeaders)
+      _        <- if (response.success)
+                    Future.unit
+                  else
+                    Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${response.message}"))
+    } yield ()
   }
 
-  private final case class BranchProtectionPayload(
-    repositoryNames: List[String],
+  private lazy val awsSigner =
+    AwsSigner(
+      awsCredentialsProvider,
+      config.awsRegion,
+      "execute-api",
+      () => LocalDateTime.now()
+    )
+}
+
+object BranchProtectionApiConnector {
+
+  final case class Request(
+    repoName: String,
     enable: Boolean
   )
 
-  private implicit lazy val branchProtectionPayloadWrites: Writes[BranchProtectionPayload] =
-    ( (__ \ "repository_names"          ).write[String].contramap[List[String]](_.mkString(","))
-    ~ (__ \ "set_branch_protection_rule").write[Boolean]
-    )(unlift(BranchProtectionPayload.unapply))
+  object Request {
+
+    implicit val writes: Writes[Request] =
+      ( (__ \ "repository_names"          ).write[String]
+      ~ (__ \ "set_branch_protection_rule").write[Boolean]
+      )(unlift(Request.unapply))
+  }
+
+  final case class Response(
+    success: Boolean,
+    message: String
+  )
+
+  object Response {
+
+    implicit val reads: Reads[Response] =
+      Reads.list {
+        ( (__ \ "success").read[Boolean]
+        ~ (__ \ "message").read[String]
+        ) (Response.apply _)
+      }.collect(JsonValidationError("A single-element array of responses was expected but not found")) {
+        case x :: Nil => x
+      }
+  }
 }
