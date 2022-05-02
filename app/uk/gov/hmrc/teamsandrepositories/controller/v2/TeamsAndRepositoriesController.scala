@@ -22,6 +22,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtectionApiConnector
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -29,7 +30,7 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
-  branchProtectionApiConnector: BranchProtectionApiConnector,
+  branchProtectionService: BranchProtectionService,
   cc: ControllerComponents
 )(implicit
   ec: ExecutionContext
@@ -55,7 +56,7 @@ class TeamsAndRepositoriesController @Inject()(
   }
 
   def setBranchProtection(repoName: String) = Action.async { _ =>
-    branchProtectionApiConnector
+    branchProtectionService
       .setBranchProtection(repoName)
       .map(_ => Ok)
   }

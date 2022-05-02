@@ -105,7 +105,7 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
 
     collection
       .updateOne(
-        filter = Filters.eq("name", repoName),
+        filter = Filters.equal("name", repoName),
         update = Updates.set("branchProtection", Codecs.toBson(branchProtection))
       ).toFuture().map(_ => ())
   }
