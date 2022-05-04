@@ -15,9 +15,10 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.persistence
+import com.mongodb.{ReadConcern, WriteConcern}
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonArray, BsonDocument}
-import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, project, sort, unwind}
+import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
@@ -61,7 +62,9 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
-    collection.find(filter = Filters.equal("name", repoName)).headOption()
+    collection
+      .withReadConcern(ReadConcern.MAJORITY)
+      .find(filter = Filters.equal("name", repoName)).headOption()
 
   def findTeamNames(): Future[Seq[TeamName]] =
     teamsCollection
@@ -104,6 +107,7 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
       BranchProtection.format
 
     collection
+      .withWriteConcern(WriteConcern.MAJORITY)
       .updateOne(
         filter = Filters.equal("name", repoName),
         update = Updates.set("branchProtection", Codecs.toBson(branchProtection))

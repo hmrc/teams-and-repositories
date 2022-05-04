@@ -20,9 +20,9 @@ import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, DefaultPlayMongoRepositorySupport, PlayMongoRepositorySupport}
+import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
 import java.time.Instant
