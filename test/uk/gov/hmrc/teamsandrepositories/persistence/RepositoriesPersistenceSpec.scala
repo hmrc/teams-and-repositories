@@ -161,7 +161,7 @@ class RepositoriesPersistenceSpec
   "updateRepoBranchProtection" should {
     "update the branch protection policy of the given repository" in {
       (for {
-        _               <- repository.collection.withWriteConcern(WriteConcern.MAJORITY).insertOne(repo1).toFuture()
+        _               <- insert(repo1)
         bpBefore        <- repository.findRepo(repo1.name).map(_.value.branchProtection)
         expectedBpAfter =  BranchProtection(false, false, false)
         _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
