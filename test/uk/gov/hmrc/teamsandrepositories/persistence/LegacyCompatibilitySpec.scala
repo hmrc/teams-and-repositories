@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
