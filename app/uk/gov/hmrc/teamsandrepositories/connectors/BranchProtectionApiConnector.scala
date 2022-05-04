@@ -28,6 +28,8 @@ import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+import uk.gov.hmrc.http.HttpReads.Implicits._
+
 @Singleton
 class BranchProtectionApiConnector @Inject()(
   httpClient: HttpClient,
