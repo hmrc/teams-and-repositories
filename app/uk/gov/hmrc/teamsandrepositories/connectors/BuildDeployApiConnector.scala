@@ -113,23 +113,27 @@ object BuildDeployApiConnector {
       host: Option[String] = None,
       method: String,
       payload: Option[JsValue] = None
-    ): Seq[(String, String)] = {
+    ): Seq[(String, String)] =
       AwsSigner(awsCredentials, awsRegion, awsService, () => LocalDateTime.now())
         .getSignedHeaders(
           uri = url.getPath,
           method = method,
-          queryParams = toMap(url.getQuery),
+          queryParams = Option(url.getQuery).map(toMap).getOrElse(Map.empty),
           headers = Map[String, String]("host" -> host.getOrElse(url.getHost)),
           payload = payload.map(Json.toBytes)
         ).toSeq
-    }
 
-    // converts a query string into a map, note this would fall over if the same parameter was used twice
-    private def toMap(query: String) = {
-      Option(query)
-        .map(_.split("&").map(expandQueryParam).toMap)
-        .getOrElse(Map.empty)
-    }
+    private def toMap(query: String): Map[String, String] =
+      query
+        .split("&")
+        .toList
+        .map(expandQueryParam)
+        .groupBy(_._1)
+        .values
+        .collect {
+          case param :: Nil => param
+          case _            => sys.error("Duplicate query parameter keys are not currently supported.")
+        }.toMap
 
     private def expandQueryParam(param: String) = {
       val pair = param.split("=", 2)
