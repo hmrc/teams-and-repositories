@@ -22,11 +22,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.http.test.{HttpClientSupport, WireMockSupport}
-import uk.gov.hmrc.teamsandrepositories.config.BranchProtectionApiConfig
+import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
 
-class BranchProtectionApiConnectorSpec
+class BuildDeployApiConnectorSpec
   extends AnyWordSpec
      with Matchers
      with ScalaFutures
@@ -34,7 +34,7 @@ class BranchProtectionApiConnectorSpec
      with HttpClientSupport
      with IntegrationPatience {
 
-  "setBranchProtection" should {
+  "enableBranchProtection" should {
 
     "Invoke the API and return unit if successful" in {
       stubFor(
@@ -51,7 +51,7 @@ class BranchProtectionApiConnectorSpec
           ))
       )
 
-      connector.setBranchProtection("some-repo").futureValue
+      connector.enableBranchProtection("some-repo").futureValue
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/UpdateGithubDefaultBranchProtection"))
@@ -76,7 +76,7 @@ class BranchProtectionApiConnectorSpec
 
       val error =
         connector
-          .setBranchProtection("some-repo")
+          .enableBranchProtection("some-repo")
           .failed
           .futureValue
 
@@ -97,10 +97,10 @@ class BranchProtectionApiConnectorSpec
       |""".stripMargin
 
   private lazy val connector =
-    new BranchProtectionApiConnector(httpClient, awsCredentialsProvider, config)
+    new BuildDeployApiConnector(httpClient, awsCredentialsProvider, config)
 
   private lazy val config =
-    new BranchProtectionApiConfig(
+    new BuildDeployApiConfig(
       Configuration(
         "branch-protection-api.url"        -> wireMockUrl,
         "branch-protection-api.aws-region" -> "eu-west-2",

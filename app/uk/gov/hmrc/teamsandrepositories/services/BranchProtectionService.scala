@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import cats.data.OptionT
-import uk.gov.hmrc.teamsandrepositories.connectors.{BranchProtectionApiConnector, GhRepository, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, GhRepository, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.NoSuchRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
@@ -26,15 +26,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BranchProtectionService @Inject()(
-  branchProtectionApiConnector: BranchProtectionApiConnector,
+  buildDeployApiConnector: BuildDeployApiConnector,
   githubConnector: GithubConnector,
   repositoriesPersistence: RepositoriesPersistence
 ) {
 
-  def setBranchProtection(repoName: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def enableBranchProtection(repoName: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
-        _ <- branchProtectionApiConnector.setBranchProtection(repoName)
-        r <- OptionT(githubConnector.getRepo(repoName)).getOrElseF(Future.failed[GhRepository](NoSuchRepository(repoName)))
-        _ <- repositoriesPersistence.updateRepoBranchProtection(repoName, r.branchProtection)
+      _ <- buildDeployApiConnector.enableBranchProtection(repoName)
+      r <- OptionT(githubConnector.getRepo(repoName)).getOrElseF(Future.failed[GhRepository](NoSuchRepository(repoName)))
+      _ <- repositoriesPersistence.updateRepoBranchProtection(repoName, r.branchProtection)
     } yield ()
 }

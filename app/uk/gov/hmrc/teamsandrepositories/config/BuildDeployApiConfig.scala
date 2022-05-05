@@ -19,14 +19,14 @@ package uk.gov.hmrc.teamsandrepositories.config
 import play.api.Configuration
 import javax.inject.Inject
 
-class BranchProtectionApiConfig @Inject()(config: Configuration) {
+class BuildDeployApiConfig @Inject()(config: Configuration) {
 
   val baseUrl: String =
-    config.get[String]("branch-protection-api.url")
+    config.get[String]("build-deploy-api.url")
 
   val host: Option[String] =
-    config.getOptional[String]("branch-protection-api.host")
+    config.getOptional[String]("build-deploy-api.host")
 
   val awsRegion: String =
-    config.get[String]("branch-protection-api.aws-region")
+    config.get[String]("build-deploy-api.aws-region")
 }

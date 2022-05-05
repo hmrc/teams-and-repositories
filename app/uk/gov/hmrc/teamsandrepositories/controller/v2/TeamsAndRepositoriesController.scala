@@ -54,9 +54,9 @@ class TeamsAndRepositoriesController @Inject()(
     }
   }
 
-  def setBranchProtection(repoName: String) = Action.async { _ =>
+  def enableBranchProtection(repoName: String) = Action.async { _ =>
     branchProtectionService
-      .setBranchProtection(repoName)
+      .enableBranchProtection(repoName)
       .map(_ => Ok)
   }
 

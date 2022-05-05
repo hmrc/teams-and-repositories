@@ -20,7 +20,7 @@ import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.teamsandrepositories.connectors.{BranchProtection, BranchProtectionApiConnector, GhRepository, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{BranchProtection, BuildDeployApiConnector, GhRepository, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import java.time.Instant
@@ -33,10 +33,10 @@ class BranchProtectionServiceSpec
      with MockitoSugar
      with ScalaFutures {
 
-  "setBranchProtection" should {
+  "enableBranchProtection" should {
 
     "Invoke the branch protection API and invalidate the cache with the latest view from GitHub" in new Setup {
-      when(branchProtectionApiConnector.setBranchProtection("some-repo"))
+      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
         .thenReturn(Future.unit)
 
       when(githubConnector.getRepo("some-repo"))
@@ -46,7 +46,7 @@ class BranchProtectionServiceSpec
         .thenReturn(Future.unit)
 
       service
-        .setBranchProtection("some-repo")
+        .enableBranchProtection("some-repo")
         .futureValue
 
       verify(repositoriesPersistence)
@@ -54,11 +54,11 @@ class BranchProtectionServiceSpec
     }
 
     "Short-circuit and fail if the branch protection API invocation fails" in new Setup {
-      when(branchProtectionApiConnector.setBranchProtection("some-repo"))
+      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
         .thenReturn(Future.failed(new Throwable("some error")))
 
       service
-        .setBranchProtection("some-repo")
+        .enableBranchProtection("some-repo")
         .failed
         .futureValue
 
@@ -66,14 +66,14 @@ class BranchProtectionServiceSpec
     }
 
     "Short-circuit and fail if the repository cannot be found on GitHub" in new Setup {
-      when(branchProtectionApiConnector.setBranchProtection("some-repo"))
+      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
         .thenReturn(Future.unit)
 
       when(githubConnector.getRepo("some-repo"))
         .thenReturn(Future.successful(None))
 
       service
-        .setBranchProtection("some-repo")
+        .enableBranchProtection("some-repo")
         .failed
         .futureValue
 
@@ -82,8 +82,8 @@ class BranchProtectionServiceSpec
   }
 
   trait Setup {
-    val branchProtectionApiConnector: BranchProtectionApiConnector =
-      mock[BranchProtectionApiConnector]
+    val buildDeployApiConnector: BuildDeployApiConnector =
+      mock[BuildDeployApiConnector]
 
     val githubConnector: GithubConnector =
       mock[GithubConnector]
@@ -92,7 +92,7 @@ class BranchProtectionServiceSpec
       mock[RepositoriesPersistence]
 
     val service: BranchProtectionService =
-      new BranchProtectionService(branchProtectionApiConnector, githubConnector, repositoriesPersistence)
+      new BranchProtectionService(buildDeployApiConnector, githubConnector, repositoriesPersistence)
   }
 
   private lazy val someRepository =

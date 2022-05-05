@@ -22,7 +22,7 @@ import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, _}
-import uk.gov.hmrc.teamsandrepositories.config.BranchProtectionApiConfig
+import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
@@ -31,22 +31,22 @@ import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
-class BranchProtectionApiConnector @Inject()(
+class BuildDeployApiConnector @Inject()(
   httpClient: HttpClient,
   awsCredentialsProvider: AWSCredentialsProvider,
-  config: BranchProtectionApiConfig
+  config: BuildDeployApiConfig
 )(
   implicit ec: ExecutionContext
 ) extends Logging {
 
   private implicit val hc = HeaderCarrier()
 
-  def setBranchProtection(repoName: String): Future[Unit] = {
+  def enableBranchProtection(repoName: String): Future[Unit] = {
     val url =
       url"${config.baseUrl}/v1/UpdateGithubDefaultBranchProtection"
 
     val payload =
-      Json.toJson(BranchProtectionApiConnector.Request(repoName, enable = true))
+      Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
 
     val signedHeaders =
       awsSigner.getSignedHeaders(
@@ -58,7 +58,7 @@ class BranchProtectionApiConnector @Inject()(
       ).toSeq
 
     for {
-      response <- httpClient.POST[JsValue, BranchProtectionApiConnector.Response](url, payload, signedHeaders)
+      response <- httpClient.POST[JsValue, BuildDeployApiConnector.Response](url, payload, signedHeaders)
       _        <- if (response.success)
                     Future.unit
                   else
@@ -75,7 +75,7 @@ class BranchProtectionApiConnector @Inject()(
     )
 }
 
-object BranchProtectionApiConnector {
+object BuildDeployApiConnector {
 
   final case class Request(
     repoName: String,
