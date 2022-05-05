@@ -102,8 +102,9 @@ class BuildDeployApiConnectorSpec
   private lazy val config =
     new BuildDeployApiConfig(
       Configuration(
-        "branch-protection-api.url"        -> wireMockUrl,
-        "branch-protection-api.aws-region" -> "eu-west-2",
+        "build-deploy-api.url"        -> wireMockUrl,
+        "build-deploy-api.host"       -> wireMockHost,
+        "build-deploy-api.aws-region" -> "eu-west-2",
       )
     )
 

@@ -24,8 +24,8 @@ class BuildDeployApiConfig @Inject()(config: Configuration) {
   val baseUrl: String =
     config.get[String]("build-deploy-api.url")
 
-  val host: Option[String] =
-    config.getOptional[String]("build-deploy-api.host")
+  val host: String =
+    config.get[String]("build-deploy-api.host")
 
   val awsRegion: String =
     config.get[String]("build-deploy-api.aws-region")

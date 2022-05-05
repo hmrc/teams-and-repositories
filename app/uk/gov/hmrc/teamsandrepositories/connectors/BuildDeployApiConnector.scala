@@ -21,14 +21,15 @@ import io.ticofab.AwsSigner
 import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, _}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.AWSSigner
 
+import java.net.URL
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
@@ -48,17 +49,12 @@ class BuildDeployApiConnector @Inject()(
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
 
-    val signedHeaders =
-      awsSigner.getSignedHeaders(
-        url.getPath,
-        "POST",
-        Map.empty,
-        Map("host" -> config.host.getOrElse(url.getHost)),
-        Some(Json.toBytes(payload))
-      ).toSeq
-
     for {
-      response <- httpClient.POST[JsValue, BuildDeployApiConnector.Response](url, payload, signedHeaders)
+      response <- httpClient.POST[JsValue, BuildDeployApiConnector.Response](
+                    url,
+                    payload,
+                    headers = signer.sign(url, Some(config.host), "POST", Some(payload))
+                  )
       _        <- if (response.success)
                     Future.unit
                   else
@@ -66,12 +62,11 @@ class BuildDeployApiConnector @Inject()(
     } yield ()
   }
 
-  private lazy val awsSigner =
-    AwsSigner(
+  private lazy val signer =
+    new AWSSigner(
       awsCredentialsProvider,
       config.awsRegion,
-      "execute-api",
-      () => LocalDateTime.now()
+      "execute-api"
     )
 }
 
@@ -105,5 +100,40 @@ object BuildDeployApiConnector {
       }.collect(JsonValidationError("A single-element array of responses was expected but not found")) {
         case x :: Nil => x
       }
+  }
+
+  final class AWSSigner(
+    awsCredentials: AWSCredentialsProvider,
+    awsRegion: String,
+    awsService: String
+  ) {
+
+    def sign(
+      url: URL,
+      host: Option[String] = None,
+      method: String,
+      payload: Option[JsValue] = None
+    ): Seq[(String, String)] = {
+      AwsSigner(awsCredentials, awsRegion, awsService, () => LocalDateTime.now())
+        .getSignedHeaders(
+          uri = url.getPath,
+          method = method,
+          queryParams = toMap(url.getQuery),
+          headers = Map[String, String]("host" -> host.getOrElse(url.getHost)),
+          payload = payload.map(Json.toBytes)
+        ).toSeq
+    }
+
+    // converts a query string into a map, note this would fall over if the same parameter was used twice
+    private def toMap(query: String) = {
+      Option(query)
+        .map(_.split("&").map(expandQueryParam).toMap)
+        .getOrElse(Map.empty)
+    }
+
+    private def expandQueryParam(param: String) = {
+      val pair = param.split("=", 2)
+      pair.head -> pair.last
+    }
   }
 }
