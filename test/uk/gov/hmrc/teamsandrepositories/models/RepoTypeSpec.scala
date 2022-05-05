@@ -21,25 +21,22 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random.nextInt
 
-object Helper extends App {
+object Helper {
 
-  def randomly_capitalize(str: String): String  = {
-    str.map(char => nextInt() % 2 == 0 match {
-      case true => char.toUpper
-      case false => char.toLower
-    })
+  def randomlyCapitalize(str: String): String  = {
+    str.map(char => if (nextInt() % 2 == 0) char.toUpper else char.toLower)
   }
 
-  def generate_valid_strings(strs: Seq[String]): List[String] = {
+  def generateValidStrings(strs: Seq[String]): List[String] = {
     Range(0, 50).flatMap(_ => strs
-      .map(rType => randomly_capitalize(rType)))
+      .map(rType => randomlyCapitalize(rType)))
       .toList
   }
 }
 
 class RepoTypeSpec extends AnyWordSpec with Matchers {
   val repoTypeStrings:Seq[String] = RepoType.values.map(rType => rType.asString)
-  val valid_inputs: List[String] = Helper.generate_valid_strings(repoTypeStrings) //Generate 50 capitalization variations of each RepoType
+  val valid_inputs: List[String] = Helper.generateValidStrings(repoTypeStrings) //Generate 50 capitalization variations of each RepoType
 
   "repoType.parse" when {
     "parsing service with various capitalization styles" must {
