@@ -30,7 +30,6 @@ import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototy
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
-import uk.gov.hmrc.teamsandrepositories.helpers.RetryStrategy
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -95,6 +94,14 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
+  def getRepo(repoName: String): Future[Option[GhRepository]] = {
+    implicit val reads =
+      (__ \ "data" \ "organization" \ "repository")
+        .readNullable(GhRepository.reads)
+
+    executeGqlQuery[Option[GhRepository]](getRepoQuery.withVariable("repo", JsString(repoName)))
+  }
+
   def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
     implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClient.GET[RateLimitMetrics](
@@ -136,9 +143,6 @@ class GithubConnector @Inject()(
   }
 
   private case class WithCursor[A](cursor: Option[String], value: A)
-
-  private def withRetry[T](f: => Future[T]): Future[T] =
-    RetryStrategy.exponentialRetry(githubConfig.retryCount, githubConfig.retryInitialDelay)(f)
 
   def withCounter[T](name: String)(f: Future[T]) =
     f.andThen {
@@ -249,6 +253,19 @@ object GithubConnector {
               nodes {
                 $repositoryFields
               }
+            }
+          }
+        }
+      """
+    )
+
+  val getRepoQuery: GraphqlQuery =
+    GraphqlQuery(
+      s"""
+        query($$repo: String!) {
+          organization(login: "hmrc") {
+            repository(name: $$repo) {
+              $repositoryFields
             }
           }
         }

@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.testonly
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository}
 import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, RepositoriesPersistence}
 
 import javax.inject.Inject
@@ -32,7 +32,6 @@ class IntegrationTestSupportController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val trf: Reads[TeamRepositories] = TeamRepositories.apiFormat
   private implicit val bjf: Reads[BuildJob]         = BuildJob.mongoFormat
   private implicit val ghf: OFormat[GitRepository]  = GitRepository.apiFormat
 

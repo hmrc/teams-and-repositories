@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.{Json, OFormat, __}
+import play.api.libs.json.{OFormat, __}
 import play.api.libs.functional.syntax._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 

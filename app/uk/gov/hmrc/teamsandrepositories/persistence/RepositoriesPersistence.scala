@@ -17,14 +17,15 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonArray, BsonDocument}
-import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, project, sort, unwind}
+import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{CollectionFactory, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import play.api.Logger
+import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,7 +61,8 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
-    collection.find(filter = Filters.equal("name", repoName)).headOption()
+    collection
+      .find(filter = Filters.equal("name", repoName)).headOption()
 
   def findTeamNames(): Future[Seq[TeamName]] =
     teamsCollection
@@ -96,6 +98,17 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
       group(id = "$teamid", first("teamName","$teamid"), addToSet("repositories", "$$ROOT"), min("createdDate", "$createdDate"), max("updateDate", "$lastActiveDate") ),
       sort(Sorts.ascending("_id"))
     )).toFuture()
+  }
+
+  def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
+    implicit val bpf =
+      BranchProtection.format
+
+    collection
+      .updateOne(
+        filter = Filters.equal("name", repoName),
+        update = Updates.set("branchProtection", Codecs.toBson(branchProtection))
+      ).toFuture().map(_ => ())
   }
 
 }

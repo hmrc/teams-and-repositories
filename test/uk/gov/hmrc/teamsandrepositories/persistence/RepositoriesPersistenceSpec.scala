@@ -17,11 +17,12 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
+import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, DefaultPlayMongoRepositorySupport, PlayMongoRepositorySupport}
+import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
 import java.time.Instant
@@ -32,7 +33,8 @@ class RepositoriesPersistenceSpec
   with Matchers
   with MockitoSugar
   with PlayMongoRepositorySupport[GitRepository]
-  with CleanMongoCollectionSupport {
+  with CleanMongoCollectionSupport
+  with OptionValues {
 
   override protected def repository = new RepositoriesPersistence(mongoComponent)
 
@@ -152,6 +154,20 @@ class RepositoriesPersistenceSpec
       findAll().futureValue must contain (repo1)
       findAll().futureValue must not contain (repo2)
 
+    }
+  }
+
+  "updateRepoBranchProtection" should {
+    "update the branch protection policy of the given repository" in {
+      (for {
+        _               <- insert(repo1)
+        bpBefore        <- repository.findRepo(repo1.name).map(_.value.branchProtection)
+        expectedBpAfter =  BranchProtection(false, false, false)
+        _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
+        bpAfter         <- repository.findRepo(repo1.name).map(_.value.branchProtection)
+        _               =  bpAfter mustNot be(bpBefore)
+        _               =  bpAfter mustBe Some(expectedBpAfter)
+      } yield ()).futureValue
     }
   }
 }

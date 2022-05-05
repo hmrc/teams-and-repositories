@@ -29,7 +29,7 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getReposForTeamQuery, getReposQuery, getTeamsQuery}
+import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
 
 import java.time.Instant
 
@@ -271,6 +271,38 @@ class GithubConnectorSpec
       }
      """
 
+  val singleRepoJson =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "repository": {
+              "databaseId": 1,
+              "name": "n1",
+              "description": "d1",
+              "url": "url1",
+              "isFork": false,
+              "createdAt": "2019-04-01T11:41:33Z",
+              "pushedAt": "2019-04-02T11:41:33Z",
+              "isPrivate": true,
+              "primaryLanguage": {
+                "name": "l1"
+              },
+              "isArchived": false,
+              "defaultBranchRef": {
+                "name": "b1",
+                "branchProtectionRule": {
+                  "requiresApprovingReviews": true,
+                  "dismissesStaleReviews": true,
+                  "requiresCommitSignatures": true
+                }
+              }
+            }
+          }
+        }
+      }
+     """
+
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
       prototypeInName     = false,
@@ -282,23 +314,26 @@ class GithubConnectorSpec
       hasTags             = false
     )
 
+  val repo1 =
+    GhRepository(
+      name               = "n1",
+      description        = Some("d1"),
+      htmlUrl            = "url1",
+      fork               = false,
+      createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
+      pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
+      isPrivate          = true,
+      language           = Some("l1"),
+      isArchived         = false,
+      defaultBranch      = "b1",
+      branchProtection   = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
+      repositoryYamlText = None,
+      repoTypeHeuristics = dummyRepoTypeHeuristics
+    )
+
   val repos =
     List(
-      GhRepository(
-        name               = "n1",
-        description        = Some("d1"),
-        htmlUrl            = "url1",
-        fork               = false,
-        createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
-        pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
-        isPrivate          = true,
-        language           = Some("l1"),
-        isArchived         = false,
-        defaultBranch      = "b1",
-        branchProtection   = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
-        repositoryYamlText = None,
-        repoTypeHeuristics = dummyRepoTypeHeuristics
-      ),
+      repo1,
       GhRepository(
         name               = "n2",
         description        = Some("d2"),
@@ -433,6 +468,27 @@ class GithubConnectorSpec
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query2.asJsonString))
+      )
+    }
+  }
+
+  "GithubConnector.getRepo" should {
+    "return the repo" in {
+      val query =
+        getRepoQuery
+          .withVariable("repo", JsString("n1"))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(aResponse().withBody(singleRepoJson))
+      )
+
+      connector.getRepo("n1").futureValue shouldBe Some(repo1)
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
       )
     }
   }

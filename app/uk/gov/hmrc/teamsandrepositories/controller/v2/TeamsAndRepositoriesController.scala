@@ -16,20 +16,25 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
-import play.api.libs.json.Json
-import play.api.mvc.ControllerComponents
+import play.api.libs.json.{JsError, JsValue, Json, Reads}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: RepositoriesPersistence,
-                                                cc                      : ControllerComponents
-                                              )(implicit ec: ExecutionContext
-                                              ) extends BackendController(cc) {
+class TeamsAndRepositoriesController @Inject()(
+  repositoriesPersistence: RepositoriesPersistence,
+  branchProtectionService: BranchProtectionService,
+  cc: ControllerComponents
+)(implicit
+  ec: ExecutionContext
+) extends BackendController(cc) {
+
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamName.apiFormat
 
@@ -49,4 +54,18 @@ class TeamsAndRepositoriesController @Inject()(repositoriesPersistence: Reposito
     }
   }
 
+  def enableBranchProtection(repoName: String): Action[JsValue] = Action.async(parse.json) { request =>
+    val payload =
+      implicitly[Reads[Boolean]].reads(request.body)
+
+    payload.fold(
+      errors => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
+      enabled =>
+        if (enabled)
+          branchProtectionService
+            .enableBranchProtection(repoName)
+            .map(_ => Ok)
+        else
+          Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
+  }
 }
