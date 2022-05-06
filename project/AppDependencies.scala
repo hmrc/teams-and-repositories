@@ -8,12 +8,13 @@ object AppDependencies {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
-    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % hmrcMongoVersion,
-    "uk.gov.hmrc.mongo" %% "hmrc-mongo-metrix-play-28" % hmrcMongoVersion,
-    "org.yaml"          %  "snakeyaml"                 % "1.28",
-    "org.typelevel"     %% "cats-core"                 % "2.6.1",
-    "io.ticofab"        %% "aws-request-signer"        % "0.5.2"
+    "uk.gov.hmrc"       %% "bootstrap-backend-play-28"    % bootstrapPlayVersion,
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"           % hmrcMongoVersion,
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-metrix-play-28"    % hmrcMongoVersion,
+    "uk.gov.hmrc"       %% "internal-auth-client-play-28" % "1.1.0",
+    "org.yaml"          %  "snakeyaml"                    % "1.28",
+    "org.typelevel"     %% "cats-core"                    % "2.6.1",
+    "io.ticofab"        %% "aws-request-signer"           % "0.5.2"
   )
 
   val test = Seq(
