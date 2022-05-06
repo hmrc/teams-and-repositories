@@ -32,7 +32,7 @@ object RepoType {
 
   def parse(s: String): Either[String, RepoType] =
     values
-      .find(_.asString == s)
+      .find(_.asString.equalsIgnoreCase(s))
       .toRight(s"Invalid repoType - should be one of: ${values.map(_.asString).mkString(", ")}")
 
   val format: Format[RepoType] = new Format[RepoType] {
