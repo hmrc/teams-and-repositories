@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.controller.v2
 
 import play.api.libs.json.{JsError, JsValue, Json, Reads}
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
@@ -30,6 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
   branchProtectionService: BranchProtectionService,
+  auth: BackendAuthComponents,
   cc: ControllerComponents
 )(implicit
   ec: ExecutionContext
@@ -54,18 +56,25 @@ class TeamsAndRepositoriesController @Inject()(
     }
   }
 
-  def enableBranchProtection(repoName: String): Action[JsValue] = Action.async(parse.json) { request =>
-    val payload =
-      implicitly[Reads[Boolean]].reads(request.body)
+  def enableBranchProtection(repoName: String): Action[JsValue] = {
+    auth
+      .authorizedAction(
+        Predicate.Permission(
+          Resource.from("catalogue-repository", s"$repoName"),
+          IAAction("WRITE_BRANCH_PROTECTION")))
+      .async[JsValue](parse.json) { implicit request =>
+        val payload =
+          implicitly[Reads[Boolean]].reads(request.body)
 
-    payload.fold(
-      errors => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
-      enabled =>
-        if (enabled)
-          branchProtectionService
-            .enableBranchProtection(repoName)
-            .map(_ => Ok)
-        else
-          Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
+        payload.fold(
+          errors => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
+          enabled =>
+            if (enabled)
+              branchProtectionService
+                .enableBranchProtection(repoName)
+                .map(_ => Ok)
+            else
+              Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
+    }
   }
 }
