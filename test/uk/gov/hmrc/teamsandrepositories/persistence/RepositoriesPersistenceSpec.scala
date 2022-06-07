@@ -26,6 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RepositoriesPersistenceSpec
@@ -38,13 +39,15 @@ class RepositoriesPersistenceSpec
 
   override protected def repository = new RepositoriesPersistence(mongoComponent)
 
+  private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
   private val repo1 =
     GitRepository(
       "repo1",
       "desc 1",
       "git/repo1",
-      Instant.now(),
-      Instant.now(),
+      now,
+      now,
       isPrivate = false,
       Service,
       None,
@@ -62,8 +65,8 @@ class RepositoriesPersistenceSpec
       "repo2",
       "desc 2",
       "git/repo2",
-      Instant.now(),
-      Instant.now(),
+      now,
+      now,
       isPrivate = false,
       Service,
       None,
@@ -81,8 +84,8 @@ class RepositoriesPersistenceSpec
       "repo3",
       "desc 3",
       "git/repo3",
-      Instant.now(),
-      Instant.now(),
+      now,
+      now,
       isPrivate = false,
       Prototype,
       None,
