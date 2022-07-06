@@ -24,7 +24,8 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
@@ -39,9 +40,9 @@ import scala.util.{Failure, Success, Try}
 
 @Singleton
 class GithubConnector @Inject()(
-  githubConfig : GithubConfig,
-  httpClient   : HttpClient,
-  metrics      : Metrics,
+  githubConfig: GithubConfig,
+  httpClientV2: HttpClientV2,
+  metrics     : Metrics,
 )(implicit ec: ExecutionContext) {
   import GithubConnector._
 
@@ -104,10 +105,11 @@ class GithubConnector @Inject()(
 
   def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
     implicit val rlmr = RateLimitMetrics.reads(resource)
-    httpClient.GET[RateLimitMetrics](
-      url     = s"${githubConfig.apiUrl}/rate_limit",
-      headers = Seq("Authorization" -> s"token $token")
-    )
+    httpClientV2
+      .get(url"${githubConfig.apiUrl}/rate_limit")
+      .replaceHeader("Authorization" -> s"token $token")
+      .withProxy
+      .execute[RateLimitMetrics]
   }
 
   private def executeGqlQuery[A](
@@ -116,12 +118,13 @@ class GithubConnector @Inject()(
     reads: Reads[A],
     mf: Manifest[A]
   ): Future[A] =
-    httpClient
-      .POST[JsValue, A](
-        url = url"${githubConfig.apiUrl}/graphql",
-        body = query.asJson,
-        headers = Seq(authHeader, acceptsHeader)
-      )
+    httpClientV2
+      .post(url"${githubConfig.apiUrl}/graphql")
+      .withBody(query.asJson)
+      .replaceHeader(authHeader)
+      .replaceHeader(acceptsHeader)
+      .withProxy
+      .execute[A]
 
   private def executePagedGqlQuery[A](
     query: GraphqlQuery,

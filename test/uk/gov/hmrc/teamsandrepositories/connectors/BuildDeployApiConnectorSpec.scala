@@ -21,7 +21,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.http.test.{HttpClientSupport, WireMockSupport}
+import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -31,7 +31,7 @@ class BuildDeployApiConnectorSpec
      with Matchers
      with ScalaFutures
      with WireMockSupport
-     with HttpClientSupport
+     with HttpClientV2Support
      with IntegrationPatience {
 
   "enableBranchProtection" should {
@@ -42,12 +42,12 @@ class BuildDeployApiConnectorSpec
           .withRequestBody(equalToJson(requestJson))
           .willReturn(aResponse().withBody(
             """
-              |[
-              |  { "success": true,
-              |    "message": "some message"
-              |  }
-              |]
-              |""".stripMargin
+              [
+                { "success": true,
+                  "message": "some message"
+                }
+              ]
+            """
           ))
       )
 
@@ -65,12 +65,12 @@ class BuildDeployApiConnectorSpec
           .withRequestBody(equalToJson(requestJson))
           .willReturn(aResponse().withBody(
             """
-              |[
-              |  { "success": false,
-              |    "message": "some error message"
-              |  }
-              |]
-              |""".stripMargin
+              [
+                { "success": false,
+                  "message": "some error message"
+                }
+              ]
+            """
           ))
       )
 
@@ -91,13 +91,13 @@ class BuildDeployApiConnectorSpec
 
   private lazy val requestJson =
     """
-      |{ "repository_names": "some-repo",
-      |  "set_branch_protection_rule": true
-      |}
-      |""".stripMargin
+      { "repository_names": "some-repo",
+        "set_branch_protection_rule": true
+      }
+    """
 
   private lazy val connector =
-    new BuildDeployApiConnector(httpClient, awsCredentialsProvider, config)
+    new BuildDeployApiConnector(httpClientV2, awsCredentialsProvider, config)
 
   private lazy val config =
     new BuildDeployApiConfig(

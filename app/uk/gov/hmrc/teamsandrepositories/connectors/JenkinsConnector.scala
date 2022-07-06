@@ -22,14 +22,17 @@ import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
-
+class JenkinsConnector @Inject()(
+  config      : JenkinsConfig,
+  httpClientV2: HttpClientV2
+) {
   import JenkinsApiReads._
 
   private val logger = Logger(this.getClass)
@@ -44,11 +47,10 @@ class JenkinsConnector @Inject()(config: JenkinsConfig, http: HttpClient) {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${baseUrl}api/json?tree=jobs[name,url]"
 
-    http
-      .GET[JenkinsRoot](
-        url     = url,
-        headers = Seq("Authorization" -> authorizationHeader)
-      )
+    httpClientV2
+      .get(url)
+      .replaceHeader("Authorization" -> authorizationHeader)
+      .execute[JenkinsRoot]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
