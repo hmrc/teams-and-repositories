@@ -21,8 +21,9 @@ import io.ticofab.AwsSigner
 import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, _}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.AWSSigner
 
@@ -33,11 +34,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
-  httpClient: HttpClient,
+  httpClientV2          : HttpClientV2,
   awsCredentialsProvider: AWSCredentialsProvider,
-  config: BuildDeployApiConfig
-)(
-  implicit ec: ExecutionContext
+  config                : BuildDeployApiConfig
+)(implicit
+  ec: ExecutionContext
 ) extends Logging {
 
   private implicit val hc = HeaderCarrier()
@@ -49,12 +50,15 @@ class BuildDeployApiConnector @Inject()(
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
 
+    val hdrs =
+      signer.sign(url, Some(config.host), "POST", Some(payload))
+
     for {
-      response <- httpClient.POST[JsValue, BuildDeployApiConnector.Response](
-                    url,
-                    payload,
-                    headers = signer.sign(url, Some(config.host), "POST", Some(payload))
-                  )
+      response <- hdrs.foldLeft(httpClientV2
+                    .post(url)
+                    .withBody(payload)
+                  )((request, hdr) => request.replaceHeader(hdr))
+                  .execute[BuildDeployApiConnector.Response]
       _        <- if (response.success)
                     Future.unit
                   else
@@ -116,11 +120,11 @@ object BuildDeployApiConnector {
     ): Seq[(String, String)] =
       AwsSigner(awsCredentials, awsRegion, awsService, () => LocalDateTime.now())
         .getSignedHeaders(
-          uri = url.getPath,
-          method = method,
+          uri         = url.getPath,
+          method      = method,
           queryParams = Option(url.getQuery).map(toMap).getOrElse(Map.empty),
-          headers = Map[String, String]("host" -> host.getOrElse(url.getHost)),
-          payload = payload.map(Json.toBytes)
+          headers     = Map[String, String]("host" -> host.getOrElse(url.getHost)),
+          payload     = payload.map(Json.toBytes)
         ).toSeq
 
     private def toMap(query: String): Map[String, String] =

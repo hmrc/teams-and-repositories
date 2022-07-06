@@ -16,18 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import akka.actor.ActorSystem
 import com.amazonaws.auth.{AWSCredentialsProvider, DefaultAWSCredentialsProviderChain}
 import com.google.inject.AbstractModule
-import com.typesafe.config.Config
-
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
-import play.api.libs.ws.{WSClient, WSProxyServer}
-import uk.gov.hmrc.http.HttpClient
-import uk.gov.hmrc.http.hooks.HttpHook
-import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.http.ws.{WSHttp, WSProxy, WSProxyConfiguration}
 import uk.gov.hmrc.teamsandrepositories.schedulers.{DataReloadScheduler, GithubRatelimitMetricsScheduler, JenkinsScheduler}
 
 class Module() extends AbstractModule {
@@ -42,26 +32,4 @@ class AwsCredentialsModule extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[AWSCredentialsProvider]).toInstance(DefaultAWSCredentialsProviderChain.getInstance())
   }
-}
-
-class HttpClientModule extends AbstractModule {
-  override def configure(): Unit = {
-    bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
-  }
-}
-
-@Singleton
-class DefaultHttpClient @Inject()(
-  config: Configuration,
-  val httpAuditing: HttpAuditing,
-  override val wsClient: WSClient,
-  override protected val actorSystem: ActorSystem
-) extends uk.gov.hmrc.http.HttpClient with WSHttp with WSProxy {
-
-  override lazy val configuration: Config = config.underlying
-
-  override val hooks: Seq[HttpHook] = Seq(httpAuditing.AuditingHook)
-
-  override def wsProxyServer: Option[WSProxyServer] =
-    WSProxyConfiguration(configPrefix = "proxy", configuration = config)
 }
