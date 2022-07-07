@@ -38,10 +38,17 @@ case class GitRepository(
   defaultBranch       : String,
   branchProtection    : Option[BranchProtection] = None,
   isDeprecated        : Boolean                  = false,
-  teams               : List[String]             = Nil
+  teams               : List[String]             = Nil,
+  prototypeUrl        : Option[String]           = None
 )
 
 object GitRepository {
+
+  def buildPrototypeUrl(repo: GitRepository): GitRepository = {
+    if(repo.repoType == RepoType.Prototype)
+      repo.copy(prototypeUrl = Some(s"https://${repo.name}.herokuapp.com"))
+    else repo
+  }
 
   val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
@@ -60,6 +67,7 @@ object GitRepository {
     ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeUrl"      ).formatNullable[String]
     )(apply, unlift(unapply))
   }
 
@@ -81,6 +89,7 @@ object GitRepository {
     ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeUrl"      ).formatNullable[String]
     )(apply, unlift(unapply))
   }
 }
