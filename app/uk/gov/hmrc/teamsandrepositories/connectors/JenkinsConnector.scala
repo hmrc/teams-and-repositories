@@ -21,9 +21,8 @@ import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,6 +33,7 @@ class JenkinsConnector @Inject()(
   httpClientV2: HttpClientV2
 ) {
   import JenkinsApiReads._
+  import HttpReads.Implicits._
 
   private val logger = Logger(this.getClass)
 
@@ -49,7 +49,7 @@ class JenkinsConnector @Inject()(
 
     httpClientV2
       .get(url)
-      .replaceHeader("Authorization" -> authorizationHeader)
+      .setHeader("Authorization" -> authorizationHeader)
       .execute[JenkinsRoot]
       .recoverWith {
         case NonFatal(ex) =>

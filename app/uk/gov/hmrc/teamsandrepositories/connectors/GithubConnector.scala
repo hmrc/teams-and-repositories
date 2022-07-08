@@ -107,7 +107,7 @@ class GithubConnector @Inject()(
     implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClientV2
       .get(url"${githubConfig.apiUrl}/rate_limit")
-      .replaceHeader("Authorization" -> s"token $token")
+      .setHeader("Authorization" -> s"token $token")
       .withProxy
       .execute[RateLimitMetrics]
   }
@@ -121,8 +121,8 @@ class GithubConnector @Inject()(
     httpClientV2
       .post(url"${githubConfig.apiUrl}/graphql")
       .withBody(query.asJson)
-      .replaceHeader(authHeader)
-      .replaceHeader(acceptsHeader)
+      .setHeader(authHeader)
+      .setHeader(acceptsHeader)
       .withProxy
       .execute[A]
 
