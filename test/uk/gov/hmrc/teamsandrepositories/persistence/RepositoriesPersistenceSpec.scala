@@ -126,7 +126,7 @@ class RepositoriesPersistenceSpec
     "find repos by type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
       val results = repository.search(repoType = Some(Prototype)).futureValue
-      results must contain only (repo3.copy(prototypeUrl = Some("https://repo3.herokuapp.com")))
+      results must contain only (repo3)
       val results2 = repository.search(repoType = Some(Service)).futureValue
       results2 must contain only (repo1, repo2)
 

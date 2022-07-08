@@ -56,7 +56,7 @@ class GithubV3RepositoryDataSourceSpec
         githubConnector = mockGithubConnector,
         timestampF      = timestampF,
         sharedRepos     = List("shared-repository"),
-        configuration = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"))
+        configuration   = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"))
       )
 
     val ec = dataSource.ec

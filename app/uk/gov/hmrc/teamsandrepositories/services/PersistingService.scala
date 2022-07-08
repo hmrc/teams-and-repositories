@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
