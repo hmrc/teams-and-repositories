@@ -327,11 +327,11 @@ case class GhRepository(
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
 
-  def toGitRepository(urlTemplate: String) = {
+  def toGitRepository(prototypeUrlTemplate: String) = {
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false))
+        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeUrl = None))
 
     val repoType: RepoType =
       manifestDetails
@@ -339,7 +339,11 @@ case class GhRepository(
         .getOrElse(repoTypeHeuristics.inferredRepoType)
 
     val prototypeUrl: Option[String] = if (repoType == RepoType.Prototype) {
-      Some(urlTemplate.replace(s"$${app-name}", name))
+      Option(
+      manifestDetails
+        .prototypeUrl
+        .getOrElse(prototypeUrlTemplate.replace(s"$${app-name}", name))
+      )
     } else None
 
     GitRepository(
@@ -367,7 +371,8 @@ object GhRepository {
   final case class ManifestDetails(repoType:           Option[RepoType],
                                    digitalServiceName: Option[String],
                                    owningTeams:        Seq[String],
-                                   isDeprecated:       Boolean = false)
+                                   isDeprecated:       Boolean = false,
+                                   prototypeUrl:       Option[String])
 
   object ManifestDetails {
 
@@ -404,7 +409,8 @@ object GhRepository {
                                               s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
                                             Nil
                                         },
-              isDeprecated       = config.getOrElse("deprecated", false).asInstanceOf[Boolean]
+              isDeprecated       = config.getOrElse("deprecated", false).asInstanceOf[Boolean],
+              prototypeUrl       = config.get("prototype-url").map(_.toString)
             )
 
           logger.info(

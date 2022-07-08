@@ -37,7 +37,7 @@ class GithubV3RepositoryDataSource(
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
   private val logger = Logger(this.getClass)
-  private val urlTemplate = configuration.get[String]("url-templates.prototype")
+  private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
 
   def getTeams(): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -64,7 +64,7 @@ class GithubV3RepositoryDataSource(
 
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository(urlTemplate)) }
+      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository(prototypeUrlTemplate)) }
     } yield
         TeamRepositories(
           teamName     = team.name,
@@ -85,7 +85,7 @@ class GithubV3RepositoryDataSource(
     logger.info("Fetching all repositories from GitHub")
 
     githubConnector.getRepos()
-      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository(urlTemplate) })
+      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository(prototypeUrlTemplate) })
       .map { repos =>
         logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
         repos
