@@ -21,14 +21,14 @@ import com.kenshoo.play.metrics.Metrics
 import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
@@ -327,7 +327,7 @@ case class GhRepository(
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
 
-  def toGitRepository: GitRepository = {
+  def toGitRepository(urlTemplate: String) = {
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
@@ -337,6 +337,10 @@ case class GhRepository(
       manifestDetails
         .repoType
         .getOrElse(repoTypeHeuristics.inferredRepoType)
+
+    val prototypeUrl: Option[String] = if (repoType == RepoType.Prototype) {
+      Some(urlTemplate.replace(s"$${app-name}", name))
+    } else None
 
     GitRepository(
       name               = name,
@@ -352,7 +356,8 @@ case class GhRepository(
       isArchived         = isArchived,
       defaultBranch      = defaultBranch,
       branchProtection   = branchProtection,
-      isDeprecated       = manifestDetails.isDeprecated
+      isDeprecated       = manifestDetails.isDeprecated,
+      prototypeUrl       = prototypeUrl
     )
   }
 }

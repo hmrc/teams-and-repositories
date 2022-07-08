@@ -55,14 +55,14 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
         repoType.map(rt => Filters.equal("repoType", rt.asString)),
     ).flatten
     filters match {
-      case Nil  => collection.find().map(GitRepository.buildPrototypeUrl).toFuture()
-      case more => collection.find(Filters.and(more:_*)).map(GitRepository.buildPrototypeUrl).toFuture()
+      case Nil  => collection.find().toFuture()
+      case more => collection.find(Filters.and(more:_*)).toFuture()
     }
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection
-      .find(filter = Filters.equal("name", repoName)).map(GitRepository.buildPrototypeUrl).headOption()
+      .find(filter = Filters.equal("name", repoName)).headOption()
 
   def findTeamNames(): Future[Seq[TeamName]] =
     teamsCollection

@@ -44,12 +44,6 @@ case class GitRepository(
 
 object GitRepository {
 
-  def buildPrototypeUrl(repo: GitRepository): GitRepository = {
-    if(repo.repoType == RepoType.Prototype)
-      repo.copy(prototypeUrl = Some(s"https://${repo.name}.herokuapp.com"))
-    else repo
-  }
-
   val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
     ( (__ \ "name"              ).format[String]

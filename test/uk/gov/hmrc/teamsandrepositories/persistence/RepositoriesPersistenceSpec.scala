@@ -98,7 +98,7 @@ class RepositoriesPersistenceSpec
       branchProtection = None,
       isDeprecated = false,
       List("team1","team2", "team3"),
-      None
+      Some("https://repo3.herokuapp.com")
     )
 
   "search" must  {

@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
@@ -38,7 +38,7 @@ case class PersistingService @Inject()(
   persister       : RepositoriesPersistence,
   githubConnector : GithubConnector,
   timestamper     : Timestamper,
-  configuration   : Configuration
+  configuration   : Configuration,
 ) {
   private val logger = Logger(this.getClass)
 
@@ -50,7 +50,8 @@ case class PersistingService @Inject()(
       githubConfig    = githubConfig,
       githubConnector = githubConnector,
       timestampF      = timestamper.timestampF,
-      sharedRepos     = sharedRepos
+      sharedRepos     = sharedRepos,
+      configuration   = configuration
     )
 
   def updateRepositories()(implicit ec: ExecutionContext) = {
