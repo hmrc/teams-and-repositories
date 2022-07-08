@@ -54,11 +54,11 @@ class BuildDeployApiConnector @Inject()(
       signer.sign(url, Some(config.host), "POST", Some(payload))
 
     for {
-      response <- hdrs.foldLeft(httpClientV2
+      response <- httpClientV2
                     .post(url)
                     .withBody(payload)
-                  )((request, hdr) => request.replaceHeader(hdr))
-                  .execute[BuildDeployApiConnector.Response]
+                    .setHeader(hdrs: _*)
+                    .execute[BuildDeployApiConnector.Response]
       _        <- if (response.success)
                     Future.unit
                   else
