@@ -15,12 +15,11 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.services
-
 import java.time.Instant
 import java.util.concurrent.Executors
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 
@@ -29,14 +28,16 @@ import scala.util.control.NonFatal
 
 
 class GithubV3RepositoryDataSource(
-  githubConfig    : GithubConfig,
-  githubConnector : GithubConnector,
-  timestampF      : () => Instant,
-  sharedRepos     : List[String]
+  githubConfig                 : GithubConfig,
+  githubConnector              : GithubConnector,
+  timestampF                   : () => Instant,
+  sharedRepos                  : List[String],
+  configuration                : Configuration
 ) {
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
 
   private val logger = Logger(this.getClass)
+  private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
 
   def getTeams(): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -63,7 +64,7 @@ class GithubV3RepositoryDataSource(
 
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository) }
+      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository(prototypeUrlTemplate)) }
     } yield
         TeamRepositories(
           teamName     = team.name,
@@ -84,7 +85,7 @@ class GithubV3RepositoryDataSource(
     logger.info("Fetching all repositories from GitHub")
 
     githubConnector.getRepos()
-      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository })
+      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository(prototypeUrlTemplate) })
       .map { repos =>
         logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
         repos

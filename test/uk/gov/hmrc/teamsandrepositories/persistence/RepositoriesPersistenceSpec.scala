@@ -57,7 +57,8 @@ class RepositoriesPersistenceSpec
       "main",
       branchProtection = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
       isDeprecated = false,
-      List("team1", "team2")
+      List("team1", "team2"),
+      None
     )
 
   private val repo2 =
@@ -76,7 +77,8 @@ class RepositoriesPersistenceSpec
       "main",
       branchProtection = None,
       isDeprecated = false,
-      List("team2", "team3")
+      List("team2", "team3"),
+      None
     )
 
   private val repo3 =
@@ -95,7 +97,8 @@ class RepositoriesPersistenceSpec
       "main",
       branchProtection = None,
       isDeprecated = false,
-      List("team1","team2", "team3")
+      List("team1","team2", "team3"),
+      Some("https://repo3.herokuapp.com")
     )
 
   "search" must  {

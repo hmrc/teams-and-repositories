@@ -23,8 +23,9 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamRepositories}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
@@ -54,7 +55,8 @@ class GithubV3RepositoryDataSourceSpec
         githubConfig    = githubConfig,
         githubConnector = mockGithubConnector,
         timestampF      = timestampF,
-        sharedRepos     = List("shared-repository")
+        sharedRepos     = List("shared-repository"),
+        configuration   = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"))
       )
 
     val ec = dataSource.ec
@@ -279,7 +281,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -317,7 +320,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -355,7 +359,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -393,7 +398,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -431,7 +437,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -472,7 +479,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -507,7 +515,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -542,7 +551,8 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -587,7 +597,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -632,7 +643,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -669,7 +681,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = Some("https://A_r-prototype.herokuapp.com")
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -701,7 +714,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -747,7 +761,8 @@ class GithubV3RepositoryDataSourceSpec
               owningTeams        = List("team1", "team2"),
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              prototypeUrl       = None
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -781,7 +796,8 @@ class GithubV3RepositoryDataSourceSpec
             digitalServiceName = None,
             language           = Some("Scala"),
             isArchived         = false,
-            defaultBranch      = "main"
+            defaultBranch      = "main",
+            prototypeUrl       = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
@@ -809,7 +825,8 @@ class GithubV3RepositoryDataSourceSpec
         digitalServiceName = None,
         language           = Some("Scala"),
         isArchived         = false,
-        defaultBranch      = "main"
+        defaultBranch      = "main",
+        prototypeUrl       = None
       )
 
       val updatedRepo =

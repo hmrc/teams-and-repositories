@@ -38,7 +38,7 @@ case class PersistingService @Inject()(
   persister       : RepositoriesPersistence,
   githubConnector : GithubConnector,
   timestamper     : Timestamper,
-  configuration   : Configuration
+  configuration   : Configuration,
 ) {
   private val logger = Logger(this.getClass)
 
@@ -50,7 +50,8 @@ case class PersistingService @Inject()(
       githubConfig    = githubConfig,
       githubConnector = githubConnector,
       timestampF      = timestamper.timestampF,
-      sharedRepos     = sharedRepos
+      sharedRepos     = sharedRepos,
+      configuration   = configuration
     )
 
   def updateRepositories()(implicit ec: ExecutionContext) = {

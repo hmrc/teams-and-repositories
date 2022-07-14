@@ -38,7 +38,8 @@ case class GitRepository(
   defaultBranch       : String,
   branchProtection    : Option[BranchProtection] = None,
   isDeprecated        : Boolean                  = false,
-  teams               : List[String]             = Nil
+  teams               : List[String]             = Nil,
+  prototypeUrl        : Option[String]           = None
 )
 
 object GitRepository {
@@ -60,6 +61,7 @@ object GitRepository {
     ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeUrl"      ).formatNullable[String]
     )(apply, unlift(unapply))
   }
 
@@ -81,6 +83,7 @@ object GitRepository {
     ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeUrl"      ).formatNullable[String]
     )(apply, unlift(unapply))
   }
 }
