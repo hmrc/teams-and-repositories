@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
-import org.codehaus.groovy.ast.ASTNode
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.ast.expr.{ArgumentListExpression, ConstantExpression, ConstructorCallExpression, Expression, MethodCallExpression}
 import org.codehaus.groovy.ast.stmt.{BlockStatement, ExpressionStatement}
@@ -68,7 +67,7 @@ case class RebuildService @Inject()(
       buildJobs <- Future.sequence(serviceNames.map { getBuildJobDetails })
       jobsWithBuilds <- Future.successful(buildJobs
         .flatten
-        .filter(_.builds.nonEmpty))
+        .filter(_.latestBuild.nonEmpty))
       oldBuilds <- Future.successful(convertToRebuildJobData(jobsWithBuilds)
         .filter(_.lastBuildTime.isBefore(thirtyDaysAgo)))
     } yield oldBuilds
@@ -99,8 +98,7 @@ case class RebuildService @Inject()(
 
   private def convertToRebuildJobData(builds: Seq[BuildJob]) = {
     builds.map(job => {
-      val latestJob = job.builds.maxBy(_.timestamp)
-      RebuildJobData(job.service, job.jenkinsURL, latestJob.timestamp)
+      RebuildJobData(job.service, job.jenkinsURL, job.latestBuild.get.timestamp)
     })
   }
   case class RebuildJobData(

@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 import org.mongodb.scala.result.UpdateResult
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJobBuildData, BuildJob}
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
+import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
@@ -32,7 +32,15 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {
       res <- jenkinsConnector.findBuildJobRoot()
-      buildJobs = res.map(build => BuildJob(build.displayName, build.url, build.builds.getOrElse(Seq.empty).map(data => BuildJobBuildData(data.number, data.url, data.timestamp,data.result))))
+      buildJobs = res.map(build => {
+        val buildData = build.builds match {
+          case Some(value) if value.nonEmpty =>
+            val data = value.maxBy(_.timestamp)
+            Some(BuildJobBuildData(data.number, data.url, data.timestamp, data.result))
+          case _ => None
+        }
+        BuildJob(build.displayName, build.url, buildData)
+      })
       persist <- repo.update(buildJobs)
     } yield persist
 }

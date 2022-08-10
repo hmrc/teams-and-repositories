@@ -23,9 +23,9 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import java.time.Instant
 
 case class BuildJob(
-  service   : String,
-  jenkinsURL: String,
-  builds:     Seq[BuildJobBuildData]
+  service    : String,
+  jenkinsURL : String,
+  latestBuild: Option[BuildJobBuildData]
 )
 
 object BuildJob {
@@ -33,13 +33,13 @@ object BuildJob {
   val mongoReadFormat: Reads[BuildJob] =
     ((__ \ "service").read[String]
       ~ (__ \ "jenkinsURL").read[String]
-      ~ (__ \ "builds").read(Reads.seq(BuildJobBuildData.mongoFormat.reads))
+      ~ (__ \ "latestBuild").readNullable(BuildJobBuildData.mongoFormat.reads)
       ) (apply _)
 
   val mongoWriteFormat: Writes[BuildJob] =
     ((__ \ "service").write[String]
       ~ (__ \ "jenkinsURL").write[String]
-      ~ (__ \ "builds").write(Writes.seq(BuildJobBuildData.mongoFormat.writes))
+      ~ (__ \ "latestBuild").writeNullable(BuildJobBuildData.mongoFormat.writes)
       ) (unlift(unapply))
 
   val mongoFormat: Format[BuildJob] = Format(mongoReadFormat, mongoWriteFormat)
@@ -47,7 +47,7 @@ object BuildJob {
   val apiWrites: Writes[BuildJob] =
     ( (__ \ "service"   ).write[String]
     ~ (__ \ "jenkinsURL").write[String]
-    ~ (__ \ "builds").write(Writes.seq(BuildJobBuildData.apiWrites))
+    ~ (__ \ "latestBuild").writeNullable(BuildJobBuildData.apiWrites)
     )(unlift(unapply))
 }
 
