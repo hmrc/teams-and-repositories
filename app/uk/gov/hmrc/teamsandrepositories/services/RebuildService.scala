@@ -17,6 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
+import org.codehaus.groovy.ast.ASTNode
+import org.codehaus.groovy.ast.builder.AstBuilder
+import org.codehaus.groovy.ast.expr.{ArgumentListExpression, ConstantExpression, ConstructorCallExpression, Expression, MethodCallExpression}
+import org.codehaus.groovy.ast.stmt.{BlockStatement, ExpressionStatement}
+import org.codehaus.groovy.control.CompilePhase
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
@@ -25,6 +30,8 @@ import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
 import java.time.{Instant, ZonedDateTime}
+import scala.annotation.tailrec
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -67,11 +74,28 @@ case class RebuildService @Inject()(
     } yield oldBuilds
   }
 
-  //NB this method will break on some repos and needs to be replaced using a Groovy parser
-  private def extractServiceNames(x: String): Array[String] = x
-    .split("\n")
-    .filter(_.contains("new SbtMicroserviceJobBuilder"))
-    .map(x => x.split(",")(1).replace("'", "").trim)
+  private def extractServiceNames(x: String): Iterable[String] = {
+    new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, x)
+      .toList
+      .filter(n => n.isInstanceOf[BlockStatement]).head.asInstanceOf[BlockStatement]
+      .getStatements
+      .filter(p => p.isInstanceOf[ExpressionStatement])
+      .map(p => getInitialCall(p.asInstanceOf[ExpressionStatement].getExpression))
+      .filter(p => p.isInstanceOf[ConstructorCallExpression])
+      .filter(p => p.getType.getName.equals("SbtMicroserviceJobBuilder"))
+      .map(p => p.asInstanceOf[ConstructorCallExpression]
+        .getArguments.asInstanceOf[ArgumentListExpression]
+        .getExpression(1).asInstanceOf[ConstantExpression]
+        .getValue.toString)
+  }
+
+  @tailrec
+  private def getInitialCall(expression: Expression): Expression = {
+    expression match {
+      case expression: MethodCallExpression => getInitialCall(expression.getObjectExpression)
+      case expression => expression
+    }
+  }
 
   private def convertToRebuildJobData(builds: Seq[BuildJob]) = {
     builds.map(job => {
