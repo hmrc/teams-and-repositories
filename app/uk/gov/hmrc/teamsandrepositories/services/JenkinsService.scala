@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 import org.mongodb.scala.result.UpdateResult
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJobBuildData, BuildJob}
 
 import scala.concurrent.{ExecutionContext, Future}
 @Singleton
@@ -32,7 +32,7 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {
       res <- jenkinsConnector.findBuildJobRoot()
-      buildJobs = res.map(build => BuildJob(build.displayName, build.url))
+      buildJobs = res.map(build => BuildJob(build.displayName, build.url, build.builds.getOrElse(Seq.empty).map(data => BuildJobBuildData(data.number, data.url, data.timestamp,data.result))))
       persist <- repo.update(buildJobs)
     } yield persist
 }

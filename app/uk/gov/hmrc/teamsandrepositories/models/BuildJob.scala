@@ -18,20 +18,58 @@ package uk.gov.hmrc.teamsandrepositories.models
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
+import java.time.Instant
 
 case class BuildJob(
   service   : String,
-  jenkinsURL: String
+  jenkinsURL: String,
+  builds:     Seq[BuildJobBuildData]
 )
 
 object BuildJob {
-  val mongoFormat: OFormat[BuildJob] =
-    ( (__ \ "service"   ).format[String]
-    ~ (__ \ "jenkinsURL").format[String]
-    )(apply, unlift(unapply))
+
+  val mongoReadFormat: Reads[BuildJob] =
+    ((__ \ "service").read[String]
+      ~ (__ \ "jenkinsURL").read[String]
+      ~ (__ \ "builds").read(Reads.seq(BuildJobBuildData.mongoFormat.reads))
+      ) (apply _)
+
+  val mongoWriteFormat: Writes[BuildJob] =
+    ((__ \ "service").write[String]
+      ~ (__ \ "jenkinsURL").write[String]
+      ~ (__ \ "builds").write(Writes.seq(BuildJobBuildData.mongoFormat.writes))
+      ) (unlift(unapply))
+
+  val mongoFormat: Format[BuildJob] = Format(mongoReadFormat, mongoWriteFormat)
 
   val apiWrites: Writes[BuildJob] =
     ( (__ \ "service"   ).write[String]
     ~ (__ \ "jenkinsURL").write[String]
+    ~ (__ \ "builds").write(Writes.seq(BuildJobBuildData.apiWrites))
     )(unlift(unapply))
+}
+
+case class BuildJobBuildData(
+                      number: Int,
+                      url: String,
+                      timestamp: Instant,
+                      result: Option[String]
+                    )
+object BuildJobBuildData {
+
+  val mongoFormat: OFormat[BuildJobBuildData] =
+    ((__ \ "number").format[Int]
+      ~ (__ \ "url").format[String]
+      ~ (__ \ "timestamp").format(MongoJavatimeFormats.instantFormat)
+      ~ (__ \ "result").formatNullable[String]
+      ) (apply, unlift(unapply))
+
+  val apiWrites: Writes[BuildJobBuildData] =
+    ((__ \ "number").write[Int]
+      ~ (__ \ "url").write[String]
+      ~ (__ \ "timestamp").write[Instant]
+      ~ (__ \ "result").writeNullable[String]
+      ) (unlift(unapply))
 }

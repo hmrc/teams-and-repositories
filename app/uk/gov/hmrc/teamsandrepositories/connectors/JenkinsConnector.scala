@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.google.common.io.BaseEncoding
+
 import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
@@ -25,6 +26,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -45,7 +47,7 @@ class JenkinsConnector @Inject()(
         s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${baseUrl}api/json?tree=jobs[name,url]"
+    val url = url"${baseUrl}api/json?tree=jobs[name,url,builds[number,url,timestamp,result]]"
 
     httpClientV2
       .get(url)
@@ -85,7 +87,7 @@ object JenkinsConnector {
 
 case class JenkinsRoot(_class: String, jobs: Seq[JenkinsJob])
 
-case class JenkinsJob (_class: String, displayName: String, url: String)
+case class JenkinsJob (_class: String, displayName: String, url: String, builds: Option[Seq[JenkinsBuildData]])
 
 object JenkinsApiReads {
   implicit val jenkinsRootReader: Reads[JenkinsRoot] =
@@ -97,5 +99,21 @@ object JenkinsApiReads {
     ( (__ \ "_class").read[String]
     ~ (__ \ "name"  ).read[String]
     ~ (__ \ "url"   ).read[String]
+    ~ (__ \ "builds").readNullable[Seq[JenkinsBuildData]]
     )(JenkinsJob.apply _)
+}
+case class JenkinsBuildData(
+                      number: Int,
+                      url: String,
+                      timestamp: Instant,
+                      result: Option[String]
+                    )
+object JenkinsBuildData {
+
+  implicit val buildDataReader: Reads[JenkinsBuildData] =
+    ((__ \ "number").read[Int]
+      ~ (__ \ "url").read[String]
+      ~ (__ \ "timestamp").read[Instant]
+      ~ (__ \ "result").readNullable[String]
+      ) (JenkinsBuildData.apply _)
 }
