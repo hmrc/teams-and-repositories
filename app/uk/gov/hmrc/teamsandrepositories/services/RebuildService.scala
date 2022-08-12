@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import com.google.inject.{Inject, Singleton}
 import org.codehaus.groovy.ast.builder.AstBuilder
-import org.codehaus.groovy.ast.expr.{ArgumentListExpression, ConstantExpression, ConstructorCallExpression, Expression, MethodCallExpression}
+import org.codehaus.groovy.ast.expr.{ArgumentListExpression, ConstantExpression, ConstructorCallExpression, DeclarationExpression, Expression, GStringExpression, MethodCallExpression, VariableExpression}
 import org.codehaus.groovy.ast.stmt.{BlockStatement, ExpressionStatement}
 import org.codehaus.groovy.control.CompilePhase
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -63,29 +63,48 @@ case class RebuildService @Inject()(
     for {
       filenames <- dataSource.getBuildTeamFiles
       files <- Future.sequence(filenames.map { dataSource.getTeamFile})
-      serviceNames <- Future.successful(files.flatMap(extractServiceNames))
-      buildJobs <- Future.sequence(serviceNames.map { getBuildJobDetails })
-      jobsWithBuilds <- Future.successful(buildJobs
-        .flatten
-        .filter(_.latestBuild.nonEmpty))
-      oldBuilds <- Future.successful(convertToRebuildJobData(jobsWithBuilds)
-        .filter(_.lastBuildTime.isBefore(thirtyDaysAgo)))
-    } yield oldBuilds
+      serviceNames <- Future.successful(
+        files.filter(_.nonEmpty)
+          .flatMap(extractServiceNames))
+      buildJobs <- Future.sequence(serviceNames.map {getBuildJobDetails})
+      jobsWithLatestBuildOver30days <- Future.successful(
+        buildJobs.flatten
+          .filter(_.latestBuild.nonEmpty)
+          .map(job => RebuildJobData(job.service, job.jenkinsURL, job.latestBuild.get.timestamp))
+          .filter(_.lastBuildTime.isBefore(thirtyDaysAgo))
+          .sortBy(ele => ele.lastBuildTime))
+    } yield jobsWithLatestBuildOver30days
   }
 
   private def extractServiceNames(x: String): Iterable[String] = {
-    new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, x)
+    val statements = new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, x)
       .toList
       .filter(n => n.isInstanceOf[BlockStatement]).head.asInstanceOf[BlockStatement]
       .getStatements
       .filter(p => p.isInstanceOf[ExpressionStatement])
-      .map(p => getInitialCall(p.asInstanceOf[ExpressionStatement].getExpression))
+      .map(p => p.asInstanceOf[ExpressionStatement].getExpression)
+    val declarations = statements.filter(p => p.isInstanceOf[DeclarationExpression])
+      .map(p => p.asInstanceOf[DeclarationExpression])
+      .map(p => p.getVariableExpression.getName -> {
+        p.getRightExpression match {
+          case expression: ConstantExpression => expression.getValue.toString
+          case expression: GStringExpression => expression.toString
+          case expression => expression.getType.getName
+        }
+      })
+      .toMap
+
+    statements
+      .map(p => getInitialCall(p))
       .filter(p => p.isInstanceOf[ConstructorCallExpression])
       .filter(p => p.getType.getName.equals("SbtMicroserviceJobBuilder"))
-      .map(p => p.asInstanceOf[ConstructorCallExpression]
+      .flatMap(p => p.asInstanceOf[ConstructorCallExpression]
         .getArguments.asInstanceOf[ArgumentListExpression]
-        .getExpression(1).asInstanceOf[ConstantExpression]
-        .getValue.toString)
+        .getExpression(1) match {
+          case expression: ConstantExpression => Some(expression.getValue.toString)
+          case expression: VariableExpression => declarations.get(expression.getName)
+          case _ => None
+        })
   }
 
   @tailrec
