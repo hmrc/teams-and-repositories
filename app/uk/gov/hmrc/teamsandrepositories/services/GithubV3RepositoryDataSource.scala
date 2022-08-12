@@ -37,6 +37,7 @@ class GithubV3RepositoryDataSource(
 
   private val logger = Logger(this.getClass)
   private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
+  private val teamsFilter: Set[String] = githubConfig.teamsFilter
 
   def getTeams(): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -52,11 +53,12 @@ class GithubV3RepositoryDataSource(
       }
   }
 
-  private val accept: Set[String] = githubConfig.teamsFilter
   def getBuildTeamFiles: Future[Seq[String]] = {
     githubConnector
       .getBuildTeamFiles
-      .map(bft => bft.map(_.name).filter(x => accept.contains(x.replace(".groovy", ""))))
+      .map(_
+        .map(_.name)
+        .filter(x => if (teamsFilter.isEmpty) true else teamsFilter.contains(x.replace(".groovy", ""))))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve build team files.", ex)
