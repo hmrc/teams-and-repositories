@@ -80,8 +80,8 @@ class TeamsAndRepositoriesController @Inject()(
     }
   }
 
-  def getBuildTeamFiles = Action.async { _ =>
-    rebuildService.getBuildJobs.map {
+  def getJobsWithNoBuildFor(daysUnbuilt: Int) = Action.async { _ =>
+    rebuildService.getJobsWithNoBuildFor(daysUnbuilt).map {
       case list if list.isEmpty => NotFound
       case list => Ok(Json.toJson(list))
     }

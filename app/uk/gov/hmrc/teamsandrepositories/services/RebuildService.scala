@@ -58,8 +58,8 @@ case class RebuildService @Inject()(
 
   def getBuildJobDetails(serviceName: String): Future[Option[BuildJob]] = jenkinsService.findByService(serviceName)
 
-  def getBuildJobs()(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
-    val thirtyDaysAgo = ZonedDateTime.now().minusDays(30).toInstant
+  def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
+    val thirtyDaysAgo = ZonedDateTime.now().minusDays(daysUnbuilt).toInstant
     for {
       filenames <- dataSource.getBuildTeamFiles
       files <- Future.sequence(filenames.map { dataSource.getTeamFile})
