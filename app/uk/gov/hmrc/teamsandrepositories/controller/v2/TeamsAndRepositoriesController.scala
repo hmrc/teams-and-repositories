@@ -20,7 +20,6 @@ import play.api.libs.json.{JsError, JsValue, Json, Reads}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
@@ -32,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndRepositoriesController @Inject()(
                                                 repositoriesPersistence: RepositoriesPersistence,
                                                 branchProtectionService: BranchProtectionService,
-                                                frontendServicesConnector: ServiceConfigsConnector,
                                                 auth: BackendAuthComponents,
                                                 cc: ControllerComponents
 )(implicit
