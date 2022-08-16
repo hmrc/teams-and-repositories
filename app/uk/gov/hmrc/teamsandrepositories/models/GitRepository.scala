@@ -43,31 +43,6 @@ case class GitRepository(
   prototypeUrl        : Option[String]           = None
 )
 
-sealed trait ServiceType
-
-case object FrontendService extends   ServiceType { override val toString = "FrontendService" }
-case object BackendService  extends   ServiceType { override val toString = "BackendService" }
-
-object ServiceType {
-
-  val serviceTypes =
-    Set(
-      FrontendService,
-      BackendService
-    )
-
-  def apply(value: String): Option[ServiceType] = serviceTypes.find(_.toString == value)
-
-  val stFormat: Format[ServiceType] = new Format[ServiceType] {
-    override def reads(json: JsValue): JsResult[ServiceType] =
-      json.validate[String].flatMap { str =>
-        ServiceType(str).fold[JsResult[ServiceType]](JsError(s"Invalid Service Type: $str"))(JsSuccess(_))
-      }
-
-    override def writes(o: ServiceType): JsValue = JsString(o.toString)
-  }
-}
-
 object GitRepository {
 
   val apiFormat: OFormat[GitRepository] = {
