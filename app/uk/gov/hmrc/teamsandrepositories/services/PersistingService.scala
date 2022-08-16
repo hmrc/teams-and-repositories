@@ -20,12 +20,12 @@ import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, ServiceConfigsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.{BackendService, FrontendService, GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import java.time.Instant
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class Timestamper {
@@ -34,11 +34,12 @@ class Timestamper {
 
 @Singleton
 case class PersistingService @Inject()(
-  githubConfig    : GithubConfig,
-  persister       : RepositoriesPersistence,
-  githubConnector : GithubConnector,
-  timestamper     : Timestamper,
-  configuration   : Configuration,
+  githubConfig            : GithubConfig,
+  persister               : RepositoriesPersistence,
+  githubConnector         : GithubConnector,
+  timestamper             : Timestamper,
+  configuration           : Configuration,
+  serviceConfigsConnector : ServiceConfigsConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -47,16 +48,16 @@ case class PersistingService @Inject()(
 
   val dataSource: GithubV3RepositoryDataSource =
     new GithubV3RepositoryDataSource(
-      githubConfig    = githubConfig,
+      githubConfig = githubConfig,
       githubConnector = githubConnector,
-      timestampF      = timestamper.timestampF,
-      sharedRepos     = sharedRepos,
-      configuration   = configuration
+      timestampF = timestamper.timestampF,
+      sharedRepos = sharedRepos,
+      configuration = configuration
     )
 
-  def updateRepositories()(implicit ec: ExecutionContext) = {
+  def updateRepositories()(implicit ec: ExecutionContext): Future[Int] = {
     for {
-      teams     <- dataSource.getTeams()
+      teams <- dataSource.getTeams()
       teamRepos <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
         dataSource.getTeamRepositories(team).map(_ :: acc)
       }
@@ -66,11 +67,21 @@ case class PersistingService @Inject()(
           acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
         }
       }
-      allRepos      <- dataSource.getAllRepositoriesByName()
-      orphanRepos    = (allRepos -- reposWithTeams.keys).values
-      reposToPersist = reposWithTeams.values.toSeq ++ orphanRepos
-      _              = logger.info(s"found ${reposToPersist.length} repos")
-      count         <- persister.updateRepos(reposToPersist)
+      allRepos <- dataSource.getAllRepositoriesByName()
+      orphanRepos = (allRepos -- reposWithTeams.keys).values
+      reposToSeq = reposWithTeams.values.toSeq ++ orphanRepos
+      frontendServices <- serviceConfigsConnector.getFrontendServices()
+      reposToPersist = reposToSeq.map(r => defineServiceType(r, frontendServices))
+      _ = logger.info(s"found ${reposToPersist.length} repos")
+      count <- persister.updateRepos(reposToPersist)
     } yield count
+  }
+
+  def defineServiceType(repo: GitRepository, frontendServices: Set[String]): GitRepository = {
+    repo.repoType match {
+      case RepoType.Service if frontendServices.contains(repo.name) => repo.copy(serviceType = Some(FrontendService))
+      case RepoType.Service                                         => repo.copy(serviceType = Some(BackendService))
+      case _                                                        => repo
+    }
   }
 }

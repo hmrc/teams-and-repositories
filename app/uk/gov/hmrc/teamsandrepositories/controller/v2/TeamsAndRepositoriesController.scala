@@ -29,10 +29,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
-  repositoriesPersistence: RepositoriesPersistence,
-  branchProtectionService: BranchProtectionService,
-  auth: BackendAuthComponents,
-  cc: ControllerComponents
+                                                repositoriesPersistence: RepositoriesPersistence,
+                                                branchProtectionService: BranchProtectionService,
+                                                auth: BackendAuthComponents,
+                                                cc: ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {

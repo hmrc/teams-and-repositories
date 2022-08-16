@@ -21,14 +21,14 @@ import com.kenshoo.play.metrics.Metrics
 import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
-import play.api.{Configuration, Logger}
+import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}

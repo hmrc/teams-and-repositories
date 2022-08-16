@@ -23,10 +23,10 @@ sealed trait RepoType { def asString: String }
 
 object RepoType {
 
-  case object Service   extends RepoType { override val asString = "Service"   }
-  case object Library   extends RepoType { override val asString = "Library"   }
-  case object Prototype extends RepoType { override val asString = "Prototype" }
-  case object Other     extends RepoType { override val asString = "Other"     }
+  case object Service         extends RepoType { override val asString = "Service"   }
+  case object Library         extends RepoType { override val asString = "Library"   }
+  case object Prototype       extends RepoType { override val asString = "Prototype" }
+  case object Other           extends RepoType { override val asString = "Other"     }
 
   val values: List[RepoType] = List(Service, Library, Prototype, Other)
 
