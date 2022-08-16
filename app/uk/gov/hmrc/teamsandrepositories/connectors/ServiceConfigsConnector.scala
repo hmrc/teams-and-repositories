@@ -32,10 +32,10 @@ class ServiceConfigsConnector @Inject()(
 
   private val url = servicesConfig.baseUrl("service-configs")
 
-  def getFrontendServices()(implicit ec: ExecutionContext): Future[Seq[String]] = {
+  def getFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] = {
     httpClientV2
       .get(url"$url/frontend-services")
-      .execute[Seq[String]]
+      .execute[Set[String]]
   }
 }
 

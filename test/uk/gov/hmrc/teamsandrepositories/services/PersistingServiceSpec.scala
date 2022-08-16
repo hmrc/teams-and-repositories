@@ -46,7 +46,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(List()))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -68,7 +68,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo2, repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(List()))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -92,7 +92,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(List()))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -111,7 +111,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Seq("repo-3", "repo-4")))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-3", "repo-4")))
 
         onTest.updateRepositories().futureValue
 
@@ -129,7 +129,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Seq("repo-1", "repo-2")))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-1", "repo-2")))
 
         onTest.updateRepositories().futureValue
 
@@ -147,7 +147,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
-        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Seq("repo-3", "repo-4")))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-3", "repo-4")))
 
         onTest.updateRepositories().futureValue
 

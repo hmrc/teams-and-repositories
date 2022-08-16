@@ -77,7 +77,7 @@ case class PersistingService @Inject()(
     } yield count
   }
 
-  def defineServiceType(repo: GitRepository, frontendServices: Seq[String]): GitRepository = {
+  def defineServiceType(repo: GitRepository, frontendServices: Set[String]): GitRepository = {
     repo.repoType match {
       case RepoType.Service if frontendServices.contains(repo.name) => repo.copy(serviceType = Some(FrontendService))
       case RepoType.Service                                         => repo.copy(serviceType = Some(BackendService))
