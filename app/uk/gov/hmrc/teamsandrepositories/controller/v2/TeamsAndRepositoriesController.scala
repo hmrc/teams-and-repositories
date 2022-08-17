@@ -20,7 +20,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, RepoType, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, RepoType, ServiceType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.services.{BranchProtectionService, RebuildService}
 
@@ -42,8 +42,8 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val tnf = TeamName.apiFormat
   private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
-  def allRepos(team: Option[String], archived: Option[Boolean], repoType: Option[RepoType]) = Action.async { request =>
-    repositoriesPersistence.search(team, archived, repoType)
+  def allRepos(team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
+    repositoriesPersistence.search(team, archived, repoType, serviceType)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 

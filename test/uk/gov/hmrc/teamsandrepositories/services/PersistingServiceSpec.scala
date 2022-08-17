@@ -21,10 +21,10 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.{BackendService, FrontendService, GitRepository}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
 import java.time.Instant
@@ -46,6 +46,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -67,6 +68,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo2, repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -90,6 +92,7 @@ class PersistingServiceSpec
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
 
         onTest.updateRepositories().futureValue
 
@@ -102,6 +105,60 @@ class PersistingServiceSpec
         persistedRepos.map(_.name) should contain theSameElementsAs List("repo-1", "repo-2", "repo-3", "repo-4")
         persistedRepos.map(r => r.name -> r).toMap.get("repo-4").map(_.teams) shouldBe Some(Seq.empty)
       }
+
+      "assign service type for frontend services when repo type is Service" in new Setup {
+        when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-3", "repo-4")))
+
+        onTest.updateRepositories().futureValue
+
+        val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        verify(persister).updateRepos(argCaptor.capture())
+
+        val persistedRepos: Seq[GitRepository] = argCaptor.getValue
+
+        persistedRepos.find(r => r.name == "repo-3").get.serviceType shouldBe Some(FrontendService)
+        persistedRepos.find(r => r.name == "repo-4").get.serviceType shouldBe Some(FrontendService)
+      }
+
+      "assign service type for backend services when repo type is Service" in new Setup {
+        when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-1", "repo-2")))
+
+        onTest.updateRepositories().futureValue
+
+        val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        verify(persister).updateRepos(argCaptor.capture())
+
+        val persistedRepos: Seq[GitRepository] = argCaptor.getValue
+
+        persistedRepos.find(r => r.name == "repo-3").get.serviceType shouldBe Some(BackendService)
+        persistedRepos.find(r => r.name == "repo-4").get.serviceType shouldBe Some(BackendService)
+      }
+
+      "assign service type of None when repo type is not Service" in new Setup {
+        when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set("repo-3", "repo-4")))
+
+        onTest.updateRepositories().futureValue
+
+        val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        verify(persister).updateRepos(argCaptor.capture())
+
+        val persistedRepos: Seq[GitRepository] = argCaptor.getValue
+
+        persistedRepos.find(r => r.name == "repo-1").get.serviceType shouldBe None
+        persistedRepos.find(r => r.name == "repo-2").get.serviceType shouldBe None
+      }
     }
   }
 
@@ -109,6 +166,7 @@ class PersistingServiceSpec
     val githubConfig: GithubConfig         = mock[GithubConfig]
     val persister: RepositoriesPersistence = mock[RepositoriesPersistence]
     val githubConnector                    = mock[GithubConnector]
+    val serviceConfigsConnector            = mock[ServiceConfigsConnector]
     val timestamper: Timestamper           = new Timestamper
     val configuration: Configuration       = mock[Configuration]
 
@@ -118,10 +176,21 @@ class PersistingServiceSpec
     when(persister.updateRepos(any)).thenReturn(Future.successful(0))
 
     val onTest: PersistingService =
-      new PersistingService(githubConfig, persister, githubConnector, timestamper, configuration)
+      new PersistingService(githubConfig, persister, githubConnector, timestamper, configuration, serviceConfigsConnector)
 
     val teamA: GhTeam = GhTeam("team-a", Instant.now())
     val teamB: GhTeam = GhTeam("team-b", Instant.now())
+
+
+    val rTH = RepoTypeHeuristics(
+      prototypeInName     = false,
+      hasApplicationConf  = false,
+      hasDeployProperties = false,
+      hasProcfile         = false,
+      hasSrcMainScala     = false,
+      hasSrcMainJava      = false,
+      hasTags             = false
+    )
 
     val aRepo = GhRepository(
       name               = "repo",
@@ -136,20 +205,13 @@ class PersistingServiceSpec
       defaultBranch      = "main",
       branchProtection   = None,
       repositoryYamlText = None,
-      repoTypeHeuristics = RepoTypeHeuristics(
-        prototypeInName     = false,
-        hasApplicationConf  = false,
-        hasDeployProperties = false,
-        hasProcfile         = false,
-        hasSrcMainScala     = false,
-        hasSrcMainJava      = false,
-        hasTags             = false
-      )
+      repoTypeHeuristics = rTH
     )
 
     val repo1 = aRepo.copy(name = "repo-1")
     val repo2 = aRepo.copy(name = "repo-2")
-    val repo3 = aRepo.copy(name = "repo-3")
-    val repo4 = aRepo.copy(name = "repo-4")
+    // Sets RepoType = Service
+    val repo3 = aRepo.copy(name = "repo-3", repoTypeHeuristics = rTH.copy(hasApplicationConf = true))
+    val repo4 = aRepo.copy(name = "repo-4", repoTypeHeuristics = rTH.copy(hasApplicationConf = true))
   }
 }

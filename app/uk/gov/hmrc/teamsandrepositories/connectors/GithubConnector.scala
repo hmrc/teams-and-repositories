@@ -21,7 +21,7 @@ import com.kenshoo.play.metrics.Metrics
 import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
-import play.api.{Configuration, Logger}
+import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
