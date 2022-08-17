@@ -17,8 +17,9 @@
 package uk.gov.hmrc.teamsandrepositories.models
 
 import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+import play.api.mvc.QueryStringBindable
 
-sealed trait ServiceType
+sealed trait ServiceType {def toString: String}
 
 case object FrontendService extends   ServiceType { override val toString = "FrontendService" }
 case object BackendService  extends   ServiceType { override val toString = "BackendService" }
@@ -31,6 +32,11 @@ object ServiceType {
       BackendService
     )
 
+  def parse(s: String): Either[String, ServiceType] =
+    serviceTypes
+      .find(_.toString.equalsIgnoreCase(s))
+      .toRight(s"Invalid serviceType - should be one of: ${serviceTypes.map(_.toString).mkString(", ")}")
+
   def apply(value: String): Option[ServiceType] = serviceTypes.find(_.toString == value)
 
   val stFormat: Format[ServiceType] = new Format[ServiceType] {
@@ -41,4 +47,18 @@ object ServiceType {
 
     override def writes(o: ServiceType): JsValue = JsString(o.toString)
   }
+
+  implicit val queryStringBindable: QueryStringBindable[ServiceType] =
+    new QueryStringBindable[ServiceType] {
+
+      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ServiceType]] =
+        params.get(key).map {
+          case Nil         => Left("missing serviceType value")
+          case head :: Nil => ServiceType.parse(head)
+          case _           => Left("too many serviceType values")
+        }
+
+      override def unbind(key: String, value: ServiceType): String =
+        s"$key=${value.toString}"
+    }
 }

@@ -22,7 +22,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.models.{BackendService, FrontendService, GitRepository}
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
 
 import java.time.Instant
@@ -104,6 +104,48 @@ class RepositoriesPersistenceSpec
       Some("https://repo3.herokuapp.com")
     )
 
+  private val repo4 =
+    GitRepository(
+      "repo4",
+      "desc 4",
+      "git/repo4",
+      now,
+      now,
+      isPrivate = false,
+      Service,
+      Some(FrontendService),
+      None,
+      Nil,
+      None,
+      isArchived = true,
+      "main",
+      branchProtection = None,
+      isDeprecated = false,
+      List("team2", "team3"),
+      None
+    )
+
+  private val repo5 =
+    GitRepository(
+      "repo5",
+      "desc 5",
+      "git/repo5",
+      now,
+      now,
+      isPrivate = false,
+      Service,
+      Some(BackendService),
+      None,
+      Nil,
+      None,
+      isArchived = true,
+      "main",
+      branchProtection = None,
+      isDeprecated = false,
+      List("team2", "team3"),
+      None
+    )
+
   "search" must  {
 
     "find all repos" in {
@@ -126,13 +168,21 @@ class RepositoriesPersistenceSpec
       results must contain only (repo2)
     }
 
-    "find repos by type" in {
+    "find repos by repo type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
       val results = repository.search(repoType = Some(Prototype)).futureValue
       results must contain only (repo3)
       val results2 = repository.search(repoType = Some(Service)).futureValue
       results2 must contain only (repo1, repo2)
 
+    }
+
+    "find repos by service type" in {
+      repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
+      val results = repository.search(serviceType = Some(FrontendService)).futureValue
+      results must contain only repo4
+      val results2 = repository.search(serviceType = Some(BackendService)).futureValue
+      results2 must contain only repo5
     }
   }
 
