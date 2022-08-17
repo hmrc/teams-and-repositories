@@ -82,4 +82,11 @@ class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUti
     , intervalKey     = "scheduler.metrix.interval"
     , initialDelayKey = "scheduler.metrix.initialDelay"
     )
+
+  val rebuildScheduler = SchedulerConfig(
+    configuration
+    , enabledKey = "scheduler.rebuild.enabled"
+    , intervalKey = "scheduler.rebuild.interval"
+    , initialDelayKey = "scheduler.rebuild.initialDelay"
+  )
 }

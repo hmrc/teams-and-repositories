@@ -34,17 +34,54 @@ class JenkinsConnector @Inject()(
   config      : JenkinsConfig,
   httpClientV2: HttpClientV2
 ) {
+
   import JenkinsApiReads._
   import HttpReads.Implicits._
 
   private val logger = Logger(this.getClass)
 
-  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
+  private val authorizationHeader =
+    s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
+
+  def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[Unit] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
-    val authorizationHeader =
-        s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${baseUrl}/buildWithParameters"
+
+    httpClientV2
+      .post(url)
+      .setHeader("Authorization" -> authorizationHeader)
+      .execute[Unit]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
+
+  def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[JenkinsBuildData] = {
+    // Prevents Server-Side Request Forgery
+    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
+
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${baseUrl}/lastBuild/api/json?tree=number,url,timestamp,result"
+
+    httpClientV2
+      .post(url)
+      .setHeader("Authorization" -> authorizationHeader)
+      .execute[JenkinsBuildData]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
+
+  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
+    // Prevents Server-Side Request Forgery
+    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${baseUrl}api/json?tree=jobs[name,url,builds[number,url,timestamp,result]]"

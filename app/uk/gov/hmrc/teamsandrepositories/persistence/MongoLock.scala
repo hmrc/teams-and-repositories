@@ -26,4 +26,5 @@ class MongoLocks @Inject()(mongoLockRepository: MongoLockRepository) {
   val dataReloadLock: LockService = LockService(mongoLockRepository, "data-reload-lock", 20.minutes)
   val jenkinsLock   : LockService = LockService(mongoLockRepository, "jenkins-lock"    , 20.minutes)
   val metrixLock    : LockService = LockService(mongoLockRepository, "metrix-lock"     , 20.minutes)
+  val reloadLock    : LockService = LockService(mongoLockRepository, "reload-lock"     , 20.minutes)
 }

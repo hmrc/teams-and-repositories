@@ -17,15 +17,18 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import org.mongodb.scala.result.UpdateResult
+import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
 
+  private val logger = Logger(this.getClass)
   def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
 
@@ -43,4 +46,17 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
       })
       persist <- repo.update(buildJobs)
     } yield persist
+
+  def triggerBuildJob(url: String,
+                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Unit] = {
+    for {
+      latestBuild <- jenkinsConnector.getLastBuildTime(url)
+      _ <- if (latestBuild.timestamp.equals(timestamp))
+          jenkinsConnector.triggerBuildJob(url)
+        else {
+        logger.info("Job was rebuilt since last Jenkins query")
+        Future.successful[Unit](())
+      }
+    } yield ()
+  }
 }

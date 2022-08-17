@@ -26,7 +26,6 @@ import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
 import java.time.{Instant, ZonedDateTime}
 import scala.annotation.tailrec
@@ -39,9 +38,11 @@ case class RebuildService @Inject()(
   githubConnector : GithubConnector,
   timestamper     : Timestamper,
   configuration   : Configuration,
-  jenkinsService: JenkinsService
+  jenkinsService  : JenkinsService
 ) {
   private val logger = Logger(this.getClass)
+
+  private val minDaysUnbuilt: Int = configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt")
 
   val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
@@ -55,8 +56,19 @@ case class RebuildService @Inject()(
       configuration   = configuration
     )
 
-
-  def getBuildJobDetails(serviceName: String): Future[Option[BuildJob]] = jenkinsService.findByService(serviceName)
+  def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] = {
+    val oldBuiltJobs = getJobsWithNoBuildFor(minDaysUnbuilt)
+    oldBuiltJobs.map(jobs => {
+      if (jobs.isEmpty) {
+        logger.info("No old builds to trigger")
+        Unit
+      } else {
+        val oldestJob = jobs.head
+        logger.info(s"Triggering build for ${oldestJob.service}")
+        jenkinsService.triggerBuildJob(oldestJob.jenkinsURL, oldestJob.lastBuildTime)
+      }
+    })
+  }
 
   def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val thirtyDaysAgo = ZonedDateTime.now().minusDays(daysUnbuilt).toInstant
@@ -66,7 +78,7 @@ case class RebuildService @Inject()(
       serviceNames <- Future.successful(
         files.filter(_.nonEmpty)
           .flatMap(extractServiceNames))
-      buildJobs <- Future.sequence(serviceNames.map {getBuildJobDetails})
+      buildJobs <- Future.sequence(serviceNames.map {jenkinsService.findByService})
       jobsWithLatestBuildOver30days <- Future.successful(
         buildJobs.flatten
           .filter(_.latestBuild.nonEmpty)
@@ -115,11 +127,6 @@ case class RebuildService @Inject()(
     }
   }
 
-  private def convertToRebuildJobData(builds: Seq[BuildJob]) = {
-    builds.map(job => {
-      RebuildJobData(job.service, job.jenkinsURL, job.latestBuild.get.timestamp)
-    })
-  }
   case class RebuildJobData(
                              service: String,
                              jenkinsURL: String,
