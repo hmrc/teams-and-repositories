@@ -53,7 +53,10 @@ class GithubConnectorSpec
         "github.open.api.url"      -> wireMockUrl,
         "github.open.api.rawurl"   -> s"$wireMockUrl/raw",
         "ratemetrics.githubtokens" -> List(),
-        "metrics.jvm"              -> false
+        "metrics.jvm"              -> false,
+        "jenkins.username" -> "",
+        "jenkins.token" -> "",
+        "jenkins.url" -> ""
       )
       .build()
 

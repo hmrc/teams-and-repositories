@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
-import uk.gov.hmrc.teamsandrepositories.services.{JenkinsService, RebuildService}
+import uk.gov.hmrc.teamsandrepositories.services.RebuildService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
