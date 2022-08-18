@@ -49,8 +49,9 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
 
   def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
 
-  def search(team: Option[String] = None, isArchived: Option[Boolean] = None, repoType: Option[RepoType] = None, serviceType: Option[ServiceType] = None): Future[Seq[GitRepository]] = {
+  def search(name: Option[String] = None, team: Option[String] = None, isArchived: Option[Boolean] = None, repoType: Option[RepoType] = None, serviceType: Option[ServiceType] = None): Future[Seq[GitRepository]] = {
     val filters = Seq(
+      name.map(n => Filters.regex("name", n)),
               team.map(t  => Filters.equal("teamNames", t)),
         isArchived.map(b  => Filters.equal("isArchived", b)),
           repoType.map(rt => Filters.equal("repoType", rt.asString)),

@@ -42,8 +42,8 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val tnf = TeamName.apiFormat
   private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
-  def allRepos(team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
-    repositoriesPersistence.search(team, archived, repoType, serviceType)
+  def allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
+    repositoriesPersistence.search(name, team, archived, repoType, serviceType)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 
