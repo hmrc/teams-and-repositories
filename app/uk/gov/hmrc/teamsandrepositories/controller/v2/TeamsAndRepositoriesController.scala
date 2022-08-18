@@ -16,29 +16,31 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
-import play.api.libs.json.{JsError, JsValue, Json, Reads}
+import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, RepoType, ServiceType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
-import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
+import uk.gov.hmrc.teamsandrepositories.services.{BranchProtectionService, RebuildService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
-                                                repositoriesPersistence: RepositoriesPersistence,
-                                                branchProtectionService: BranchProtectionService,
-                                                auth: BackendAuthComponents,
-                                                cc: ControllerComponents
+  repositoriesPersistence: RepositoriesPersistence,
+  branchProtectionService: BranchProtectionService,
+  rebuildService: RebuildService ,
+  auth: BackendAuthComponents,
+  cc: ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
 
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamName.apiFormat
+  private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
   def allRepos(team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
     repositoriesPersistence.search(team, archived, repoType, serviceType)
@@ -75,6 +77,13 @@ class TeamsAndRepositoriesController @Inject()(
                 .map(_ => Ok)
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
+    }
+  }
+
+  def getJobsWithNoBuildFor(daysUnbuilt: Int) = Action.async { _ =>
+    rebuildService.getJobsWithNoBuildFor(daysUnbuilt).map {
+      case list if list.isEmpty => NotFound
+      case list => Ok(Json.toJson(list))
     }
   }
 }

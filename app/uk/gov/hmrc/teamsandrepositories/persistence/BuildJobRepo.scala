@@ -16,16 +16,15 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import javax.inject.{Inject, Singleton}
 import org.mongodb.scala.bson.Document
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, UpdateOptions}
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOptions}
+import org.mongodb.scala.result.UpdateResult
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import org.mongodb.scala.model.Updates.set
-import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.result.UpdateResult
 import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -45,14 +44,15 @@ class BuildJobRepo @Inject()(
       .first()
       .toFutureOption()
 
-  def updateOne(buildJob: BuildJob): Future[UpdateResult] =
+  def updateOne(buildJob: BuildJob): Future[UpdateResult] = {
     collection
-      .updateOne(
-        filter  = equal("service", buildJob.service),
-        update  = set("jenkinsURL", buildJob.jenkinsURL),
-        options = UpdateOptions().upsert(true)
+      .replaceOne(
+        filter = equal("service", buildJob.service),
+        replacement = buildJob,
+        options = ReplaceOptions().upsert(true)
       )
       .toFuture()
+  }
 
   def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     Future.traverse(buildJobs)(updateOne)

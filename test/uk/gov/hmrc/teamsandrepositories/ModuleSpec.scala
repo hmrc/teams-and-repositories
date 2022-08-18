@@ -51,7 +51,8 @@ class ModuleSpec
   val testMongoLocks: MongoLocks = new MongoLocks(mockMongoLockRepository) {
     override val dataReloadLock: LockService = create()
     override val jenkinsLock: LockService    = create()
-    override val metrixLock: LockService     = create()
+    override val metrixLock: LockService = create()
+    override val reloadLock: LockService = create()
 
     private def create() = new LockService {
       override val lockRepository: LockRepository = mockMongoLockRepository
@@ -71,6 +72,7 @@ class ModuleSpec
   when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.enabled).thenReturn(true)
+  when(mockSchedulerConfigs.jenkinsScheduler.enabled).thenReturn(false)
 
   val mockPersistingService: PersistingService = mock[PersistingService]
 

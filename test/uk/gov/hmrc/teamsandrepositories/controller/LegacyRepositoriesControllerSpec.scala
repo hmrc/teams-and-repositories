@@ -70,7 +70,10 @@ class LegacyRepositoriesControllerSpec
           "github.open.api.host" -> "http://bla.bla",
           "github.open.api.user" -> "",
           "github.open.api.key"  -> "",
-          "metrics.jvm"          -> false
+          "metrics.jvm"          -> false,
+          "jenkins.username" -> "",
+          "jenkins.token" -> "",
+          "jenkins.url" -> ""
         )
       )
       .build

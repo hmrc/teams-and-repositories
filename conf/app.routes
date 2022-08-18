@@ -26,3 +26,4 @@ GET         /api/v2/repositories                                     @uk.gov.hmr
 GET         /api/v2/repositories/:repoName                           @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)
 POST        /api/v2/repositories/:repoName/branch-protection/enabled @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
 GET         /api/v2/teams                                            @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
+GET         /api/v2/outdatedbuildjobs                                @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.getJobsWithNoBuildFor(daysUnbuilt: Int ?= 30)

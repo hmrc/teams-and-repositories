@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
@@ -44,6 +44,7 @@ class GithubConnector @Inject()(
   httpClientV2: HttpClientV2,
   metrics     : Metrics,
 )(implicit ec: ExecutionContext) {
+
   import GithubConnector._
 
   private val defaultMetricsRegistry = metrics.defaultRegistry
@@ -101,6 +102,28 @@ class GithubConnector @Inject()(
         .readNullable(GhRepository.reads)
 
     executeGqlQuery[Option[GhRepository]](getRepoQuery.withVariable("repo", JsString(repoName)))
+  }
+
+  case class BFT(name: String)
+  def getBuildTeamFiles: Future[Seq[BFT]] = {
+
+    implicit val residentReads: Reads[BFT] = Json.reads[BFT]
+
+    httpClientV2.get(url"${githubConfig.apiUrl}/repos/hmrc/build-jobs/contents/jobs/live")
+      .setHeader(authHeader)
+      .withProxy
+      .execute[Seq[BFT]]
+  }
+
+  def getTeamFile(name: String) = {
+
+    implicit val rds: HttpReads[String] = HttpReads[HttpResponse].map(_.body)
+    httpClientV2
+      .get(url"${githubConfig.apiUrl}/repos/hmrc/build-jobs/contents/jobs/live/${name}")
+      .setHeader(authHeader)
+      .setHeader("Accept" -> "application/vnd.github.VERSION.raw")
+      .withProxy
+      .execute[String]
   }
 
   def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {

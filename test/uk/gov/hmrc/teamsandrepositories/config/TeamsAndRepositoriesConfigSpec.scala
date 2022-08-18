@@ -33,7 +33,10 @@ class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with Guic
         Map(
           "github.open.api.host" -> "http://bla.bla",
           "github.open.api.user" -> "",
-          "github.open.api.key"  -> ""
+          "github.open.api.key"  -> "",
+          "jenkins.username" -> "",
+          "jenkins.token" -> "",
+          "jenkins.url" -> ""
         )
       )
       .build()

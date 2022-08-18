@@ -15,14 +15,13 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.services
+import play.api.{Configuration, Logger}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
+
 import java.time.Instant
 import java.util.concurrent.Executors
-import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
-
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
 
@@ -38,6 +37,7 @@ class GithubV3RepositoryDataSource(
 
   private val logger = Logger(this.getClass)
   private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
+  private val teamsFilter: Set[String] = githubConfig.teamsFilter
 
   def getTeams(): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -51,6 +51,23 @@ class GithubV3RepositoryDataSource(
           logger.error("Could not retrieve teams for organisation list.", ex)
           Future.failed(ex)
       }
+  }
+
+  def getBuildTeamFiles: Future[Seq[String]] = {
+    githubConnector
+      .getBuildTeamFiles
+      .map(_
+        .map(_.name)
+        .filter(x => if (teamsFilter.isEmpty) true else teamsFilter.contains(x.replace(".groovy", ""))))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error("Could not retrieve build team files.", ex)
+          Future.failed(ex)
+      }
+  }
+
+  def getTeamFile(name: String): Future[String] = {
+    githubConnector.getTeamFile(name)
   }
 
   def getTeamRepositories(

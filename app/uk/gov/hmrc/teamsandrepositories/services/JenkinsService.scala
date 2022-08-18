@@ -16,23 +16,47 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 import org.mongodb.scala.result.UpdateResult
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import play.api.Logger
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
+import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
 
+  private val logger = Logger(this.getClass)
   def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {
       res <- jenkinsConnector.findBuildJobRoot()
-      buildJobs = res.map(build => BuildJob(build.displayName, build.url))
+      buildJobs = res.map(build => {
+        val buildData = build.builds match {
+          case Some(value) if value.nonEmpty =>
+            val data = value.maxBy(_.timestamp)
+            Some(BuildJobBuildData(data.number, data.url, data.timestamp, data.result))
+          case _ => None
+        }
+        BuildJob(build.displayName, build.url, buildData)
+      })
       persist <- repo.update(buildJobs)
     } yield persist
+
+  def triggerBuildJob(url: String,
+                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Unit] = {
+    for {
+      latestBuild <- jenkinsConnector.getLastBuildTime(url)
+      _ <- if (latestBuild.timestamp.equals(timestamp))
+          jenkinsConnector.triggerBuildJob(url)
+        else {
+        logger.info("Job was rebuilt since last Jenkins query")
+        Future.successful[Unit](())
+      }
+    } yield ()
+  }
 }
