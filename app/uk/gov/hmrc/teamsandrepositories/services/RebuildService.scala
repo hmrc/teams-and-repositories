@@ -24,37 +24,22 @@ import org.codehaus.groovy.control.CompilePhase
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector
 
-import java.time.{Instant, ZonedDateTime}
+import java.time.Instant
+import java.time.temporal.ChronoUnit.DAYS
 import scala.annotation.tailrec
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class RebuildService @Inject()(
-  githubConfig    : GithubConfig,
-  githubConnector : GithubConnector,
-  timestamper     : Timestamper,
+  dataSource      : GithubV3RepositoryDataSource,
   configuration   : Configuration,
   jenkinsService  : JenkinsService
 ) {
   private val logger = Logger(this.getClass)
 
   private val minDaysUnbuilt: Int = configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt")
-
-  val sharedRepos: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
-
-  val dataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(
-      githubConfig    = githubConfig,
-      githubConnector = githubConnector,
-      timestampF      = timestamper.timestampF,
-      sharedRepos     = sharedRepos,
-      configuration   = configuration
-    )
 
   def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] = {
     val oldBuiltJobs = getJobsWithNoBuildFor(minDaysUnbuilt)
@@ -64,41 +49,38 @@ case class RebuildService @Inject()(
         Unit
       } else {
         val oldestJob = jobs.head
-        logger.info(s"Triggering build for ${oldestJob.service}")
-        jenkinsService.triggerBuildJob(oldestJob.jenkinsURL, oldestJob.lastBuildTime)
+        jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
       }
     })
   }
 
   def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
-    val thirtyDaysAgo = ZonedDateTime.now().minusDays(daysUnbuilt).toInstant
+    val thirtyDaysAgo = Instant.now().minus(daysUnbuilt, DAYS)
     for {
       filenames <- dataSource.getBuildTeamFiles
-      files <- Future.sequence(filenames.map { dataSource.getTeamFile})
-      serviceNames <- Future.successful(
-        files.filter(_.nonEmpty)
-          .flatMap(extractServiceNames))
-      buildJobs <- Future.sequence(serviceNames.map {jenkinsService.findByService})
-      jobsWithLatestBuildOver30days <- Future.successful(
+      files <- Future.traverse(filenames) { dataSource.getTeamFile }
+      serviceNames = files.filter(_.nonEmpty).flatMap(extractServiceNames)
+      buildJobs <- Future.traverse(serviceNames) { jenkinsService.findByService }
+      jobsWithLatestBuildOver30days =
         buildJobs.flatten
           .filter(_.latestBuild.nonEmpty)
           .map(job => RebuildJobData(job.service, job.jenkinsURL, job.latestBuild.get.timestamp))
           .filter(_.lastBuildTime.isBefore(thirtyDaysAgo))
-          .sortBy(ele => ele.lastBuildTime))
+          .sortBy(ele => ele.lastBuildTime)
     } yield jobsWithLatestBuildOver30days
   }
 
-  private def extractServiceNames(x: String): Iterable[String] = {
-    val statements = new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, x)
+  private def extractServiceNames(buildFileContents: String): Iterable[String] = {
+    val statements = new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, buildFileContents)
       .toList
-      .filter(n => n.isInstanceOf[BlockStatement]).head.asInstanceOf[BlockStatement]
+      .filter(_.isInstanceOf[BlockStatement]).head.asInstanceOf[BlockStatement]
       .getStatements
-      .filter(p => p.isInstanceOf[ExpressionStatement])
-      .map(p => p.asInstanceOf[ExpressionStatement].getExpression)
-    val declarations = statements.filter(p => p.isInstanceOf[DeclarationExpression])
-      .map(p => p.asInstanceOf[DeclarationExpression])
-      .map(p => p.getVariableExpression.getName -> {
-        p.getRightExpression match {
+      .filter(_.isInstanceOf[ExpressionStatement])
+      .map(_.asInstanceOf[ExpressionStatement].getExpression)
+    val declarations = statements.filter(_.isInstanceOf[DeclarationExpression])
+      .map(_.asInstanceOf[DeclarationExpression])
+      .map(declarationExpression => declarationExpression.getVariableExpression.getName -> {
+        declarationExpression.getRightExpression match {
           case expression: ConstantExpression => expression.getValue.toString
           case expression: GStringExpression => expression.toString
           case expression => expression.getType.getName
@@ -107,16 +89,16 @@ case class RebuildService @Inject()(
       .toMap
 
     statements
-      .map(p => getInitialCall(p))
-      .filter(p => p.isInstanceOf[ConstructorCallExpression])
-      .filter(p => p.getType.getName.equals("SbtMicroserviceJobBuilder"))
-      .flatMap(p => p.asInstanceOf[ConstructorCallExpression]
+      .map(getInitialCall)
+      .filter(_.isInstanceOf[ConstructorCallExpression])
+      .filter(_.getType.getName.equals("SbtMicroserviceJobBuilder"))
+      .flatMap(_.asInstanceOf[ConstructorCallExpression]
         .getArguments.asInstanceOf[ArgumentListExpression]
         .getExpression(1) match {
-          case expression: ConstantExpression => Some(expression.getValue.toString)
-          case expression: VariableExpression => declarations.get(expression.getName)
-          case _ => None
-        })
+        case expression: ConstantExpression => Some(expression.getValue.toString)
+        case expression: VariableExpression => declarations.get(expression.getName)
+        case _ => None
+      })
   }
 
   @tailrec

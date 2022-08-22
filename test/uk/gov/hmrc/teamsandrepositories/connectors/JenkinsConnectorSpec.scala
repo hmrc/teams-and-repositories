@@ -55,8 +55,8 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
         JenkinsRoot(
           "hudson.model.Hudson",
           Seq(
-            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "abc", "https://jenkins/job/abc/", None),
-            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/job/xyz/", None)
+            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "abc", "https://jenkins/job/abc/", Seq()),
+            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/job/xyz/", Seq())
           )
         )
       )
@@ -96,9 +96,9 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
           "hudson.model.Hudson",
           Seq(
             JenkinsJob("hudson.model.FreeStyleProject", "def", "https://jenkins/job/abc/job/def/",
-              Some(Seq(JenkinsBuildData(10933, "https://jenkins/job/abc/job/def/10933/",
-                Instant.ofEpochMilli(1660042375930L), Some("SUCCESS"))))),
-            JenkinsJob("hudson.model.FreeStyleProject", "ghi", "https://jenkins/job/abc/job/ghi/", None)
+              Seq(JenkinsBuildData(10933, "https://jenkins/job/abc/job/def/10933/",
+                Instant.ofEpochMilli(1660042375930L), Some("SUCCESS")))),
+            JenkinsJob("hudson.model.FreeStyleProject", "ghi", "https://jenkins/job/abc/job/ghi/", Seq())
           )
         )
       )
@@ -135,9 +135,9 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
         JenkinsRoot(
           "com.cloudbees.hudson.plugins.folder.Folder",
           Seq(
-            JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "def", "https://jenkins/job/abc/job/def/", None),
-            JenkinsJob("hudson.model.FreeStyleProject"                 , "ghi", "https://jenkins/job/abc/job/ghi/", None),
-            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder"    , "abc", "https://jenkins/job/xyz/job/abc/", None)
+            JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "def", "https://jenkins/job/abc/job/def/", Seq()),
+            JenkinsJob("hudson.model.FreeStyleProject"                 , "ghi", "https://jenkins/job/abc/job/ghi/", Seq()),
+            JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder"    , "abc", "https://jenkins/job/xyz/job/abc/", Seq())
           )
         )
       )
@@ -151,8 +151,8 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
       val mockRoot = JenkinsRoot(
         "hudson.model.Hudson",
         Seq(
-          JenkinsJob("hudson.model.FreeStyleProject"                 , "def", "https://jenkins/job/abc/job/def/", None),
-          JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "xyz", "https://jenkins/job/abc/job/xyz/", None)
+          JenkinsJob("hudson.model.FreeStyleProject"                 , "def", "https://jenkins/job/abc/job/def/", Seq()),
+          JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "xyz", "https://jenkins/job/abc/job/xyz/", Seq())
         )
       )
 
@@ -164,45 +164,45 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
 
     "get content from Folder" in {
       val mockLookup = (s: String) =>
-        Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", None))))
+        Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", Seq()))))
 
-      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", None)))
+      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", Seq())))
 
       val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
-      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", None)
+      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", Seq())
     }
 
     "gets content from nested Folders" in {
       val mockLookup = (s: String) => s match {
-        case "https://jenkins/456" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "hij", "https://jenkins/789", None))))
-        case "https://jenkins/789" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("hudson.model.FreeStyleProject"             , "abc", "https://jenkins/123", None))))
+        case "https://jenkins/456" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "hij", "https://jenkins/789", Seq()))))
+        case "https://jenkins/789" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("hudson.model.FreeStyleProject"             , "abc", "https://jenkins/123", Seq()))))
       }
 
-      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", None)))
+      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", Seq())))
 
       val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
-      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", None)
+      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", Seq())
     }
 
     "only returns FreeStyleProjects from Folders" in {
       val mockLookup = (s: String) => s match {
-        case "https://jenkins/456" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "hij", "https://jenkins/789", None))))
+        case "https://jenkins/456" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "hij", "https://jenkins/789", Seq()))))
         case "https://jenkins/789" => Future.successful(JenkinsRoot("com.cloudbees.hudson.plugins.folder.Folder", Seq(
-          JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", None),
-          JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "lmn", "https://jenkins/654", None)
+          JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", Seq()),
+          JenkinsJob("org.jenkinsci.plugins.workflow.job.WorkflowJob", "lmn", "https://jenkins/654", Seq())
         )))
       }
 
-      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", None)))
+      val mockRoot = JenkinsRoot("hudson.model.Hudson", Seq(JenkinsJob("com.cloudbees.hudson.plugins.folder.Folder", "xyz", "https://jenkins/456", Seq())))
 
       val res = JenkinsConnector.parse(mockRoot, mockLookup).futureValue
 
       res.length shouldBe 1
-      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", None)
+      res.head shouldBe JenkinsJob("hudson.model.FreeStyleProject", "abc", "https://jenkins/123", Seq())
     }
   }
 }

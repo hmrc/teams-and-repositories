@@ -167,7 +167,7 @@ class PersistingServiceSpec
     val persister: RepositoriesPersistence = mock[RepositoriesPersistence]
     val githubConnector                    = mock[GithubConnector]
     val serviceConfigsConnector            = mock[ServiceConfigsConnector]
-    val timestamper: Timestamper           = new Timestamper
+    val timestamper: TimeStamper           = new TimeStamper
     val configuration: Configuration       = mock[Configuration]
 
     when(githubConfig.hiddenTeams).thenReturn(Set.empty)
@@ -175,8 +175,10 @@ class PersistingServiceSpec
     when(configuration.get[Seq[String]]("shared.repositories")).thenReturn(Seq.empty)
     when(persister.updateRepos(any)).thenReturn(Future.successful(0))
 
+    val datasource = new GithubV3RepositoryDataSource(githubConfig, githubConnector, timestamper, configuration)
+
     val onTest: PersistingService =
-      new PersistingService(githubConfig, persister, githubConnector, timestamper, configuration, serviceConfigsConnector)
+      new PersistingService(persister, datasource, configuration, serviceConfigsConnector)
 
     val teamA: GhTeam = GhTeam("team-a", Instant.now())
     val teamB: GhTeam = GhTeam("team-b", Instant.now())

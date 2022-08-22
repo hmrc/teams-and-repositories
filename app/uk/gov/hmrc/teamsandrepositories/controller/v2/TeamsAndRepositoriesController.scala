@@ -81,9 +81,6 @@ class TeamsAndRepositoriesController @Inject()(
   }
 
   def getJobsWithNoBuildFor(daysUnbuilt: Int) = Action.async { _ =>
-    rebuildService.getJobsWithNoBuildFor(daysUnbuilt).map {
-      case list if list.isEmpty => NotFound
-      case list => Ok(Json.toJson(list))
-    }
+    rebuildService.getJobsWithNoBuildFor(daysUnbuilt).map(result => Ok(Json.toJson(result)))
   }
 }

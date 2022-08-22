@@ -33,7 +33,7 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
-import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, Timestamper}
+import uk.gov.hmrc.teamsandrepositories.services.{PersistingService, TimeStamper}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -64,7 +64,7 @@ class ModuleSpec
     }
   }
 
-  val testTimestamper = new Timestamper
+  val testTimestamper = new TimeStamper
 
   val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
   val intervalDuration: FiniteDuration       = 100 millisecond
@@ -83,7 +83,7 @@ class ModuleSpec
       .disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .overrides(
         bind[SchedulerConfigs].toInstance(mockSchedulerConfigs),
-        bind[Timestamper].toInstance(testTimestamper),
+        bind[TimeStamper].toInstance(testTimestamper),
         bind[PersistingService].toInstance(mockPersistingService),
         bind[MongoLocks].toInstance(testMongoLocks)
       )

@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.services
+import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
@@ -25,15 +26,20 @@ import java.util.concurrent.Executors
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
 
-
-class GithubV3RepositoryDataSource(
-  githubConfig                 : GithubConfig,
-  githubConnector              : GithubConnector,
-  timestampF                   : () => Instant,
-  sharedRepos                  : List[String],
-  configuration                : Configuration
+@Singleton
+class TimeStamper {
+  def timestampF() = Instant.now()
+}
+@Singleton
+class GithubV3RepositoryDataSource @Inject()(
+                                              githubConfig                 : GithubConfig,
+                                              githubConnector              : GithubConnector,
+                                              timeStamper                  : TimeStamper,
+                                              configuration                : Configuration
 ) {
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
+
+  val sharedRepos: List[String] = configuration.get[Seq[String]]("shared.repositories").toList
 
   private val logger = Logger(this.getClass)
   private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
@@ -87,7 +93,7 @@ class GithubV3RepositoryDataSource(
           teamName     = team.name,
           repositories = repos.sortBy(_.name),
           createdDate  = Some(team.createdAt),
-          updateDate   = timestampF()
+          updateDate   = timeStamper.timestampF()
         )
   }.recover {
     case e =>

@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamRepositories}
-import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig}
+import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
@@ -42,8 +42,11 @@ class GithubV3RepositoryDataSourceSpec
 
   private val nowMillis = System.currentTimeMillis()
   private val now = Instant.ofEpochMilli(nowMillis)
-  private val timestampF = () => now
   private val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")
+
+  private val testTimeStamper = new TimeStamper {
+    override def timestampF(): Instant = now
+  }
 
   trait Setup {
     val mockGithubConnector = mock[GithubConnector]
@@ -54,9 +57,8 @@ class GithubV3RepositoryDataSourceSpec
       new GithubV3RepositoryDataSource(
         githubConfig    = githubConfig,
         githubConnector = mockGithubConnector,
-        timestampF      = timestampF,
-        sharedRepos     = List("shared-repository"),
-        configuration   = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"))
+        timeStamper     = testTimeStamper,
+        configuration   = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"), ("shared.repositories", Seq()))
       )
 
     val ec = dataSource.ec
@@ -247,7 +249,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -286,7 +288,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -325,7 +327,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -364,7 +366,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 
@@ -403,7 +405,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -442,7 +444,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -484,7 +486,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -520,7 +522,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -556,7 +558,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -602,7 +604,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 
@@ -648,7 +650,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 
@@ -686,7 +688,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 
@@ -719,7 +721,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 
@@ -766,7 +768,7 @@ class GithubV3RepositoryDataSourceSpec
             )
           ),
           createdDate  = Some(teamCreatedDate),
-          updateDate   = timestampF()
+          updateDate   = now
         )
     }
 
@@ -801,7 +803,7 @@ class GithubV3RepositoryDataSourceSpec
           )
         ),
         createdDate  = Some(teamCreatedDate),
-        updateDate   = timestampF()
+        updateDate   = now
       )
     }
 

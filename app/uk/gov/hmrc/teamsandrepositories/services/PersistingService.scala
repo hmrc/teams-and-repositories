@@ -19,41 +19,20 @@ package uk.gov.hmrc.teamsandrepositories.services
 import cats.implicits._
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, ServiceConfigsConnector}
-import uk.gov.hmrc.teamsandrepositories.models.{BackendService, FrontendService, GitRepository, RepoType, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
+import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
-import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class Timestamper {
-  def timestampF() = Instant.now()
-}
-
-@Singleton
 case class PersistingService @Inject()(
-  githubConfig            : GithubConfig,
   persister               : RepositoriesPersistence,
-  githubConnector         : GithubConnector,
-  timestamper             : Timestamper,
+  dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
   serviceConfigsConnector : ServiceConfigsConnector
 ) {
   private val logger = Logger(this.getClass)
-
-  val sharedRepos: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
-
-  val dataSource: GithubV3RepositoryDataSource =
-    new GithubV3RepositoryDataSource(
-      githubConfig = githubConfig,
-      githubConnector = githubConnector,
-      timestampF = timestamper.timestampF,
-      sharedRepos = sharedRepos,
-      configuration = configuration
-    )
 
   def updateRepositories()(implicit ec: ExecutionContext): Future[Int] = {
     for {
