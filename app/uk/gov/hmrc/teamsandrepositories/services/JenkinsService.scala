@@ -36,27 +36,26 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
     for {
       res <- jenkinsConnector.findBuildJobRoot()
       buildJobs = res.map(build => {
-        val buildData = build.builds match {
-          case Some(value) if value.nonEmpty =>
-            val data = value.maxBy(_.timestamp)
-            Some(BuildJobBuildData(data.number, data.url, data.timestamp, data.result))
-          case _ => None
-        }
+
+        val buildData = build
+          .builds
+          .reduceOption( (a, b) => if(a.timestamp.compareTo(b.timestamp) > 0) a else b)
+          .map(data => BuildJobBuildData(data.number, data.url, data.timestamp, data.result))
+
         BuildJob(build.displayName, build.url, buildData)
       })
       persist <- repo.update(buildJobs)
     } yield persist
 
-  def triggerBuildJob(url: String,
+  def triggerBuildJob(serviceName:String, url: String,
                       timestamp: Instant)(implicit ec: ExecutionContext): Future[Unit] = {
     for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
-      _ <- if (latestBuild.timestamp.equals(timestamp))
+      _ <- if (latestBuild.timestamp.equals(timestamp)) {
+          logger.info(s"Triggering build for ${serviceName}")
           jenkinsConnector.triggerBuildJob(url)
-        else {
-        logger.info("Job was rebuilt since last Jenkins query")
-        Future.successful[Unit](())
-      }
+        }
+        else Future.successful[Unit](())
     } yield ()
   }
 }

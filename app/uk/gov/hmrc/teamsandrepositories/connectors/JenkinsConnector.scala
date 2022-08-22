@@ -28,6 +28,7 @@ import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.implicitConversions
 import scala.util.control.NonFatal
 
 class JenkinsConnector @Inject()(
@@ -124,7 +125,7 @@ object JenkinsConnector {
 
 case class JenkinsRoot(_class: String, jobs: Seq[JenkinsJob])
 
-case class JenkinsJob (_class: String, displayName: String, url: String, builds: Option[Seq[JenkinsBuildData]])
+case class JenkinsJob (_class: String, displayName: String, url: String, builds: Seq[JenkinsBuildData])
 
 object JenkinsApiReads {
   implicit val jenkinsRootReader: Reads[JenkinsRoot] =
@@ -136,7 +137,7 @@ object JenkinsApiReads {
     ( (__ \ "_class").read[String]
     ~ (__ \ "name"  ).read[String]
     ~ (__ \ "url"   ).read[String]
-    ~ (__ \ "builds").readNullable[Seq[JenkinsBuildData]]
+    ~ (__ \ "builds").readWithDefault[Seq[JenkinsBuildData]](Seq.empty)
     )(JenkinsJob.apply _)
 }
 case class JenkinsBuildData(
