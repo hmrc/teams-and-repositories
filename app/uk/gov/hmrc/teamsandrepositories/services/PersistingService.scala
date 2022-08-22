@@ -34,9 +34,6 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  val sharedRepos: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
-
   def updateRepositories()(implicit ec: ExecutionContext): Future[Int] = {
     for {
       teams <- dataSource.getTeams()

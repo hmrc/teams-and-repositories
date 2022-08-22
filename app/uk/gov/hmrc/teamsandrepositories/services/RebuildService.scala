@@ -41,9 +41,6 @@ case class RebuildService @Inject()(
 
   private val minDaysUnbuilt: Int = configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt")
 
-  val sharedRepos: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
-
   def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] = {
     val oldBuiltJobs = getJobsWithNoBuildFor(minDaysUnbuilt)
     oldBuiltJobs.map(jobs => {
@@ -62,10 +59,8 @@ case class RebuildService @Inject()(
     for {
       filenames <- dataSource.getBuildTeamFiles
       files <- Future.traverse(filenames) { dataSource.getTeamFile }
-      serviceNames <- Future.successful(
-        files.filter(_.nonEmpty)
-          .flatMap(extractServiceNames))
-      buildJobs <- Future.sequence(serviceNames.map {jenkinsService.findByService})
+      serviceNames = files.filter(_.nonEmpty).flatMap(extractServiceNames)
+      buildJobs <- Future.traverse(serviceNames) { jenkinsService.findByService }
       jobsWithLatestBuildOver30days =
         buildJobs.flatten
           .filter(_.latestBuild.nonEmpty)
