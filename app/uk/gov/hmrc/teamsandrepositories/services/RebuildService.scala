@@ -73,12 +73,13 @@ case class RebuildService @Inject()(
   private def extractServiceNames(buildFileContents: String): Iterable[String] = {
     val statements = new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, buildFileContents)
       .toList
-      .filter(_.isInstanceOf[BlockStatement]).head.asInstanceOf[BlockStatement]
+      .collect { case x: BlockStatement => x }
+      .head
       .getStatements
-      .filter(_.isInstanceOf[ExpressionStatement])
-      .map(_.asInstanceOf[ExpressionStatement].getExpression)
-    val declarations = statements.filter(_.isInstanceOf[DeclarationExpression])
-      .map(_.asInstanceOf[DeclarationExpression])
+      .collect { case expressionStatement: ExpressionStatement => expressionStatement }
+      .map(_.getExpression)
+    val declarations = statements
+      .collect { case declarationExpression: DeclarationExpression => declarationExpression }
       .map(declarationExpression => declarationExpression.getVariableExpression.getName -> {
         declarationExpression.getRightExpression match {
           case expression: ConstantExpression => expression.getValue.toString
@@ -90,10 +91,9 @@ case class RebuildService @Inject()(
 
     statements
       .map(getInitialCall)
-      .filter(_.isInstanceOf[ConstructorCallExpression])
+      .collect { case constructorCall: ConstructorCallExpression => constructorCall }
       .filter(_.getType.getName.equals("SbtMicroserviceJobBuilder"))
-      .flatMap(_.asInstanceOf[ConstructorCallExpression]
-        .getArguments.asInstanceOf[ArgumentListExpression]
+      .flatMap(_.getArguments.asInstanceOf[ArgumentListExpression]
         .getExpression(1) match {
         case expression: ConstantExpression => Some(expression.getValue.toString)
         case expression: VariableExpression => declarations.get(expression.getName)
