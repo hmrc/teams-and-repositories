@@ -168,6 +168,14 @@ class RepositoriesPersistenceSpec
       results must contain only (repo2)
     }
 
+    "find repos containing name" in {
+      val foo = repo1.copy(name = "foo")
+      val bar = repo1.copy(name = "bar")
+      repository.collection.insertMany(Seq(repo1, repo2, foo, bar)).toFuture().futureValue
+      val results = repository.search(name = Some("repo")).futureValue
+      results must contain only (repo1, repo2)
+    }
+
     "find repos by repo type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
       val results = repository.search(repoType = Some(Prototype)).futureValue
