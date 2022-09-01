@@ -22,7 +22,7 @@ import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 
@@ -44,7 +44,7 @@ class JenkinsConnector @Inject()(
   private val authorizationHeader =
     s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
 
-  def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[Unit] = {
+  def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
@@ -54,7 +54,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[Unit]
+      .execute[HttpResponse]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -103,6 +103,42 @@ class JenkinsConnector @Inject()(
        root <- findBuildJobs(config.baseUrl)
        res  <- JenkinsConnector.parse(root, findBuildJobs)
      } yield res
+
+  def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
+
+    assert(queueUrl.startsWith(config.baseUrl), s"$queueUrl was requested for invalid host")
+
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${queueUrl}api/json?tree=jobs[name,url,builds[number,url,timestamp,result]]"
+
+    httpClientV2
+      .get(url)
+      .setHeader("Authorization" -> authorizationHeader)
+      .execute[JenkinsQueueData]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
+
+  def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
+    // Prevents Server-Side Request Forgery
+    assert(buildUrl.startsWith(config.baseUrl), s"$buildUrl was requested for invalid host")
+
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${buildUrl}api/json?tree=number,url,timestamp,result"
+
+    httpClientV2
+      .post(url)
+      .setHeader("Authorization" -> authorizationHeader)
+      .execute[JenkinsBuildData]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
 }
 
 object JenkinsConnector {
@@ -154,4 +190,22 @@ object JenkinsBuildData {
       ~ (__ \ "timestamp").read[Instant]
       ~ (__ \ "result").readNullable[String]
       ) (JenkinsBuildData.apply _)
+}
+
+case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
+
+object JenkinsQueueData {
+  implicit val queueDataReader: Reads[JenkinsQueueData] =
+    ((__ \ "cancelled").readNullable[Boolean]
+      ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
+      ) (JenkinsQueueData.apply _)
+}
+
+case class JenkinsQueueExecutable(number: Int, url: String)
+
+object JenkinsQueueExecutable {
+  implicit val executableReader: Reads[JenkinsQueueExecutable] =
+    ((__ \ "number").read[Int]
+      ~ (__ \ "url").read[String]
+      ) (JenkinsQueueExecutable.apply _)
 }
