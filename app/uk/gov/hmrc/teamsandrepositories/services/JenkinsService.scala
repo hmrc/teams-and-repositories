@@ -17,10 +17,10 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import org.mongodb.scala.result.UpdateResult
 import play.api.Logger
+import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{JenkinsBuildData, JenkinsConnector, JenkinsQueueData}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
@@ -30,8 +30,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
 @Singleton
-class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
+class JenkinsService @Inject()(
+                                repo: BuildJobRepo,
+                                jenkinsConnector: JenkinsConnector,
+                                jenkinsConfig: JenkinsConfig) {
 
   private val logger = Logger(this.getClass)
 
@@ -71,7 +75,7 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
 
   private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
     Source.repeat(42)
-        .throttle(1, 10 seconds)
+        .throttle(1, jenkinsConfig.queueThrottleInSeconds seconds)
         .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
         .filter(queue => queue.cancelled.nonEmpty)
       .map(queue => {
@@ -84,7 +88,7 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
 
   private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
     Source.repeat(42)
-      .throttle(1, 1 minute)
+      .throttle(1, jenkinsConfig.buildThrottleInMinutes minute)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))
       .filter(build => build.result.nonEmpty)
       .runWith(Sink.head)
