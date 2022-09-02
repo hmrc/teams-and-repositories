@@ -59,11 +59,11 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
                       timestamp: Instant)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
     for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
-      response <- {
+      location <- {
         logger.info(s"Triggering build for $serviceName")
         jenkinsConnector.triggerBuildJob(url)
       } if latestBuild.timestamp.equals(timestamp)
-      queueUrl = s"${response.header("Location").get.replace("http:", "https:")}api/json"
+      queueUrl = s"${location.replace("http:", "https:")}api/json"
       queue <- getQueue(queueUrl)
       build <- getBuild(queue.executable.get.url)
     } yield build

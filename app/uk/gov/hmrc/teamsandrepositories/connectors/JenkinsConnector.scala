@@ -44,22 +44,24 @@ class JenkinsConnector @Inject()(
   private val authorizationHeader =
     s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
 
-  def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
+  def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${baseUrl}/buildWithParameters"
-
-    httpClientV2
-      .post(url)
-      .setHeader("Authorization" -> authorizationHeader)
-      .execute[HttpResponse]
-      .recoverWith {
-        case NonFatal(ex) =>
-          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-          Future.failed(ex)
+    for {
+      response <- httpClientV2
+        .post(url)
+        .setHeader("Authorization" -> authorizationHeader)
+        .execute[HttpResponse]
+        .recoverWith {
+        case NonFatal (ex) =>
+        logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+      Future.failed (ex)
       }
+      location = response.header("Location").get
+    } yield location
   }
 
   def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[JenkinsBuildData] = {
