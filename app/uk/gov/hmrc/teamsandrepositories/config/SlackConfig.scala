@@ -17,11 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import com.google.inject.{Inject, Singleton}
-import com.typesafe.config.{ConfigList, ConfigObject}
 import play.api.Configuration
-
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.Duration
 
 
 @Singleton

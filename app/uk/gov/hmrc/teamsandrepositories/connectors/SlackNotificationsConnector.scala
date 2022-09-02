@@ -17,17 +17,16 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.google.common.io.BaseEncoding
-
-import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.libs.json._
-import play.api.{Configuration, Logger}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
 
-import scala.util.control.NonFatal
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class SlackNotificationsConnector @Inject()(

@@ -20,6 +20,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsSuccess, Json}
+import uk.gov.hmrc.teamsandrepositories.models.BuildResult
 
 import java.time.Instant
 import scala.concurrent.Future
@@ -97,7 +98,7 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
           Seq(
             JenkinsJob("hudson.model.FreeStyleProject", "def", "https://jenkins/job/abc/job/def/",
               Seq(JenkinsBuildData(10933, "https://jenkins/job/abc/job/def/10933/",
-                Instant.ofEpochMilli(1660042375930L), Some("SUCCESS")))),
+                Instant.ofEpochMilli(1660042375930L), Some(BuildResult.Success)))),
             JenkinsJob("hudson.model.FreeStyleProject", "ghi", "https://jenkins/job/abc/job/ghi/", Seq())
           )
         )

@@ -25,10 +25,10 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
+import uk.gov.hmrc.teamsandrepositories.models.BuildResult
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.implicitConversions
 import scala.util.control.NonFatal
 
 class JenkinsConnector @Inject()(
@@ -49,7 +49,7 @@ class JenkinsConnector @Inject()(
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${baseUrl}/buildWithParameters"
+    val url = url"$baseUrl/buildWithParameters"
     for {
       response <- httpClientV2
         .post(url)
@@ -69,7 +69,7 @@ class JenkinsConnector @Inject()(
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${baseUrl}/lastBuild/api/json?tree=number,url,timestamp,result"
+    val url = url"$baseUrl/lastBuild/api/json?tree=number,url,timestamp,result"
 
     httpClientV2
       .post(url)
@@ -182,7 +182,7 @@ case class JenkinsBuildData(
                       number: Int,
                       url: String,
                       timestamp: Instant,
-                      result: Option[String]
+                      result: Option[BuildResult]
                     )
 object JenkinsBuildData {
 
@@ -190,7 +190,7 @@ object JenkinsBuildData {
     ((__ \ "number").read[Int]
       ~ (__ \ "url").read[String]
       ~ (__ \ "timestamp").read[Instant]
-      ~ (__ \ "result").readNullable[String]
+      ~ (__ \ "result").readNullable[BuildResult]
       ) (JenkinsBuildData.apply _)
 }
 

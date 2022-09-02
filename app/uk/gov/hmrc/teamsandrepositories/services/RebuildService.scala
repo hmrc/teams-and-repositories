@@ -26,6 +26,7 @@ import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{ChannelLookup, JenkinsBuildData, MessageDetails, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.BuildResult.Failure
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
@@ -55,7 +56,7 @@ case class RebuildService @Inject()(
         val oldestJob = jobs.head
         for {
           build <- jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
-          _ <- sendBuildFailureAlert(build, oldestJob.service) if build.result.nonEmpty && build.result.get.equalsIgnoreCase("FAILED")
+          _ <- sendBuildFailureAlert(build, oldestJob.service) if build.result.nonEmpty && build.result.get == Failure
         } yield ()
       }
     })
