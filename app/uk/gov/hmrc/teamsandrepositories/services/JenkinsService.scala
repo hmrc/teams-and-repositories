@@ -27,7 +27,6 @@ import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
@@ -74,8 +73,8 @@ class JenkinsService @Inject()(
   }
 
   private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
-    Source.repeat(42)
-        .throttle(1, jenkinsConfig.queueThrottleInSeconds seconds)
+    Source.repeat(())
+        .throttle(1, jenkinsConfig.queueThrottleDuration)
         .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
         .filter(queue => queue.cancelled.nonEmpty)
       .map(queue => {
@@ -87,8 +86,8 @@ class JenkinsService @Inject()(
   }
 
   private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
-    Source.repeat(42)
-      .throttle(1, jenkinsConfig.buildThrottleInMinutes minute)
+    Source.repeat(())
+      .throttle(1, jenkinsConfig.buildThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))
       .filter(build => build.result.nonEmpty)
       .runWith(Sink.head)

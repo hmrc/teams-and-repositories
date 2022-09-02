@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import javax.inject.Inject
 import play.api.Configuration
+
+import javax.inject.Inject
+import scala.concurrent.duration.FiniteDuration
 
 class JenkinsConfig @Inject()(config: Configuration) {
   lazy val username: String = config.get[String]("jenkins.username")
@@ -26,7 +28,7 @@ class JenkinsConfig @Inject()(config: Configuration) {
 
   lazy val baseUrl: String = config.get[String]("jenkins.url")
 
-  lazy val queueThrottleInSeconds: Int = config.get[Int]("jenkins.queue.throttle.seconds")
+  lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
 
-  lazy val buildThrottleInMinutes: Int = config.get[Int]("jenkins.build.throttle.minutes")
+  lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle.minutes")
 }
