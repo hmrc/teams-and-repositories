@@ -30,5 +30,5 @@ class JenkinsConfig @Inject()(config: Configuration) {
 
   lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
 
-  lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle.minutes")
+  lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
 }

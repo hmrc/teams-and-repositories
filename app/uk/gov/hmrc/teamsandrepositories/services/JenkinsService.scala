@@ -58,31 +58,39 @@ class JenkinsService @Inject()(
       persist <- repo.update(buildJobs)
     } yield persist
 
-  def triggerBuildJob(serviceName: String, url: String,
-                      timestamp: Instant)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
-    for {
+  def triggerBuildJob(serviceName: String,
+                      url: String,
+                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Option[JenkinsBuildData]] = {
+    val optionalBuild = for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
-      location <- {
-        logger.info(s"Triggering build for $serviceName")
-        jenkinsConnector.triggerBuildJob(url)
-      } if latestBuild.timestamp.equals(timestamp)
-      queueUrl = s"${location.replace("http:", "https:")}api/json"
-      queue <- getQueue(queueUrl)
-      build <- getBuild(queue.executable.get.url)
+      build = if (latestBuild.timestamp.equals(timestamp)) {
+        for {
+          location <- {
+            logger.info(s"Triggering build for $serviceName")
+            jenkinsConnector.triggerBuildJob(url)
+          }
+          queueUrl = s"${location.replace("http:", "https:")}"
+          queue <- getQueue(queueUrl)
+          build <- getBuild(queue.executable.get.url)
+        } yield Some(build)
+      } else {
+        Future.successful(None)
+      }
     } yield build
+    optionalBuild.flatten
   }
 
   private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
     Source.repeat(())
-        .throttle(1, jenkinsConfig.queueThrottleDuration)
-        .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
-        .filter(queue => queue.cancelled.nonEmpty)
+      .throttle(1, jenkinsConfig.queueThrottleDuration)
+      .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
+      .filter(queue => queue.cancelled.nonEmpty || queue.executable.nonEmpty)
       .map(queue => {
-        if (queue.cancelled.get) throw new Exception("Queued Job cancelled")
+        if (queue.cancelled.nonEmpty && queue.cancelled.get) throw new Exception("Queued Job cancelled")
         queue
       })
-        .filter(queue => queue.executable.nonEmpty)
-        .runWith(Sink.head)
+      .filter(queue => queue.executable.nonEmpty)
+      .runWith(Sink.head)
   }
 
   private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
@@ -92,5 +100,4 @@ class JenkinsService @Inject()(
       .filter(build => build.result.nonEmpty)
       .runWith(Sink.head)
   }
-
 }

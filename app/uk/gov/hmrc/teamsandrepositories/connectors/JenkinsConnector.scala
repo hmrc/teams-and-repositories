@@ -111,7 +111,7 @@ class JenkinsConnector @Inject()(
     assert(queueUrl.startsWith(config.baseUrl), s"$queueUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${queueUrl}api/json?tree=jobs[name,url,builds[number,url,timestamp,result]]"
+    val url = url"${queueUrl}api/json?tree=cancelled,executable[number,url]"
 
     httpClientV2
       .get(url)

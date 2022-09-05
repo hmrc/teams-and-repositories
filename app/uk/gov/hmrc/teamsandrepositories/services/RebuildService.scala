@@ -55,23 +55,27 @@ case class RebuildService @Inject()(
       } else {
         val oldestJob = jobs.head
         for {
-          build <- jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
-          _ <- sendBuildFailureAlert(build, oldestJob.service) if build.result.nonEmpty && build.result.get == Failure
+          build <- jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime) if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == Failure
+          _ <-  sendBuildFailureAlert(build.get, oldestJob.service)
         } yield ()
       }
     })
   }
+
   private def sendBuildFailureAlert(build: JenkinsBuildData, serviceName: String)(implicit ec: ExecutionContext) = {
+    if (slackConfig.enabled) {
       val channelLookup: ChannelLookup = ChannelLookup(serviceName)
       val messageDetails: MessageDetails = MessageDetails(
         slackConfig.messageText.replace("serviceName", serviceName).replace("buildUrl", build.url),
         slackConfig.user,
         "",
         Seq())
-    for {
-      response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if slackConfig.enabled
-      _ = logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}") if !response.hasSentMessages
-    } yield response
+      for {
+        response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
+        _ = logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+      } yield response
+    }
+    else Future.successful(())
   }
 
   def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
