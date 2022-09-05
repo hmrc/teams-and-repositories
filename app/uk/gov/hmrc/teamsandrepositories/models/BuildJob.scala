@@ -55,7 +55,7 @@ case class BuildJobBuildData(
                       number: Int,
                       url: String,
                       timestamp: Instant,
-                      result: Option[String]
+                      result: Option[BuildResult]
                     )
 object BuildJobBuildData {
 
@@ -63,13 +63,13 @@ object BuildJobBuildData {
     ((__ \ "number").format[Int]
       ~ (__ \ "url").format[String]
       ~ (__ \ "timestamp").format(MongoJavatimeFormats.instantFormat)
-      ~ (__ \ "result").formatNullable[String]
+      ~ (__ \ "result").formatNullable[BuildResult]
       ) (apply, unlift(unapply))
 
   val apiWrites: Writes[BuildJobBuildData] =
     ((__ \ "number").write[Int]
       ~ (__ \ "url").write[String]
       ~ (__ \ "timestamp").write[Instant]
-      ~ (__ \ "result").writeNullable[String]
+      ~ (__ \ "result").writeNullable[BuildResult]
       ) (unlift(unapply))
 }

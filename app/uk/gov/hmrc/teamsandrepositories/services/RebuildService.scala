@@ -24,6 +24,9 @@ import org.codehaus.groovy.control.CompilePhase
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
+import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.{ChannelLookup, JenkinsBuildData, MessageDetails, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.BuildResult.Failure
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
@@ -33,9 +36,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class RebuildService @Inject()(
-  dataSource      : GithubV3RepositoryDataSource,
-  configuration   : Configuration,
-  jenkinsService  : JenkinsService
+  dataSource                  : GithubV3RepositoryDataSource,
+  configuration               : Configuration,
+  slackConfig                 : SlackConfig,
+  jenkinsService              : JenkinsService,
+  slackNotificationsConnector : SlackNotificationsConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -49,9 +54,28 @@ case class RebuildService @Inject()(
         Unit
       } else {
         val oldestJob = jobs.head
-        jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
+        for {
+          build <- jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime) if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == Failure
+          _ <-  sendBuildFailureAlert(build.get, oldestJob.service)
+        } yield ()
       }
     })
+  }
+
+  private def sendBuildFailureAlert(build: JenkinsBuildData, serviceName: String)(implicit ec: ExecutionContext) = {
+    if (slackConfig.enabled) {
+      val channelLookup: ChannelLookup = ChannelLookup(serviceName)
+      val messageDetails: MessageDetails = MessageDetails(
+        slackConfig.messageText.replace("serviceName", serviceName).replace("buildUrl", build.url),
+        slackConfig.user,
+        "",
+        Seq())
+      for {
+        response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
+        _ = logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+      } yield response
+    }
+    else Future.successful(())
   }
 
   def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {

@@ -16,19 +16,30 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
+import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Sink, Source}
 import org.mongodb.scala.result.UpdateResult
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.{JenkinsBuildData, JenkinsConnector, JenkinsQueueData}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
+
 @Singleton
-class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConnector) {
+class JenkinsService @Inject()(
+                                repo: BuildJobRepo,
+                                jenkinsConnector: JenkinsConnector,
+                                jenkinsConfig: JenkinsConfig) {
 
   private val logger = Logger(this.getClass)
+
+  implicit val actorSystem: ActorSystem = ActorSystem()
+
   def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
 
@@ -47,15 +58,46 @@ class JenkinsService @Inject()(repo: BuildJobRepo, jenkinsConnector: JenkinsConn
       persist <- repo.update(buildJobs)
     } yield persist
 
-  def triggerBuildJob(serviceName:String, url: String,
-                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Unit] = {
-    for {
+  def triggerBuildJob(serviceName: String,
+                      url: String,
+                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Option[JenkinsBuildData]] = {
+    val optionalBuild = for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
-      _ <- if (latestBuild.timestamp.equals(timestamp)) {
-          logger.info(s"Triggering build for ${serviceName}")
-          jenkinsConnector.triggerBuildJob(url)
-        }
-        else Future.successful[Unit](())
-    } yield ()
+      build = if (latestBuild.timestamp.equals(timestamp)) {
+        for {
+          location <- {
+            logger.info(s"Triggering build for $serviceName")
+            jenkinsConnector.triggerBuildJob(url)
+          }
+          queueUrl = s"${location.replace("http:", "https:")}"
+          queue <- getQueue(queueUrl)
+          build <- getBuild(queue.executable.get.url)
+        } yield Some(build)
+      } else {
+        Future.successful(None)
+      }
+    } yield build
+    optionalBuild.flatten
+  }
+
+  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
+    Source.repeat(())
+      .throttle(1, jenkinsConfig.queueThrottleDuration)
+      .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
+      .filter(queue => queue.cancelled.nonEmpty || queue.executable.nonEmpty)
+      .map(queue => {
+        if (queue.cancelled.nonEmpty && queue.cancelled.get) throw new Exception("Queued Job cancelled")
+        queue
+      })
+      .filter(queue => queue.executable.nonEmpty)
+      .runWith(Sink.head)
+  }
+
+  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
+    Source.repeat(())
+      .throttle(1, jenkinsConfig.buildThrottleDuration)
+      .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))
+      .filter(build => build.result.nonEmpty)
+      .runWith(Sink.head)
   }
 }

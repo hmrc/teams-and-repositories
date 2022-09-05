@@ -16,19 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
+import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
 
-import javax.inject.Inject
-import scala.concurrent.duration.FiniteDuration
 
-class JenkinsConfig @Inject()(config: Configuration) {
-  lazy val username: String = config.get[String]("jenkins.username")
-
-  lazy val token: String = config.get[String]("jenkins.token")
-
-  lazy val baseUrl: String = config.get[String]("jenkins.url")
-
-  lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
-
-  lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
+@Singleton
+class SlackConfig @Inject()(configuration: Configuration) {
+  val enabled: Boolean            = configuration.get[Boolean]("slack.enabled")
+  val user: String                = configuration.get[String]("slack.username")
+  val password: String            = configuration.get[String]("slack.password")
+  val messageText: String         = configuration.get[String]("slack.messageText")
 }
