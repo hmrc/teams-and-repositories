@@ -69,7 +69,8 @@ case class RebuildService @Inject()(
         slackConfig.messageText.replace("{serviceName}", serviceName),
         slackConfig.user,
         "",
-        Seq(Attachment(build.url)))
+        Seq(Attachment(build.url)),
+        showAttachmentAuthor = false)
       for {
         response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
         _ = logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
