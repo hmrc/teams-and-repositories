@@ -79,7 +79,7 @@ case class RebuildService @Inject()(
     else Future.successful(())
   }
 
-  def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
+  private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val thirtyDaysAgo = Instant.now().minus(daysUnbuilt, DAYS)
     for {
       filenames <- dataSource.getBuildTeamFiles

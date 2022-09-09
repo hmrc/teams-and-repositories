@@ -20,7 +20,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository, RepoType, ServiceType, TeamName}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.services.{BranchProtectionService, RebuildService}
 
@@ -40,7 +40,6 @@ class TeamsAndRepositoriesController @Inject()(
 
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamName.apiFormat
-  private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
   def allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
     repositoriesPersistence.search(name, team, archived, repoType, serviceType)
@@ -78,9 +77,5 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
-  }
-
-  def getJobsWithNoBuildFor(daysUnbuilt: Int) = Action.async { _ =>
-    rebuildService.getJobsWithNoBuildFor(daysUnbuilt).map(result => Ok(Json.toJson(result)))
   }
 }
