@@ -82,7 +82,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[JenkinsRoot] = {
+  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[Option[JenkinsRoot]] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
@@ -92,11 +92,11 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[JenkinsRoot]
+      .execute[Option[JenkinsRoot]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-          Future.failed(ex)
+          Future.successful(None)
       }
   }
 
@@ -152,12 +152,16 @@ object JenkinsConnector {
 
   import cats.implicits._
 
-  def parse(root: JenkinsRoot, findBuildJobsFunction: String => Future[JenkinsRoot])(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] = {
-    root.jobs.toList.traverse {
-      case job if isFolder(job)  => findBuildJobsFunction(job.url).flatMap(parse(_, findBuildJobsFunction))
-      case job if isProject(job) => Future(Seq(job))
-      case _                     => Future(Seq.empty)
-    }.map(_.flatten)
+  def parse(root: Option[JenkinsRoot], findBuildJobsFunction: String => Future[Option[JenkinsRoot]])(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] = {
+    root match {
+      case None => Future(Seq.empty)
+      case Some(value) => value.jobs.toList.traverse {
+        case job if isFolder (job) => findBuildJobsFunction (job.url).flatMap (parse (_, findBuildJobsFunction) )
+        case job if isProject (job) => Future (Seq (job) )
+        case _ => Future (Seq.empty)
+      }.map (_.flatten)
+    }
+
   }
 }
 
