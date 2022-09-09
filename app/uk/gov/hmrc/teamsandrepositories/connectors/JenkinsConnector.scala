@@ -154,7 +154,7 @@ object JenkinsConnector {
 
   def parse(root: Option[JenkinsRoot], findBuildJobsFunction: String => Future[Option[JenkinsRoot]])(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] = {
     root match {
-      case None => Future(Seq.empty)
+      case None => Future.successful(Seq.empty)
       case Some(value) => value.jobs.toList.traverse {
         case job if isFolder (job) => findBuildJobsFunction (job.url).flatMap (parse (_, findBuildJobsFunction) )
         case job if isProject (job) => Future (Seq (job) )
