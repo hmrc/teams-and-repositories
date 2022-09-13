@@ -189,7 +189,7 @@ case class JenkinsPipeline(name: String, url: String) extends JenkinsObject
 
 object JenkinsObject {
 
-  implicit val cfg: Aux[Json.MacroOptions] = JsonConfiguration(
+  private implicit val cfg: Aux[Json.MacroOptions] = JsonConfiguration(
     discriminator = "_class",
 
     typeNaming = JsonNaming {
@@ -199,17 +199,17 @@ object JenkinsObject {
     }
   )
 
-  implicit val folderReads: Reads[JenkinsFolder] = (
+  private implicit val folderReads: Reads[JenkinsFolder] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
       ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject])
   ) (JenkinsFolder)
-  implicit val projectReads: Reads[JenkinsProject] = (
+  private implicit val projectReads: Reads[JenkinsProject] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
       ~ (__ \ "lastBuild").readNullable[JenkinsBuildData]
     ) (JenkinsProject)
-  implicit val pipelineReads: Reads[JenkinsPipeline] = (
+  private implicit val pipelineReads: Reads[JenkinsPipeline] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
     ) (JenkinsPipeline)
