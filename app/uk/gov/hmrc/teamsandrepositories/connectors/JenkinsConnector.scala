@@ -21,6 +21,7 @@ import com.google.common.io.BaseEncoding
 import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JsonConfiguration.Aux
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -28,6 +29,7 @@ import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.models.BuildResult
 
 import java.time.Instant
+import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -36,7 +38,6 @@ class JenkinsConnector @Inject()(
   httpClientV2: HttpClientV2
 ) {
 
-  import JenkinsApiReads._
   import HttpReads.Implicits._
 
   private val logger = Logger(this.getClass)
@@ -82,29 +83,29 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  private def findBuildJobs(baseUrl: String)(implicit ec: ExecutionContext): Future[Option[JenkinsRoot]] = {
-    // Prevents Server-Side Request Forgery
-    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsBuildJobsWrapper] = {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${baseUrl}api/json?tree=jobs[name,url,builds[number,url,timestamp,result]]"
+    val url = url"${config.baseUrl}api/json?tree=${generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[Option[JenkinsRoot]]
+      .execute[JenkinsBuildJobsWrapper]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-          Future.successful(None)
+          Future.failed(ex)
       }
   }
 
-   def findBuildJobRoot()(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] =
-     for {
-       root <- findBuildJobs(config.baseUrl)
-       res  <- JenkinsConnector.parse(root, findBuildJobs)
-     } yield res
+  @tailrec
+  private def generateJobQuery(depth: Int, acc: String = ""): String = {
+    if (depth < 1)
+      acc.replace("],]", "]]")
+    else
+      generateJobQuery(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
+  }
 
   def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
 
@@ -143,45 +144,6 @@ class JenkinsConnector @Inject()(
   }
 }
 
-object JenkinsConnector {
-  private def isFolder(job: JenkinsJob): Boolean =
-    job._class == "com.cloudbees.hudson.plugins.folder.Folder"
-
-  private def isProject(job: JenkinsJob): Boolean =
-    job._class == "hudson.model.FreeStyleProject"
-
-  import cats.implicits._
-
-  def parse(root: Option[JenkinsRoot], findBuildJobsFunction: String => Future[Option[JenkinsRoot]])(implicit ec: ExecutionContext): Future[Seq[JenkinsJob]] = {
-    root match {
-      case None => Future.successful(Seq.empty)
-      case Some(value) => value.jobs.toList.traverse {
-        case job if isFolder (job) => findBuildJobsFunction (job.url).flatMap (parse (_, findBuildJobsFunction) )
-        case job if isProject (job) => Future (Seq (job) )
-        case _ => Future (Seq.empty)
-      }.map (_.flatten)
-    }
-
-  }
-}
-
-case class JenkinsRoot(_class: String, jobs: Seq[JenkinsJob])
-
-case class JenkinsJob (_class: String, displayName: String, url: String, builds: Seq[JenkinsBuildData])
-
-object JenkinsApiReads {
-  implicit val jenkinsRootReader: Reads[JenkinsRoot] =
-    ( (__ \ "_class").read[String]
-    ~ (__ \ "jobs"  ).lazyRead(Reads.seq[JenkinsJob])
-    )(JenkinsRoot.apply _)
-
-  implicit val jenkinsJobReader: Reads[JenkinsJob] =
-    ( (__ \ "_class").read[String]
-    ~ (__ \ "name"  ).read[String]
-    ~ (__ \ "url"   ).read[String]
-    ~ (__ \ "builds").readWithDefault[Seq[JenkinsBuildData]](Seq.empty)
-    )(JenkinsJob.apply _)
-}
 case class JenkinsBuildData(
                       number: Int,
                       url: String,
@@ -214,4 +176,47 @@ object JenkinsQueueExecutable {
     ((__ \ "number").read[Int]
       ~ (__ \ "url").read[String]
       ) (JenkinsQueueExecutable.apply _)
+}
+
+sealed trait JenkinsObject
+
+case class JenkinsFolder(name: String, url: String, objects: Seq[JenkinsObject]) extends JenkinsObject
+case class JenkinsProject(name: String, url: String, lastBuild: Option[JenkinsBuildData]) extends JenkinsObject
+
+case class JenkinsPipeline(name: String, url: String) extends JenkinsObject
+
+object JenkinsObject {
+
+  implicit val cfg: Aux[Json.MacroOptions] = JsonConfiguration(
+    discriminator = "_class",
+
+    typeNaming = JsonNaming {
+      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsFolder" => "com.cloudbees.hudson.plugins.folder.Folder"
+      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsProject" => "hudson.model.FreeStyleProject"
+      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsPipeline" => "org.jenkinsci.plugins.workflow.job.WorkflowJob"
+    }
+  )
+
+  implicit val folderReads: Reads[JenkinsFolder] = (
+    (__ \ "name").read[String]
+      ~ (__ \ "url").read[String]
+      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject])
+  ) (JenkinsFolder)
+  implicit val projectReads: Reads[JenkinsProject] = (
+    (__ \ "name").read[String]
+      ~ (__ \ "url").read[String]
+      ~ (__ \ "lastBuild").readNullable[JenkinsBuildData]
+    ) (JenkinsProject)
+  implicit val pipelineReads: Reads[JenkinsPipeline] = (
+    (__ \ "name").read[String]
+      ~ (__ \ "url").read[String]
+    ) (JenkinsPipeline)
+
+  implicit val reads: Reads[JenkinsObject] = Json.reads[JenkinsObject]
+}
+
+case class JenkinsBuildJobsWrapper(jobs: Seq[JenkinsObject])
+
+object JenkinsBuildJobsWrapper {
+  implicit val reads: Reads[JenkinsBuildJobsWrapper] = Json.reads[JenkinsBuildJobsWrapper]
 }
