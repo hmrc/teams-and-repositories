@@ -86,7 +86,7 @@ class JenkinsConnector @Inject()(
   def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsBuildJobsWrapper] = {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${config.baseUrl}api/json?tree=${generateJobQuery(config.searchDepth)}"
+    val url = url"${config.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
@@ -97,14 +97,6 @@ class JenkinsConnector @Inject()(
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
           Future.failed(ex)
       }
-  }
-
-  @tailrec
-  private def generateJobQuery(depth: Int, acc: String = ""): String = {
-    if (depth < 1)
-      acc.replace("],]", "]]")
-    else
-      generateJobQuery(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
   }
 
   def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
@@ -141,6 +133,16 @@ class JenkinsConnector @Inject()(
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
           Future.failed(ex)
       }
+  }
+}
+object JenkinsConnector {
+
+  @tailrec
+  def generateJobQuery(depth: Int, acc: String = ""): String = {
+    if (depth < 1)
+      acc.replace("],]", "]]")
+    else
+      generateJobQuery(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
   }
 }
 

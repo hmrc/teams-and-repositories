@@ -25,15 +25,15 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers with ScalaFutures {
 
   "JenkinsConnector.generateJobQuery" should {
     "get only top level of jobs when depth is 1" in {
-      val res = JenkinsConnector.generateJobQuery(1, "")
+      val res = JenkinsConnector.generateJobQuery(1)
       res shouldBe "jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result]]"
     }
     "get sub-jobs if depth = 2" in {
-      val res = JenkinsConnector.generateJobQuery(2, "")
+      val res = JenkinsConnector.generateJobQuery(2)
       res shouldBe "jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result]]]"
     }
     "get deep tree of jobs if depth = 10" in {
-      val res = JenkinsConnector.generateJobQuery(10, "")
+      val res = JenkinsConnector.generateJobQuery(10)
       res shouldBe "jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result]]]]]]]]]]]"
     }
   }
