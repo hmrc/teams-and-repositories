@@ -137,12 +137,15 @@ class JenkinsConnector @Inject()(
 }
 object JenkinsConnector {
 
-  @tailrec
-  def generateJobQuery(depth: Int, acc: String = ""): String = {
-    if (depth < 1)
-      acc.replace("],]", "]]")
-    else
-      generateJobQuery(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
+  def generateJobQuery(depth: Int): String = {
+    @tailrec
+    def go(depth: Int, acc: String): String = {
+      if (depth < 1)
+        acc.replace("],]", "]]")
+      else
+        go(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
+    }
+    go(depth, "")
   }
 }
 
