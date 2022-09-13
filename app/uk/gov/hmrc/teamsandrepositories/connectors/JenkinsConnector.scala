@@ -17,18 +17,16 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.google.common.io.BaseEncoding
-
-import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
-import play.api.libs.json.JsonConfiguration.Aux
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.models.BuildResult
 
 import java.time.Instant
+import javax.inject.Inject
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -192,36 +190,32 @@ case class JenkinsPipeline(name: String, url: String) extends JenkinsObject
 
 object JenkinsObject {
 
-  private implicit val cfg: Aux[Json.MacroOptions] = JsonConfiguration(
-    discriminator = "_class",
-
-    typeNaming = JsonNaming {
-      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsFolder" => "com.cloudbees.hudson.plugins.folder.Folder"
-      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsProject" => "hudson.model.FreeStyleProject"
-      case "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsPipeline" => "org.jenkinsci.plugins.workflow.job.WorkflowJob"
-    }
-  )
-
-  private implicit val folderReads: Reads[JenkinsFolder] = (
+  private lazy val folderReads: Reads[JenkinsFolder] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
-      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject])
+      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
   ) (JenkinsFolder)
-  private implicit val projectReads: Reads[JenkinsProject] = (
+  private val projectReads: Reads[JenkinsProject] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
       ~ (__ \ "lastBuild").readNullable[JenkinsBuildData]
     ) (JenkinsProject)
-  private implicit val pipelineReads: Reads[JenkinsPipeline] = (
+  private val pipelineReads: Reads[JenkinsPipeline] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
     ) (JenkinsPipeline)
 
-  implicit val reads: Reads[JenkinsObject] = Json.reads[JenkinsObject]
+    implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
+      json \ "_class" match {
+        case JsDefined(JsString("com.cloudbees.hudson.plugins.folder.Folder")) => folderReads.reads(json)
+        case JsDefined(JsString("hudson.model.FreeStyleProject")) => projectReads.reads(json)
+        case JsDefined(JsString("org.jenkinsci.plugins.workflow.job.WorkflowJob")) => pipelineReads.reads(json)
+      }
 }
 
 case class JenkinsBuildJobsWrapper(jobs: Seq[JenkinsObject])
 
 object JenkinsBuildJobsWrapper {
-  implicit val reads: Reads[JenkinsBuildJobsWrapper] = Json.reads[JenkinsBuildJobsWrapper]
+  implicit val jenkinsBuildJobsWrapperReads: Reads[JenkinsBuildJobsWrapper] =
+    (__ \ "jobs").read(Reads.seq[JenkinsObject]).map(jobs => JenkinsBuildJobsWrapper(jobs))
 }
