@@ -221,6 +221,7 @@ class LegacyTeamsControllerSpec
         RepoType.Service   -> Seq("another-repo", "middle-repo"),
         RepoType.Library   -> Seq("alibrary-repo"),
         RepoType.Prototype -> Seq("CATO-prototype"),
+        RepoType.Test      -> List(),
         RepoType.Other     -> Seq("other-repo")
       ))
     }
@@ -275,6 +276,7 @@ class LegacyTeamsControllerSpec
         RepoType.Service   -> List("repo-name"),
         RepoType.Library   -> List(),
         RepoType.Prototype -> List(),
+        RepoType.Test      -> List(),
         RepoType.Other     -> List()
       ))
     }
@@ -290,6 +292,7 @@ class LegacyTeamsControllerSpec
         RepoType.Service   -> List("another-repo", "middle-repo"),
         RepoType.Library   -> List("alibrary-repo"),
         RepoType.Prototype -> List("CATO-prototype"),
+        RepoType.Test      -> List(),
         RepoType.Other     -> List("other-repo")
       )
     }
@@ -347,6 +350,7 @@ class LegacyTeamsControllerSpec
           RepoType.Service   -> List("repo-name"),
           RepoType.Library   -> List(),
           RepoType.Prototype -> List(),
+          RepoType.Test      -> List(),
           RepoType.Other     -> List()
         )
     }
@@ -405,6 +409,7 @@ class LegacyTeamsControllerSpec
         RepoType.Service   -> List(),
         RepoType.Library   -> List(),
         RepoType.Prototype -> List(),
+        RepoType.Test      -> List(),
         RepoType.Other     -> List()
       ))
     }

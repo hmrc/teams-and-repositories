@@ -186,6 +186,7 @@ class PersistingServiceSpec
 
     val rTH = RepoTypeHeuristics(
       prototypeInName     = false,
+      testsInName         = false,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,

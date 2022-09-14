@@ -29,7 +29,6 @@ import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 @Singleton
 class JenkinsService @Inject()(
