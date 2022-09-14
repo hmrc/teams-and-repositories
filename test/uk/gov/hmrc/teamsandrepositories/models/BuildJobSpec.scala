@@ -42,7 +42,7 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.PipelineJob"
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$PipelineJob"
     }
     "simple job" in {
       val jsonString: JsValue = Json.parse(
@@ -63,7 +63,7 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.BuildJob"
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$BuildJob"
     }
     "simple folder" in {
       val jsonString: JsValue = Json.parse(
@@ -78,7 +78,7 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsFolder"
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
     }
     "Folder with a job" in {
       val jsonString: JsValue = Json.parse(
@@ -106,7 +106,7 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsFolder"
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
     }
     "simple wrapper" in {
       val jsonString: JsValue = Json.parse(
@@ -115,9 +115,9 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
      "jobs" : []
       }"""
       )
-      val residentFromJson: JsResult[JenkinsBuildJobsWrapper] =
-        Json.fromJson[JenkinsBuildJobsWrapper](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsBuildJobsWrapper"
+      val residentFromJson: JsResult[JenkinsObjects] =
+        Json.fromJson[JenkinsObjects](jsonString)
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObjects"
     }
     "wrapper with folder" in {
       val jsonString: JsValue = Json.parse(
@@ -133,9 +133,9 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
           }]
       }"""
       )
-      val residentFromJson: JsResult[JenkinsBuildJobsWrapper] =
-        Json.fromJson[JenkinsBuildJobsWrapper](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsBuildJobsWrapper"
+      val residentFromJson: JsResult[JenkinsObjects] =
+        Json.fromJson[JenkinsObjects](jsonString)
+      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObjects"
     }
   }
 }

@@ -23,7 +23,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsBuildJobsWrapper}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects}
 
 import javax.inject.Inject
 import scala.annotation.tailrec
@@ -41,6 +41,8 @@ class JenkinsConnector @Inject()(
 
   private val authorizationHeader =
     s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
+
+  private implicit val jr: Reads[BuildData] = BuildData.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
@@ -72,7 +74,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[BuildData](readFromJson(BuildData.jenkinsReads, implicitly[Manifest[BuildData]]), ec)
+      .execute[BuildData]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -80,7 +82,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsBuildJobsWrapper] = {
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsObjects] = {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
@@ -88,7 +90,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[JenkinsBuildJobsWrapper]
+      .execute[JenkinsObjects]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -124,7 +126,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[BuildData](readFromJson(BuildData.jenkinsReads, implicitly[Manifest[BuildData]]), ec)
+      .execute[BuildData]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
