@@ -22,7 +22,7 @@ import org.mongodb.scala.result.UpdateResult
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors._
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobBuildData}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildData, JenkinsFolder, JenkinsObject, JenkinsPipeline}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
 import java.time.Instant
@@ -46,21 +46,20 @@ class JenkinsService @Inject()(
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {
       res <- jenkinsConnector.findBuildJobs()
-      buildJobs = res.jobs flatMap convertJenkinsObjectsToBuildJobs
+      buildJobs = res.jobs flatMap extractBuildJobsFromTree
       persist <- repo.update(buildJobs)
     } yield persist
 
-  private def convertJenkinsObjectsToBuildJobs(jenkinsObject: JenkinsObject): Seq[BuildJob] =
+  private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
     jenkinsObject match {
-      case JenkinsFolder(_, _, objects) => objects flatMap convertJenkinsObjectsToBuildJobs
-      case JenkinsProject(name, url, None) => Seq(BuildJob(name, url, None))
-      case JenkinsProject(name, url, Some(lastBuild)) => Seq(BuildJob(name, url, Some(BuildJobBuildData(lastBuild.number, lastBuild.url, lastBuild.timestamp, lastBuild.result))))
-      case JenkinsPipeline(_, _) => Seq()
+      case JenkinsFolder(_, _, objects) => objects flatMap extractBuildJobsFromTree
+      case job: BuildJob                => Seq(job)
+      case JenkinsPipeline(_, _)        => Seq()
     }
 
   def triggerBuildJob(serviceName: String,
                       url: String,
-                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Option[JenkinsBuildData]] = {
+                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Option[BuildData]] = {
     val optionalBuild = for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
       build = if (latestBuild.timestamp.equals(timestamp)) {
@@ -93,7 +92,7 @@ class JenkinsService @Inject()(
       .runWith(Sink.head)
   }
 
-  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
+  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
     Source.repeat(())
       .throttle(1, jenkinsConfig.buildThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))

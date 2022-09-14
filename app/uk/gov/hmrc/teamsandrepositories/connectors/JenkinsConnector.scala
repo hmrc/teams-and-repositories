@@ -23,9 +23,8 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.BuildResult
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsBuildJobsWrapper}
 
-import java.time.Instant
 import javax.inject.Inject
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,7 +62,7 @@ class JenkinsConnector @Inject()(
     } yield response
   }
 
-  def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[JenkinsBuildData] = {
+  def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[BuildData] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
 
@@ -73,7 +72,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[JenkinsBuildData]
+      .execute[BuildData](readFromJson(BuildData.jenkinsReads, implicitly[Manifest[BuildData]]), ec)
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -115,7 +114,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsBuildData] = {
+  def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
     // Prevents Server-Side Request Forgery
     assert(buildUrl.startsWith(config.baseUrl), s"$buildUrl was requested for invalid host")
 
@@ -125,7 +124,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> authorizationHeader)
-      .execute[JenkinsBuildData]
+      .execute[BuildData](readFromJson(BuildData.jenkinsReads, implicitly[Manifest[BuildData]]), ec)
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -147,22 +146,6 @@ object JenkinsConnector {
   }
 }
 
-case class JenkinsBuildData(
-                      number: Int,
-                      url: String,
-                      timestamp: Instant,
-                      result: Option[BuildResult]
-                    )
-object JenkinsBuildData {
-
-  implicit val buildDataReader: Reads[JenkinsBuildData] =
-    ((__ \ "number").read[Int]
-      ~ (__ \ "url").read[String]
-      ~ (__ \ "timestamp").read[Instant]
-      ~ (__ \ "result").readNullable[BuildResult]
-      ) (JenkinsBuildData.apply _)
-}
-
 case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
 
 object JenkinsQueueData {
@@ -181,41 +164,3 @@ object JenkinsQueueExecutable {
       ) (JenkinsQueueExecutable.apply _)
 }
 
-sealed trait JenkinsObject
-
-case class JenkinsFolder(name: String, url: String, objects: Seq[JenkinsObject]) extends JenkinsObject
-case class JenkinsProject(name: String, url: String, lastBuild: Option[JenkinsBuildData]) extends JenkinsObject
-
-case class JenkinsPipeline(name: String, url: String) extends JenkinsObject
-
-object JenkinsObject {
-
-  private lazy val folderReads: Reads[JenkinsFolder] = (
-    (__ \ "name").read[String]
-      ~ (__ \ "url").read[String]
-      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
-  ) (JenkinsFolder)
-  private val projectReads: Reads[JenkinsProject] = (
-    (__ \ "name").read[String]
-      ~ (__ \ "url").read[String]
-      ~ (__ \ "lastBuild").readNullable[JenkinsBuildData]
-    ) (JenkinsProject)
-  private val pipelineReads: Reads[JenkinsPipeline] = (
-    (__ \ "name").read[String]
-      ~ (__ \ "url").read[String]
-    ) (JenkinsPipeline)
-
-    implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
-      json \ "_class" match {
-        case JsDefined(JsString("com.cloudbees.hudson.plugins.folder.Folder")) => folderReads.reads(json)
-        case JsDefined(JsString("hudson.model.FreeStyleProject")) => projectReads.reads(json)
-        case JsDefined(JsString("org.jenkinsci.plugins.workflow.job.WorkflowJob")) => pipelineReads.reads(json)
-      }
-}
-
-case class JenkinsBuildJobsWrapper(jobs: Seq[JenkinsObject])
-
-object JenkinsBuildJobsWrapper {
-  implicit val jenkinsBuildJobsWrapperReads: Reads[JenkinsBuildJobsWrapper] =
-    (__ \ "jobs").read(Reads.seq[JenkinsObject]).map(jobs => JenkinsBuildJobsWrapper(jobs))
-}

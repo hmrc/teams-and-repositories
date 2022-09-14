@@ -25,7 +25,8 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, ChannelLookup, JenkinsBuildData, MessageDetails, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, ChannelLookup, MessageDetails, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.BuildData
 import uk.gov.hmrc.teamsandrepositories.models.BuildResult.Failure
 
 import java.time.Instant
@@ -62,7 +63,7 @@ case class RebuildService @Inject()(
     })
   }
 
-  private def sendBuildFailureAlert(build: JenkinsBuildData, serviceName: String)(implicit ec: ExecutionContext) = {
+  private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) = {
     if (slackConfig.enabled) {
       val channelLookup: ChannelLookup = ChannelLookup(serviceName)
       val messageDetails: MessageDetails = MessageDetails(
