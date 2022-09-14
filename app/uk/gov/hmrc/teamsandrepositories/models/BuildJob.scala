@@ -58,7 +58,7 @@ sealed trait JenkinsObject
 case class JenkinsFolder(service: String, jenkinsURL: String, objects: Seq[JenkinsObject]) extends JenkinsObject
 case class BuildJob(service: String, jenkinsURL: String, latestBuild: Option[BuildData]) extends JenkinsObject
 
-case class JenkinsPipeline(service: String, jenkinsURL: String) extends JenkinsObject
+case class PipelineJob(service: String, jenkinsURL: String) extends JenkinsObject
 
 object BuildJob {
 
@@ -96,10 +96,10 @@ object JenkinsObject {
       ~ (__ \ "url").read[String]
       ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
     ) (JenkinsFolder)
-  private val pipelineReads: Reads[JenkinsPipeline] = (
+  private val pipelineReads: Reads[PipelineJob] = (
     (__ \ "name").read[String]
       ~ (__ \ "url").read[String]
-    ) (JenkinsPipeline)
+    ) (PipelineJob)
 
   implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
     json \ "_class" match {

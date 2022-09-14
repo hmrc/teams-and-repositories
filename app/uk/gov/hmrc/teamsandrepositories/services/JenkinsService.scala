@@ -22,7 +22,7 @@ import org.mongodb.scala.result.UpdateResult
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors._
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildData, JenkinsFolder, JenkinsObject, JenkinsPipeline}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildData, JenkinsFolder, JenkinsObject, PipelineJob}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
 import java.time.Instant
@@ -54,7 +54,7 @@ class JenkinsService @Inject()(
     jenkinsObject match {
       case JenkinsFolder(_, _, objects) => objects flatMap extractBuildJobsFromTree
       case job: BuildJob                => Seq(job)
-      case JenkinsPipeline(_, _)        => Seq()
+      case PipelineJob(_, _)        => Seq()
     }
 
   def triggerBuildJob(serviceName: String,
