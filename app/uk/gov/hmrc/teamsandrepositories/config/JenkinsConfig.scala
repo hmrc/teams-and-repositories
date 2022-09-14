@@ -32,5 +32,5 @@ class JenkinsConfig @Inject()(config: Configuration) {
 
   lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
 
-  lazy val searchDepth: Int = config.get[Int]("jenkins.searchDepth")
+  lazy val searchDepth: Int = config.get[Int]("cache.jenkins.searchDepth")
 }
