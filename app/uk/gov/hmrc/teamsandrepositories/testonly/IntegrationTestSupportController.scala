@@ -19,7 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.testonly
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 import uk.gov.hmrc.teamsandrepositories.persistence.{BuildJobRepo, RepositoriesPersistence}
 
 import javax.inject.Inject

@@ -22,7 +22,7 @@ import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOption
 import org.mongodb.scala.result.UpdateResult
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

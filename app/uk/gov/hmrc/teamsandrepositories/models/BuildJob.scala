@@ -22,54 +22,88 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-case class BuildJob(
-  service    : String,
-  jenkinsURL : String,
-  latestBuild: Option[BuildJobBuildData]
-)
-
-object BuildJob {
-
-  val mongoReadFormat: Reads[BuildJob] =
-    ((__ \ "service").read[String]
-      ~ (__ \ "jenkinsURL").read[String]
-      ~ (__ \ "latestBuild").readNullable(BuildJobBuildData.mongoFormat.reads)
-      ) (apply _)
-
-  val mongoWriteFormat: Writes[BuildJob] =
-    ((__ \ "service").write[String]
-      ~ (__ \ "jenkinsURL").write[String]
-      ~ (__ \ "latestBuild").writeNullable(BuildJobBuildData.mongoFormat.writes)
-      ) (unlift(unapply))
-
-  val mongoFormat: Format[BuildJob] = Format(mongoReadFormat, mongoWriteFormat)
-
-  val apiWrites: Writes[BuildJob] =
-    ( (__ \ "service"   ).write[String]
-    ~ (__ \ "jenkinsURL").write[String]
-    ~ (__ \ "latestBuild").writeNullable(BuildJobBuildData.apiWrites)
-    )(unlift(unapply))
-}
-
-case class BuildJobBuildData(
+case class BuildData(
                       number: Int,
                       url: String,
                       timestamp: Instant,
                       result: Option[BuildResult]
                     )
-object BuildJobBuildData {
+object BuildData {
 
-  val mongoFormat: OFormat[BuildJobBuildData] =
+  val mongoFormat: OFormat[BuildData] =
     ((__ \ "number").format[Int]
       ~ (__ \ "url").format[String]
       ~ (__ \ "timestamp").format(MongoJavatimeFormats.instantFormat)
       ~ (__ \ "result").formatNullable[BuildResult]
       ) (apply, unlift(unapply))
 
-  val apiWrites: Writes[BuildJobBuildData] =
+  val apiWrites: Writes[BuildData] =
     ((__ \ "number").write[Int]
       ~ (__ \ "url").write[String]
       ~ (__ \ "timestamp").write[Instant]
       ~ (__ \ "result").writeNullable[BuildResult]
       ) (unlift(unapply))
+
+  val jenkinsReads: Reads[BuildData] =
+    ((__ \ "number").read[Int]
+      ~ (__ \ "url").read[String]
+      ~ (__ \ "timestamp").read[Instant]
+      ~ (__ \ "result").readNullable[BuildResult]
+      ) (apply _)
+}
+
+
+sealed trait JenkinsObject
+
+object JenkinsObject {
+  case class Folder(service: String, jenkinsURL: String, objects: Seq[JenkinsObject]) extends JenkinsObject
+  case class BuildJob(service: String, jenkinsURL: String, latestBuild: Option[BuildData]) extends JenkinsObject
+
+  case class PipelineJob(service: String, jenkinsURL: String) extends JenkinsObject
+
+  object BuildJob {
+
+    val mongoFormat: Format[BuildJob] =
+      ((__ \ "service").format[String]
+        ~ (__ \ "jenkinsURL").format[String]
+        ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
+        )(apply, unlift(unapply))
+
+    val apiWrites: Writes[BuildJob] =
+      ((__ \ "service").write[String]
+        ~ (__ \ "jenkinsURL").write[String]
+        ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
+        ) (unlift(unapply))
+
+    val jenkinsBuildJobReads: Reads[BuildJob] = (
+      (__ \ "name").read[String]
+        ~ (__ \ "url").read[String]
+        ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
+      ) (apply _)
+  }
+
+  private lazy val folderReads: Reads[Folder] = (
+    (__ \ "name").read[String]
+      ~ (__ \ "url").read[String]
+      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
+    ) (Folder)
+  private val pipelineReads: Reads[PipelineJob] = (
+    (__ \ "name").read[String]
+      ~ (__ \ "url").read[String]
+    ) (PipelineJob)
+
+  implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
+    (json \ "_class").validate[String] flatMap {
+      case "com.cloudbees.hudson.plugins.folder.Folder" => folderReads.reads(json)
+      case "hudson.model.FreeStyleProject" => BuildJob.jenkinsBuildJobReads.reads(json)
+      case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => pipelineReads.reads(json)
+      case value => throw new Exception(s"Unsupported Jenkins class $value")
+    }
+}
+
+case class JenkinsObjects(objects: Seq[JenkinsObject])
+
+object JenkinsObjects {
+  implicit val jenkinsObjectsReads: Reads[JenkinsObjects] =
+    (__ \ "jobs").read(Reads.seq[JenkinsObject]).map(obj => JenkinsObjects(obj))
 }
