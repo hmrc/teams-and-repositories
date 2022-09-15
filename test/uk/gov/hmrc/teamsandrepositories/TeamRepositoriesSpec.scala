@@ -20,7 +20,7 @@ import java.time.Instant
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
+import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Test, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 import uk.gov.hmrc.teamsandrepositories.models.{DigitalServiceRepository, GitRepository, TeamRepositories}
@@ -540,6 +540,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
                               Service   -> List("repo1"),
                               Library   -> List(),
                               Prototype -> List(),
+                              Test      -> List(),
                               Other     -> List()
                             ))
        )
@@ -563,6 +564,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
                             Service   -> List("repo1"),
                             Library   -> List("repo1"),
                             Prototype -> List(),
+                            Test      -> List(),
                             Other     -> List("repo1")
                           ))
       )
@@ -690,6 +692,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
                               Service   -> List("repo1", "repo2"),
                               Library   -> List("repo3", "repo4"),
                               Prototype -> List(),
+                              Test      -> List(),
                               Other     -> List("repo5")
                             )),
           ownedRepos      = List("repo1")
@@ -711,6 +714,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
                             Service   -> List(),
                             Library   -> List("repo4"),
                             Prototype -> List("repo7", "repo8"),
+                            Test      -> List(),
                             Other     -> List("repo5", "repo6")
                           ))
       )

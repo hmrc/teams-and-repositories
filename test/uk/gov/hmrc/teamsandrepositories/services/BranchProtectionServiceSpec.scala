@@ -109,6 +109,6 @@ class BranchProtectionServiceSpec
       "main",
       Some(BranchProtection(true, true, true)),
       None,
-      GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false)
+      GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false, false)
     )
 }

@@ -27,11 +27,9 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Service}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
-import uk.gov.hmrc.teamsandrepositories.connectors.RateLimitMetrics.Resource
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -126,7 +124,7 @@ class GithubConnector @Inject()(
       .execute[String]
   }
 
-  def getRateLimitMetrics(token: String, resource: Resource): Future[RateLimitMetrics] = {
+  def getRateLimitMetrics(token: String, resource: RateLimitMetrics.Resource): Future[RateLimitMetrics] = {
     implicit val rlmr = RateLimitMetrics.reads(resource)
     httpClientV2
       .get(url"${githubConfig.apiUrl}/rate_limit")
@@ -452,6 +450,7 @@ object GhRepository {
 
   final case class RepoTypeHeuristics(
     prototypeInName: Boolean,
+    testsInName: Boolean,
     hasApplicationConf: Boolean,
     hasDeployProperties: Boolean,
     hasProcfile: Boolean,
@@ -462,19 +461,22 @@ object GhRepository {
 
     def inferredRepoType: RepoType = {
       if (prototypeInName)
-        Prototype
+        RepoType.Prototype
+      else if (testsInName)
+        RepoType.Test
       else if (hasApplicationConf || hasDeployProperties || hasProcfile)
-        Service
+        RepoType.Service
       else if ((hasSrcMainScala || hasSrcMainJava) && hasTags)
-        Library
+        RepoType.Library
       else
-        Other
+        RepoType.Other
     }
   }
 
   object RepoTypeHeuristics {
     val reads: Reads[RepoTypeHeuristics] =
       ( (__ \ "name"                      ).read[String].map(_.endsWith("-prototype"))
+      ~ (__ \ "name"                      ).read[String].map(_.endsWith("-tests"))
       ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)

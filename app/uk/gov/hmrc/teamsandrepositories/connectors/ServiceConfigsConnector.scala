@@ -28,6 +28,8 @@ class ServiceConfigsConnector @Inject()(
                                            httpClientV2: HttpClientV2
                                          ){
 
+  import uk.gov.hmrc.http.HttpReads.Implicits._
+
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val url = servicesConfig.baseUrl("service-configs")

@@ -75,6 +75,7 @@ class GithubV3RepositoryDataSourceSpec
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
       prototypeInName     = false,
+      testsInName         = false,
       hasApplicationConf  = false,
       hasDeployProperties = false,
       hasProcfile         = false,

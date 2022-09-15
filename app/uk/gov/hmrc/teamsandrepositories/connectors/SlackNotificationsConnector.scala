@@ -52,7 +52,7 @@ class SlackNotificationsConnector @Inject()(
     httpClientV2
       .post(url"$url/slack-notifications/notification")
       .withBody(Json.toJson(message))
-      .replaceHeader("Authorization" -> authorizationHeaderValue)
+      .setHeader("Authorization" -> authorizationHeaderValue)
       .execute[SlackNotificationResponse]
       .recoverWith {
         case NonFatal(ex) =>
