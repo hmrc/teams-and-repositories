@@ -138,13 +138,13 @@ object JenkinsConnector {
 
   def generateJobQuery(depth: Int): String = {
     @tailrec
-    def go(depth: Int, acc: String): String = {
-      if (depth < 1)
-        acc.replace("],]", "]]")
+    def go(level: Int, acc: String): String = {
+      if (level == depth)
+        acc
       else
-        go(depth - 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
+        go(level + 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],$acc]")
     }
-    go(depth, "")
+    go(1, "jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result]]")
   }
 }
 
