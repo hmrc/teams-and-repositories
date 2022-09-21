@@ -35,12 +35,12 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
   "JenkinsController" should {
     "return a single match as Json" in {
       when(mockJenkinsService.findByService("foo"))
-        .thenReturn(Future.successful(Some(BuildJob("foo", "http://bar/job/api/", None))))
+        .thenReturn(Future.successful(Some(BuildJob("foo", "http://bar/job/api/", None, Some("https://github.com/hmrc/project.git")))))
 
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("foo").apply(FakeRequest())
       val bodyText = contentAsString(result)
-      bodyText mustBe """{"service":"foo","jenkinsURL":"http://bar/job/api/"}"""
+      bodyText mustBe """{"service":"foo","jenkinsURL":"http://bar/job/api/","gitHubUrl":"https://github.com/hmrc/project.git"}"""
     }
 
     "return a not found when no matches found" in {

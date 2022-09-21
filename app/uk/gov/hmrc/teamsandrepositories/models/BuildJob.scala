@@ -57,7 +57,10 @@ sealed trait JenkinsObject
 
 object JenkinsObject {
   case class Folder(service: String, jenkinsURL: String, objects: Seq[JenkinsObject]) extends JenkinsObject
-  case class BuildJob(service: String, jenkinsURL: String, latestBuild: Option[BuildData]) extends JenkinsObject
+  case class BuildJob(service: String,
+                      jenkinsURL: String,
+                      latestBuild: Option[BuildData],
+                      gitHubUrl: Option[String]) extends JenkinsObject
 
   case class PipelineJob(service: String, jenkinsURL: String) extends JenkinsObject
 
@@ -67,18 +70,29 @@ object JenkinsObject {
       ((__ \ "service").format[String]
         ~ (__ \ "jenkinsURL").format[String]
         ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
+        ~ (__ \ "gitHubUrl").formatNullable[String]
         )(apply, unlift(unapply))
 
     val apiWrites: Writes[BuildJob] =
       ((__ \ "service").write[String]
         ~ (__ \ "jenkinsURL").write[String]
         ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
+        ~ (__ \ "gitHubUrl").writeNullable[String]
         ) (unlift(unapply))
+
+    private def extractGithubUrl = Reads[Option[String]] { js =>
+      val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
+      l.headOption match {
+        case Some(value) => JsSuccess(Some(value.as[String]))
+        case None => JsSuccess(None)
+      }
+    }
 
     val jenkinsBuildJobReads: Reads[BuildJob] = (
       (__ \ "name").read[String]
         ~ (__ \ "url").read[String]
         ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
+        ~ extractGithubUrl
       ) (apply _)
   }
 
