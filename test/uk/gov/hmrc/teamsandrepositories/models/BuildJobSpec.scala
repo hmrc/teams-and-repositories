@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.models
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsResult, JsValue, Json}
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 
 class BuildJobSpec extends AnyWordSpec with Matchers {
 
@@ -58,12 +59,21 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
               "result": "SUCCESS",
               "timestamp": 1658499777096,
               "url": "https://.../3/"
+          },
+          "scm": {
+            "_class": "hudson.plugins.git.GitSCM",
+            "userRemoteConfigs": [
+              {
+                "url": "https://github.com/hmrc/project.git"
+              }
+            ]
           }
     }"""
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
       residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$BuildJob"
+      residentFromJson.get.asInstanceOf[BuildJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
     }
     "simple folder" in {
       val jsonString: JsValue = Json.parse(
