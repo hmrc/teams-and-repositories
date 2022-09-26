@@ -65,6 +65,7 @@ case class RebuildService @Inject()(
 
   private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) = {
     if (slackConfig.enabled) {
+      logger.info(s"Rebuild failed for $serviceName")
       val channelLookup: ChannelLookup = ChannelLookup.RepositoryChannel(serviceName)
       val messageDetails: MessageDetails = MessageDetails(
         slackConfig.messageText.replace("{serviceName}", serviceName),
