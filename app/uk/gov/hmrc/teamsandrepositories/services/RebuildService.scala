@@ -91,16 +91,21 @@ case class RebuildService @Inject()(
       error.code == "repository_not_found" || error.code == "slack_error"
     }
     if (errorsToAlert.nonEmpty) {
-      slackNotificationsConnector
-        .sendMessage(
-          SlackNotificationRequest(
-            channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
-            messageDetails = messageDetails copy (
-              text = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
-              attachments = errorsToAlert.map(e => Attachment(e.message)) ++ messageDetails.attachments)
-          )
-        )
-        .map(_ => ())
+      for {
+        response <-
+          slackNotificationsConnector
+            .sendMessage(
+              SlackNotificationRequest(
+                channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
+                messageDetails = messageDetails copy(
+                  text = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
+                  attachments = errorsToAlert.map(e => Attachment(e.message)) ++ messageDetails.attachments)
+              )
+            ) if !response.hasSentMessages
+        _ = {
+          logger.error(s"Errors sending rebuild alert FAILED notification: ${response.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
+        }
+      } yield response
     } else {
       Future.successful(())
     }
