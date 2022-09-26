@@ -39,9 +39,6 @@ class GithubConfig @Inject()(configuration: Configuration) {
     configuration.getOptional[String]("github.hidden.teams")
       .fold(Set.empty[String])(_.split(",").toSet)
 
-  val teamsFilter: Set[String] = configuration.getOptional[String]("github.teams.to_rebuild")
-    .fold(Set.empty[String])(_.split(",").toSet)
-
   val retryCount        = configuration.get[Int]("github.retry.count")
   val retryInitialDelay = configuration.get[Duration]("github.retry.initialDelay")
 
