@@ -85,11 +85,8 @@ case class RebuildService @Inject()(
   }
 
 
-  private def alertAdminsIfNoSlackChannelFound(errors: List[SlackNotificationError], messageDetails: MessageDetails)
+  private def alertAdminsIfNoSlackChannelFound(errorsToAlert: List[SlackNotificationError], messageDetails: MessageDetails)
                                               (implicit ec: ExecutionContext): Future[Unit] = {
-    val errorsToAlert = errors.filterNot { error =>
-      error.code == "channel_not_found" || error.code == "repository_not_found" || error.code == "slack_error"
-    }
     if (errorsToAlert.nonEmpty) {
       for {
         response <-
