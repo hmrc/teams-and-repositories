@@ -25,7 +25,7 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, ChannelLookup, MessageDetails, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, ChannelLookup, MessageDetails, SlackNotificationError, SlackNotificationRequest, SlackNotificationsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.BuildData
 import uk.gov.hmrc.teamsandrepositories.models.BuildResult.Failure
 
@@ -65,7 +65,7 @@ case class RebuildService @Inject()(
 
   private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) = {
     if (slackConfig.enabled) {
-      val channelLookup: ChannelLookup = ChannelLookup(serviceName)
+      val channelLookup: ChannelLookup = ChannelLookup.RepositoryChannel(serviceName)
       val messageDetails: MessageDetails = MessageDetails(
         slackConfig.messageText.replace("{serviceName}", serviceName),
         slackConfig.user,
@@ -74,12 +74,36 @@ case class RebuildService @Inject()(
         showAttachmentAuthor = false)
       for {
         response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
-        _ = logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+        _ = {
+          logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+          alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
+        }
       } yield response
     }
     else Future.successful(())
   }
 
+
+  private def alertAdminsIfNoSlackChannelFound(errors: List[SlackNotificationError], messageDetails: MessageDetails)
+                                              (implicit ec: ExecutionContext): Future[Unit] = {
+    val errorsToAlert = errors.filterNot { error =>
+      error.code == "repository_not_found" || error.code == "slack_error"
+    }
+    if (errorsToAlert.nonEmpty) {
+      slackNotificationsConnector
+        .sendMessage(
+          SlackNotificationRequest(
+            channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
+            messageDetails = messageDetails copy (
+              text = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
+              attachments = errorsToAlert.map(e => Attachment(e.message)) ++ messageDetails.attachments)
+          )
+        )
+        .map(_ => ())
+    } else {
+      Future.successful(())
+    }
+  }
   private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val thirtyDaysAgo = Instant.now().minus(daysUnbuilt, DAYS)
     for {

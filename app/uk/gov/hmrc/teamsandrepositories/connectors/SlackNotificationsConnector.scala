@@ -85,10 +85,23 @@ object SlackNotificationResponse {
     Json.format[SlackNotificationResponse]
 }
 
-case class ChannelLookup (repositoryName: String, by: String = "github-repository")
+sealed trait ChannelLookup {
+  def by: String
+}
 
 object ChannelLookup {
-  implicit val format: OFormat[ChannelLookup] = Json.format[ChannelLookup]
+
+  final case class RepositoryChannel (repositoryName: String, by: String = "github-repository") extends ChannelLookup
+
+  final case class SlackChannel(
+                                 slackChannels: List[String],
+                                 by: String = "slack-channel"
+                               ) extends ChannelLookup
+
+  implicit val writes: Writes[ChannelLookup] = Writes {
+    case s: SlackChannel => Json.toJson(s)(Json.writes[SlackChannel])
+    case s: RepositoryChannel => Json.toJson(s)(Json.writes[RepositoryChannel])
+  }
 }
 
 final case class Attachment(text: String, fields: Seq[Attachment.Field] = Nil)
