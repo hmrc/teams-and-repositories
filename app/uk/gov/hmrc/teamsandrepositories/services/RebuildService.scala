@@ -75,7 +75,7 @@ case class RebuildService @Inject()(
         showAttachmentAuthor = false)
       for {
         response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
-        _ = {
+        _ <- {
           logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
           alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
         }
