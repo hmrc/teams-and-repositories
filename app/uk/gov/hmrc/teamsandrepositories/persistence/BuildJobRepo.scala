@@ -44,6 +44,12 @@ class BuildJobRepo @Inject()(
       .first()
       .toFutureOption()
 
+  def findAllByRepo(service: String): Future[Seq[BuildJob]] = {
+    collection
+        .find(equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
+        .toFuture()
+  }
+
   def updateOne(buildJob: BuildJob): Future[UpdateResult] = {
     collection
       .replaceOne(

@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OWrites, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.teamsandrepositories.models.BuildJobs
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
@@ -33,11 +34,16 @@ class JenkinsController @Inject()(
 ) extends BackendController(cc) {
 
   private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
+  private implicit val bjws: OWrites[BuildJobs] = BuildJobs.apiWrites
 
   def lookup(service: String): Action[AnyContent] = Action.async {
     for {
       findService <- jenkinsService.findByService(service)
       result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NotFound)
     } yield result
+  }
+
+  def findAllJobsByRepo(service: String): Action[AnyContent] = Action.async {
+    jenkinsService.findAllByRepo(service).map(result => Ok(Json.toJson(result)))
   }
 }

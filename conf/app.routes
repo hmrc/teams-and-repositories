@@ -15,6 +15,7 @@ GET         /api/digital-services/:name                              @uk.gov.hmr
 GET         /api/digital-services                                    @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServices
 
 GET         /api/jenkins-url/:service                                @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
+GET         /api/jenkins-jobs/:service                               @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
