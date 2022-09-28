@@ -121,3 +121,10 @@ object JenkinsObjects {
   implicit val jenkinsObjectsReads: Reads[JenkinsObjects] =
     (__ \ "jobs").read(Reads.seq[JenkinsObject]).map(obj => JenkinsObjects(obj))
 }
+
+case class BuildJobs(jobs: Seq[JenkinsObject.BuildJob])
+
+object BuildJobs {
+  private implicit val x: Writes[JenkinsObject.BuildJob] = JenkinsObject.BuildJob.apiWrites
+  val apiWrites: OWrites[BuildJobs] = Json.writes[BuildJobs]
+}

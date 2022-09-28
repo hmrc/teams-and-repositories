@@ -23,7 +23,7 @@ import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors._
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.{BuildJob, Folder, PipelineJob}
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObject}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJobs, JenkinsObject}
 import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
 
 import java.time.Instant
@@ -42,6 +42,9 @@ class JenkinsService @Inject()(
 
   def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
+
+  def findAllByRepo(service: String): Future[BuildJobs] =
+    repo.findAllByRepo(service)
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {

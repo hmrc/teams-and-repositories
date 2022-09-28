@@ -23,6 +23,7 @@ import org.mongodb.scala.result.UpdateResult
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJobs, JenkinsObjects}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,6 +44,15 @@ class BuildJobRepo @Inject()(
       .find(equal("service", service))
       .first()
       .toFutureOption()
+
+  def findAllByRepo(service: String): Future[BuildJobs] = {
+    for {
+      jobs <- collection
+        .find(equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
+        .toFuture()
+      wrapped = BuildJobs(jobs)
+    } yield wrapped
+  }
 
   def updateOne(buildJob: BuildJob): Future[UpdateResult] = {
     collection
