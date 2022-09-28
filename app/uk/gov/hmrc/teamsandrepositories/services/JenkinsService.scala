@@ -43,8 +43,11 @@ class JenkinsService @Inject()(
   def findByService(service: String): Future[Option[BuildJob]] =
     repo.findByService(service)
 
-  def findAllByRepo(service: String): Future[BuildJobs] =
-    repo.findAllByRepo(service)
+  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
+    for {
+      jobs <- repo.findAllByRepo(service)
+      wrapped = BuildJobs(jobs)
+    } yield wrapped
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     for {
