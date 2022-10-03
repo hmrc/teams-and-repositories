@@ -142,9 +142,9 @@ object JenkinsConnector {
       if (level == depth)
         acc
       else
-        go(level + 1, s"jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],scm[userRemoteConfigs[url]],$acc]")
+        go(level + 1, s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],$acc]")
     }
-    go(1, "jobs[fullName,name,url,description,lastBuild[number,url,timestamp,result],scm[userRemoteConfigs[url]]]")
+    go(1, "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]")
   }
 }
 
