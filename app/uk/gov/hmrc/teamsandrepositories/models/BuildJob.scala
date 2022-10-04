@@ -26,7 +26,8 @@ case class BuildData(
                       number: Int,
                       url: String,
                       timestamp: Instant,
-                      result: Option[BuildResult]
+                      result: Option[BuildResult],
+                      description: Option[String]
                     )
 object BuildData {
 
@@ -35,6 +36,7 @@ object BuildData {
       ~ (__ \ "url").format[String]
       ~ (__ \ "timestamp").format(MongoJavatimeFormats.instantFormat)
       ~ (__ \ "result").formatNullable[BuildResult]
+      ~ (__ \ "description").formatNullable[String]
       ) (apply, unlift(unapply))
 
   val apiWrites: Writes[BuildData] =
@@ -42,6 +44,7 @@ object BuildData {
       ~ (__ \ "url").write[String]
       ~ (__ \ "timestamp").write[Instant]
       ~ (__ \ "result").writeNullable[BuildResult]
+      ~ (__ \ "description").writeNullable[String]
       ) (unlift(unapply))
 
   val jenkinsReads: Reads[BuildData] =
@@ -49,6 +52,7 @@ object BuildData {
       ~ (__ \ "url").read[String]
       ~ (__ \ "timestamp").read[Instant]
       ~ (__ \ "result").readNullable[BuildResult]
+      ~ (__ \ "description").readNullable[String]
       ) (apply _)
 }
 
