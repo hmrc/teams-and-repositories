@@ -17,9 +17,9 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mongodb.scala.bson.Document
-import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Filters.{equal, nin}
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOptions}
-import org.mongodb.scala.result.UpdateResult
+import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
@@ -62,6 +62,12 @@ class BuildJobRepo @Inject()(
 
   def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     Future.traverse(buildJobs)(updateOne)
+
+  def deleteIfNotInList(buildJobNames: Seq[String])(implicit ec: ExecutionContext): Future[DeleteResult] = {
+    for {
+      result <- collection.deleteMany(nin("service", buildJobNames: _*)).toFuture()
+    } yield result
+  }
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())

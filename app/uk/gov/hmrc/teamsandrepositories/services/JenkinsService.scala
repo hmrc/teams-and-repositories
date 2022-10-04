@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
-import org.mongodb.scala.result.UpdateResult
+import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors._
@@ -49,12 +49,13 @@ class JenkinsService @Inject()(
       wrapped = BuildJobs(jobs)
     } yield wrapped
 
-  def updateBuildJobs()(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
+  def updateBuildJobs()(implicit ec: ExecutionContext): Future[(Seq[UpdateResult], DeleteResult)] =
     for {
       res <- jenkinsConnector.findBuildJobs()
       buildJobs = res.objects flatMap extractBuildJobsFromTree
       persist <- repo.update(buildJobs)
-    } yield persist
+      delete <- repo.deleteIfNotInList(buildJobs.map(_.service))
+    } yield (persist, delete)
 
   private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
     jenkinsObject match {
