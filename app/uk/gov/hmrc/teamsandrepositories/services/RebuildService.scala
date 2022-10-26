@@ -56,8 +56,8 @@ case class RebuildService @Inject()(
       } else {
         val oldestJob = jobs.head
         for {
-          build <- jenkinsService.triggerBuildJob(oldestJob.service, oldestJob.jenkinsURL, oldestJob.lastBuildTime) if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == Failure
-          _ <-  sendBuildFailureAlert(build.get, oldestJob.service)
+          build <- jenkinsService.triggerBuildJob(oldestJob.name, oldestJob.jenkinsURL, oldestJob.lastBuildTime) if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == Failure
+          _ <-  sendBuildFailureAlert(build.get, oldestJob.name)
         } yield ()
       }
     })
@@ -115,11 +115,11 @@ case class RebuildService @Inject()(
       filenames <- dataSource.getBuildTeamFiles
       files <- Future.traverse(filenames) { dataSource.getTeamFile }
       serviceNames = files.filter(_.nonEmpty).flatMap(extractServiceNames)
-      buildJobs <- Future.traverse(serviceNames) { jenkinsService.findByService }
+      buildJobs <- Future.traverse(serviceNames) { jenkinsService.findByJobName }
       jobsWithLatestBuildOver30days =
         buildJobs.flatten
           .filter(_.latestBuild.nonEmpty)
-          .map(job => RebuildJobData(job.service, job.jenkinsURL, job.latestBuild.get.timestamp))
+          .map(job => RebuildJobData(job.name, job.jenkinsURL, job.latestBuild.get.timestamp))
           .filter(_.lastBuildTime.isBefore(thirtyDaysAgo))
           .sortBy(ele => ele.lastBuildTime)
     } yield jobsWithLatestBuildOver30days
@@ -165,13 +165,13 @@ case class RebuildService @Inject()(
   }
 
   case class RebuildJobData(
-                             service: String,
+                             name: String,
                              jenkinsURL: String,
                              lastBuildTime: Instant)
 
   object RebuildJobData {
     implicit val apiWrites: OWrites[RebuildJobData] =
-      ((__ \ "service").write[String]
+      ((__ \ "name").write[String]
       ~ (__ \ "jenkinsURL").write[String]
       ~ (__ \ "lastBuildTime").write[Instant]
       ) (unlift(unapply))

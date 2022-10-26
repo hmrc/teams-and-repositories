@@ -36,14 +36,14 @@ class JenkinsController @Inject()(
   private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
   private implicit val bjws: OWrites[BuildJobs] = BuildJobs.apiWrites
 
-  def lookup(service: String): Action[AnyContent] = Action.async {
+  def lookup(name: String): Action[AnyContent] = Action.async {
     for {
-      findService <- jenkinsService.findByService(service)
-      result      =  findService.map(links => Ok(Json.toJson(links))).getOrElse(NotFound)
+      findJob <- jenkinsService.findByJobName(name)
+      result      =  findJob.map(links => Ok(Json.toJson(links))).getOrElse(NotFound)
     } yield result
   }
 
-  def findAllJobsByRepo(service: String): Action[AnyContent] = Action.async {
-    jenkinsService.findAllByRepo(service).map(result => Ok(Json.toJson(result)))
+  def findAllJobsByRepo(name: String): Action[AnyContent] = Action.async {
+    jenkinsService.findAllByRepo(name).map(result => Ok(Json.toJson(result)))
   }
 }
