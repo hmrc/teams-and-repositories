@@ -74,14 +74,16 @@ class BuildJobRepo @Inject()(
     collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
 
   override def ensureIndexes: Future[Seq[String]] = {
-    collection
-      .dropIndex("serviceIdx")
-      .toFuture()
-      .recoverWith {
-        // could be caused by race conditions between server instances
-        case _ => Future.unit
-      }
-    collection.updateMany(Document(), Updates.rename("service", "name"))
-    super.ensureIndexes
+    for {
+      _ <- collection
+        .dropIndex("serviceIdx")
+        .toFuture()
+        .recoverWith {
+          // could be caused by race conditions between server instances
+          case _ => Future.unit
+        }
+      _ <- collection.updateMany(Document(), Updates.rename("service", "name")).toFuture()
+      res <- super.ensureIndexes
+    } yield res
   }
 }
