@@ -40,8 +40,8 @@ class JenkinsService @Inject()(
 
   implicit val actorSystem: ActorSystem = ActorSystem()
 
-  def findByService(service: String): Future[Option[BuildJob]] =
-    repo.findByService(service)
+  def findByJobName(name: String): Future[Option[BuildJob]] =
+    repo.findByJobName(name)
 
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
     for {
@@ -54,7 +54,7 @@ class JenkinsService @Inject()(
       res <- jenkinsConnector.findBuildJobs()
       buildJobs = res.objects flatMap extractBuildJobsFromTree
       persist <- repo.update(buildJobs)
-      delete <- repo.deleteIfNotInList(buildJobs.map(_.service))
+      delete <- repo.deleteIfNotInList(buildJobs.map(_.name))
     } yield (persist, delete)
 
   private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =

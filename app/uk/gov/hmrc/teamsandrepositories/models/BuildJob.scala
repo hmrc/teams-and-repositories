@@ -60,25 +60,25 @@ object BuildData {
 sealed trait JenkinsObject
 
 object JenkinsObject {
-  case class Folder(service: String, jenkinsURL: String, objects: Seq[JenkinsObject]) extends JenkinsObject
-  case class BuildJob(service: String,
+  case class Folder(name: String, jenkinsURL: String, objects: Seq[JenkinsObject]) extends JenkinsObject
+  case class BuildJob(name: String,
                       jenkinsURL: String,
                       latestBuild: Option[BuildData],
                       gitHubUrl: Option[String]) extends JenkinsObject
 
-  case class PipelineJob(service: String, jenkinsURL: String) extends JenkinsObject
+  case class PipelineJob(name: String, jenkinsURL: String) extends JenkinsObject
 
   object BuildJob {
 
     val mongoFormat: Format[BuildJob] =
-      ((__ \ "service").format[String]
+      ((__ \ "name").format[String]
         ~ (__ \ "jenkinsURL").format[String]
         ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
         ~ (__ \ "gitHubUrl").formatNullable[String]
         )(apply, unlift(unapply))
 
     val apiWrites: Writes[BuildJob] =
-      ((__ \ "service").write[String]
+      ((__ \ "name").write[String]
         ~ (__ \ "jenkinsURL").write[String]
         ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
         ~ (__ \ "gitHubUrl").writeNullable[String]

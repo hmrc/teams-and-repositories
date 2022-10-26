@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.Filters.{equal, nin}
+import org.mongodb.scala.model.Updates
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOptions}
 import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -35,12 +36,12 @@ class BuildJobRepo @Inject()(
       mongoComponent = mongoComponent,
       collectionName = "jenkinsLinks",
       domainFormat   = BuildJob.mongoFormat,
-      indexes        = Seq(IndexModel(Indexes.hashed("service"), IndexOptions().name("serviceIdx")))
+      indexes        = Seq(IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")))
     ) {
 
-  def findByService(service: String): Future[Option[BuildJob]] =
+  def findByJobName(name: String): Future[Option[BuildJob]] =
     collection
-      .find(equal("service", service))
+      .find(equal("name", name))
       .first()
       .toFutureOption()
 
@@ -53,7 +54,7 @@ class BuildJobRepo @Inject()(
   def updateOne(buildJob: BuildJob): Future[UpdateResult] = {
     collection
       .replaceOne(
-        filter = equal("service", buildJob.service),
+        filter = equal("name", buildJob.name),
         replacement = buildJob,
         options = ReplaceOptions().upsert(true)
       )
@@ -65,10 +66,22 @@ class BuildJobRepo @Inject()(
 
   def deleteIfNotInList(buildJobNames: Seq[String])(implicit ec: ExecutionContext): Future[DeleteResult] = {
     for {
-      result <- collection.deleteMany(nin("service", buildJobNames: _*)).toFuture()
+      result <- collection.deleteMany(nin("name", buildJobNames: _*)).toFuture()
     } yield result
   }
 
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
+
+  override def ensureIndexes: Future[Seq[String]] = {
+    collection
+      .dropIndex("serviceIdx")
+      .toFuture()
+      .recoverWith {
+        // could be caused by race conditions between server instances
+        case _ => Future.unit
+      }
+    collection.updateMany(Document(), Updates.rename("service", "name"))
+    super.ensureIndexes
+  }
 }
