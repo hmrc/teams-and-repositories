@@ -73,17 +73,4 @@ class BuildJobRepo @Inject()(
   def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
     collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
 
-  override def ensureIndexes: Future[Seq[String]] = {
-    for {
-      _ <- collection
-        .dropIndex("serviceIdx")
-        .toFuture()
-        .recoverWith {
-          // could be caused by race conditions between server instances
-          case _ => Future.unit
-        }
-      _ <- collection.updateMany(Document(), Updates.rename("service", "name")).toFuture()
-      res <- super.ensureIndexes
-    } yield res
-  }
 }
