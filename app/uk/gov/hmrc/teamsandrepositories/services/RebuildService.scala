@@ -87,9 +87,8 @@ case class RebuildService @Inject()(
 
   private def alertAdminsIfNoSlackChannelFound(errors: List[SlackNotificationError], messageDetails: MessageDetails)
                                               (implicit ec: ExecutionContext): Future[Unit] = {
-    val errorsToAlert = errors.filterNot { _.code == "slack_error"
-    }
-    if (errorsToAlert.nonEmpty) {
+
+    if (errors.nonEmpty) {
       for {
         response <-
           slackNotificationsConnector
@@ -98,7 +97,7 @@ case class RebuildService @Inject()(
                 channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
                 messageDetails = messageDetails copy(
                   text = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
-                  attachments = errorsToAlert.map(e => Attachment(e.message)) ++ messageDetails.attachments)
+                  attachments = errors.map(e => Attachment(e.message)) ++ messageDetails.attachments)
               )
             ) if !response.hasSentMessages
         _ = {
