@@ -42,6 +42,9 @@ class JenkinsConnector @Inject()(
   private val authorizationHeader =
     s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
 
+  private val rebuilderAuthorizationHeader =
+    s"Basic ${BaseEncoding.base64().encode(s"${config.rebuilderUsername}:${config.rebuilderToken}".getBytes("UTF-8"))}"
+
   private implicit val jr: Reads[BuildData] = BuildData.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
@@ -54,7 +57,7 @@ class JenkinsConnector @Inject()(
     for {
       response <- httpClientV2
         .post(url)
-        .setHeader("Authorization" -> authorizationHeader)
+        .setHeader("Authorization" -> rebuilderAuthorizationHeader)
         .execute[String]
         .recoverWith {
         case NonFatal (ex) =>
