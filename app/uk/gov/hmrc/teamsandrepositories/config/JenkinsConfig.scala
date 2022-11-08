@@ -26,6 +26,10 @@ class JenkinsConfig @Inject()(config: Configuration) {
 
   lazy val token: String = config.get[String]("jenkins.token")
 
+  lazy val rebuilderUsername: String = config.get[String]("jenkins.rebuilder.username")
+
+  lazy val rebuilderToken: String = config.get[String]("jenkins.rebuilder.token")
+
   lazy val baseUrl: String = config.get[String]("jenkins.url")
 
   lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
