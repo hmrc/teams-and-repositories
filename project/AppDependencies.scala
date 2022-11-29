@@ -8,14 +8,13 @@ object AppDependencies {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc"         %% "bootstrap-backend-play-28"    % bootstrapPlayVersion,
-    "uk.gov.hmrc.mongo"   %% "hmrc-mongo-metrix-play-28"    % hmrcMongoVersion,
-    "uk.gov.hmrc"         %% "internal-auth-client-play-28" % "1.2.0",
-    "org.yaml"            %  "snakeyaml"                    % "1.28",
-    "org.typelevel"       %% "cats-core"                    % "2.6.1",
-    "io.ticofab"          %% "aws-request-signer"           % "0.5.2",
-    "org.codehaus.groovy" %  "groovy-astbuilder"            % "3.0.12"
-
+    "uk.gov.hmrc"            %% "bootstrap-backend-play-28"    % bootstrapPlayVersion,
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-metrix-play-28"    % hmrcMongoVersion,
+    "uk.gov.hmrc"            %% "internal-auth-client-play-28" % "1.2.0",
+    "org.yaml"               %  "snakeyaml"                    % "1.28",
+    "org.typelevel"          %% "cats-core"                    % "2.6.1",
+    "org.codehaus.groovy"    %  "groovy-astbuilder"            % "3.0.12",
+    "software.amazon.awssdk" %  "auth"                         % "2.18.21"
   )
 
   val test = Seq(

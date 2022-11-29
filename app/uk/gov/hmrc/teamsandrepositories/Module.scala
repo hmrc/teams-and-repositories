@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import com.amazonaws.auth.{AWSCredentialsProvider, DefaultAWSCredentialsProviderChain}
 import com.google.inject.AbstractModule
+import software.amazon.awssdk.auth.credentials.{AwsCredentialsProvider, DefaultCredentialsProvider}
 import uk.gov.hmrc.teamsandrepositories.schedulers.{DataReloadScheduler, GithubRatelimitMetricsScheduler, JenkinsScheduler, RebuildScheduler}
 
 class Module() extends AbstractModule {
@@ -31,6 +31,6 @@ class Module() extends AbstractModule {
 
 class AwsCredentialsModule extends AbstractModule {
   override def configure(): Unit = {
-    bind(classOf[AWSCredentialsProvider]).toInstance(DefaultAWSCredentialsProviderChain.getInstance())
+    bind(classOf[AwsCredentialsProvider]).toInstance(DefaultCredentialsProvider.create())
   }
 }

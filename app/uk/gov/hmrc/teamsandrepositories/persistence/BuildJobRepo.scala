@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model.Filters.{equal, nin}
-import org.mongodb.scala.model.Updates
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOptions}
 import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.mongo.MongoComponent
