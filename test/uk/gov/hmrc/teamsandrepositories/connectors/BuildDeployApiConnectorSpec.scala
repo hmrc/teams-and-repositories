@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
+import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -109,5 +110,5 @@ class BuildDeployApiConnectorSpec
     )
 
   private lazy val awsCredentialsProvider =
-    new AWSStaticCredentialsProvider(new BasicAWSCredentials("test","test"))
+    StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test"))
 }
