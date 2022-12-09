@@ -55,7 +55,7 @@ class BuildDeployApiConnector @Inject()(
         uri = url.getPath,
         method = "POST",
         queryParams = queryParams,
-        headers = Map[String, String]("host" -> url.getHost),
+        headers = Map[String, String]("host" -> config.host),
         payload = Some(Json.toBytes(payload))
       )
 
