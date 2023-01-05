@@ -130,7 +130,7 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
   }
 
   "findRepositoryDetails" should {
-    "find a repository" in { // todo(konrad) add more initial TeamRepositories as test has little value
+    "find a repository" in {
       val teams = Seq(
         TeamRepositories(
           teamName     = "teamName",

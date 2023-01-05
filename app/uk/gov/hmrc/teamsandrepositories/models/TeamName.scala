@@ -22,29 +22,29 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-case class TeamName( // TODO rename Team
+case class TeamSummary(
   name          : String,
   createdDate   : Instant,
   lastActiveDate: Instant,
   repos         : Int
 )
 
-object TeamName {
+object TeamSummary {
 
-  val apiFormat: OFormat[TeamName] = {
+  val apiFormat: OFormat[TeamSummary] = {
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "createdDate"   ).format[Instant]
     ~ (__ \ "lastActiveDate").format[Instant]
     ~ (__ \ "repos"         ).format[Int]
-    )(TeamName.apply, unlift(TeamName.unapply))
+    )(TeamSummary.apply, unlift(TeamSummary.unapply))
   }
 
-  val mongoFormat: OFormat[TeamName] = {
+  val mongoFormat: OFormat[TeamSummary] = {
     implicit val inf = MongoJavatimeFormats.instantFormat
     ( (__ \ "_id"          ).format[String]
     ~ (__ \ "createdDate"   ).format[Instant]
     ~ (__ \ "lastActiveDate").format[Instant]
     ~ (__ \ "repos"         ).format[Int]
-    )(TeamName.apply, unlift(TeamName.unapply))
+    )(TeamSummary.apply, unlift(TeamSummary.unapply))
   }
 }

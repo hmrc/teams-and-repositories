@@ -52,7 +52,7 @@ case class PersistingService @Inject()(
       frontendServices <- serviceConfigsConnector.getFrontendServices()
       reposToPersist   =  reposToSeq.map(r => defineServiceType(r, frontendServices))
       _                =  logger.info(s"found ${reposToPersist.length} repos")
-      count            <- persister.updateRepos(reposToPersist) // TODO double check that repository yaml exists before cleaning up // TODO audit deletions
+      count            <- persister.updateRepos(reposToPersist)
     } yield count
   }
 

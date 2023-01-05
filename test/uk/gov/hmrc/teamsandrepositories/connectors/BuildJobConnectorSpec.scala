@@ -45,10 +45,7 @@ class BuildJobConnectorSpec
     val githubConfig = new GithubConfig(Configuration.from(Map(
       "github.open.api.rawurl"    -> s"$wireMockUrl/raw",
       "github.open.api.key"       -> "TOKEN",
-      "github.open.api.user"      -> "user",
       "github.open.api.url"       -> wireMockUrl,
-      "github.retry.count"        -> "5",
-      "github.retry.initialDelay" -> "50.millis",
       "ratemetrics.githubtokens"  -> Nil
     )))
     new BuildJobsConnector(githubConfig, httpClientV2)

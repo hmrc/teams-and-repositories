@@ -19,14 +19,12 @@ package uk.gov.hmrc.teamsandrepositories.config
 import com.google.inject.{Inject, Singleton}
 import com.typesafe.config.{ConfigList, ConfigObject}
 import play.api.Configuration
-import scala.concurrent.duration.Duration
 
 import scala.jdk.CollectionConverters._
 
 
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  val user   = configuration.get[String]("github.open.api.user")
   val key    = configuration.get[String]("github.open.api.key")
   val apiUrl = configuration.get[String]("github.open.api.url")
   val rawUrl = configuration.get[String]("github.open.api.rawurl")
@@ -38,9 +36,6 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val hiddenTeams: Set[String] =
     configuration.getOptional[String]("github.hidden.teams")
       .fold(Set.empty[String])(_.split(",").toSet)
-
-  val retryCount        = configuration.get[Int]("github.retry.count")
-  val retryInitialDelay = configuration.get[Duration]("github.retry.initialDelay")
 
   val tokens: List[(String, String)] =
     configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList

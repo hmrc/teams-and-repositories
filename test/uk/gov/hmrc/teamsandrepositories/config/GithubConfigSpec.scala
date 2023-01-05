@@ -29,11 +29,7 @@ class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       val githubConfig = new GithubConfig(Configuration(
         "github.open.api.url"    -> "https://api.github.com"
       , "github.open.api.rawurl" -> "http://localhost:8461/github/raw"
-      , "github.open.api.user"   -> "user1"
       , "github.open.api.key"    -> "token1"
-
-      , "github.retry.count"        -> "5"
-      , "github.retry.initialDelay" -> "50.millis"
 
       , "ratemetrics.githubtokens.1.username" -> "user1"
       , "ratemetrics.githubtokens.1.token"    -> "token1"
@@ -54,8 +50,6 @@ class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
             |github.open.api.rawurl  = "http://localhost:8461/github/raw"
             |github.open.api.user    = user1
             |github.open.api.key     = token1
-            |github.retry.count        = 5
-            |github.retry.initialDelay = 50.millis
             |ratemetrics.githubtokens.1.username = $${?github.open.api.user}
             |ratemetrics.githubtokens.1.token    = $${?github.open.api.key}
             """.stripMargin
