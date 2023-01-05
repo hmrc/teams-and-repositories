@@ -76,7 +76,7 @@ class LegacyRepositoriesControllerSpec
           "jenkins.url" -> ""
         )
       )
-      .build
+      .build()
 
   val defaultData =
     Seq(
@@ -248,7 +248,7 @@ class LegacyRepositoriesControllerSpec
       nameField(last) mustBe "library-repo"
       teamNamesField(last) mustBe Seq("test-team")
 
-      val ciDetails: Seq[JsValue] = (last \ "ci").as[JsArray].value
+      val ciDetails: Seq[JsValue] = (last \ "ci").as[JsArray].value.toSeq
       ciDetails.size mustBe 1
 
       ciDetails(0).as[JsObject].as[Map[String, String]] mustBe Map(

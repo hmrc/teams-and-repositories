@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.config
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
-import uk.gov.hmrc.teamsandrepositories.helpers.ConfigUtils
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -30,8 +29,6 @@ case class SchedulerConfig(
   )
 
 object SchedulerConfig {
-  import ConfigUtils._
-
   def apply(
         configuration: Configuration
       , enabledKey   : String
@@ -54,13 +51,13 @@ object SchedulerConfig {
     SchedulerConfig(
         enabledKey
       , enabled      = configuration.get[Boolean](enabledKey)
-      , interval     = getDuration(configuration, intervalKey)
-      , initialDelay = getDuration(configuration, initialDelayKey)
+      , interval     = configuration.get[FiniteDuration](intervalKey)
+      , initialDelay = configuration.get[FiniteDuration](initialDelayKey)
       )
 }
 
 @Singleton
-class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUtils {
+class SchedulerConfigs @Inject()(configuration: Configuration){
 
   val jenkinsScheduler = SchedulerConfig(
       configuration
@@ -85,8 +82,8 @@ class SchedulerConfigs @Inject()(configuration: Configuration) extends ConfigUti
 
   val rebuildScheduler = SchedulerConfig(
     configuration
-    , enabledKey = "scheduler.rebuild.enabled"
-    , intervalKey = "scheduler.rebuild.interval"
+    , enabledKey      = "scheduler.rebuild.enabled"
+    , intervalKey     = "scheduler.rebuild.interval"
     , initialDelayKey = "scheduler.rebuild.initialDelay"
   )
 }

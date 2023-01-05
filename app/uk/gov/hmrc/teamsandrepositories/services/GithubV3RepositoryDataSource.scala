@@ -22,8 +22,7 @@ import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 
 import java.time.Instant
-import java.util.concurrent.Executors
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -39,16 +38,13 @@ class GithubV3RepositoryDataSource @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  implicit val ec: ExecutionContextExecutor =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
-
   val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
 
   private val prototypeUrlTemplate =
     configuration.get[String]("url-templates.prototype")
 
-  def getTeams(): Future[List[GhTeam]] = {
+  def getTeams()(implicit ec: ExecutionContext): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
       !githubConfig.hiddenTeams.contains(team.name)
 
@@ -62,23 +58,11 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-  def getBuildTeamFiles: Future[Seq[String]] =
-    githubConnector
-      .getBuildTeamFiles
-      .map(_
-        .map(_.name))
-      .recoverWith {
-        case NonFatal(ex) =>
-          logger.error("Could not retrieve build team files.", ex)
-          Future.failed(ex)
-      }
-
-  def getTeamFile(name: String): Future[String] =
-    githubConnector.getTeamFile(name)
-
   def getTeamRepositories(
     team : GhTeam,
     cache: Map[String, GitRepository] = Map.empty
+  )(implicit
+    ec: ExecutionContext
   ): Future[TeamRepositories] = {
     logger.info(s"Fetching TeamRepositories for team: ${team.name}")
 
@@ -101,7 +85,7 @@ class GithubV3RepositoryDataSource @Inject()(
       throw e
   }
 
-  def getAllRepositories(): Future[List[GitRepository]] = {
+  def getAllRepositories()(implicit ec: ExecutionContext): Future[List[GitRepository]] = {
     def notHidden(repoName: String) =
       !githubConfig.hiddenRepositories.contains(repoName)
 
@@ -120,7 +104,7 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-  def getAllRepositoriesByName(): Future[Map[String, GitRepository]] =
+  def getAllRepositoriesByName()(implicit ec: ExecutionContext): Future[Map[String, GitRepository]] =
     getAllRepositories()
       .map(_.map(r => r.name -> r).toMap)
 }

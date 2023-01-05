@@ -22,7 +22,12 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-case class TeamName (name: String, createdDate: Instant, lastActiveDate: Instant, repos: Int)
+case class TeamName( // TODO rename Team
+  name          : String,
+  createdDate   : Instant,
+  lastActiveDate: Instant,
+  repos         : Int
+)
 
 object TeamName {
 

@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class BranchProtectionService @Inject()(
   buildDeployApiConnector: BuildDeployApiConnector,
-  githubConnector: GithubConnector,
+  githubConnector        : GithubConnector,
   repositoriesPersistence: RepositoriesPersistence
 ) {
 

@@ -67,7 +67,7 @@ class ModuleSpec
   val testTimestamper = new TimeStamper
 
   val mockSchedulerConfigs: SchedulerConfigs = mock[SchedulerConfigs](RETURNS_DEEP_STUBS)
-  val intervalDuration: FiniteDuration       = 100 millisecond
+  val intervalDuration: FiniteDuration       = 100.millis
 
   when(mockSchedulerConfigs.dataReloadScheduler.initialDelay).thenReturn(intervalDuration)
   when(mockSchedulerConfigs.dataReloadScheduler.interval).thenReturn(intervalDuration)

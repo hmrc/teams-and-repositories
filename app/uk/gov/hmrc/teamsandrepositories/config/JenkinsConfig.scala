@@ -21,20 +21,13 @@ import play.api.Configuration
 import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 
-class JenkinsConfig @Inject()(config: Configuration) {
-  lazy val username: String = config.get[String]("jenkins.username")
-
-  lazy val token: String = config.get[String]("jenkins.token")
-
-  lazy val rebuilderUsername: String = config.get[String]("jenkins.rebuilder.username")
-
-  lazy val rebuilderToken: String = config.get[String]("jenkins.rebuilder.token")
-
-  lazy val baseUrl: String = config.get[String]("jenkins.url")
-
+class JenkinsConfig @Inject()(config: Configuration){
+  lazy val username             : String         = config.get[String]("jenkins.username")
+  lazy val token                : String         = config.get[String]("jenkins.token")
+  lazy val rebuilderUsername    : String         = config.get[String]("jenkins.rebuilder.username")
+  lazy val rebuilderToken       : String         = config.get[String]("jenkins.rebuilder.token")
+  lazy val baseUrl              : String         = config.get[String]("jenkins.url")
   lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
-
   lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
-
-  lazy val searchDepth: Int = config.get[Int]("cache.jenkins.searchDepth")
+  lazy val searchDepth          : Int            = config.get[Int]("cache.jenkins.searchDepth")
 }

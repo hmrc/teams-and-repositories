@@ -21,7 +21,7 @@ import com.typesafe.config.{ConfigList, ConfigObject}
 import play.api.Configuration
 import scala.concurrent.duration.Duration
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 
 @Singleton
