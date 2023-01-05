@@ -26,19 +26,15 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class AdminController @Inject()(
-                                 dataReloadScheduler     : DataReloadScheduler,
-                                 repositoriesPersistence : RepositoriesPersistence,
-                                 cc                      : ControllerComponents
-)(implicit ec: ExecutionContext
+  dataReloadScheduler     : DataReloadScheduler,
+  repositoriesPersistence : RepositoriesPersistence,
+  cc                      : ControllerComponents
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc) {
 
   def reloadCache() = Action {
     dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }
-
-  def clearCache() = Action.async {
-    repositoriesPersistence.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
-  }
-
 }

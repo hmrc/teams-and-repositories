@@ -19,7 +19,6 @@ GET         /api/jenkins-jobs/:service                               @uk.gov.hmr
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
-POST        /api/cache/clear                                         uk.gov.hmrc.teamsandrepositories.controller.AdminController.clearCache
 
 
 # v2 api
