@@ -75,7 +75,7 @@ class LegacyTeamsControllerSpec
           "jenkins.url" -> ""
         )
       )
-      .build
+      .build()
 
   val defaultData =
     Seq(

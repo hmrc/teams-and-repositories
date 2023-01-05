@@ -46,7 +46,9 @@ case class TeamRepositories(
           RepoType.values.map(repoType => repoType -> List.empty).toMap ++
             repositories
               .groupBy(_.repoType)
+              .view
               .mapValues(_.map(_.name).distinct.sortBy(_.toUpperCase))
+              .toMap
         )
 
     val ownedRepos = repositories.collect {
@@ -144,7 +146,7 @@ object TeamRepositories {
     val repoTeams =
       teamRepos
         .flatMap(teamRepo => teamRepo.repositories.map(_.name -> teamRepo.teamName))
-        .groupBy(_._1).mapValues(_.map(a => a._2))
+        .groupBy(_._1).view.mapValues(_.map(a => a._2)).toMap
 
     teamRepos
       .flatMap(_.repositories)
@@ -211,7 +213,9 @@ object TeamRepositories {
 
     mappings
       .groupBy(_._1)
+      .view
       .mapValues(_.map(_._2).distinct)
+      .toMap
   }
 }
 

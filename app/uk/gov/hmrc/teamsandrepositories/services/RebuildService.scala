@@ -31,8 +31,8 @@ import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildResult}
 import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
 import scala.annotation.tailrec
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
 
 @Singleton
 case class RebuildService @Inject()(
@@ -50,7 +50,7 @@ case class RebuildService @Inject()(
     getJobsWithNoBuildFor(minDaysUnbuilt).map(jobs =>
       if (jobs.isEmpty) {
         logger.info("No old builds to trigger")
-        Unit
+        ()
       } else {
         val oldestJob = jobs.head
         for {
@@ -110,7 +110,7 @@ case class RebuildService @Inject()(
   private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val cutoff = Instant.now().minus(daysUnbuilt, DAYS)
     for {
-      filenames                     <- buildJobsConnector.getBuildjobFiles
+      filenames                     <- buildJobsConnector.getBuildjobFiles()
       files                         <- Future.traverse(filenames)(buildJobsConnector.getBuildjobFileContent)
       serviceNames                  =  files.filter(_.nonEmpty).flatMap(extractServiceNames)
       buildJobs                     <- Future.traverse(serviceNames)(jenkinsService.findByJobName)
@@ -125,10 +125,12 @@ case class RebuildService @Inject()(
   private def extractServiceNames(buildFileContents: String): Iterable[String] = {
     val statements =
       new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, buildFileContents)
+        .asScala
         .toList
         .collect { case x: BlockStatement => x }
         .head
         .getStatements
+        .asScala
         .collect { case expressionStatement: ExpressionStatement => expressionStatement }
         .map(_.getExpression)
 

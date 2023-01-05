@@ -9,7 +9,7 @@ lazy val microservice = Project("teams-and-repositories", file("."))
   .settings(PlayKeys.playDefaultPort := 9015)
   .settings(libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test)
   .settings(resolvers += Resolver.jcenterRepo)
-  .settings(scalaVersion := "2.12.14")
+  .settings(scalaVersion := "2.13.10")
   .settings(scalacOptions += "-Wconf:src=routes/.*:s")
   .settings(
     RoutesKeys.routesImport ++= Seq(

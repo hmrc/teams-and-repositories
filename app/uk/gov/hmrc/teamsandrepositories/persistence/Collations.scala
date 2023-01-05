@@ -22,9 +22,8 @@ import org.mongodb.scala.model.{Collation, CollationStrength}
 object Collations {
 
   val caseInsensitive: Collation =
-    Collation.builder
+    Collation.builder()
       .locale("en")
       .collationStrength(CollationStrength.SECONDARY)
-      .build
-
+      .build()
 }

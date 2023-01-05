@@ -383,7 +383,7 @@ object GhRepository {
     private val logger = Logger(this.getClass)
 
     def parse(repoName: String, manifest: String): Option[ManifestDetails] = {
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
 
       parseAppConfigFile(manifest) match {
         case Failure(exception) =>
