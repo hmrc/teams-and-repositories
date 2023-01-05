@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,64 +30,70 @@ import javax.crypto.spec.SecretKeySpec
 import scala.collection.immutable.{ListMap, TreeMap}
 
 object AwsSigner {
+  def apply(
+    credentialsProvider: AwsCredentialsProvider,
+    region             : String,
+    service            : String,
+    clock              : () => LocalDateTime
+  ): AwsSigner =
+    new AwsSigner(credentialsProvider, region, service, clock)
 
-  def apply(credentialsProvider: AwsCredentialsProvider,
-            region: String,
-            service: String,
-            clock: () => LocalDateTime): AwsSigner = new AwsSigner(credentialsProvider, region, service, clock)
-
-  def apply(awsAccessKeyId: String,
-            awsSecretKey: String,
-            region: String,
-            service: String,
-            clock: () => LocalDateTime): AwsSigner = {
-
+  def apply(
+    awsAccessKeyId: String,
+    awsSecretKey  : String,
+    region        : String,
+    service       : String,
+    clock         : () => LocalDateTime
+  ): AwsSigner = {
     val credentialsProvider = new AwsCredentialsProvider {
-
-      override def resolveCredentials: AwsCredentials = new AwsCredentials {
-        override def accessKeyId: String = awsAccessKeyId
-
-        override def secretAccessKey: String = awsSecretKey
-      }
+      override def resolveCredentials: AwsCredentials =
+        new AwsCredentials {
+          override def accessKeyId    : String = awsAccessKeyId
+          override def secretAccessKey: String = awsSecretKey
+        }
     }
     new AwsSigner(credentialsProvider, region, service, clock)
   }
 }
 
-class AwsSigner (credentialsProvider: AwsCredentialsProvider,
-                 region: String,
-                 service: String,
-                 clock: () => LocalDateTime) {
+class AwsSigner (
+  credentialsProvider: AwsCredentialsProvider,
+  region             : String,
+  service            : String,
+  clock              : () => LocalDateTime
+) {
 
-  private val BASE16MAP = Array[Char]('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
-  private val HMAC_SHA256 = "HmacSHA256"
-  private val SLASH = "/"
-  private val X_AMZ_DATE = "x-amz-date"
-  private val RETURN = "\n"
-  private val AWS4_HMAC_SHA256 = "AWS4-HMAC-SHA256"
-  private val AWS4_REQUEST = "/aws4_request"
+  private val BASE16MAP                   = Array[Char]('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
+  private val HMAC_SHA256                 = "HmacSHA256"
+  private val SLASH                       = "/"
+  private val X_AMZ_DATE                  = "x-amz-date"
+  private val RETURN                      = "\n"
+  private val AWS4_HMAC_SHA256            = "AWS4-HMAC-SHA256"
+  private val AWS4_REQUEST                = "/aws4_request"
   private val AWS4_HMAC_SHA256_CREDENTIAL = "AWS4-HMAC-SHA256 Credential="
-  private val SIGNED_HEADERS = ", SignedHeaders="
-  private val SIGNATURE = ", Signature="
-  private val SHA_256 = "SHA-256"
-  private val AWS4 = "AWS4"
-  private val AWS_4_REQUEST = "aws4_request"
-  private val CONNECTION = "connection"
-  private val CLOSE = ":close"
-  private val EMPTY = ""
-  private val ZERO = "0"
-  private val CONTENT_LENGTH = "Content-Length"
-  private val AUTHORIZATION = "Authorization"
-  private val SESSION_TOKEN = "x-amz-security-token"
-  private val DATE = "date"
-  private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
-  private val BASIC_DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE
+  private val SIGNED_HEADERS              = ", SignedHeaders="
+  private val SIGNATURE                   = ", Signature="
+  private val SHA_256                     = "SHA-256"
+  private val AWS4                        = "AWS4"
+  private val AWS_4_REQUEST               = "aws4_request"
+  private val CONNECTION                  = "connection"
+  private val CLOSE                       = ":close"
+  private val EMPTY                       = ""
+  private val ZERO                        = "0"
+  private val CONTENT_LENGTH              = "Content-Length"
+  private val AUTHORIZATION               = "Authorization"
+  private val SESSION_TOKEN               = "x-amz-security-token"
+  private val DATE                        = "date"
+  private val DATE_FORMATTER              = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+  private val BASIC_DATE_FORMATTER        = DateTimeFormatter.BASIC_ISO_DATE
 
-  def getSignedHeaders(uri: String,
-                       method: String,
-                       queryParams: Map[String, String],
-                       headers: Map[String, String],
-                       payload: Option[Array[Byte]]): Map[String, String] = {
+  def getSignedHeaders(
+    uri        : String,
+    method     : String,
+    queryParams: Map[String, String],
+    headers    : Map[String, String],
+    payload    : Option[Array[Byte]]
+  ): Map[String, String] = {
 
     def queryParamsString(queryParams: Map[String, String]) = {
       val orderedParams = ListMap(queryParams.toSeq.sortWith(_._1 < _._1): _*)
@@ -187,6 +193,4 @@ class AwsSigner (credentialsProvider: AwsCredentialsProvider,
 
     result
   }
-
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,17 +32,21 @@ class TimeStamper {
 }
 @Singleton
 class GithubV3RepositoryDataSource @Inject()(
-                                              githubConfig                 : GithubConfig,
-                                              githubConnector              : GithubConnector,
-                                              timeStamper                  : TimeStamper,
-                                              configuration                : Configuration
+  githubConfig   : GithubConfig,
+  githubConnector: GithubConnector,
+  timeStamper    : TimeStamper,
+  configuration  : Configuration
 ) {
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
-
-  val sharedRepos: List[String] = configuration.get[Seq[String]]("shared.repositories").toList
-
   private val logger = Logger(this.getClass)
-  private val prototypeUrlTemplate = configuration.get[String]("url-templates.prototype")
+
+  implicit val ec: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(20))
+
+  val sharedRepos: List[String] =
+    configuration.get[Seq[String]]("shared.repositories").toList
+
+  private val prototypeUrlTemplate =
+    configuration.get[String]("url-templates.prototype")
 
   def getTeams(): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -58,7 +62,7 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-  def getBuildTeamFiles: Future[Seq[String]] = {
+  def getBuildTeamFiles: Future[Seq[String]] =
     githubConnector
       .getBuildTeamFiles
       .map(_
@@ -68,14 +72,12 @@ class GithubV3RepositoryDataSource @Inject()(
           logger.error("Could not retrieve build team files.", ex)
           Future.failed(ex)
       }
-  }
 
-  def getTeamFile(name: String): Future[String] = {
+  def getTeamFile(name: String): Future[String] =
     githubConnector.getTeamFile(name)
-  }
 
   def getTeamRepositories(
-    team: GhTeam,
+    team : GhTeam,
     cache: Map[String, GitRepository] = Map.empty
   ): Future[TeamRepositories] = {
     logger.info(s"Fetching TeamRepositories for team: ${team.name}")
@@ -121,5 +123,4 @@ class GithubV3RepositoryDataSource @Inject()(
   def getAllRepositoriesByName(): Future[Map[String, GitRepository]] =
     getAllRepositories()
       .map(_.map(r => r.name -> r).toMap)
-
 }

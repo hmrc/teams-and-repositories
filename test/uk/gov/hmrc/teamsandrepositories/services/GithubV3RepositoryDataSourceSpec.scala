@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,10 @@ class GithubV3RepositoryDataSourceSpec
         githubConfig    = githubConfig,
         githubConnector = mockGithubConnector,
         timeStamper     = testTimeStamper,
-        configuration   = Configuration(("url-templates.prototype","https://${app-name}.herokuapp.com"), ("shared.repositories", Seq()))
+        configuration   = Configuration(
+                            "url-templates.prototype" -> s"https://$${app-name}.herokuapp.com",
+                            "shared.repositories"     ->  Seq()
+                          )
       )
 
     val ec = dataSource.ec

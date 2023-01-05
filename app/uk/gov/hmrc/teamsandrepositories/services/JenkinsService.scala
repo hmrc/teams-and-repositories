@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,78 +32,80 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsService @Inject()(
-                                repo: BuildJobRepo,
-                                jenkinsConnector: JenkinsConnector,
-                                jenkinsConfig: JenkinsConfig) {
-
+  repo            : BuildJobRepo,
+  jenkinsConnector: JenkinsConnector,
+  jenkinsConfig   : JenkinsConfig
+) {
   private val logger = Logger(this.getClass)
 
-  implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val actorSystem: ActorSystem = ActorSystem()
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
     repo.findByJobName(name)
 
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
     for {
-      jobs <- repo.findAllByRepo(service)
-      wrapped = BuildJobs(jobs)
+      jobs    <- repo.findAllByRepo(service)
+      wrapped =  BuildJobs(jobs)
     } yield wrapped
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[(Seq[UpdateResult], DeleteResult)] =
     for {
-      res <- jenkinsConnector.findBuildJobs()
-      buildJobs = res.objects flatMap extractBuildJobsFromTree
-      persist <- repo.update(buildJobs)
-      delete <- repo.deleteIfNotInList(buildJobs.map(_.name))
+      res       <- jenkinsConnector.findBuildJobs()
+      buildJobs =  res.objects flatMap extractBuildJobsFromTree
+      persist   <- repo.update(buildJobs)
+      delete    <- repo.deleteIfNotInList(buildJobs.map(_.name))
     } yield (persist, delete)
 
   private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
     jenkinsObject match {
-      case Folder(_, _, objects) => objects flatMap extractBuildJobsFromTree
-      case job: BuildJob                => Seq(job)
-      case PipelineJob(_, _)        => Seq()
+      case Folder(_, _, objects) => objects.flatMap(extractBuildJobsFromTree)
+      case job: BuildJob         => Seq(job)
+      case PipelineJob(_, _)     => Seq()
     }
 
-  def triggerBuildJob(serviceName: String,
-                      url: String,
-                      timestamp: Instant)(implicit ec: ExecutionContext): Future[Option[BuildData]] = {
-    val optionalBuild = for {
+  def triggerBuildJob(
+    serviceName: String,
+    url        : String,
+    timestamp  : Instant
+  )(implicit
+    ec         : ExecutionContext
+  ): Future[Option[BuildData]] =
+    (for {
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
       build = if (latestBuild.timestamp.equals(timestamp)) {
         for {
           location <- {
-            logger.info(s"Triggering build for $serviceName")
-            jenkinsConnector.triggerBuildJob(url)
-          }
-          queueUrl = s"${location.replace("http:", "https:")}"
-          queue <- getQueue(queueUrl)
-          build <- getBuild(queue.executable.get.url)
+                        logger.info(s"Triggering build for $serviceName")
+                        jenkinsConnector.triggerBuildJob(url)
+                      }
+          queueUrl =  s"${location.replace("http:", "https:")}"
+          queue    <- getQueue(queueUrl)
+          build    <- getBuild(queue.executable.get.url)
         } yield Some(build)
       } else {
         Future.successful(None)
       }
-    } yield build
-    optionalBuild.flatten
-  }
+     } yield build
+    ).flatten
 
-  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
+  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] =
     Source.repeat(())
       .throttle(1, jenkinsConfig.queueThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
       .filter(queue => queue.cancelled.nonEmpty || queue.executable.nonEmpty)
-      .map(queue => {
-        if (queue.cancelled.nonEmpty && queue.cancelled.get) throw new Exception("Queued Job cancelled")
+      .map { queue =>
+        if (queue.cancelled.nonEmpty && queue.cancelled.get)
+          throw new Exception("Queued Job cancelled")
         queue
-      })
-      .filter(queue => queue.executable.nonEmpty)
+      }
+      .filter(_.executable.nonEmpty)
       .runWith(Sink.head)
-  }
 
-  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
+  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] =
     Source.repeat(())
       .throttle(1, jenkinsConfig.buildThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))
-      .filter(build => build.result.nonEmpty)
+      .filter(_.result.nonEmpty)
       .runWith(Sink.head)
-  }
 }

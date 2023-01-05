@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ class SlackNotificationsConnector @Inject()(
 }
 
 final case class SlackNotificationError(
-  code: String,
+  code   : String,
   message: String
 )
 
@@ -73,10 +73,11 @@ object SlackNotificationError {
 }
 
 final case class SlackNotificationResponse(
-  successfullySentTo: Seq[String] = Nil,
-  errors: List[SlackNotificationError] = Nil
+  successfullySentTo: Seq[String]                  = Seq.empty,
+  errors            : List[SlackNotificationError] = Nil
 ) {
-  def hasSentMessages: Boolean = successfullySentTo.nonEmpty
+  def hasSentMessages: Boolean =
+    successfullySentTo.nonEmpty
 }
 
 object SlackNotificationResponse {
@@ -91,20 +92,27 @@ sealed trait ChannelLookup {
 
 object ChannelLookup {
 
-  final case class RepositoryChannel (repositoryName: String, by: String = "github-repository") extends ChannelLookup
+  final case class RepositoryChannel(
+    repositoryName: String,
+    by            : String = "github-repository"
+  ) extends ChannelLookup
 
   final case class SlackChannel(
-                                 slackChannels: List[String],
-                                 by: String = "slack-channel"
-                               ) extends ChannelLookup
+    slackChannels: List[String],
+    by           : String = "slack-channel"
+  ) extends ChannelLookup
 
-  implicit val writes: Writes[ChannelLookup] = Writes {
-    case s: SlackChannel => Json.toJson(s)(Json.writes[SlackChannel])
-    case s: RepositoryChannel => Json.toJson(s)(Json.writes[RepositoryChannel])
-  }
+  implicit val writes: Writes[ChannelLookup] =
+    Writes {
+      case s: SlackChannel      => Json.toJson(s)(Json.writes[SlackChannel])
+      case s: RepositoryChannel => Json.toJson(s)(Json.writes[RepositoryChannel])
+    }
 }
 
-final case class Attachment(text: String, fields: Seq[Attachment.Field] = Nil)
+final case class Attachment(
+  text  : String,
+  fields: Seq[Attachment.Field] = Seq.empty
+)
 
 object Attachment {
   final case class Field(
@@ -114,30 +122,33 @@ object Attachment {
   )
 
   object Field {
-    implicit val format: OFormat[Field] = Json.format[Field]
+    implicit val format: OFormat[Field] =
+      Json.format[Field]
   }
 
-  implicit val format: OFormat[Attachment] = Json.format[Attachment]
-
+  implicit val format: OFormat[Attachment] =
+    Json.format[Attachment]
 }
 
 final case class MessageDetails(
-  text: String,
-  username: String,
-  iconEmoji: String,
-  attachments: Seq[Attachment],
+  text                : String,
+  username            : String,
+  iconEmoji           : String,
+  attachments         : Seq[Attachment],
   showAttachmentAuthor: Boolean
 )
 
 object MessageDetails {
-  implicit val writes: OWrites[MessageDetails] = Json.writes[MessageDetails]
+  implicit val writes: OWrites[MessageDetails] =
+    Json.writes[MessageDetails]
 }
 
 final case class SlackNotificationRequest(
-  channelLookup: ChannelLookup,
+  channelLookup : ChannelLookup,
   messageDetails: MessageDetails
 )
 
 object SlackNotificationRequest {
-  implicit val writes: OWrites[SlackNotificationRequest] = Json.writes[SlackNotificationRequest]
+  implicit val writes: OWrites[SlackNotificationRequest] =
+    Json.writes[SlackNotificationRequest]
 }

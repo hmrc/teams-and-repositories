@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,15 @@ import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsVal
 sealed trait BuildResult { def asString: String }
 
 object BuildResult {
-  case object Failure extends BuildResult { override val asString = "FAILURE" }
-  case object Success extends BuildResult { override val asString = "SUCCESS" }
-  case object Aborted extends BuildResult { override val asString = "ABORTED" }
+  case object Failure  extends BuildResult { override val asString = "FAILURE"  }
+  case object Success  extends BuildResult { override val asString = "SUCCESS"  }
+  case object Aborted  extends BuildResult { override val asString = "ABORTED"  }
   case object Unstable extends BuildResult { override val asString = "UNSTABLE" }
-  case object Other extends BuildResult { override val asString = "Other" }
+  case object Other    extends BuildResult { override val asString = "Other"    }
 
 
-  val values: List[BuildResult] = List(Failure, Success, Aborted, Unstable, Other)
+  val values: List[BuildResult] =
+    List(Failure, Success, Aborted, Unstable, Other)
 
   def parse(s: String): BuildResult =
     values
@@ -39,7 +40,7 @@ object BuildResult {
     override def reads(json: JsValue): JsResult[BuildResult] =
       json match {
         case JsString(s) => JsSuccess(parse(s))
-        case _ => JsError("String value expected")
+        case _           => JsError("String value expected")
       }
 
     override def writes(o: BuildResult): JsValue =

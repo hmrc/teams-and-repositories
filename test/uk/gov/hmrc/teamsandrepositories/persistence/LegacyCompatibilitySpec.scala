@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
+import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
@@ -28,10 +29,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class LegacyCompatibilitySpec
   extends AnyWordSpecLike
-  with Matchers
-  with MockitoSugar
-  with PlayMongoRepositorySupport[GitRepository]
-  with CleanMongoCollectionSupport {
+     with Matchers
+     with MockitoSugar
+     with PlayMongoRepositorySupport[GitRepository]
+     with CleanMongoCollectionSupport
+     with IntegrationPatience {
 
   override protected def repository = new RepositoriesPersistence(mongoComponent)
 

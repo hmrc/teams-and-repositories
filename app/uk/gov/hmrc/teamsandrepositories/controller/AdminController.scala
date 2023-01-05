@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,19 +26,13 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class AdminController @Inject()(
-                                 dataReloadScheduler     : DataReloadScheduler,
-                                 repositoriesPersistence : RepositoriesPersistence,
-                                 cc                      : ControllerComponents
-)(implicit ec: ExecutionContext
+  dataReloadScheduler     : DataReloadScheduler,
+  repositoriesPersistence : RepositoriesPersistence,
+  cc                      : ControllerComponents
 ) extends BackendController(cc) {
 
   def reloadCache() = Action {
     dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }
-
-  def clearCache() = Action.async {
-    repositoriesPersistence.clearAllData.map(r => Ok(s"Cache cleared successfully: $r"))
-  }
-
 }

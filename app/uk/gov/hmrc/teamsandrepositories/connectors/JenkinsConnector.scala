@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,17 +54,15 @@ class JenkinsConnector @Inject()(
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$baseUrl/buildWithParameters"
-    for {
-      response <- httpClientV2
-        .post(url)
-        .setHeader("Authorization" -> rebuilderAuthorizationHeader)
-        .execute[String]
-        .recoverWith {
-        case NonFatal (ex) =>
-        logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-      Future.failed (ex)
+    httpClientV2
+      .post(url)
+      .setHeader("Authorization" -> rebuilderAuthorizationHeader)
+      .execute[String]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
       }
-    } yield response
   }
 
   def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[BuildData] = {
@@ -86,7 +84,6 @@ class JenkinsConnector @Inject()(
   }
 
   def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsObjects] = {
-
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
@@ -102,7 +99,6 @@ class JenkinsConnector @Inject()(
   }
 
   def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
-
     assert(queueUrl.startsWith(config.baseUrl), s"$queueUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -141,12 +137,11 @@ object JenkinsConnector {
 
   def generateJobQuery(depth: Int): String = {
     @tailrec
-    def go(level: Int, acc: String): String = {
+    def go(level: Int, acc: String): String =
       if (level == depth)
         acc
       else
         go(level + 1, s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],$acc]")
-    }
     go(1, "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]")
   }
 }
@@ -155,17 +150,16 @@ case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[Jenki
 
 object JenkinsQueueData {
   implicit val queueDataReader: Reads[JenkinsQueueData] =
-    ((__ \ "cancelled").readNullable[Boolean]
-      ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
-      ) (JenkinsQueueData.apply _)
+    ( (__ \ "cancelled" ).readNullable[Boolean]
+    ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
+    )(JenkinsQueueData.apply _)
 }
 
 case class JenkinsQueueExecutable(number: Int, url: String)
 
 object JenkinsQueueExecutable {
   implicit val executableReader: Reads[JenkinsQueueExecutable] =
-    ((__ \ "number").read[Int]
-      ~ (__ \ "url").read[String]
-      ) (JenkinsQueueExecutable.apply _)
+    ( (__ \ "number").read[Int]
+    ~ (__ \ "url").read[String]
+    )(JenkinsQueueExecutable.apply _)
 }
-

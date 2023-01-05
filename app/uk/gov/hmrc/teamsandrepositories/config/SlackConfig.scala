@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import play.api.Configuration
 
 @Singleton
 class SlackConfig @Inject()(configuration: Configuration) {
-  val enabled: Boolean            = configuration.get[Boolean]("slack.enabled")
-  val user: String                = configuration.get[String]("slack.username")
-  val password: String            = configuration.get[String]("slack.password")
-  val messageText: String         = configuration.get[String]("slack.messageText")
-  val adminChannel: String        = configuration.get[String]("slack.adminChannel")
+  val enabled     : Boolean = configuration.get[Boolean]("slack.enabled")
+  val user        : String  = configuration.get[String]("slack.username")
+  val password    : String  = configuration.get[String]("slack.password")
+  val messageText : String  = configuration.get[String]("slack.messageText")
+  val adminChannel: String  = configuration.get[String]("slack.adminChannel")
 }

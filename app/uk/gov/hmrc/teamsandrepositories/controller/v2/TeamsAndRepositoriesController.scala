@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
   branchProtectionService: BranchProtectionService,
-  rebuildService: RebuildService ,
-  auth: BackendAuthComponents,
-  cc: ControllerComponents
+  rebuildService         : RebuildService ,
+  auth                   : BackendAuthComponents,
+  cc                     : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
@@ -41,7 +41,13 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamName.apiFormat
 
-  def allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType]) = Action.async { request =>
+  def allRepos(
+    name       : Option[String],
+    team       : Option[String],
+    archived   : Option[Boolean],
+    repoType   : Option[RepoType],
+    serviceType: Option[ServiceType]
+  ) = Action.async { request =>
     repositoriesPersistence.search(name, team, archived, repoType, serviceType)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
@@ -57,7 +63,7 @@ class TeamsAndRepositoriesController @Inject()(
     }
   }
 
-  def enableBranchProtection(repoName: String): Action[JsValue] = {
+  def enableBranchProtection(repoName: String): Action[JsValue] =
     auth
       .authorizedAction(
         Predicate.Permission(
@@ -68,7 +74,7 @@ class TeamsAndRepositoriesController @Inject()(
           implicitly[Reads[Boolean]].reads(request.body)
 
         payload.fold(
-          errors => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
+          errors  => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
           enabled =>
             if (enabled)
               branchProtectionService
@@ -77,5 +83,4 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
-  }
 }

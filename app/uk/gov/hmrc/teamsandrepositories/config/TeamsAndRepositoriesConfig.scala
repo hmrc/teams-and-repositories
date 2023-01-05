@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,17 @@ import play.api.libs.json.{Json, OFormat}
 
 import scala.collection.immutable.ListMap
 
-case class UrlTemplates(environments: ListMap[String, Seq[UrlTemplate]])
+case class UrlTemplates(
+  environments: ListMap[String, Seq[UrlTemplate]]
+)
 
-case class UrlTemplate(name: String, displayName: String, template: String) {
-  def url(serviceName: String): String = template.replace(s"$$name", serviceName)
+case class UrlTemplate(
+  name       : String,
+  displayName: String,
+  template   : String
+) {
+  def url(serviceName: String): String =
+    template.replace(s"$$name", serviceName)
 }
 
 object UrlTemplate {
@@ -33,18 +40,21 @@ object UrlTemplate {
 }
 
 @Singleton
-class UrlTemplatesProvider @Inject()(configuration: Configuration) {
+class UrlTemplatesProvider @Inject()(
+  configuration: Configuration
+) {
 
-  val ciUrlTemplates: UrlTemplates = UrlTemplates(retrieveTemplatesForEnvironments())
+  val ciUrlTemplates: UrlTemplates =
+    UrlTemplates(retrieveTemplatesForEnvironments())
 
   private def retrieveTemplatesForEnvironments(): ListMap[String, Seq[UrlTemplate]] = {
     val envConfigs = configuration.get[Seq[Configuration]]("url-templates.envrionments")
 
-    envConfigs.foldLeft(ListMap.empty[String, Seq[UrlTemplate]])((acc, envConfig) => {
+    envConfigs.foldLeft(ListMap.empty[String, Seq[UrlTemplate]]){ (acc, envConfig) =>
       val envName      = envConfig.get[String]("name")
       val envTemplates = envConfig.get[Seq[Configuration]]("services").flatMap(readLink)
       acc + (envName -> envTemplates)
-    })
+    }
   }
 
   private def readLink(config: Configuration): Option[UrlTemplate] =
