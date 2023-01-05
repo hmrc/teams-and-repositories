@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.testonly
 
+import org.mongodb.scala.bson.Document
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -27,9 +28,9 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class IntegrationTestSupportController @Inject()(
-  teamsRepo    : RepositoriesPersistence,
-  jenkinsRepo  : BuildJobRepo,
-  cc           : ControllerComponents
+  repositoriesPersistence: RepositoriesPersistence,
+  buildJobRepo           : BuildJobRepo,
+  cc                     : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
@@ -40,18 +41,18 @@ class IntegrationTestSupportController @Inject()(
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addRepositories() = Action.async(validateJson[Seq[GitRepository]]){ implicit request =>
-    teamsRepo.updateRepos(request.body).map( _ => Ok("Ok"))
+    repositoriesPersistence.updateRepos(request.body).map( _ => Ok("Ok"))
   }
 
   def clearAll() = Action.async {
-    teamsRepo.clearAllData.map(_ => Ok("Ok"))
+    repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
   def addJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
-    jenkinsRepo.update(request.body).map(_ => Ok("Done"))
+    buildJobRepo.update(request.body).map(_ => Ok("Done"))
   }
 
   def clearJenkins() = Action.async {
-    jenkinsRepo.clearAllData.map(_ => Ok("Ok"))
+    buildJobRepo.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 }

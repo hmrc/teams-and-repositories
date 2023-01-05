@@ -26,7 +26,6 @@ import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects}
 
 import javax.inject.Inject
-import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -34,7 +33,6 @@ class JenkinsConnector @Inject()(
   config      : JenkinsConfig,
   httpClientV2: HttpClientV2
 ) {
-
   import HttpReads.Implicits._
 
   private val logger = Logger(this.getClass)
@@ -134,16 +132,10 @@ class JenkinsConnector @Inject()(
   }
 }
 object JenkinsConnector {
-
-  def generateJobQuery(depth: Int): String = {
-    @tailrec
-    def go(level: Int, acc: String): String =
-      if (level == depth)
-        acc
-      else
-        go(level + 1, s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],$acc]")
-    go(1, "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]")
-  }
+  def generateJobQuery(depth: Int): String =
+    (0 until depth).foldLeft(""){(acc, _) =>
+      s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if (acc == "") "" else s",$acc"}]"
+    }
 }
 
 case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])

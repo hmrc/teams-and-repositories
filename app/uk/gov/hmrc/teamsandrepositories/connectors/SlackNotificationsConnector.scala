@@ -49,6 +49,8 @@ class SlackNotificationsConnector @Inject()(
 
   def sendMessage(message: SlackNotificationRequest): Future[SlackNotificationResponse] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val snrw = SlackNotificationRequest.writes
+    implicit val snrf = SlackNotificationResponse.format
     httpClientV2
       .post(url"$url/slack-notifications/notification")
       .withBody(Json.toJson(message))
@@ -68,7 +70,7 @@ final case class SlackNotificationError(
 )
 
 object SlackNotificationError {
-  implicit val format: OFormat[SlackNotificationError] =
+  val format: OFormat[SlackNotificationError] =
     Json.format[SlackNotificationError]
 }
 
@@ -81,9 +83,10 @@ final case class SlackNotificationResponse(
 }
 
 object SlackNotificationResponse {
-
-  implicit val format: OFormat[SlackNotificationResponse] =
+  val format: OFormat[SlackNotificationResponse] = {
+    implicit val snef = SlackNotificationError.format
     Json.format[SlackNotificationResponse]
+  }
 }
 
 sealed trait ChannelLookup {
@@ -102,7 +105,7 @@ object ChannelLookup {
     by           : String = "slack-channel"
   ) extends ChannelLookup
 
-  implicit val writes: Writes[ChannelLookup] =
+  val writes: Writes[ChannelLookup] =
     Writes {
       case s: SlackChannel      => Json.toJson(s)(Json.writes[SlackChannel])
       case s: RepositoryChannel => Json.toJson(s)(Json.writes[RepositoryChannel])
@@ -126,7 +129,7 @@ object Attachment {
       Json.format[Field]
   }
 
-  implicit val format: OFormat[Attachment] =
+  val format: OFormat[Attachment] =
     Json.format[Attachment]
 }
 
@@ -139,8 +142,10 @@ final case class MessageDetails(
 )
 
 object MessageDetails {
-  implicit val writes: OWrites[MessageDetails] =
+  val writes: OWrites[MessageDetails] = {
+    implicit val af = Attachment.format
     Json.writes[MessageDetails]
+  }
 }
 
 final case class SlackNotificationRequest(
@@ -149,6 +154,9 @@ final case class SlackNotificationRequest(
 )
 
 object SlackNotificationRequest {
-  implicit val writes: OWrites[SlackNotificationRequest] =
+  val writes: OWrites[SlackNotificationRequest] = {
+    implicit val clw = ChannelLookup.writes
+    implicit val mdw = MessageDetails.writes
     Json.writes[SlackNotificationRequest]
+  }
 }

@@ -156,8 +156,8 @@ object TeamRepositories {
   }
 
   def findRepositoryDetails(
-    teamRepos: Seq[TeamRepositories],
-    repoName: String,
+    teamRepos     : Seq[TeamRepositories],
+    repoName      : String,
     ciUrlTemplates: UrlTemplates
   ): Option[RepositoryDetails] = {
 

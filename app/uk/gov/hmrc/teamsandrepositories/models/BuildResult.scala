@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
 sealed trait BuildResult { def asString: String }
 
@@ -36,14 +37,6 @@ object BuildResult {
       .find(_.asString.equalsIgnoreCase(s)).getOrElse(Other)
 
 
-  implicit val format: Format[BuildResult] = new Format[BuildResult] {
-    override def reads(json: JsValue): JsResult[BuildResult] =
-      json match {
-        case JsString(s) => JsSuccess(parse(s))
-        case _           => JsError("String value expected")
-      }
-
-    override def writes(o: BuildResult): JsValue =
-      JsString(o.asString)
-  }
+  implicit val format: Format[BuildResult] =
+    Format.of[String].inmap(parse, _.asString)
 }

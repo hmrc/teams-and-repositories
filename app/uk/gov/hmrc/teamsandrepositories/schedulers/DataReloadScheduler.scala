@@ -47,7 +47,7 @@ class DataReloadScheduler @Inject()(
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
     for {
       count <- persistingService.updateRepositories()
-      _ =  logger.info(s"Finished updating Teams and Repos - $count records updated")
+      _     =  logger.info(s"Finished updating Teams and Repos - $count records updated")
     } yield ()
   }
 

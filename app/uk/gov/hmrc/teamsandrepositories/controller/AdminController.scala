@@ -22,8 +22,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
 
-import scala.concurrent.ExecutionContext
-
 @Singleton
 class AdminController @Inject()(
   dataReloadScheduler     : DataReloadScheduler,

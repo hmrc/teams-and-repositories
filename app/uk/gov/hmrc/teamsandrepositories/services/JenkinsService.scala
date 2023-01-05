@@ -32,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsService @Inject()(
-  repo            : BuildJobRepo,
+  buildJobRepo    : BuildJobRepo,
   jenkinsConnector: JenkinsConnector,
   jenkinsConfig   : JenkinsConfig
 ) {
@@ -41,11 +41,11 @@ class JenkinsService @Inject()(
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
-    repo.findByJobName(name)
+    buildJobRepo.findByJobName(name)
 
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
     for {
-      jobs    <- repo.findAllByRepo(service)
+      jobs    <- buildJobRepo.findAllByRepo(service)
       wrapped =  BuildJobs(jobs)
     } yield wrapped
 
@@ -53,8 +53,8 @@ class JenkinsService @Inject()(
     for {
       res       <- jenkinsConnector.findBuildJobs()
       buildJobs =  res.objects flatMap extractBuildJobsFromTree
-      persist   <- repo.update(buildJobs)
-      delete    <- repo.deleteIfNotInList(buildJobs.map(_.name))
+      persist   <- buildJobRepo.update(buildJobs)
+      delete    <- buildJobRepo.deleteIfNotInList(buildJobs.map(_.name))
     } yield (persist, delete)
 
   private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
@@ -75,10 +75,8 @@ class JenkinsService @Inject()(
       latestBuild <- jenkinsConnector.getLastBuildTime(url)
       build = if (latestBuild.timestamp.equals(timestamp)) {
         for {
-          location <- {
-                        logger.info(s"Triggering build for $serviceName")
-                        jenkinsConnector.triggerBuildJob(url)
-                      }
+          _        <- Future.successful(logger.info(s"Triggering build for $serviceName"))
+          location <- jenkinsConnector.triggerBuildJob(url)
           queueUrl =  s"${location.replace("http:", "https:")}"
           queue    <- getQueue(queueUrl)
           build    <- getBuild(queue.executable.get.url)

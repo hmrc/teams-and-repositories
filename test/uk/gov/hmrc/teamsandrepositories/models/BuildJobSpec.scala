@@ -72,7 +72,7 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
       )
       val residentFromJson: JsResult[JenkinsObject] =
         Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$BuildJob"
+      residentFromJson.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$$BuildJob"
       residentFromJson.get.asInstanceOf[BuildJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
     }
     "simple folder" in {

@@ -25,9 +25,8 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, ChannelLookup, MessageDetails, SlackNotificationError, SlackNotificationRequest, SlackNotificationsConnector}
-import uk.gov.hmrc.teamsandrepositories.models.BuildData
-import uk.gov.hmrc.teamsandrepositories.models.BuildResult.Failure
+import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, BuildJobsConnector, ChannelLookup, MessageDetails, SlackNotificationError, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildResult}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
@@ -37,9 +36,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class RebuildService @Inject()(
-  dataSource                  : GithubV3RepositoryDataSource,
   configuration               : Configuration,
   slackConfig                 : SlackConfig,
+  buildJobsConnector          : BuildJobsConnector,
   jenkinsService              : JenkinsService,
   slackNotificationsConnector : SlackNotificationsConnector
 ) {
@@ -47,21 +46,20 @@ case class RebuildService @Inject()(
 
   private val minDaysUnbuilt: Int = configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt")
 
-  def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] = {
-    val oldBuiltJobs = getJobsWithNoBuildFor(minDaysUnbuilt)
-    oldBuiltJobs.map(jobs => {
+  def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] =
+    getJobsWithNoBuildFor(minDaysUnbuilt).map(jobs =>
       if (jobs.isEmpty) {
         logger.info("No old builds to trigger")
         Unit
       } else {
         val oldestJob = jobs.head
         for {
-          build <- jenkinsService.triggerBuildJob(oldestJob.name, oldestJob.jenkinsURL, oldestJob.lastBuildTime) if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == Failure
-          _ <-  sendBuildFailureAlert(build.get, oldestJob.name)
+          build <- jenkinsService.triggerBuildJob(oldestJob.name, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
+                     if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == BuildResult.Failure
+          _     <- sendBuildFailureAlert(build.get, oldestJob.name)
         } yield ()
       }
-    })
-  }
+    )
 
   private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) =
     if (slackConfig.enabled) {
@@ -75,11 +73,10 @@ case class RebuildService @Inject()(
         showAttachmentAuthor = false
       )
       for {
-        response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
-        _        <- {
-                      logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
-                      alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
-                    }
+        response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails))
+                      if !response.hasSentMessages
+        _        =  logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+        _        <- alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
       } yield response
     }
     else
@@ -113,10 +110,10 @@ case class RebuildService @Inject()(
   private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val cutoff = Instant.now().minus(daysUnbuilt, DAYS)
     for {
-      filenames                     <- dataSource.getBuildTeamFiles
-      files                         <- Future.traverse(filenames) { dataSource.getTeamFile }
+      filenames                     <- buildJobsConnector.getBuildjobFiles
+      files                         <- Future.traverse(filenames)(buildJobsConnector.getBuildjobFileContent)
       serviceNames                  =  files.filter(_.nonEmpty).flatMap(extractServiceNames)
-      buildJobs                     <- Future.traverse(serviceNames) { jenkinsService.findByJobName }
+      buildJobs                     <- Future.traverse(serviceNames)(jenkinsService.findByJobName)
       jobsWithLatestBuildOver30days =  buildJobs.flatten
                                          .filter(_.latestBuild.nonEmpty)
                                          .map(job => RebuildJobData(job.name, job.jenkinsURL, job.latestBuild.get.timestamp))

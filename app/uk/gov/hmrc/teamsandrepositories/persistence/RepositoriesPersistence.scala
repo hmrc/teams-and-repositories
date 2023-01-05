@@ -45,7 +45,6 @@ class RepositoriesPersistence @Inject()(
                        IndexModel(Indexes.ascending("serviceType"), IndexOptions().name("serviceTypeIdx").background(true))
                       )
 ) {
-
   private val logger = Logger(this.getClass)
 
   val legacyCollection: MongoCollection[TeamRepositories] =
@@ -53,8 +52,6 @@ class RepositoriesPersistence @Inject()(
 
   val teamsCollection: MongoCollection[TeamName] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamName.mongoFormat)
-
-  def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
 
   def search(
     name       : Option[String]      = None,

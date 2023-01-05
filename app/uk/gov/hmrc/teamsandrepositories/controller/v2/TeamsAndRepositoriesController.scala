@@ -22,7 +22,7 @@ import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predica
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamName}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
-import uk.gov.hmrc.teamsandrepositories.services.{BranchProtectionService, RebuildService}
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
   branchProtectionService: BranchProtectionService,
-  rebuildService         : RebuildService ,
   auth                   : BackendAuthComponents,
   cc                     : ControllerComponents
 )(implicit

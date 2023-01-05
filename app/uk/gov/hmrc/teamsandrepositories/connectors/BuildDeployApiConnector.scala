@@ -52,11 +52,11 @@ class BuildDeployApiConnector @Inject()(
 
     val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
       .getSignedHeaders(
-        uri = url.getPath,
-        method = "POST",
+        uri         = url.getPath,
+        method      = "POST",
         queryParams = queryParams,
-        headers = Map[String, String]("host" -> config.host),
-        payload = Some(Json.toBytes(payload))
+        headers     = Map[String, String]("host" -> config.host),
+        payload     = Some(Json.toBytes(payload))
       )
 
     for {

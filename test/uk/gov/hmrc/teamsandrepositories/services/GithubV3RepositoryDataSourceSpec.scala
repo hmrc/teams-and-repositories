@@ -29,7 +29,8 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
 
 class GithubV3RepositoryDataSourceSpec
   extends AnyWordSpec
@@ -63,8 +64,6 @@ class GithubV3RepositoryDataSourceSpec
                             "shared.repositories"     ->  Seq()
                           )
       )
-
-    val ec = dataSource.ec
 
     when(githubConfig.hiddenRepositories)
       .thenReturn(testHiddenRepositories)
