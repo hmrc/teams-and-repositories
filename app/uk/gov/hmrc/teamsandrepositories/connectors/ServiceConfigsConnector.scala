@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,20 +24,17 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ServiceConfigsConnector @Inject()(
-                                           servicesConfig: ServicesConfig,
-                                           httpClientV2: HttpClientV2
-                                         ){
-
+  servicesConfig: ServicesConfig,
+  httpClientV2  : HttpClientV2
+){
   import uk.gov.hmrc.http.HttpReads.Implicits._
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val url = servicesConfig.baseUrl("service-configs")
 
-  def getFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] = {
+  def getFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
     httpClientV2
       .get(url"$url/service-configs/frontend-services")
       .execute[Set[String]]
-  }
 }
-

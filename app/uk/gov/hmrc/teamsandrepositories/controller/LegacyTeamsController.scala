@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,10 @@ import scala.concurrent.ExecutionContext
  Continues to exist to provide api compatibility to services that have yet to migrate to the V2 api.
  */
 @Singleton
-class LegacyTeamsController @Inject()(repositoriesPersistence: RepositoriesPersistence,
-                                      configuration          : Configuration,
-                                      cc                     : ControllerComponents
+class LegacyTeamsController @Inject()(
+  repositoriesPersistence: RepositoriesPersistence,
+  configuration          : Configuration,
+  cc                     : ControllerComponents
 )(implicit ec: ExecutionContext) extends BackendController(cc) {
 
   lazy val sharedRepos: List[String] =

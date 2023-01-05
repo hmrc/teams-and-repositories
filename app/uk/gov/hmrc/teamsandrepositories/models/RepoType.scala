@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@ sealed trait RepoType { def asString: String }
 
 object RepoType {
 
-  case object Service         extends RepoType { override val asString = "Service"   }
-  case object Library         extends RepoType { override val asString = "Library"   }
-  case object Prototype       extends RepoType { override val asString = "Prototype" }
-  case object Test            extends RepoType { override val asString = "Test" }
-  case object Other           extends RepoType { override val asString = "Other"     }
+  case object Service   extends RepoType { override val asString = "Service"   }
+  case object Library   extends RepoType { override val asString = "Library"   }
+  case object Prototype extends RepoType { override val asString = "Prototype" }
+  case object Test      extends RepoType { override val asString = "Test"      }
+  case object Other     extends RepoType { override val asString = "Other"     }
 
-  val values: List[RepoType] = List(Service, Library, Prototype, Test, Other)
+  val values: List[RepoType] =
+    List(Service, Library, Prototype, Test, Other)
 
   def parse(s: String): Either[String, RepoType] =
     values

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,13 +30,14 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class BuildJobRepo @Inject()(
   mongoComponent: MongoComponent
-)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository(
-      mongoComponent = mongoComponent,
-      collectionName = "jenkinsLinks",
-      domainFormat   = BuildJob.mongoFormat,
-      indexes        = Seq(IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")))
-    ) {
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository(
+  mongoComponent = mongoComponent,
+  collectionName = "jenkinsLinks",
+  domainFormat   = BuildJob.mongoFormat,
+  indexes        = Seq(IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")))
+) {
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
     collection
@@ -44,13 +45,12 @@ class BuildJobRepo @Inject()(
       .first()
       .toFutureOption()
 
-  def findAllByRepo(service: String): Future[Seq[BuildJob]] = {
+  def findAllByRepo(service: String): Future[Seq[BuildJob]] =
     collection
         .find(equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
         .toFuture()
-  }
 
-  def updateOne(buildJob: BuildJob): Future[UpdateResult] = {
+  def updateOne(buildJob: BuildJob): Future[UpdateResult] =
     collection
       .replaceOne(
         filter = equal("name", buildJob.name),
@@ -58,18 +58,18 @@ class BuildJobRepo @Inject()(
         options = ReplaceOptions().upsert(true)
       )
       .toFuture()
-  }
 
   def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
     Future.traverse(buildJobs)(updateOne)
 
-  def deleteIfNotInList(buildJobNames: Seq[String])(implicit ec: ExecutionContext): Future[DeleteResult] = {
-    for {
-      result <- collection.deleteMany(nin("name", buildJobNames: _*)).toFuture()
-    } yield result
-  }
+  def deleteIfNotInList(buildJobNames: Seq[String]): Future[DeleteResult] =
+    collection
+      .deleteMany(nin("name", buildJobNames: _*))
+      .toFuture()
 
-  def clearAllData(implicit ec: ExecutionContext): Future[Boolean] =
-    collection.deleteMany(Document()).toFuture().map(_.wasAcknowledged())
-
+  def clearAllData(implicit ec: ExecutionContext): Future[Unit] =
+    collection
+      .deleteMany(Document())
+      .toFuture()
+      .map(_ => ())
 }

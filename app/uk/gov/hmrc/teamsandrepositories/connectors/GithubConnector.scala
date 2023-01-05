@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,7 +137,7 @@ class GithubConnector @Inject()(
     query: GraphqlQuery
   )(implicit
     reads: Reads[A],
-    mf: Manifest[A]
+    mf   : Manifest[A]
   ): Future[A] =
     httpClientV2
       .post(url"${githubConfig.apiUrl}/graphql")
@@ -148,11 +148,11 @@ class GithubConnector @Inject()(
       .execute[A]
 
   private def executePagedGqlQuery[A](
-    query: GraphqlQuery,
+    query     : GraphqlQuery,
     cursorPath: JsPath
   )(implicit
     reads: Reads[A],
-    mf: Manifest[A]
+    mf   : Manifest[A]
   ): Future[List[A]] = {
     implicit val readsWithCursor: Reads[WithCursor[A]] =
       (cursorPath.readNullable[String] ~ reads)(WithCursor(_, _))
@@ -160,13 +160,16 @@ class GithubConnector @Inject()(
     for {
       response <- executeGqlQuery[WithCursor[A]](query)
       recurse  <- response.cursor.fold(Future.successful(List(response.value))) { cursor =>
-        executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
-          .map(response.value :: _)
-      }
+                    executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
+                      .map(response.value :: _)
+                  }
     } yield recurse
   }
 
-  private case class WithCursor[A](cursor: Option[String], value: A)
+  private case class WithCursor[A](
+    cursor: Option[String],
+    value: A
+  )
 
   def withCounter[T](name: String)(f: Future[T]) =
     f.andThen {
@@ -180,7 +183,7 @@ class GithubConnector @Inject()(
 object GithubConnector {
 
   final case class GraphqlQuery(
-    query: String,
+    query    : String,
     variables: Map[String, JsValue] = Map.empty
   ) {
 
@@ -317,7 +320,7 @@ object GithubConnector {
 }
 
 case class GhTeam(
-  name: String,
+  name     : String,
   createdAt: Instant
 ) {
   def githubSlug: String =
@@ -389,11 +392,13 @@ case class GhRepository(
 
 object GhRepository {
 
-  final case class ManifestDetails(repoType:           Option[RepoType],
-                                   digitalServiceName: Option[String],
-                                   owningTeams:        Seq[String],
-                                   isDeprecated:       Boolean = false,
-                                   prototypeUrl:       Option[String])
+  final case class ManifestDetails(
+    repoType:           Option[RepoType],
+    digitalServiceName: Option[String],
+    owningTeams:        Seq[String],
+    isDeprecated:       Boolean = false,
+    prototypeUrl:       Option[String]
+  )
 
   object ManifestDetails {
 
@@ -449,14 +454,14 @@ object GhRepository {
   }
 
   final case class RepoTypeHeuristics(
-    prototypeInName: Boolean,
-    testsInName: Boolean,
-    hasApplicationConf: Boolean,
+    prototypeInName    : Boolean,
+    testsInName        : Boolean,
+    hasApplicationConf : Boolean,
     hasDeployProperties: Boolean,
-    hasProcfile: Boolean,
-    hasSrcMainScala: Boolean,
-    hasSrcMainJava: Boolean,
-    hasTags: Boolean
+    hasProcfile        : Boolean,
+    hasSrcMainScala    : Boolean,
+    hasSrcMainJava     : Boolean,
+    hasTags            : Boolean
   ) {
 
     def inferredRepoType: RepoType = {
@@ -554,7 +559,7 @@ object RateLimit {
 
 final case class BranchProtection(
   requiresApprovingReviews: Boolean,
-  dismissesStaleReview: Boolean,
+  dismissesStaleReview    : Boolean,
   requiresCommitSignatures: Boolean
 )
 

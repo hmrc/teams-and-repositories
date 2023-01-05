@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,23 +36,23 @@ case class PersistingService @Inject()(
 
   def updateRepositories()(implicit ec: ExecutionContext): Future[Int] = {
     for {
-      teams <- dataSource.getTeams()
-      teamRepos <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-        dataSource.getTeamRepositories(team).map(_ :: acc)
-      }
-      reposWithTeams = teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
-        trs.repositories.foldLeft(acc) { case (acc, repo) =>
-          val r = acc.getOrElse(repo.name, repo)
-          acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
-        }
-      }
-      allRepos <- dataSource.getAllRepositoriesByName()
-      orphanRepos = (allRepos -- reposWithTeams.keys).values
-      reposToSeq = reposWithTeams.values.toSeq ++ orphanRepos
+      teams            <- dataSource.getTeams()
+      teamRepos        <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+                            dataSource.getTeamRepositories(team).map(_ :: acc)
+                          }
+      reposWithTeams   =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
+                            trs.repositories.foldLeft(acc) { case (acc, repo) =>
+                              val r = acc.getOrElse(repo.name, repo)
+                              acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
+                            }
+                          }
+      allRepos         <- dataSource.getAllRepositoriesByName()
+      orphanRepos      =  (allRepos -- reposWithTeams.keys).values
+      reposToSeq       =  reposWithTeams.values.toSeq ++ orphanRepos
       frontendServices <- serviceConfigsConnector.getFrontendServices()
-      reposToPersist = reposToSeq.map(r => defineServiceType(r, frontendServices))
-      _ = logger.info(s"found ${reposToPersist.length} repos")
-      count <- persister.updateRepos(reposToPersist)
+      reposToPersist   =  reposToSeq.map(r => defineServiceType(r, frontendServices))
+      _                =  logger.info(s"found ${reposToPersist.length} repos")
+      count            <- persister.updateRepos(reposToPersist) // TODO double check that repository yaml exists before cleaning up // TODO audit deletions
     } yield count
   }
 

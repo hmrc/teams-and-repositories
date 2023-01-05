@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ case class RepositoryDetails(
   language         : String,
   isArchived       : Boolean,
   defaultBranch    : String,
-  isDeprecated       : Boolean          = false
+  isDeprecated     : Boolean          = false
 )
 
 object RepositoryDetails {
@@ -112,7 +112,7 @@ object RepositoryDetails {
         language      = repo.language.getOrElse(""),
         isArchived    = repo.isArchived,
         defaultBranch = repo.defaultBranch,
-        isDeprecated    = repo.isDeprecated
+        isDeprecated  = repo.isDeprecated
       )
 
     repo.repoType match {

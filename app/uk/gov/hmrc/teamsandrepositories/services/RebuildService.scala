@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ case class RebuildService @Inject()(
     })
   }
 
-  private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) = {
+  private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) =
     if (slackConfig.enabled) {
       logger.info(s"Rebuild failed for $serviceName")
       val channelLookup: ChannelLookup = ChannelLookup.RepositoryChannel(serviceName)
@@ -72,83 +72,87 @@ case class RebuildService @Inject()(
         slackConfig.user,
         "",
         Seq(Attachment(build.url)),
-        showAttachmentAuthor = false)
+        showAttachmentAuthor = false
+      )
       for {
         response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails)) if !response.hasSentMessages
-        _ <- {
-          logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
-          alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
-        }
+        _        <- {
+                      logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
+                      alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
+                    }
       } yield response
     }
-    else Future.successful(())
-  }
+    else
+      Future.unit
 
 
-  private def alertAdminsIfNoSlackChannelFound(errors: List[SlackNotificationError], messageDetails: MessageDetails)
-                                              (implicit ec: ExecutionContext): Future[Unit] = {
-
-    if (errors.nonEmpty) {
+  private def alertAdminsIfNoSlackChannelFound(
+    errors        : List[SlackNotificationError],
+    messageDetails: MessageDetails
+  )(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    if (errors.nonEmpty)
       for {
-        response <-
-          slackNotificationsConnector
-            .sendMessage(
-              SlackNotificationRequest(
-                channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
-                messageDetails = messageDetails copy(
-                  text = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
-                  attachments = errors.map(e => Attachment(e.message)) ++ messageDetails.attachments)
-              )
-            ) if !response.hasSentMessages
-        _ = {
-          logger.error(s"Errors sending rebuild alert FAILED notification: ${response.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
-        }
-      } yield response
-    } else {
-      Future.successful(())
-    }
-  }
+        response <- slackNotificationsConnector
+                      .sendMessage(
+                        SlackNotificationRequest(
+                          channelLookup  = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
+                          messageDetails = messageDetails.copy(
+                                             text        = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
+                                             attachments = errors.map(e => Attachment(e.message)) ++ messageDetails.attachments
+                                           )
+                        )
+                      )
+                      if !response.hasSentMessages
+        _        = logger.error(s"Errors sending rebuild alert FAILED notification: ${response.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
+      } yield ()
+    else
+      Future.unit
+
   private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
-    val thirtyDaysAgo = Instant.now().minus(daysUnbuilt, DAYS)
+    val cutoff = Instant.now().minus(daysUnbuilt, DAYS)
     for {
-      filenames <- dataSource.getBuildTeamFiles
-      files <- Future.traverse(filenames) { dataSource.getTeamFile }
-      serviceNames = files.filter(_.nonEmpty).flatMap(extractServiceNames)
-      buildJobs <- Future.traverse(serviceNames) { jenkinsService.findByJobName }
-      jobsWithLatestBuildOver30days =
-        buildJobs.flatten
-          .filter(_.latestBuild.nonEmpty)
-          .map(job => RebuildJobData(job.name, job.jenkinsURL, job.latestBuild.get.timestamp))
-          .filter(_.lastBuildTime.isBefore(thirtyDaysAgo))
-          .sortBy(ele => ele.lastBuildTime)
+      filenames                     <- dataSource.getBuildTeamFiles
+      files                         <- Future.traverse(filenames) { dataSource.getTeamFile }
+      serviceNames                  =  files.filter(_.nonEmpty).flatMap(extractServiceNames)
+      buildJobs                     <- Future.traverse(serviceNames) { jenkinsService.findByJobName }
+      jobsWithLatestBuildOver30days =  buildJobs.flatten
+                                         .filter(_.latestBuild.nonEmpty)
+                                         .map(job => RebuildJobData(job.name, job.jenkinsURL, job.latestBuild.get.timestamp))
+                                         .filter(_.lastBuildTime.isBefore(cutoff))
+                                         .sortBy(ele => ele.lastBuildTime)
     } yield jobsWithLatestBuildOver30days
   }
 
   private def extractServiceNames(buildFileContents: String): Iterable[String] = {
-    val statements = new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, buildFileContents)
-      .toList
-      .collect { case x: BlockStatement => x }
-      .head
-      .getStatements
-      .collect { case expressionStatement: ExpressionStatement => expressionStatement }
-      .map(_.getExpression)
-    val declarations = statements
-      .collect { case declarationExpression: DeclarationExpression => declarationExpression }
-      .map(declarationExpression => declarationExpression.getVariableExpression.getName -> {
-        declarationExpression.getRightExpression match {
-          case expression: ConstantExpression => expression.getValue.toString
-          case expression: GStringExpression => expression.toString
-          case expression => expression.getType.getName
+    val statements =
+      new AstBuilder().buildFromString(CompilePhase.CONVERSION, true, buildFileContents)
+        .toList
+        .collect { case x: BlockStatement => x }
+        .head
+        .getStatements
+        .collect { case expressionStatement: ExpressionStatement => expressionStatement }
+        .map(_.getExpression)
+
+    val declarations =
+      statements
+        .collect { case declarationExpression: DeclarationExpression => declarationExpression }
+        .map { declarationExpression =>
+          declarationExpression.getVariableExpression.getName ->
+            (declarationExpression.getRightExpression match {
+              case expression: ConstantExpression => expression.getValue.toString
+              case expression: GStringExpression  => expression.toString
+              case expression => expression.getType.getName
+            })
         }
-      })
-      .toMap
+        .toMap
 
     statements
       .map(getInitialCall)
       .collect { case constructorCall: ConstructorCallExpression => constructorCall }
       .filter(_.getType.getName.equals("SbtMicroserviceJobBuilder"))
-      .flatMap(_.getArguments.asInstanceOf[ArgumentListExpression]
-        .getExpression(1) match {
+      .flatMap(_.getArguments.asInstanceOf[ArgumentListExpression].getExpression(1) match {
         case expression: ConstantExpression => Some(expression.getValue.toString)
         case expression: VariableExpression => declarations.get(expression.getName)
         case _ => None
@@ -156,23 +160,23 @@ case class RebuildService @Inject()(
   }
 
   @tailrec
-  private def getInitialCall(expression: Expression): Expression = {
+  private def getInitialCall(expression: Expression): Expression =
     expression match {
       case expression: MethodCallExpression => getInitialCall(expression.getObjectExpression)
       case expression => expression
     }
-  }
 
   case class RebuildJobData(
-                             name: String,
-                             jenkinsURL: String,
-                             lastBuildTime: Instant)
+    name         : String,
+    jenkinsURL   : String,
+    lastBuildTime: Instant
+  )
 
   object RebuildJobData {
     implicit val apiWrites: OWrites[RebuildJobData] =
-      ((__ \ "name").write[String]
-      ~ (__ \ "jenkinsURL").write[String]
+      ( (__ \ "name"         ).write[String]
+      ~ (__ \ "jenkinsURL"   ).write[String]
       ~ (__ \ "lastBuildTime").write[Instant]
-      ) (unlift(unapply))
+      )(unlift(unapply))
   }
 }

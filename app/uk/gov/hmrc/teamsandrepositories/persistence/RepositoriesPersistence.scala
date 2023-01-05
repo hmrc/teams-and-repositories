@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends PlayMongoRepository(
+class RepositoriesPersistence @Inject()(
+  mongoComponent: MongoComponent
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "repositories",
   domainFormat   = GitRepository.mongoFormat,
@@ -44,18 +48,27 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
 
   private val logger = Logger(this.getClass)
 
-  val legacyCollection: MongoCollection[TeamRepositories] = CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
-  val teamsCollection: MongoCollection[TeamName] = CollectionFactory.collection(mongoComponent.database, collectionName, TeamName.mongoFormat)
+  val legacyCollection: MongoCollection[TeamRepositories] =
+    CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
+
+  val teamsCollection: MongoCollection[TeamName] =
+    CollectionFactory.collection(mongoComponent.database, collectionName, TeamName.mongoFormat)
 
   def clearAllData: Future[Unit] = collection.drop().toFuture().map(_ => ())
 
-  def search(name: Option[String] = None, team: Option[String] = None, isArchived: Option[Boolean] = None, repoType: Option[RepoType] = None, serviceType: Option[ServiceType] = None): Future[Seq[GitRepository]] = {
+  def search(
+    name       : Option[String]      = None,
+    team       : Option[String]      = None,
+    isArchived : Option[Boolean]     = None,
+    repoType   : Option[RepoType]    = None,
+    serviceType: Option[ServiceType] = None
+  ): Future[Seq[GitRepository]] = {
     val filters = Seq(
-              name.map(n  => Filters.regex("name", n)),
-              team.map(t  => Filters.equal("teamNames", t)),
-        isArchived.map(b  => Filters.equal("isArchived", b)),
-          repoType.map(rt => Filters.equal("repoType", rt.asString)),
-       serviceType.map(st => Filters.equal("serviceType", st.toString)),
+      name       .map(n  => Filters.regex("name"       , n)),
+      team       .map(t  => Filters.equal("teamNames"  , t)),
+      isArchived .map(b  => Filters.equal("isArchived" , b)),
+      repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
+      serviceType.map(st => Filters.equal("serviceType", st.toString)),
     ).flatten
     filters match {
       case Nil  => collection.find().toFuture()
@@ -78,7 +91,7 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
       ))
       .toFuture()
 
-  def updateRepos(repos: Seq[GitRepository]): Future[Int] = {
+  def updateRepos(repos: Seq[GitRepository]): Future[Int] =
     for {
       oldRepos <- collection.find().map(_.name).toFuture().map(_.toSet)
       update   <- collection
@@ -86,14 +99,14 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
                     .toFuture()
                     .map(_.getModifiedCount)
       toDelete  = (oldRepos -- repos.map(_.name)).toSeq
-      _         = logger.info(s"about to removed ${toDelete.length} deleted repos")
-      deleted  <- if(toDelete.nonEmpty) collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture().map(_.getModifiedCount) else Future.successful(0)
+      _         = logger.info(s"about to remove ${toDelete.length} deleted repos")
+      deleted  <- if (toDelete.nonEmpty) collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture().map(_.getModifiedCount)
+                  else Future.successful(0)
       _         = logger.info(s"removed $deleted deleted repos")
     } yield update
-  }
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
-  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] = {
+  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     legacyCollection.aggregate(Seq(
       archived.map(a => `match`(Filters.eq("isArchived", a))).getOrElse( `match`(BsonDocument())),
       unwind("$teamNames"),
@@ -101,17 +114,15 @@ class RepositoriesPersistence @Inject()(mongoComponent: MongoComponent)(implicit
       group(id = "$teamid", first("teamName","$teamid"), addToSet("repositories", "$$ROOT"), min("createdDate", "$createdDate"), max("updateDate", "$lastActiveDate") ),
       sort(Sorts.ascending("_id"))
     )).toFuture()
-  }
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
-    implicit val bpf =
-      BranchProtection.format
-
+    implicit val bpf = BranchProtection.format
     collection
       .updateOne(
         filter = Filters.equal("name", repoName),
         update = Updates.set("branchProtection", Codecs.toBson(branchProtection))
-      ).toFuture().map(_ => ())
+      )
+      .toFuture()
+      .map(_ => ())
   }
-
 }
