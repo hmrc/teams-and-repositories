@@ -68,7 +68,6 @@ class LegacyRepositoriesControllerSpec
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
-          "github.open.api.user" -> "",
           "github.open.api.key"  -> "",
           "metrics.jvm"          -> false,
           "jenkins.username" -> "",

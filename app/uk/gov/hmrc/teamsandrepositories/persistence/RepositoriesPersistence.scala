@@ -15,13 +15,15 @@
  */
 
 package uk.gov.hmrc.teamsandrepositories.persistence
+
+import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonArray, BsonDocument}
 import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamName, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamRepositories, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import play.api.Logger
@@ -47,11 +49,11 @@ class RepositoriesPersistence @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  val legacyCollection: MongoCollection[TeamRepositories] =
+  private val legacyCollection: MongoCollection[TeamRepositories] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
 
-  val teamsCollection: MongoCollection[TeamName] =
-    CollectionFactory.collection(mongoComponent.database, collectionName, TeamName.mongoFormat)
+  private val teamsCollection: MongoCollection[TeamSummary] =
+    CollectionFactory.collection(mongoComponent.database, collectionName, TeamSummary.mongoFormat)
 
   def search(
     name       : Option[String]      = None,
@@ -77,11 +79,11 @@ class RepositoriesPersistence @Inject()(
     collection
       .find(filter = Filters.equal("name", repoName)).headOption()
 
-  def findTeamNames(): Future[Seq[TeamName]] =
+  def findTeamSummaries(): Future[Seq[TeamSummary]] =
     teamsCollection
       .aggregate(Seq(
         addFields(Field("teamSize", BsonDocument("$size" -> "$teamNames"))),
-        `match`(Filters.lt("teamSize",8)), // ignore repos shared by more than n teams
+        `match`(Filters.lt("teamSize", 8)), // ignore repos shared by more than n teams
         unwind("$teamNames"),
         group("$teamNames", Accumulators.min("createdDate", "$createdDate"), Accumulators.max("lastActiveDate", "$lastActiveDate"), Accumulators.sum("repos", 1)),
         sort(Sorts.ascending("_id"))
@@ -95,20 +97,27 @@ class RepositoriesPersistence @Inject()(
                     .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
                     .toFuture()
                     .map(_.getModifiedCount)
-      toDelete  = (oldRepos -- repos.map(_.name)).toSeq
-      _         = logger.info(s"about to remove ${toDelete.length} deleted repos")
-      deleted  <- if (toDelete.nonEmpty) collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture().map(_.getModifiedCount)
-                  else Future.successful(0)
-      _         = logger.info(s"removed $deleted deleted repos")
+      toDelete =  (oldRepos -- repos.map(_.name)).toSeq
+      _        <- if (toDelete.nonEmpty) {
+                    logger.info(s"about to remove ${toDelete.length} deleted repos")
+                    collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture()
+                      .map(res => logger.info(s"removed ${res.getModifiedCount} deleted repos"))
+                  } else Future.unit
     } yield update
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     legacyCollection.aggregate(Seq(
-      archived.map(a => `match`(Filters.eq("isArchived", a))).getOrElse( `match`(BsonDocument())),
+      `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
       unwind("$teamNames"),
       addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
-      group(id = "$teamid", first("teamName","$teamid"), addToSet("repositories", "$$ROOT"), min("createdDate", "$createdDate"), max("updateDate", "$lastActiveDate") ),
+      group(
+        id = "$teamid",
+        first("teamName", "$teamid"),
+        addToSet("repositories", "$$ROOT"),
+        min("createdDate", "$createdDate"),
+        max("updateDate", "$lastActiveDate")
+      ),
       sort(Sorts.ascending("_id"))
     )).toFuture()
 

@@ -149,7 +149,6 @@ class RepositoriesPersistenceSpec
     )
 
   "search" must  {
-
     "find all repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.search().futureValue
@@ -196,10 +195,10 @@ class RepositoriesPersistenceSpec
     }
   }
 
-  "findTeamNames" must {
+  "findTeamSummaries" must {
     "return all the unique team names" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.findTeamNames().futureValue
+      val results = repository.findTeamSummaries().futureValue
       results.map(_.name) must contain allOf("team1", "team2", "team3")
     }
   }
@@ -222,7 +221,6 @@ class RepositoriesPersistenceSpec
       repository.updateRepos(Seq(repo1)).futureValue
       findAll().futureValue must contain (repo1)
       findAll().futureValue must not contain (repo2)
-
     }
   }
 

@@ -48,7 +48,6 @@ class GithubConnectorSpec
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "github.open.api.user"     -> "user",
         "github.open.api.key"      -> token,
         "github.open.api.url"      -> wireMockUrl,
         "github.open.api.rawurl"   -> s"$wireMockUrl/raw",
