@@ -23,8 +23,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.{BackendService, FrontendService, GitRepository}
-import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Prototype, Service}
+import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, GitRepository}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -50,16 +49,17 @@ class RepositoriesPersistenceSpec
       "git/repo1",
       now,
       now,
-      isPrivate = false,
-      Service,
-      None,
+      isPrivate        = false,
+      RepoType.Service,
+      serviceType      = None,
+      tags             = None,
       None,
       Nil,
       None,
-      isArchived = false,
+      isArchived       = false,
       "main",
       branchProtection = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
-      isDeprecated = false,
+      isDeprecated     = false,
       List("team1", "team2"),
       None
     )
@@ -71,16 +71,17 @@ class RepositoriesPersistenceSpec
       "git/repo2",
       now,
       now,
-      isPrivate = false,
-      Service,
-      None,
+      isPrivate        = false,
+      RepoType.Service,
+      serviceType      = None,
+      tags             = None,
       None,
       Nil,
       None,
-      isArchived = true,
+      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated = false,
+      isDeprecated     = false,
       List("team2", "team3"),
       None
     )
@@ -92,16 +93,17 @@ class RepositoriesPersistenceSpec
       "git/repo3",
       now,
       now,
-      isPrivate = false,
-      Prototype,
-      None,
+      isPrivate        = false,
+      RepoType.Prototype,
+      serviceType      = None,
+      tags             = None,
       None,
       Nil,
       None,
-      isArchived = true,
+      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated = false,
+      isDeprecated     = false,
       List("team1","team2", "team3"),
       Some("https://repo3.herokuapp.com")
     )
@@ -113,16 +115,17 @@ class RepositoriesPersistenceSpec
       "git/repo4",
       now,
       now,
-      isPrivate = false,
-      Service,
-      Some(FrontendService),
+      isPrivate        = false,
+      RepoType.Service,
+      serviceType      = Some(ServiceType.FrontendService),
+      tags             = None,
       None,
       Nil,
       None,
-      isArchived = true,
+      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated = false,
+      isDeprecated     = false,
       List("team2", "team3"),
       None
     )
@@ -134,16 +137,17 @@ class RepositoriesPersistenceSpec
       "git/repo5",
       now,
       now,
-      isPrivate = false,
-      Service,
-      Some(BackendService),
+      isPrivate        = false,
+      RepoType.Service,
+      serviceType      = Some(ServiceType.BackendService),
+      tags             = None,
       None,
       Nil,
       None,
-      isArchived = true,
+      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated = false,
+      isDeprecated     = false,
       List("team2", "team3"),
       None
     )
@@ -179,18 +183,18 @@ class RepositoriesPersistenceSpec
 
     "find repos by repo type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
-      val results = repository.search(repoType = Some(Prototype)).futureValue
+      val results = repository.search(repoType = Some(RepoType.Prototype)).futureValue
       results must contain only (repo3)
-      val results2 = repository.search(repoType = Some(Service)).futureValue
+      val results2 = repository.search(repoType = Some(RepoType.Service)).futureValue
       results2 must contain only (repo1, repo2)
 
     }
 
     "find repos by service type" in {
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
-      val results = repository.search(serviceType = Some(FrontendService)).futureValue
+      val results = repository.search(serviceType = Some(ServiceType.FrontendService)).futureValue
       results must contain only repo4
-      val results2 = repository.search(serviceType = Some(BackendService)).futureValue
+      val results2 = repository.search(serviceType = Some(ServiceType.BackendService)).futureValue
       results2 must contain only repo5
     }
   }

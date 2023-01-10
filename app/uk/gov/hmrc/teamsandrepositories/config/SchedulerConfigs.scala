@@ -81,7 +81,7 @@ class SchedulerConfigs @Inject()(configuration: Configuration){
     )
 
   val rebuildScheduler = SchedulerConfig(
-    configuration
+      configuration
     , enabledKey      = "scheduler.rebuild.enabled"
     , intervalKey     = "scheduler.rebuild.interval"
     , initialDelayKey = "scheduler.rebuild.initialDelay"

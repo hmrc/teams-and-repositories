@@ -32,6 +32,7 @@ case class GitRepository(
   isPrivate           : Boolean                  = false,
   repoType            : RepoType                 = RepoType.Other,
   serviceType         : Option[ServiceType]      = None,
+  tags                : Option[Set[Tag]]         = None,
   digitalServiceName  : Option[String]           = None,
   owningTeams         : Seq[String]              = Nil,
   language            : Option[String],
@@ -47,7 +48,8 @@ object GitRepository {
 
   val apiFormat: OFormat[GitRepository] = {
     implicit val rtf = RepoType.format
-    implicit val stf = ServiceType.stFormat
+    implicit val stf = ServiceType.format
+    implicit val tf  = Tag.format
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
@@ -56,6 +58,7 @@ object GitRepository {
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "serviceType"       ).formatNullable[ServiceType]
+    ~ (__ \ "tags"              ).formatNullable[Set[Tag]]
     ~ (__ \ "digitalServiceName").formatNullable[String]
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
@@ -71,7 +74,8 @@ object GitRepository {
   val mongoFormat: OFormat[GitRepository] = {
     implicit val ldtf = MongoJavatimeFormats.instantFormat
     implicit val rtf = RepoType.format
-    implicit val stf = ServiceType.stFormat
+    implicit val stf = ServiceType.format
+    implicit val tf  = Tag.format
     ( (__ \ "name"              ).format[String]
     ~ (__ \ "description"       ).format[String]
     ~ (__ \ "url"               ).format[String]
@@ -80,6 +84,7 @@ object GitRepository {
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "serviceType"       ).formatNullable[ServiceType]
+    ~ (__ \ "tags"              ).formatNullable[Set[Tag]]
     ~ (__ \ "digitalServiceName").formatNullable[String]
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]

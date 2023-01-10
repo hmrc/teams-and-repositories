@@ -27,14 +27,13 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
-
 
 @Singleton
 class GithubConnector @Inject()(
@@ -333,20 +332,19 @@ case class GhRepository(
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeUrl = None))
+        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeUrl = None))
 
     val repoType: RepoType =
       manifestDetails
         .repoType
         .getOrElse(repoTypeHeuristics.inferredRepoType)
 
-    val prototypeUrl: Option[String] = if (repoType == RepoType.Prototype) {
-      Option(
-      manifestDetails
-        .prototypeUrl
-        .getOrElse(prototypeUrlTemplate.replace(s"$${app-name}", name))
+    val prototypeUrl: Option[String] =
+      Option.when(repoType == RepoType.Prototype)(
+        manifestDetails
+          .prototypeUrl
+          .getOrElse(prototypeUrlTemplate.replace(s"$${app-name}", name))
       )
-    } else None
 
     GitRepository(
       name               = name,
@@ -356,6 +354,8 @@ case class GhRepository(
       lastActiveDate     = pushedAt,
       isPrivate          = isPrivate,
       repoType           = repoType,
+      serviceType        = manifestDetails.serviceType,
+      tags               = manifestDetails.tags,
       digitalServiceName = manifestDetails.digitalServiceName,
       owningTeams        = manifestDetails.owningTeams,
       language           = language,
@@ -372,6 +372,8 @@ object GhRepository {
 
   final case class ManifestDetails(
     repoType:           Option[RepoType],
+    serviceType:        Option[ServiceType],
+    tags:               Option[Set[Tag]],
     digitalServiceName: Option[String],
     owningTeams:        Seq[String],
     isDeprecated:       Boolean = false,
@@ -382,53 +384,40 @@ object GhRepository {
 
     private val logger = Logger(this.getClass)
 
-    def parse(repoName: String, manifest: String): Option[ManifestDetails] = {
-      import scala.jdk.CollectionConverters._
-
+    def parse(repoName: String, manifest: String): Option[ManifestDetails] =
       parseAppConfigFile(manifest) match {
         case Failure(exception) =>
-          logger.warn(
-            s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
+          logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
-
-        case Success(yamlMap) =>
-          val config = yamlMap.asScala
-
-          val manifestDetails =
-            ManifestDetails(
-              repoType           = config.getOrElse("type", "").asInstanceOf[String].toLowerCase match {
-                                      case "service" => Some(RepoType.Service)
-                                      case "library" => Some(RepoType.Library)
-                                      case _         => None
-                                    },
-              digitalServiceName = config.get("digital-service").map(_.toString),
-              owningTeams        = try { config
-                                            .getOrElse("owning-teams", new java.util.ArrayList[String])
-                                            .asInstanceOf[java.util.List[String]]
-                                            .asScala
-                                            .toList
-                                        } catch {
-                                          case NonFatal(ex) =>
-                                            logger.warn(
-                                              s"Unable to get 'owning-teams' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
-                                            Nil
-                                        },
-              isDeprecated       = config.getOrElse("deprecated", false).asInstanceOf[Boolean],
-              prototypeUrl       = config.get("prototype-url").map(_.toString)
-            )
-
-          logger.info(
-            s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest"
+        case Success(config) =>
+          val manifestDetails = ManifestDetails(
+            repoType           = RepoType.parse(get(config, "type").getOrElse("")).toOption
+          , serviceType        = ServiceType.parse(get(config, "service-type").getOrElse("")).toOption
+          , tags               = getArray(config, "tags", repoName).map(_.flatMap(str => Tag.parse(str).toOption).toSet)
+          , digitalServiceName = get(config, "digital-service")
+          , owningTeams        = getArray(config, "owning-teams", repoName).getOrElse(Nil)
+          , isDeprecated       = get(config, "deprecated").getOrElse(false)
+          , prototypeUrl       = get(config, "prototype-url")
           )
-
+          logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest")
           Some(manifestDetails)
       }
-    }
 
-    private def parseAppConfigFile(contents: String): Try[java.util.Map[String, Object]] =
-      Try(yaml.load[java.util.Map[String, Object]](contents))
+    import scala.jdk.CollectionConverters._
+    private def parseAppConfigFile(contents: String): Try[Map[String, Object]] =
+      Try(new Yaml().load[java.util.Map[String, Object]](contents))
+        .map(_.asScala.toMap)
 
-    private val yaml = new Yaml()
+    private def get[A](config: Map[String, Object], key: String): Option[A] =
+      config.get(key).map(v => v.asInstanceOf[A])
+
+    private def getArray(config: Map[String, Object], key: String, repoName: String): Option[List[String]] =
+      try { get[java.util.List[String]](config, key).map(_.asScala.toList) }
+      catch {
+        case NonFatal(ex) =>
+          logger.warn(s"Unable to get '$key' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
+          None
+      }
   }
 
   final case class RepoTypeHeuristics(
