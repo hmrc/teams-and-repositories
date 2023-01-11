@@ -37,4 +37,9 @@ class ServiceConfigsConnector @Inject()(
     httpClientV2
       .get(url"$url/service-configs/frontend-services")
       .execute[Set[String]]
+
+  def getAdminFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
+    httpClientV2
+      .get(url"$url/service-configs/admin-frontend-services")
+      .execute[Set[String]]
 }

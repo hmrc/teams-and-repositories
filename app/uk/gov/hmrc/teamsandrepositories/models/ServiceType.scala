@@ -19,46 +19,39 @@ package uk.gov.hmrc.teamsandrepositories.models
 import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
 import play.api.mvc.QueryStringBindable
 
-sealed trait ServiceType {def toString: String}
-
-case object FrontendService extends ServiceType { override val toString = "FrontendService" }
-case object BackendService  extends ServiceType { override val toString = "BackendService"  }
+sealed trait ServiceType {def asString: String}
 
 object ServiceType {
+  case object FrontendService extends ServiceType { def asString = "FrontendService" }
+  case object BackendService  extends ServiceType { def asString = "BackendService"  }
 
-  val serviceTypes =
-    Set(
-      FrontendService,
-      BackendService
-    )
+  val values =
+    Set(FrontendService, BackendService)
 
   def parse(s: String): Either[String, ServiceType] =
-    serviceTypes
-      .find(_.toString.equalsIgnoreCase(s))
-      .toRight(s"Invalid serviceType - should be one of: ${serviceTypes.map(_.toString).mkString(", ")}")
+    values
+      .find(_.asString.equalsIgnoreCase(s))
+      .toRight(s"Invalid serviceType - should be one of: ${values.map(_.asString).mkString(", ")}")
 
-  def apply(value: String): Option[ServiceType] = serviceTypes.find(_.toString == value)
-
-  val stFormat: Format[ServiceType] = new Format[ServiceType] {
+  val format = new Format[ServiceType] {
     override def reads(json: JsValue): JsResult[ServiceType] =
-      json.validate[String].flatMap { str =>
-        ServiceType(str).fold[JsResult[ServiceType]](JsError(s"Invalid Service Type: $str"))(JsSuccess(_))
+      json match {
+        case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
+        case _           => JsError("String value expected")
       }
 
-    override def writes(o: ServiceType): JsValue = JsString(o.toString)
+    override def writes(o: ServiceType): JsValue = JsString(o.asString)
   }
 
-  implicit val queryStringBindable: QueryStringBindable[ServiceType] =
-    new QueryStringBindable[ServiceType] {
+  implicit val queryStringBindable = new QueryStringBindable[ServiceType] {
+    override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ServiceType]] =
+      params.get(key).map {
+        case Nil         => Left("missing serviceType value")
+        case head :: Nil => ServiceType.parse(head)
+        case _           => Left("too many serviceType values")
+      }
 
-      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ServiceType]] =
-        params.get(key).map {
-          case Nil         => Left("missing serviceType value")
-          case head :: Nil => ServiceType.parse(head)
-          case _           => Left("too many serviceType values")
-        }
-
-      override def unbind(key: String, value: ServiceType): String =
-        s"$key=${value.toString}"
-    }
+    override def unbind(key: String, value: ServiceType): String =
+      s"$key=${value.asString}"
+  }
 }

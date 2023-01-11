@@ -37,29 +37,26 @@ object RepoType {
       .find(_.asString.equalsIgnoreCase(s))
       .toRight(s"Invalid repoType - should be one of: ${values.map(_.asString).mkString(", ")}")
 
-  val format: Format[RepoType] = new Format[RepoType] {
+  val format = new Format[RepoType] {
     override def reads(json: JsValue): JsResult[RepoType] =
       json match {
-        case JsString(s) =>
-          parse(s).fold(msg => JsError(msg), rt => JsSuccess(rt))
-        case _ => JsError("String value expected")
+        case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
+        case _           => JsError("String value expected")
       }
 
     override def writes(o: RepoType): JsValue =
       JsString(o.asString)
   }
 
-  implicit val queryStringBindable: QueryStringBindable[RepoType] =
-    new QueryStringBindable[RepoType] {
+  implicit val queryStringBindable = new QueryStringBindable[RepoType] {
+    override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, RepoType]] =
+      params.get(key).map {
+        case Nil         => Left("missing repoType value")
+        case head :: Nil => RepoType.parse(head)
+        case _           => Left("too many repoType values")
+      }
 
-      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, RepoType]] =
-        params.get(key).map {
-          case Nil         => Left("missing repoType value")
-          case head :: Nil => RepoType.parse(head)
-          case _           => Left("too many repoType values")
-        }
-
-      override def unbind(key: String, value: RepoType): String =
-        s"$key=${value.asString}"
-    }
+    override def unbind(key: String, value: RepoType): String =
+      s"$key=${value.asString}"
+  }
 }

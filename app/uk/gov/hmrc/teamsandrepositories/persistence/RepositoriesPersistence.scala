@@ -23,7 +23,7 @@ import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwi
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, TeamRepositories, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import play.api.Logger
@@ -60,14 +60,16 @@ class RepositoriesPersistence @Inject()(
     team       : Option[String]      = None,
     isArchived : Option[Boolean]     = None,
     repoType   : Option[RepoType]    = None,
-    serviceType: Option[ServiceType] = None
+    serviceType: Option[ServiceType] = None,
+    tags       : Option[List[Tag]]   = None,
   ): Future[Seq[GitRepository]] = {
     val filters = Seq(
       name       .map(n  => Filters.regex("name"       , n)),
       team       .map(t  => Filters.equal("teamNames"  , t)),
       isArchived .map(b  => Filters.equal("isArchived" , b)),
       repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
-      serviceType.map(st => Filters.equal("serviceType", st.toString)),
+      serviceType.map(st => Filters.equal("serviceType", st.asString)),
+      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)):_*)),
     ).flatten
     filters match {
       case Nil  => collection.find().toFuture()

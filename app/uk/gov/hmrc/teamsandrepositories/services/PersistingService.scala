@@ -34,33 +34,50 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  def updateRepositories()(implicit ec: ExecutionContext): Future[Int] = {
+  def updateRepositories()(implicit ec: ExecutionContext): Future[Int] =
     for {
-      teams            <- dataSource.getTeams()
-      teamRepos        <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-                            dataSource.getTeamRepositories(team).map(_ :: acc)
-                          }
-      reposWithTeams   =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
-                            trs.repositories.foldLeft(acc) { case (acc, repo) =>
-                              val r = acc.getOrElse(repo.name, repo)
-                              acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
-                            }
-                          }
-      allRepos         <- dataSource.getAllRepositoriesByName()
-      orphanRepos      =  (allRepos -- reposWithTeams.keys).values
-      reposToSeq       =  reposWithTeams.values.toSeq ++ orphanRepos
-      frontendServices <- serviceConfigsConnector.getFrontendServices()
-      reposToPersist   =  reposToSeq.map(r => defineServiceType(r, frontendServices))
-      _                =  logger.info(s"found ${reposToPersist.length} repos")
-      count            <- persister.updateRepos(reposToPersist)
+      frontendRoutes      <- serviceConfigsConnector.getFrontendServices()
+      adminFrontendRoutes <- serviceConfigsConnector.getAdminFrontendServices()
+      teams               <- dataSource.getTeams()
+      teamRepos           <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+                               dataSource.getTeamRepositories(team).map(_ :: acc)
+                             }
+      reposWithTeams      =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
+                               trs.repositories.foldLeft(acc) { case (acc, repo) =>
+                                 val r = acc.getOrElse(repo.name, repo)
+                                 acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
+                               }
+                             }
+      allRepos            <- dataSource.getAllRepositoriesByName()
+      orphanRepos         =  (allRepos -- reposWithTeams.keys).values
+      reposToPersist      =  (reposWithTeams.values.toSeq ++ orphanRepos)
+                               .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
+                               .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+      _                   =  logger.info(s"found ${reposToPersist.length} repos")
+      count               <- persister.updateRepos(reposToPersist)
     } yield count
-  }
 
-  def defineServiceType(repo: GitRepository, frontendServices: Set[String]): GitRepository = {
+  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {
-      case RepoType.Service if frontendServices.contains(repo.name) => repo.copy(serviceType = Some(FrontendService))
-      case RepoType.Service                                         => repo.copy(serviceType = Some(BackendService))
-      case _                                                        => repo
+      case RepoType.Service
+        if repo.serviceType.nonEmpty      => repo // serviceType already defined in repository.yaml
+      case RepoType.Service
+        if frontendRoutes.contains(repo.name)
+        || adminFrontendRoutes.contains(repo.name)
+        || repo.name.contains("frontend") => repo.copy(serviceType = Some(ServiceType.FrontendService))
+      case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.BackendService))
+      case _                              => repo
     }
-  }
+
+  private def defineTag(repo: GitRepository, adminFrontendRoutes: Set[String]): GitRepository =
+    repo.repoType match {
+      case RepoType.Service
+        if repo.tags.nonEmpty => repo // tags already defined in repository.yaml
+      case RepoType.Service   => val newTags =
+                                   Option.when(repo.name.contains("stub"))(Tag.Stub)                       ++
+                                   Option.when(adminFrontendRoutes.contains(repo.name))(Tag.AdminFrontend) ++
+                                   Option.when(repo.name.contains("admin-frontend"))(Tag.AdminFrontend)
+                                 repo.copy(tags = Some(newTags.toSet))
+      case _                  => repo
+    }
 }

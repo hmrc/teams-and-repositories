@@ -14,6 +14,7 @@ lazy val microservice = Project("teams-and-repositories", file("."))
   .settings(
     RoutesKeys.routesImport ++= Seq(
       "uk.gov.hmrc.teamsandrepositories.models.RepoType",
-      "uk.gov.hmrc.teamsandrepositories.models.ServiceType"
+      "uk.gov.hmrc.teamsandrepositories.models.ServiceType",
+      "uk.gov.hmrc.teamsandrepositories.models.Tag"
     ),
   )
