@@ -49,6 +49,9 @@ class RepositoriesPersistence @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
+  // updateRepos cleans up unreferenced teams
+  override lazy val requiresTtlIndex = false
+
   private val legacyCollection: MongoCollection[TeamRepositories] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
 
