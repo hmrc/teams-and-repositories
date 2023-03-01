@@ -17,10 +17,9 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
-import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 
@@ -31,11 +30,13 @@ class LegacyCompatibilitySpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with PlayMongoRepositorySupport[GitRepository]
-     with CleanMongoCollectionSupport
-     with IntegrationPatience {
+     with DefaultPlayMongoRepositorySupport[GitRepository] {
 
-  override protected def repository = new RepositoriesPersistence(mongoComponent)
+  override protected val repository = new RepositoriesPersistence(mongoComponent)
+
+  override protected val checkIndexedQueries: Boolean =
+    // we run unindexed queries
+    false
 
   val legacyPersistence = new RepositoriesPersistence(mongoComponent)
 

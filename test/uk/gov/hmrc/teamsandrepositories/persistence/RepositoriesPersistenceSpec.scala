@@ -18,10 +18,9 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
-import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, PlayMongoRepositorySupport}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, GitRepository}
 
@@ -33,12 +32,14 @@ class RepositoriesPersistenceSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with PlayMongoRepositorySupport[GitRepository]
-     with CleanMongoCollectionSupport
-     with OptionValues
-     with IntegrationPatience {
+     with DefaultPlayMongoRepositorySupport[GitRepository]
+     with OptionValues {
 
-  override protected def repository = new RepositoriesPersistence(mongoComponent)
+  override protected val repository = new RepositoriesPersistence(mongoComponent)
+
+  override protected val checkIndexedQueries: Boolean =
+    // we run unindexed queries
+    false
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 

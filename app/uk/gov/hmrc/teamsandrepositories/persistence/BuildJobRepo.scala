@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.Filters.{equal, nin}
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, ReplaceOptions}
-import org.mongodb.scala.result.{DeleteResult, UpdateResult}
+import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 
 import javax.inject.{Inject, Singleton}
@@ -28,41 +28,40 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BuildJobRepo @Inject()(
-  mongoComponent: MongoComponent
+  override val mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "jenkinsLinks",
   domainFormat   = BuildJob.mongoFormat,
-  indexes        = Seq(IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")))
-) {
+  indexes        = Seq(
+                     IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")),
+                     IndexModel(Indexes.hashed("gitHubUrl"))
+                   )
+) with Transactions {
+
+  // we replace all the data for each call to putAll
+  override lazy val requiresTtlIndex = false
+
+  private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
     collection
-      .find(equal("name", name))
+      .find(Filters.equal("name", name))
       .first()
       .toFutureOption()
 
   def findAllByRepo(service: String): Future[Seq[BuildJob]] =
     collection
-        .find(equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
-        .toFuture()
-
-  def updateOne(buildJob: BuildJob): Future[UpdateResult] =
-    collection
-      .replaceOne(
-        filter = equal("name", buildJob.name),
-        replacement = buildJob,
-        options = ReplaceOptions().upsert(true)
-      )
+      .find(Filters.equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
       .toFuture()
 
-  def update(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Seq[UpdateResult]] =
-    Future.traverse(buildJobs)(updateOne)
-
-  def deleteIfNotInList(buildJobNames: Seq[String]): Future[DeleteResult] =
-    collection
-      .deleteMany(nin("name", buildJobNames: _*))
-      .toFuture()
+  def putAll(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Unit] =
+     withSessionAndTransaction { session =>
+      for {
+        _ <- collection.deleteMany(session, BsonDocument()).toFuture()
+        r <- collection.insertMany(session, buildJobs).toFuture()
+      } yield ()
+    }
 }
