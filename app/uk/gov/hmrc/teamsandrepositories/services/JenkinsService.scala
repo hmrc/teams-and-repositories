@@ -23,7 +23,7 @@ import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors._
 import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.{BuildJob, Folder, PipelineJob}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJobs, JenkinsObject}
-import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -31,28 +31,29 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsService @Inject()(
-  buildJobRepo    : BuildJobRepo,
-  jenkinsConnector: JenkinsConnector,
-  jenkinsConfig   : JenkinsConfig
+  jenkinsConnector       : JenkinsConnector,
+  jenkinsLinksPersistence: JenkinsLinksPersistence,
+  jenkinsConfig          : JenkinsConfig
 ) {
   private val logger = Logger(this.getClass)
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
-    buildJobRepo.findByJobName(name)
+    jenkinsLinksPersistence.findByJobName(name)
 
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
     for {
-      jobs    <- buildJobRepo.findAllByRepo(service)
+      jobs    <- jenkinsLinksPersistence.findAllByRepo(service)
       wrapped =  BuildJobs(jobs)
     } yield wrapped
 
   def updateBuildJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      res       <- jenkinsConnector.findBuildJobs()
-      buildJobs =  res.objects.flatMap(extractBuildJobsFromTree)
-      _         <- buildJobRepo.putAll(buildJobs)
+      bJobs <- jenkinsConnector.findBuildJobs()
+      pJobs <- jenkinsConnector.findPerformanceJobs()
+      jobs  =  (bJobs.objects ++ pJobs.objects).flatMap(extractBuildJobsFromTree)
+      _     <- jenkinsLinksPersistence.putAll(jobs)
     } yield ()
 
   private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =

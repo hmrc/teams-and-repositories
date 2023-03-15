@@ -27,7 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BuildJobRepo @Inject()(
+class JenkinsLinksPersistence @Inject()(
   override val mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext

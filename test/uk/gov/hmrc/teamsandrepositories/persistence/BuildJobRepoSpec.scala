@@ -26,13 +26,13 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class BuildJobRepoSpec
+class JenkinsLinksPersistenceSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
      with DefaultPlayMongoRepositorySupport[JenkinsObject.BuildJob] {
 
-  override protected val repository = new BuildJobRepo(mongoComponent)
+  override protected val repository = new JenkinsLinksPersistence(mongoComponent)
 
   "BuildJobRepository" should {
     "putAll correctly" in {

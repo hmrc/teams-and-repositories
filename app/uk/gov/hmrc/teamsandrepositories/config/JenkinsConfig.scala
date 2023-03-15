@@ -19,15 +19,36 @@ package uk.gov.hmrc.teamsandrepositories.config
 import play.api.Configuration
 
 import javax.inject.Inject
+import com.google.common.io.BaseEncoding
 import scala.concurrent.duration.FiniteDuration
 
 class JenkinsConfig @Inject()(config: Configuration){
-  lazy val username             : String         = config.get[String]("jenkins.username")
-  lazy val token                : String         = config.get[String]("jenkins.token")
-  lazy val rebuilderUsername    : String         = config.get[String]("jenkins.rebuilder.username")
-  lazy val rebuilderToken       : String         = config.get[String]("jenkins.rebuilder.token")
-  lazy val baseUrl              : String         = config.get[String]("jenkins.url")
-  lazy val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
-  lazy val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
-  lazy val searchDepth          : Int            = config.get[Int]("cache.jenkins.searchDepth")
+  object BuildJobs {
+    val baseUrl              : String         = config.get[String]("jenkins.buildjobs.url")
+
+    val authorizationHeader = {
+      val token   : String = config.get[String]("jenkins.buildjobs.token")
+      val username: String = config.get[String]("jenkins.buildjobs.username")
+      s"Basic ${BaseEncoding.base64().encode(s"$username:$token".getBytes("UTF-8"))}"
+    }
+
+    val rebuilderAuthorizationHeader = {
+      val rebuilderUsername: String = config.get[String]("jenkins.buildjobs.rebuilder.username")
+      val rebuilderToken   : String = config.get[String]("jenkins.buildjobs.rebuilder.token")
+      s"Basic ${BaseEncoding.base64().encode(s"$rebuilderUsername:$rebuilderToken".getBytes("UTF-8"))}"
+    }
+  }
+
+  object PerformanceJobs {
+    val baseUrl : String    = config.get[String]("jenkins.performancejobs.url")
+    val authorizationHeader = {
+      val token   : String = config.get[String]("jenkins.performancejobs.token")
+      val username: String = config.get[String]("jenkins.performancejobs.username")
+      s"Basic ${BaseEncoding.base64().encode(s"$username:$token".getBytes("UTF-8"))}"
+    }
+  }
+
+  val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
+  val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
+  val searchDepth          : Int            = config.get[Int]("cache.jenkins.searchDepth")
 }
