@@ -192,7 +192,7 @@ class PersistingServiceSpec
     val datasource = new GithubV3RepositoryDataSource(githubConfig, githubConnector, timestamper, configuration)
 
     val onTest: PersistingService =
-      new PersistingService(persister, datasource, configuration, serviceConfigsConnector)
+      new PersistingService(persister, datasource, configuration, serviceConfigsConnector, githubConnector)
 
     val teamA: GhTeam = GhTeam("team-a", Instant.now())
     val teamB: GhTeam = GhTeam("team-b", Instant.now())

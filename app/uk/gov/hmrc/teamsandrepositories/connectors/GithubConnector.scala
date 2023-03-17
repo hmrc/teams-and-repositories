@@ -65,6 +65,17 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
+    def getTeams(repoName: String): Future[List[String]] = {
+      implicit val reads =
+        (__ \ "name").read[String]
+
+      httpClientV2
+        .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
+        .setHeader(authHeader)
+        .withProxy
+        .execute[List[String]]
+    }
+
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
     withCounter("github.open.repos") {
       val root =

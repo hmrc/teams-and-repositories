@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+import play.api.libs.json.JsValue
+
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -26,20 +28,32 @@ import scala.concurrent.{ExecutionContext, Future}
 class ServiceConfigsConnector @Inject()(
   servicesConfig: ServicesConfig,
   httpClientV2  : HttpClientV2
-){
+) {
   import uk.gov.hmrc.http.HttpReads.Implicits._
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  private val url = servicesConfig.baseUrl("service-configs")
+  private val baseUrl = servicesConfig.baseUrl("service-configs")
 
   def getFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
     httpClientV2
-      .get(url"$url/service-configs/frontend-services")
+      .get(url"$baseUrl/service-configs/frontend-services")
       .execute[Set[String]]
 
   def getAdminFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
     httpClientV2
-      .get(url"$url/service-configs/admin-frontend-services")
+      .get(url"$baseUrl/service-configs/admin-frontend-services")
       .execute[Set[String]]
+
+  def hasFrontendRoutes(service: String)(implicit ec: ExecutionContext): Future[Boolean] =
+    httpClientV2
+      .get(url"$baseUrl/service-configs/frontend-route/$service")
+      .execute[List[JsValue]]
+      .map(_.nonEmpty)
+
+  def hasAdminFrontendRoutes(service: String)(implicit ec: ExecutionContext): Future[Boolean] =
+    httpClientV2
+      .get(url"$baseUrl/service-configs/admin-frontend-route/$service")
+      .execute[List[JsValue]]
+      .map(_.nonEmpty)
 }

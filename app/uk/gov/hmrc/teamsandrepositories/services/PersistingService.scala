@@ -17,9 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import cats.implicits._
+import cats.data.EitherT
+
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
@@ -30,7 +32,8 @@ case class PersistingService @Inject()(
   persister               : RepositoriesPersistence,
   dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
-  serviceConfigsConnector : ServiceConfigsConnector
+  serviceConfigsConnector : ServiceConfigsConnector,
+  githubConnector         : GithubConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -56,6 +59,37 @@ case class PersistingService @Inject()(
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
       count               <- persister.updateRepos(reposToPersist)
     } yield count
+
+
+  private val prototypeUrlTemplate =
+    configuration.get[String]("url-templates.prototype")
+
+  def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
+    for {
+      _                   <- EitherT.fromOptionF(
+                               persister.findRepo(name).map(_.fold(Option(()))(_ => None))
+                             , s"already exists in mongo"
+                             )
+      rawRepo             <- EitherT.fromOptionF(
+                               githubConnector.getRepo(name)
+                             , s"not found on github"
+                             )
+      teams               <- EitherT.liftF(githubConnector.getTeams(name))
+      frontendRoutes      <- EitherT
+                               .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
+                               .map(x => if (x) Set(name) else Set.empty[String])
+      adminFrontendRoutes <- EitherT
+                               .liftF(serviceConfigsConnector.hasAdminFrontendRoutes(name))
+                               .map(x => if (x) Set(name) else Set.empty[String])
+      repo                <- EitherT
+                               .pure[Future, String](rawRepo)
+                               .map(_.toGitRepository(prototypeUrlTemplate))
+                               .map(_.copy(teams = teams))
+                               .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
+                               .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+      _                   <- EitherT
+                               .liftF(persister.addRepo(repo))
+    } yield ()
 
   private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {
