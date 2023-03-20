@@ -110,6 +110,12 @@ class RepositoriesPersistence @Inject()(
                   } else Future.unit
     } yield update
 
+  def addRepo(repo: GitRepository): Future[Unit] =
+    collection
+      .insertOne(repo)
+      .toFuture()
+      .map(_ => ())
+
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     legacyCollection.aggregate(Seq(
