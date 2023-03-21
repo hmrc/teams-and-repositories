@@ -58,7 +58,7 @@ object GitRepository {
     ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"          ).format[RepoType]
     ~ (__ \ "serviceType"       ).formatNullable[ServiceType]
-    ~ (__ \ "tags"              ).formatNullableWithDefault[Set[Tag]](Some(Set.empty))
+    ~ (__ \ "tags"              ).format[Set[Tag]].inmap[Option[Set[Tag]]](Option.apply, _.getOrElse(Set.empty))
     ~ (__ \ "digitalServiceName").formatNullable[String]
     ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "language"          ).formatNullable[String]
