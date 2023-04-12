@@ -30,7 +30,7 @@ class JenkinsLinksPersistenceSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
-     with DefaultPlayMongoRepositorySupport[JenkinsObject.BuildJob] {
+     with DefaultPlayMongoRepositorySupport[JenkinsObject.StandardJob] {
 
   override protected val repository = new JenkinsLinksPersistence(mongoComponent)
 
@@ -59,12 +59,12 @@ class JenkinsLinksPersistenceSpec
     }
   }
 
-  def mkBuildJob(jobName: String, repositoryName: String): JenkinsObject.BuildJob = {
+  def mkBuildJob(jobName: String, repositoryName: String): JenkinsObject.StandardJob = {
     val jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$jobName/"
     val buildNumber = 1
-    JenkinsObject.BuildJob(
+    JenkinsObject.StandardJob(
       name        = jobName,
-      jenkinsURL  = s"https://build.tax.service.gov.uk/job/teamName/job/$repositoryName-job/",
+      jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$repositoryName-job/",
       latestBuild = Some(BuildData(
                       number      = buildNumber,
                       url         = s"$jenkinsUrl$buildNumber",

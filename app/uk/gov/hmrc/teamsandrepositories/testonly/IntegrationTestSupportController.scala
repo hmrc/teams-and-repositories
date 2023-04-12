@@ -33,8 +33,8 @@ class IntegrationTestSupportController @Inject()(
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
-  private implicit val bjf: Reads[JenkinsObject.BuildJob] = JenkinsObject.BuildJob.mongoFormat
-  private implicit val ghf: OFormat[GitRepository]        = GitRepository.apiFormat
+  private implicit val bjf: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.mongoFormat
+  private implicit val ghf: OFormat[GitRepository]           = GitRepository.apiFormat
 
   private def validateJson[A: Reads] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
@@ -47,7 +47,7 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putJenkinsLinks() = Action.async(validateJson[Seq[JenkinsObject.BuildJob]]) { implicit request =>
+  def putJenkinsLinks() = Action.async(validateJson[Seq[JenkinsObject.StandardJob]]) { implicit request =>
     jenkinsLinksPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 

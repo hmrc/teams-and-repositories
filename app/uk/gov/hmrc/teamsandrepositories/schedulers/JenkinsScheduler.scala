@@ -46,8 +46,8 @@ class JenkinsScheduler @Inject()(
 
   scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, mongoLocks.jenkinsLock) {
     for {
-      _ <- jenkinsService.updateBuildJobs()
-      _ =  logger.info("Finished updating Build Jobs")
+      _ <- jenkinsService.updateBuildAndPerformanceJobs()
+      _ =  logger.info("Finished updating Build and Performance Jobs")
     } yield ()
   }
 }

@@ -22,7 +22,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects, JenkinsObject}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,10 +33,12 @@ class JenkinsConnector @Inject()(
   httpClientV2: HttpClientV2
 ) {
   import HttpReads.Implicits._
+  import JenkinsConnector._
 
   private val logger = Logger(this.getClass)
 
-  private implicit val jr: Reads[BuildData] = BuildData.jenkinsReads
+  private implicit val br: Reads[BuildData]          = BuildData.jenkinsReads
+  private implicit val jo: Reads[Seq[JenkinsObject]] = JenkinsObjects.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
@@ -74,14 +76,14 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsObjects] = {
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.BuildJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
-      .execute[JenkinsObjects]
+      .execute[Seq[JenkinsObject]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -89,14 +91,14 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[JenkinsObjects] = {
+  def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> config.PerformanceJobs.authorizationHeader)
-      .execute[JenkinsObjects]
+      .execute[Seq[JenkinsObject]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -144,22 +146,22 @@ object JenkinsConnector {
     (0 until depth).foldLeft(""){(acc, _) =>
       s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if (acc == "") "" else s",$acc"}]"
     }
-}
 
-case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
+  case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
 
-object JenkinsQueueData {
-  implicit val queueDataReader: Reads[JenkinsQueueData] =
-    ( (__ \ "cancelled" ).readNullable[Boolean]
-    ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
-    )(JenkinsQueueData.apply _)
-}
+  object JenkinsQueueData {
+    implicit val queueDataReader: Reads[JenkinsQueueData] =
+      ( (__ \ "cancelled" ).readNullable[Boolean]
+      ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
+      )(JenkinsQueueData.apply _)
+  }
 
-case class JenkinsQueueExecutable(number: Int, url: String)
+  case class JenkinsQueueExecutable(number: Int, url: String)
 
-object JenkinsQueueExecutable {
-  implicit val executableReader: Reads[JenkinsQueueExecutable] =
-    ( (__ \ "number").read[Int]
-    ~ (__ \ "url").read[String]
-    )(JenkinsQueueExecutable.apply _)
+  object JenkinsQueueExecutable {
+    implicit val executableReader: Reads[JenkinsQueueExecutable] =
+      ( (__ \ "number").read[Int]
+      ~ (__ \ "url").read[String]
+      )(JenkinsQueueExecutable.apply _)
+  }
 }

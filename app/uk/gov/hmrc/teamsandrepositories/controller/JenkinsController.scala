@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import play.api.libs.json.{Json, OWrites, Writes}
+import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.BuildJobs
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import javax.inject.{Inject, Singleton}
@@ -33,17 +32,18 @@ class JenkinsController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
-  private implicit val bjws: OWrites[BuildJobs] = BuildJobs.apiWrites
+  private implicit val bjw: Writes[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.apiWrites
 
   def lookup(name: String): Action[AnyContent] = Action.async {
-    for {
-      findJob <- jenkinsService.findByJobName(name)
-      result  =  findJob.map(links => Ok(Json.toJson(links))).getOrElse(NotFound)
-    } yield result
+    jenkinsService.findByJobName(name).map {
+      case Some(links) => Ok(Json.toJson(links))
+      case None        => NotFound
+    }
   }
 
   def findAllJobsByRepo(name: String): Action[AnyContent] = Action.async {
-    jenkinsService.findAllByRepo(name).map(result => Ok(Json.toJson(result)))
+    jenkinsService
+      .findAllByRepo(name)
+      .map(links => Ok(Json.obj("jobs" -> Json.toJson(links))))
   }
 }
