@@ -279,7 +279,7 @@ object GithubConnector {
       s"""
         query($$repo: String!) {
           organization(login: "hmrc") {
-            repository(name: $$repo, orderBy: {field: CREATED_AT, direction: ASC}) {
+            repository(name: $$repo) {
               $repositoryFields
             }
           }
