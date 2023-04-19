@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.Future
@@ -35,7 +35,7 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
   "JenkinsController" should {
     "return a single match as Json" in {
       when(mockJenkinsService.findByJobName("foo"))
-        .thenReturn(Future.successful(Some(BuildJob("foo", "http://bar/job/api/", None, Some("https://github.com/hmrc/project.git")))))
+        .thenReturn(Future.successful(Some(JenkinsObject.StandardJob("foo", "http://bar/job/api/", None, Some("https://github.com/hmrc/project.git")))))
 
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("foo").apply(FakeRequest())

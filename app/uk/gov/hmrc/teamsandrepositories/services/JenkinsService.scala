@@ -20,10 +20,9 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.connectors._
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.{BuildJob, Folder, PipelineJob}
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJobs, JenkinsObject}
-import uk.gov.hmrc.teamsandrepositories.persistence.BuildJobRepo
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObject}
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -31,35 +30,33 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsService @Inject()(
-  buildJobRepo    : BuildJobRepo,
-  jenkinsConnector: JenkinsConnector,
-  jenkinsConfig   : JenkinsConfig
+  jenkinsConnector       : JenkinsConnector,
+  jenkinsLinksPersistence: JenkinsLinksPersistence,
+  jenkinsConfig          : JenkinsConfig
 ) {
   private val logger = Logger(this.getClass)
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  def findByJobName(name: String): Future[Option[BuildJob]] =
-    buildJobRepo.findByJobName(name)
+  def findByJobName(name: String): Future[Option[JenkinsObject.StandardJob]] =
+    jenkinsLinksPersistence.findByJobName(name)
 
-  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[BuildJobs] =
-    for {
-      jobs    <- buildJobRepo.findAllByRepo(service)
-      wrapped =  BuildJobs(jobs)
-    } yield wrapped
+  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[JenkinsObject.StandardJob]] =
+    jenkinsLinksPersistence.findAllByRepo(service)
 
-  def updateBuildJobs()(implicit ec: ExecutionContext): Future[Unit] =
+  def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      res       <- jenkinsConnector.findBuildJobs()
-      buildJobs =  res.objects.flatMap(extractBuildJobsFromTree)
-      _         <- buildJobRepo.putAll(buildJobs)
+      bJobs <- jenkinsConnector.findBuildJobs()
+      pJobs <- jenkinsConnector.findPerformanceJobs()
+      jobs  =  (bJobs ++ pJobs).flatMap(extractStandardJobsFromTree)
+      _     <- jenkinsLinksPersistence.putAll(jobs)
     } yield ()
 
-  private def extractBuildJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
+  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[JenkinsObject.StandardJob] =
     jenkinsObject match {
-      case Folder(_, _, objects) => objects.flatMap(extractBuildJobsFromTree)
-      case job: BuildJob         => Seq(job)
-      case PipelineJob(_, _)     => Seq()
+      case JenkinsObject.Folder(_, _, objects) => objects.flatMap(extractStandardJobsFromTree)
+      case job: JenkinsObject.StandardJob      => Seq(job)
+      case JenkinsObject.PipelineJob(_, _)     => Seq()
     }
 
   def triggerBuildJob(
@@ -85,7 +82,7 @@ class JenkinsService @Inject()(
      } yield build
     ).flatten
 
-  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] =
+  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsConnector.JenkinsQueueData] =
     Source.repeat(())
       .throttle(1, jenkinsConfig.queueThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))

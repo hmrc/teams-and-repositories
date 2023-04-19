@@ -21,20 +21,20 @@ import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BuildJobRepo @Inject()(
+class JenkinsLinksPersistence @Inject()(
   override val mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "jenkinsLinks",
-  domainFormat   = BuildJob.mongoFormat,
+  domainFormat   = JenkinsObject.StandardJob.mongoFormat,
   indexes        = Seq(
                      IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")),
                      IndexModel(Indexes.hashed("gitHubUrl"))
@@ -46,18 +46,18 @@ class BuildJobRepo @Inject()(
 
   private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
 
-  def findByJobName(name: String): Future[Option[BuildJob]] =
+  def findByJobName(name: String): Future[Option[JenkinsObject.StandardJob]] =
     collection
       .find(Filters.equal("name", name))
       .first()
       .toFutureOption()
 
-  def findAllByRepo(service: String): Future[Seq[BuildJob]] =
+  def findAllByRepo(service: String): Future[Seq[JenkinsObject.StandardJob]] =
     collection
       .find(Filters.equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
       .toFuture()
 
-  def putAll(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Unit] =
+  def putAll(buildJobs: Seq[JenkinsObject.StandardJob])(implicit ec: ExecutionContext): Future[Unit] =
      withSessionAndTransaction { session =>
       for {
         _ <- collection.deleteMany(session, BsonDocument()).toFuture()

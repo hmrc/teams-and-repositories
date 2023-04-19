@@ -57,37 +57,46 @@ object BuildData {
 }
 
 
+case class JenkinsJobs(jobs: Seq[JenkinsObject.StandardJob])
+object JenkinsJobs {
+  implicit val reads: Reads[JenkinsJobs] = {
+    implicit val x: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.jenkinsReads
+    Json.reads[JenkinsJobs]
+  }
+}
+
 sealed trait JenkinsObject
 
 object JenkinsObject {
+
   case class Folder(
     name      : String,
-    jenkinsURL: String,
-    objects   : Seq[JenkinsObject]
+    jenkinsUrl: String,
+    jobs      : Seq[JenkinsObject]
   ) extends JenkinsObject
 
-  case class BuildJob(
+  case class StandardJob(
     name       : String,
-    jenkinsURL : String,
+    jenkinsUrl : String,
     latestBuild: Option[BuildData],
     gitHubUrl  : Option[String]
   ) extends JenkinsObject
 
   case class PipelineJob(
     name      : String,
-    jenkinsURL: String
+    jenkinsUrl: String
   ) extends JenkinsObject
 
-  object BuildJob {
+  object StandardJob {
 
-    val mongoFormat: Format[BuildJob] =
+    val mongoFormat: Format[StandardJob] =
       ( (__ \ "name"       ).format[String]
       ~ (__ \ "jenkinsURL" ).format[String]
       ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
       ~ (__ \ "gitHubUrl"  ).formatNullable[String]
       )(apply, unlift(unapply))
 
-    val apiWrites: Writes[BuildJob] =
+    val apiWrites: Writes[StandardJob] =
       ( (__ \ "name"       ).write[String]
       ~ (__ \ "jenkinsURL" ).write[String]
       ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
@@ -97,12 +106,12 @@ object JenkinsObject {
     private def extractGithubUrl = Reads[Option[String]] { js =>
       val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
       l.headOption match {
-        case Some(value) => JsSuccess(Some(value.as[String]))
-        case None        => JsSuccess(None)
+        case Some(v) => JsSuccess(Some(v.as[String].toLowerCase)) // github organisation can be uppercase
+        case None    => JsSuccess(None)
       }
     }
 
-    val jenkinsBuildJobReads: Reads[BuildJob] =
+    val jenkinsReads: Reads[StandardJob] =
       ( (__ \ "name"     ).read[String]
       ~ (__ \ "url"      ).read[String]
       ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
@@ -124,28 +133,13 @@ object JenkinsObject {
   implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
     (json \ "_class").validate[String].flatMap {
       case "com.cloudbees.hudson.plugins.folder.Folder"     => folderReads.reads(json)
-      case "hudson.model.FreeStyleProject"                  => BuildJob.jenkinsBuildJobReads.reads(json)
+      case "hudson.model.FreeStyleProject"                  => StandardJob.jenkinsReads.reads(json)
       case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => pipelineReads.reads(json)
       case value                                            => throw new Exception(s"Unsupported Jenkins class $value")
     }
 }
 
-case class JenkinsObjects(
-  objects: Seq[JenkinsObject]
-)
-
 object JenkinsObjects {
-  implicit val jenkinsObjectsReads: Reads[JenkinsObjects] =
-    (__ \ "jobs").read(Reads.seq[JenkinsObject]).map(obj => JenkinsObjects(obj))
-}
-
-case class BuildJobs(
-  jobs: Seq[JenkinsObject.BuildJob]
-)
-
-object BuildJobs {
-  val apiWrites: OWrites[BuildJobs] = {
-    implicit val x: Writes[JenkinsObject.BuildJob] = JenkinsObject.BuildJob.apiWrites
-    Json.writes[BuildJobs]
-  }
+  implicit val jenkinsReads: Reads[Seq[JenkinsObject]] =
+    (__ \ "jobs").read(Reads.seq[JenkinsObject])
 }

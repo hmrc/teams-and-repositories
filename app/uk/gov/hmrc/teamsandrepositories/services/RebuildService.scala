@@ -116,7 +116,7 @@ case class RebuildService @Inject()(
       buildJobs                     <- Future.traverse(serviceNames)(jenkinsService.findByJobName)
       jobsWithLatestBuildOver30days =  buildJobs.flatten
                                          .filter(_.latestBuild.nonEmpty)
-                                         .map(job => RebuildJobData(job.name, job.jenkinsURL, job.latestBuild.get.timestamp))
+                                         .map(job => RebuildJobData(job.name, job.jenkinsUrl, job.latestBuild.get.timestamp))
                                          .filter(_.lastBuildTime.isBefore(cutoff))
                                          .sortBy(ele => ele.lastBuildTime)
     } yield jobsWithLatestBuildOver30days

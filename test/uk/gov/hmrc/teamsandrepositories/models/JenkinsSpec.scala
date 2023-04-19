@@ -19,9 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.models
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsResult, JsValue, Json}
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject.BuildJob
 
-class BuildJobSpec extends AnyWordSpec with Matchers {
+class JenkinsSpec extends AnyWordSpec with Matchers {
 
   "JenkinsObject Json reads" should {
     "simple pipeline" in {
@@ -38,13 +37,11 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
             "result": "SUCCESS",
             "timestamp": 1658927101317,
             "url": "https://..."
-        }
-  }"""
+        }}"""
       )
-      val residentFromJson: JsResult[JenkinsObject] =
-        Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$PipelineJob"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$PipelineJob"
     }
+
     "simple job" in {
       val jsonString: JsValue = Json.parse(
         """{
@@ -67,14 +64,14 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
                 "url": "https://github.com/hmrc/project.git"
               }
             ]
-          }
-    }"""
+          }}"""
       )
-      val residentFromJson: JsResult[JenkinsObject] =
-        Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$$BuildJob"
-      residentFromJson.get.asInstanceOf[BuildJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
+
+      val x: JsResult[JenkinsObject] = Json.fromJson[JenkinsObject](jsonString)
+      x.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$$StandardJob"
+      x.get.asInstanceOf[JenkinsObject.StandardJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
     }
+
     "simple folder" in {
       val jsonString: JsValue = Json.parse(
         """{
@@ -83,13 +80,11 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
         "fullName": "Folder",
         "name": "Folder",
         "url": "https://...",
-       "jobs" : []
-  }"""
+       "jobs" : []}"""
       )
-      val residentFromJson: JsResult[JenkinsObject] =
-        Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
     }
+
     "Folder with a job" in {
       val jsonString: JsValue = Json.parse(
         """{
@@ -111,41 +106,9 @@ class BuildJobSpec extends AnyWordSpec with Matchers {
                       "timestamp": 1658927101317,
                       "url": "https://..."
                   }
-            }]
-  }"""
+            }]}"""
       )
-      val residentFromJson: JsResult[JenkinsObject] =
-        Json.fromJson[JenkinsObject](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
-    }
-    "simple wrapper" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-      "_class": "hudson.model.Hudson",
-     "jobs" : []
-      }"""
-      )
-      val residentFromJson: JsResult[JenkinsObjects] =
-        Json.fromJson[JenkinsObjects](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObjects"
-    }
-    "wrapper with folder" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-      "_class": "hudson.model.Hudson",
-     "jobs" : [{
-                "_class": "com.cloudbees.hudson.plugins.folder.Folder",
-                "description": "This folder contains stuff",
-                "fullName": "Folder",
-                "name": "Folder",
-                "url": "https://...",
-               "jobs" : []
-          }]
-      }"""
-      )
-      val residentFromJson: JsResult[JenkinsObjects] =
-        Json.fromJson[JenkinsObjects](jsonString)
-      residentFromJson.get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObjects"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
     }
   }
 }

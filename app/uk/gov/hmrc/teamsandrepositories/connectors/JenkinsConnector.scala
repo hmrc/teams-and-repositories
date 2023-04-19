@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import com.google.common.io.BaseEncoding
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObjects, JenkinsObject}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,27 +33,23 @@ class JenkinsConnector @Inject()(
   httpClientV2: HttpClientV2
 ) {
   import HttpReads.Implicits._
+  import JenkinsConnector._
 
   private val logger = Logger(this.getClass)
 
-  private val authorizationHeader =
-    s"Basic ${BaseEncoding.base64().encode(s"${config.username}:${config.token}".getBytes("UTF-8"))}"
-
-  private val rebuilderAuthorizationHeader =
-    s"Basic ${BaseEncoding.base64().encode(s"${config.rebuilderUsername}:${config.rebuilderToken}".getBytes("UTF-8"))}"
-
-  private implicit val jr: Reads[BuildData] = BuildData.jenkinsReads
+  private implicit val br: Reads[BuildData]          = BuildData.jenkinsReads
+  private implicit val jo: Reads[Seq[JenkinsObject]] = JenkinsObjects.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
-    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
+    assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
     implicit val locationRead: HttpReads[String] = HttpReads[HttpResponse].map(_.header("Location").get)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$baseUrl/buildWithParameters"
     httpClientV2
       .post(url)
-      .setHeader("Authorization" -> rebuilderAuthorizationHeader)
+      .setHeader("Authorization" -> config.BuildJobs.rebuilderAuthorizationHeader)
       .execute[String]
       .recoverWith {
         case NonFatal(ex) =>
@@ -65,14 +60,14 @@ class JenkinsConnector @Inject()(
 
   def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[BuildData] = {
     // Prevents Server-Side Request Forgery
-    assert(baseUrl.startsWith(config.baseUrl), s"$baseUrl was requested for invalid host")
+    assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$baseUrl/lastBuild/api/json?tree=number,url,timestamp,result"
 
     httpClientV2
       .post(url)
-      .setHeader("Authorization" -> authorizationHeader)
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
       .execute[BuildData]
       .recoverWith {
         case NonFatal(ex) =>
@@ -81,14 +76,29 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def findBuildJobs()(implicit  ec: ExecutionContext): Future[JenkinsObjects] = {
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${config.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+    val url = url"${config.BuildJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
-      .setHeader("Authorization" -> authorizationHeader)
-      .execute[JenkinsObjects]
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .execute[Seq[JenkinsObject]]
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
+
+  def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject]] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+
+    httpClientV2
+      .get(url)
+      .setHeader("Authorization" -> config.PerformanceJobs.authorizationHeader)
+      .execute[Seq[JenkinsObject]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -97,14 +107,14 @@ class JenkinsConnector @Inject()(
   }
 
   def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
-    assert(queueUrl.startsWith(config.baseUrl), s"$queueUrl was requested for invalid host")
+    assert(queueUrl.startsWith(config.BuildJobs.baseUrl), s"$queueUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${queueUrl}api/json?tree=cancelled,executable[number,url]"
 
     httpClientV2
       .get(url)
-      .setHeader("Authorization" -> authorizationHeader)
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
       .execute[JenkinsQueueData]
       .recoverWith {
         case NonFatal(ex) =>
@@ -115,14 +125,14 @@ class JenkinsConnector @Inject()(
 
   def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
     // Prevents Server-Side Request Forgery
-    assert(buildUrl.startsWith(config.baseUrl), s"$buildUrl was requested for invalid host")
+    assert(buildUrl.startsWith(config.BuildJobs.baseUrl), s"$buildUrl was requested for invalid host")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${buildUrl}api/json?tree=number,url,timestamp,result"
 
     httpClientV2
       .post(url)
-      .setHeader("Authorization" -> authorizationHeader)
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
       .execute[BuildData]
       .recoverWith {
         case NonFatal(ex) =>
@@ -136,22 +146,22 @@ object JenkinsConnector {
     (0 until depth).foldLeft(""){(acc, _) =>
       s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if (acc == "") "" else s",$acc"}]"
     }
-}
 
-case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
+  case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
 
-object JenkinsQueueData {
-  implicit val queueDataReader: Reads[JenkinsQueueData] =
-    ( (__ \ "cancelled" ).readNullable[Boolean]
-    ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
-    )(JenkinsQueueData.apply _)
-}
+  object JenkinsQueueData {
+    implicit val queueDataReader: Reads[JenkinsQueueData] =
+      ( (__ \ "cancelled" ).readNullable[Boolean]
+      ~ (__ \ "executable").readNullable[JenkinsQueueExecutable]
+      )(JenkinsQueueData.apply _)
+  }
 
-case class JenkinsQueueExecutable(number: Int, url: String)
+  case class JenkinsQueueExecutable(number: Int, url: String)
 
-object JenkinsQueueExecutable {
-  implicit val executableReader: Reads[JenkinsQueueExecutable] =
-    ( (__ \ "number").read[Int]
-    ~ (__ \ "url").read[String]
-    )(JenkinsQueueExecutable.apply _)
+  object JenkinsQueueExecutable {
+    implicit val executableReader: Reads[JenkinsQueueExecutable] =
+      ( (__ \ "number").read[Int]
+      ~ (__ \ "url").read[String]
+      )(JenkinsQueueExecutable.apply _)
+  }
 }
