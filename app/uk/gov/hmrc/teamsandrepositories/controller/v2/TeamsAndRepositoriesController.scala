@@ -40,6 +40,8 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val grf = GitRepository.apiFormat
   implicit val tnf = TeamSummary.apiFormat
 
+  private val logger = play.api.Logger(this.getClass)
+
   def allRepos(
     name       : Option[String],
     team       : Option[String],
@@ -48,8 +50,19 @@ class TeamsAndRepositoriesController @Inject()(
     serviceType: Option[ServiceType],
     tags       : Option[List[Tag]],
   ) = Action.async { request =>
+    val uuid = java.util.UUID.randomUUID.toString
+    val t0 = System.nanoTime()
     repositoriesPersistence.search(name, team, archived, repoType, serviceType, tags)
-      .map(result => Ok(Json.toJson(result.sortBy(_.name))))
+      .map { result =>
+        val t1 = System.nanoTime()
+        logger.info(s"${request.uri} $uuid - db query took ${(t1 - t0) / 1000000} ms" )
+        val t2 = System.nanoTime()
+        val x  = Ok(Json.toJson(result.sortBy(_.name)))
+        val t3 = System.nanoTime()
+        logger.info(s"${request.uri} $uuid - json formatting took ${(t3 - t2) / 1000000} ms" )
+        logger.info(s"${request.uri} $uuid - total took ${(t3 - t0) / 1000000} ms" )
+        x
+      }
   }
 
   def allTeams() = Action.async { request =>
