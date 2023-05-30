@@ -24,11 +24,13 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.BuildJob
 import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
 
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
@@ -40,6 +42,36 @@ class BuildDeployApiConnector @Inject()(
 ) extends Logging {
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  def getJobs: Future[Either[String, Map[String, List[BuildJob]]]] = {
+
+    val url =
+      url"${config.baseUrl}/v1/GetBuildJobs"
+
+    val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
+      .getSignedHeaders(
+        uri         = url.getPath,
+        method      = "POST",
+        queryParams = Map.empty[String, String],
+        headers     = Map[String, String]("host" -> config.host),
+        payload     = None
+      )
+
+    for {
+      result  <-  httpClientV2.post(url)
+                    .setHeader(headers.toSeq: _*)
+                    .execute[BuildDeployApiConnector.Result]
+      response = if (result.success)
+                   Right(
+                     result
+                       .details
+                       .groupBy(_.repoName)
+                       .map { case (repoName, details) => repoName -> details.flatMap(_.buildJobs) }
+                   )
+                 else
+                   Left(result.message)
+    } yield response
+  }
 
   def enableBranchProtection(repoName: String): Future[Unit] = {
     val queryParams = Map.empty[String, String]
@@ -71,10 +103,86 @@ class BuildDeployApiConnector @Inject()(
                     Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${response.message}"))
     } yield ()
   }
-
 }
 
 object BuildDeployApiConnector {
+
+  case class BuildJob(
+    name  : String,
+    url   : String,
+    `type`: String
+  )
+
+  object BuildJob {
+    implicit val reads: Reads[BuildJob] =
+      ( (__ \ "name").read[String]
+      ~ (__ \ "url" ).read[String]
+      ~ (__ \ "type").read[String]
+      ) (BuildJob.apply _)
+  }
+
+  case class Detail(
+   repoName : String,
+   buildJobs: List[BuildJob]
+  )
+
+  object Detail {
+    implicit val reads: Reads[Detail] = {
+      implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
+      ( (__ \ "repository_name").read[String]
+      ~ (__ \ "build_jobs").read[List[BuildJob]]
+      ) (Detail.apply _)
+    }
+  }
+
+  case class Result(
+    success: Boolean,
+    message: String,
+    details: List[Detail]
+  )
+
+  object Result {
+    implicit val reads: Reads[Result] = {
+      implicit val detailReads: Reads[Detail] = Detail.reads
+      ( (__ \ "success").read[Boolean]
+      ~ (__ \ "message").read[String]
+      ~ (__ \ "details").read[List[Detail]]
+      ) (Result.apply _)
+    }
+  }
+
+
+
+
+
+//  object Details {
+//
+//    implicit val buildJobReads: Reads[BuildJob] = Json.reads[BuildJob]
+//
+//    implicit val detailsReads: Reads[Map[String, Seq[BuildJob]]] =
+//      (json: JsValue) => {
+//      val details = (json \ "details").as[Seq[JsObject]]
+//      val map = details.map { obj =>
+//        val repositoryName = (obj \ "repository_name").as[String]
+//        val buildJobs = (obj \ "build_jobs").as[Seq[BuildJob]]
+//        repositoryName -> buildJobs
+//      }.toMap
+//      JsSuccess(map)
+//    }
+//  }
+
+//  object BuildJobs {
+//    implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
+//    (json: JsValue) =>
+//      JsSuccess(
+//        (json \ "details").as[Seq[JsObject]].map { obj =>
+//          (obj  \ "repository_name").as[String] -> (obj \ "build_jobs").as[Seq[BuildJob]]
+//        }.toMap
+//      )
+//
+//    val reads: Reads[BuildJobs] =
+//      (__ \ "details").read[Map[String, Seq[BuildJob]]].map(BuildJobs(_))
+//  }
 
   final case class Request(
     repoName: String,

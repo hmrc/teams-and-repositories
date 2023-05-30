@@ -26,6 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.BuildJob
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -35,12 +36,63 @@ class BuildDeployApiConnectorSpec
      with HttpClientV2Support
      with IntegrationPatience {
 
+  "getJobs" should {
+
+    "Invoke the API and return build jobs if successful" in {
+      stubFor(
+        post("/v1/GetBuildJobs")
+          .willReturn(aResponse().withBody(buildJobResponseJson))
+      )
+
+      def buildJob1(repoName: String): BuildJob = BuildJob(
+        name   = s"Centre Technical Leads/$repoName",
+        url    = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
+        `type` = "job"
+      )
+
+      def buildJob2(repoName: String): BuildJob = BuildJob(
+        name   = s"Centre Technical Leads/$repoName-pipeline",
+        url    = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
+        `type` = "pipeline"
+      )
+
+      connector.getJobs.futureValue shouldBe
+        Right(Map("test-repo-1" -> List(buildJob1("test-repo-1"), buildJob2("test-repo-1")),
+                  "test-repo-2" -> List(buildJob1("test-repo-2"), buildJob2( "test-repo-2"))))
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))
+      )
+    }
+
+    "Invoke the API and raise an error if unsuccessful" in {
+      stubFor(
+        post("/v1/GetBuildJobs")
+          .willReturn(aResponse().withBody(
+            """
+              |{
+              | "success": false,
+              | "message": "some error message",
+              | "details": []
+              |}
+              |""".stripMargin
+          )))
+
+      connector.getJobs.futureValue shouldBe Left("some error message")
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))
+      )
+    }
+
+  }
+
   "enableBranchProtection" should {
 
     "Invoke the API and return unit if successful" in {
       stubFor(
         post("/v1/UpdateGithubDefaultBranchProtection")
-          .withRequestBody(equalToJson(requestJson))
+          .withRequestBody(equalToJson(branchProtectionRequestJson))
           .willReturn(aResponse().withBody(
             """
               [
@@ -56,14 +108,14 @@ class BuildDeployApiConnectorSpec
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/UpdateGithubDefaultBranchProtection"))
-          .withRequestBody(equalToJson(requestJson))
+          .withRequestBody(equalToJson(branchProtectionRequestJson))
       )
     }
 
     "Invoke the API and raise an error if unsuccessful" in {
       stubFor(
         post("/v1/UpdateGithubDefaultBranchProtection")
-          .withRequestBody(equalToJson(requestJson))
+          .withRequestBody(equalToJson(branchProtectionRequestJson))
           .willReturn(aResponse().withBody(
             """
               [
@@ -85,12 +137,51 @@ class BuildDeployApiConnectorSpec
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/UpdateGithubDefaultBranchProtection"))
-          .withRequestBody(equalToJson(requestJson))
+          .withRequestBody(equalToJson(branchProtectionRequestJson))
       )
     }
   }
 
-  private lazy val requestJson =
+  private lazy val buildJobResponseJson: String =
+    """{
+      |    "success": true,
+      |    "message": "",
+      |    "details": [
+      |        {
+      |            "repository_name": "test-repo-1",
+      |            "build_jobs": [
+      |                {
+      |                    "name": "Centre Technical Leads/test-repo-1",
+      |                    "url": "https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/test-repo-1/",
+      |                    "type": "job"
+      |                },
+      |                {
+      |                    "name": "Centre Technical Leads/test-repo-1-pipeline",
+      |                    "url": "https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/test-repo-1-pipeline/",
+      |                    "type": "pipeline"
+      |                }
+      |            ]
+      |        },
+      |        {
+      |            "repository_name": "test-repo-2",
+      |            "build_jobs": [
+      |                {
+      |                    "name": "Centre Technical Leads/test-repo-2",
+      |                    "url": "https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/test-repo-2/",
+      |                    "type": "job"
+      |                },
+      |                {
+      |                    "name": "Centre Technical Leads/test-repo-2-pipeline",
+      |                    "url": "https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/test-repo-2-pipeline/",
+      |                    "type": "pipeline"
+      |                }
+      |            ]
+      |        }
+      |    ]
+      |}
+      |""".stripMargin
+
+  private lazy val branchProtectionRequestJson =
     """
       { "repository_names": "some-repo",
         "set_branch_protection_rule": true
