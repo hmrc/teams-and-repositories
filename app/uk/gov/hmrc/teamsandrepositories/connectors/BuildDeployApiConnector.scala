@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import play.api.Logging
+import play.api.{Logger, Logging}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
@@ -24,13 +24,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.BuildJob
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.{BuildJob, Result}
 import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
 
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
@@ -43,7 +42,11 @@ class BuildDeployApiConnector @Inject()(
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def getJobs: Future[Either[String, Map[String, List[BuildJob]]]] = {
+  getJobs().onComplete(res => logger.info(s"Completed with $res"))
+
+  def getJobs(): Future[Either[String, Map[String, List[BuildJob]]]] = {
+
+    implicit val detailReads: Reads[Result] = Result.reads
 
     val url =
       url"${config.baseUrl}/v1/GetBuildJobs"
@@ -114,11 +117,11 @@ object BuildDeployApiConnector {
   )
 
   object BuildJob {
-    implicit val reads: Reads[BuildJob] =
+    val reads: Reads[BuildJob] =
       ( (__ \ "name").read[String]
       ~ (__ \ "url" ).read[String]
       ~ (__ \ "type").read[String]
-      ) (BuildJob.apply _)
+      )(BuildJob.apply _)
   }
 
   case class Detail(
@@ -127,11 +130,11 @@ object BuildDeployApiConnector {
   )
 
   object Detail {
-    implicit val reads: Reads[Detail] = {
+    val reads: Reads[Detail] = {
       implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
       ( (__ \ "repository_name").read[String]
       ~ (__ \ "build_jobs").read[List[BuildJob]]
-      ) (Detail.apply _)
+      )(Detail.apply _)
     }
   }
 
@@ -142,47 +145,14 @@ object BuildDeployApiConnector {
   )
 
   object Result {
-    implicit val reads: Reads[Result] = {
+    val reads: Reads[Result] = {
       implicit val detailReads: Reads[Detail] = Detail.reads
       ( (__ \ "success").read[Boolean]
       ~ (__ \ "message").read[String]
       ~ (__ \ "details").read[List[Detail]]
-      ) (Result.apply _)
-    }
+      )(Result.apply _)
+    }.preprocess{js => Logger(getClass).info(s"return json = $js"); js}
   }
-
-
-
-
-
-//  object Details {
-//
-//    implicit val buildJobReads: Reads[BuildJob] = Json.reads[BuildJob]
-//
-//    implicit val detailsReads: Reads[Map[String, Seq[BuildJob]]] =
-//      (json: JsValue) => {
-//      val details = (json \ "details").as[Seq[JsObject]]
-//      val map = details.map { obj =>
-//        val repositoryName = (obj \ "repository_name").as[String]
-//        val buildJobs = (obj \ "build_jobs").as[Seq[BuildJob]]
-//        repositoryName -> buildJobs
-//      }.toMap
-//      JsSuccess(map)
-//    }
-//  }
-
-//  object BuildJobs {
-//    implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
-//    (json: JsValue) =>
-//      JsSuccess(
-//        (json \ "details").as[Seq[JsObject]].map { obj =>
-//          (obj  \ "repository_name").as[String] -> (obj \ "build_jobs").as[Seq[BuildJob]]
-//        }.toMap
-//      )
-//
-//    val reads: Reads[BuildJobs] =
-//      (__ \ "details").read[Map[String, Seq[BuildJob]]].map(BuildJobs(_))
-//  }
 
   final case class Request(
     repoName: String,

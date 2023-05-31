@@ -56,7 +56,7 @@ class BuildDeployApiConnectorSpec
         `type` = "pipeline"
       )
 
-      connector.getJobs.futureValue shouldBe
+      connector.getJobs().futureValue shouldBe
         Right(Map("test-repo-1" -> List(buildJob1("test-repo-1"), buildJob2("test-repo-1")),
                   "test-repo-2" -> List(buildJob1("test-repo-2"), buildJob2( "test-repo-2"))))
 
@@ -78,7 +78,7 @@ class BuildDeployApiConnectorSpec
               |""".stripMargin
           )))
 
-      connector.getJobs.futureValue shouldBe Left("some error message")
+      connector.getJobs().futureValue shouldBe Left("some error message")
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))

@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObject}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
 
@@ -32,7 +32,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class JenkinsService @Inject()(
   jenkinsConnector       : JenkinsConnector,
   jenkinsLinksPersistence: JenkinsLinksPersistence,
-  jenkinsConfig          : JenkinsConfig
+  jenkinsConfig          : JenkinsConfig,
+  buildDeployApiConnector: BuildDeployApiConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -46,6 +47,11 @@ class JenkinsService @Inject()(
 
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
+      testApi <- buildDeployApiConnector.getJobs()
+      _       =  testApi match {
+        case Left(value)  => logger.info(s">>> Failed to call B&D API: $value")
+        case Right(value) => logger.info(s">>> Successfully called B&D API: ${value.head}")
+      }
       bJobs <- jenkinsConnector.findBuildJobs()
       pJobs <- jenkinsConnector.findPerformanceJobs()
       jobs  =  (bJobs ++ pJobs).flatMap(extractStandardJobsFromTree)
