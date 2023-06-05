@@ -35,7 +35,20 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
   "JenkinsController" should {
     "return a single match as Json" in {
       when(mockJenkinsService.findByJobName("foo"))
-        .thenReturn(Future.successful(Some(JenkinsObject.StandardJob("foo", "http://bar/job/api/", None, Some("https://github.com/hmrc/project.git")))))
+        .thenReturn(
+          Future.successful(
+            Some(
+              JenkinsObject.StandardJob(
+                name        = "foo",
+                jobType     = None,
+                jenkinsUrl  = "http://bar/job/api/",
+                latestBuild = None,
+                gitHubUrl   = Some("https://github.com/hmrc/project.git")
+              )
+            )
+          )
+        )
+
 
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("foo").apply(FakeRequest())
