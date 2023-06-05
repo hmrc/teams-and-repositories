@@ -64,6 +64,7 @@ class JenkinsLinksPersistenceSpec
     val buildNumber = 1
     JenkinsObject.StandardJob(
       name        = jobName,
+      jobType     = None,
       jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$repositoryName-job/",
       latestBuild = Some(BuildData(
                       number      = buildNumber,

@@ -58,7 +58,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def getLastBuildTime(baseUrl: String)(implicit  ec: ExecutionContext): Future[BuildData] = {
+  def getLatestBuildData(baseUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
 

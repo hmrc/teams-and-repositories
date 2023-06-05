@@ -24,12 +24,13 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.{BuildJob, Result}
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.{BuildJob, Detail, Result}
 import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
 
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
@@ -42,38 +43,31 @@ class BuildDeployApiConnector @Inject()(
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  getJobs().onComplete(res => logger.info(s"Completed with $res"))
-
-  def getJobs(): Future[Either[String, Map[String, List[BuildJob]]]] = {
-
+  def getJobs(): Future[Result] = {
     implicit val detailReads: Reads[Result] = Result.reads
 
+    val queryParams = Map.empty[String, String]
+
     val url =
-      url"${config.baseUrl}/v1/GetBuildJobs"
+      url"${config.baseUrl}/v1/GetBuildJobs?$queryParams"
 
     val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
       .getSignedHeaders(
         uri         = url.getPath,
         method      = "POST",
-        queryParams = Map.empty[String, String],
+        queryParams = queryParams,
         headers     = Map[String, String]("host" -> config.host),
         payload     = None
       )
 
-    for {
-      result  <-  httpClientV2.post(url)
-                    .setHeader(headers.toSeq: _*)
-                    .execute[BuildDeployApiConnector.Result]
-      response = if (result.success)
-                   Right(
-                     result
-                       .details
-                       .groupBy(_.repoName)
-                       .map { case (repoName, details) => repoName -> details.flatMap(_.buildJobs) }
-                   )
-                 else
-                   Left(result.message)
-    } yield response
+      httpClientV2.post(url)
+        .setHeader(headers.toSeq: _*)
+        .execute[Result]
+        .recoverWith {
+          case NonFatal(ex) =>
+            logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+            Future.failed(ex)
+        }
   }
 
   def enableBranchProtection(repoName: String): Future[Unit] = {
@@ -111,9 +105,9 @@ class BuildDeployApiConnector @Inject()(
 object BuildDeployApiConnector {
 
   case class BuildJob(
-    name  : String,
-    url   : String,
-    `type`: String
+    name   : String,
+    url    : String,
+    jobType: String
   )
 
   object BuildJob {
@@ -139,19 +133,14 @@ object BuildDeployApiConnector {
   }
 
   case class Result(
-    success: Boolean,
-    message: String,
     details: List[Detail]
   )
 
   object Result {
     val reads: Reads[Result] = {
       implicit val detailReads: Reads[Detail] = Detail.reads
-      ( (__ \ "success").read[Boolean]
-      ~ (__ \ "message").read[String]
-      ~ (__ \ "details").read[List[Detail]]
-      )(Result.apply _)
-    }.preprocess{js => Logger(getClass).info(s"return json = $js"); js}
+      (__ \ "details").read[List[Detail]].map(Result(_))
+    }
   }
 
   final case class Request(

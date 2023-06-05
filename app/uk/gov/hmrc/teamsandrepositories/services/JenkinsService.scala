@@ -23,6 +23,9 @@ import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObject}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
+import cats.implicits
+import cats.implicits.toTraverseOps
+import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.BuildJob
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -45,19 +48,33 @@ class JenkinsService @Inject()(
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[JenkinsObject.StandardJob]] =
     jenkinsLinksPersistence.findAllByRepo(service)
 
+  def buildJobs()(implicit ec: ExecutionContext): Future[List[JenkinsObject.StandardJob]] =
+    for {
+      groupByRepo <- buildDeployApiConnector.getJobs().map(_.details.groupBy(_.repoName))
+      bJobsMap    = groupByRepo.map { case (repoName, details) => repoName -> details.flatMap(_.buildJobs) }.toList
+      bJobs       <- bJobsMap.flatTraverse[Future, JenkinsObject.StandardJob] { case (repoName, buildJobs) =>
+                      buildJobs.traverse { buildJob =>
+                        jenkinsConnector.getLatestBuildData(buildJob.url).map { buildData =>
+                          JenkinsObject.StandardJob(
+                            name        = buildJob.name,
+                            jobType     = Some(buildJob.jobType),
+                            jenkinsUrl  = buildJob.url,
+                            latestBuild = Some(buildData),
+                            gitHubUrl   = Some(s"https://github.com/hmrc/$repoName.git")
+                          )
+                        }
+                      }
+      }
+    } yield bJobs
+
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      testApi <- buildDeployApiConnector.getJobs()
-      _       =  testApi match {
-        case Left(value)  => logger.info(s">>> Failed to call B&D API: $value")
-        case Right(value) => logger.info(s">>> Successfully called B&D API: ${value.head}")
-      }
-      bJobs <- jenkinsConnector.findBuildJobs()
-      pJobs <- jenkinsConnector.findPerformanceJobs()
-      jobs  =  (bJobs ++ pJobs).flatMap(extractStandardJobsFromTree)
-      _     <- jenkinsLinksPersistence.putAll(jobs)
+      bJobs <- buildJobs()
+      pJobs <- jenkinsConnector.findPerformanceJobs().map(_.flatMap(extractStandardJobsFromTree))
+      _     <- jenkinsLinksPersistence.putAll(pJobs ++ bJobs)
     } yield ()
 
+  // Performance jobs still uses Jenkins Connector
   private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[JenkinsObject.StandardJob] =
     jenkinsObject match {
       case JenkinsObject.Folder(_, _, objects) => objects.flatMap(extractStandardJobsFromTree)
@@ -73,7 +90,7 @@ class JenkinsService @Inject()(
     ec         : ExecutionContext
   ): Future[Option[BuildData]] =
     (for {
-      latestBuild <- jenkinsConnector.getLastBuildTime(url)
+      latestBuild <- jenkinsConnector.getLatestBuildData(url)
       build = if (latestBuild.timestamp.equals(timestamp)) {
         for {
           _        <- Future.successful(logger.info(s"Triggering build for $serviceName"))

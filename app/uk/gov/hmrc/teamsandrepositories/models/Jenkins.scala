@@ -77,6 +77,7 @@ object JenkinsObject {
 
   case class StandardJob(
     name       : String,
+    jobType    : Option[String],
     jenkinsUrl : String,
     latestBuild: Option[BuildData],
     gitHubUrl  : Option[String]
@@ -91,6 +92,7 @@ object JenkinsObject {
 
     val mongoFormat: Format[StandardJob] =
       ( (__ \ "name"       ).format[String]
+      ~ (__ \ "jobType"    ).formatNullable[String]
       ~ (__ \ "jenkinsURL" ).format[String]
       ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
       ~ (__ \ "gitHubUrl"  ).formatNullable[String]
@@ -98,6 +100,7 @@ object JenkinsObject {
 
     val apiWrites: Writes[StandardJob] =
       ( (__ \ "name"       ).write[String]
+      ~ (__ \ "jobType"    ).formatNullable[String]
       ~ (__ \ "jenkinsURL" ).write[String]
       ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
       ~ (__ \ "gitHubUrl"  ).writeNullable[String]
@@ -113,10 +116,11 @@ object JenkinsObject {
 
     val jenkinsReads: Reads[StandardJob] =
       ( (__ \ "name"     ).read[String]
+      ~ (__ \ "jobType"  ).readNullable[String]
       ~ (__ \ "url"      ).read[String]
       ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
       ~ extractGithubUrl
-      )(apply _)
+      )(StandardJob.apply _)
   }
 
   private lazy val folderReads: Reads[Folder] =
