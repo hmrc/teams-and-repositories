@@ -49,7 +49,7 @@ class BuildDeployApiConnector @Inject()(
   private def awsSigner(
     url        : URL,
     queryParams: Map[String, String],
-    payload    : => Option[JsValue]
+    payload    : Option[JsValue]
   ): Map[String, String] =
     AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
       .getSignedHeaders(
@@ -59,7 +59,6 @@ class BuildDeployApiConnector @Inject()(
         headers     = Map[String, String]("host" -> config.host),
         payload     = payload.map(v => Json.toBytes(v))
       )
-
 
   def getBuildJobs(): Future[Map[String, Seq[BuildJob]]] = {
 
