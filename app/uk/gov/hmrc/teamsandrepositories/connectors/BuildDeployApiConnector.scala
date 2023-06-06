@@ -49,7 +49,7 @@ class BuildDeployApiConnector @Inject()(
   private def awsSigner(
     url        : URL,
     queryParams: Map[String, String],
-    payload    : => Option[JsValue]
+    payload    : Option[JsValue]
   ): Map[String, String] =
     AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
       .getSignedHeaders(
