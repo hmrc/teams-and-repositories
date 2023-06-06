@@ -201,20 +201,6 @@ object JenkinsConnector {
 
     object StandardJob {
 
-      val mongoFormat: Format[StandardJob] =
-        ( (__ \ "name"       ).format[String]
-          ~ (__ \ "jenkinsURL" ).format[String]
-          ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
-          ~ (__ \ "gitHubUrl"  ).formatNullable[String]
-          )(apply, unlift(unapply))
-
-      val apiWrites: Writes[StandardJob] =
-        ( (__ \ "name"       ).write[String]
-          ~ (__ \ "jenkinsURL" ).write[String]
-          ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
-          ~ (__ \ "gitHubUrl"  ).writeNullable[String]
-          )(unlift(unapply))
-
       private def extractGithubUrl = Reads[Option[String]] { js =>
         val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
         l.headOption match {

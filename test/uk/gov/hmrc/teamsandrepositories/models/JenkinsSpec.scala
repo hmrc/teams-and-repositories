@@ -18,8 +18,10 @@ package uk.gov.hmrc.teamsandrepositories.models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsResult, JsValue, Json}
+import play.api.libs.json.{JsResult, JsSuccess, JsValue, Json}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector.JenkinsObject
+
+import java.time.Instant
 
 class JenkinsSpec extends AnyWordSpec with Matchers {
 
@@ -40,7 +42,12 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
             "url": "https://..."
         }}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$PipelineJob"
+
+      Json.fromJson[JenkinsObject](jsonString) shouldBe JsSuccess(
+        JenkinsObject.PipelineJob(
+          name       = "Pipeline",
+          jenkinsUrl = "https://...")
+      )
     }
 
     "simple job" in {
@@ -68,9 +75,22 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
           }}"""
       )
 
-      val x: JsResult[JenkinsObject] = Json.fromJson[JenkinsObject](jsonString)
-      x.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$$JenkinsObject$$StandardJob"
-      x.get.asInstanceOf[JenkinsObject.StandardJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
+      Json.fromJson[JenkinsObject](jsonString) shouldBe JsSuccess(
+        JenkinsObject.StandardJob(
+          name        = "job",
+          jenkinsUrl  = "https://.../",
+          latestBuild = Some(
+            BuildData(
+              number      = 3,
+              url         = "https://.../3/",
+              timestamp   = Instant.ofEpochMilli(1658499777096L),
+              result      = Some(BuildResult.Success),
+              description = None
+            )
+          ),
+          gitHubUrl = Some("https://github.com/hmrc/project.git")
+        )
+      )
     }
 
     "simple folder" in {
@@ -83,7 +103,15 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
         "url": "https://...",
        "jobs" : []}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$Folder"
+
+      Json.fromJson[JenkinsObject](jsonString) shouldBe JsSuccess(
+        JenkinsObject.Folder(
+          name       = "Folder",
+          jenkinsUrl = "https://...",
+          jobs       = Seq.empty[JenkinsObject]
+        )
+      )
+
     }
 
     "Folder with a job" in {
@@ -109,7 +137,15 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
                   }
             }]}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$Folder"
+
+      Json.fromJson[JenkinsObject](jsonString) shouldBe JsSuccess(
+        JenkinsObject.Folder(
+          name       = "Folder",
+          jenkinsUrl = "https://...",
+          jobs       = Seq(JenkinsObject.PipelineJob("Job", "https://..."))
+        )
+      )
+
     }
   }
 }
