@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
+import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
@@ -56,10 +57,33 @@ object BuildData {
     )(apply _)
 }
 
+sealed trait BuildJobType { def asString: String }
+
+object BuildJobType {
+  case object Job         extends BuildJobType { override val asString = "job"         }
+  case object Pipeline    extends BuildJobType { override val asString = "pipeline"    }
+  case object Performance extends BuildJobType { override val asString = "performance" }
+
+  private val logger = Logger(this.getClass)
+
+  val values: List[BuildJobType] =
+    List(Job, Pipeline, Performance)
+
+  def parse(s: String): BuildJobType =
+    values
+      .find(_.asString.equalsIgnoreCase(s)).getOrElse {
+        logger.info("Unable to find job type: $s, defaulted to: job")
+        Job
+    }
+
+  implicit val format: Format[BuildJobType] =
+    Format.of[String].inmap(parse, _.asString)
+}
+
 case class BuildJob(
   name       : String,
   jenkinsUrl : String,
-  jobType    : Option[String],
+  jobType    : BuildJobType,
   latestBuild: Option[BuildData],
   gitHubUrl  : Option[String]
 )
@@ -68,7 +92,7 @@ object BuildJob {
   val reads: Reads[BuildJob] =
     ( (__ \ "name"       ).read[String]
     ~ (__ \ "url"        ).read[String]
-    ~ (__ \ "type"       ).readNullable[String]
+    ~ (__ \ "type"       ).read[BuildJobType]
     ~ Reads.pure(Option.empty[BuildData])
     ~ Reads.pure(Option.empty[String])
     )(BuildJob.apply _)
@@ -76,7 +100,7 @@ object BuildJob {
   val mongoFormat: Format[BuildJob] =
     ( (__ \ "name"       ).format[String]
     ~ (__ \ "jenkinsURL" ).format[String]
-    ~ (__ \ "jobType"    ).formatNullable[String]
+    ~ (__ \ "jobType"    ).format[BuildJobType]
     ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
     ~ (__ \ "gitHubUrl"  ).formatNullable[String]
     )(apply, unlift(unapply))
@@ -84,7 +108,7 @@ object BuildJob {
   val apiWrites: Writes[BuildJob] =
     ( (__ \ "name"       ).write[String]
     ~ (__ \ "jenkinsURL" ).write[String]
-    ~ (__ \ "jobType"    ).formatNullable[String]
+    ~ (__ \ "jobType"    ).write[BuildJobType]
     ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
     ~ (__ \ "gitHubUrl"  ).writeNullable[String]
     )(unlift(unapply))

@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.Future
@@ -40,8 +40,8 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
             Some(
               BuildJob(
                 name        = "foo",
-                jobType     = None,
                 jenkinsUrl  = "http://bar/job/api/",
+                jobType     = BuildJobType.Job,
                 latestBuild = None,
                 gitHubUrl   = Some("https://github.com/hmrc/project.git")
               )
@@ -52,7 +52,7 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("foo").apply(FakeRequest())
       val bodyText = contentAsString(result)
-      bodyText mustBe """{"name":"foo","jenkinsURL":"http://bar/job/api/","gitHubUrl":"https://github.com/hmrc/project.git"}"""
+      bodyText mustBe """{"name":"foo","jenkinsURL":"http://bar/job/api/","jobType":"job","gitHubUrl":"https://github.com/hmrc/project.git"}"""
     }
 
     "return a not found when no matches found" in {

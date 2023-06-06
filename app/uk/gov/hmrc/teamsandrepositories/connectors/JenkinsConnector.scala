@@ -22,7 +22,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildJobType}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -76,10 +76,11 @@ class JenkinsConnector @Inject()(
       }
   }
 
+  // Currently only used for performance jobs
   private def toBuildJob(job: JenkinsObject.StandardJob): BuildJob =
     BuildJob(
       name        = job.name,
-      jobType     = None,
+      jobType     = BuildJobType.Performance,
       jenkinsUrl  = job.jenkinsUrl,
       latestBuild = job.latestBuild,
       gitHubUrl   = job.gitHubUrl

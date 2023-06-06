@@ -26,7 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -36,7 +36,7 @@ class BuildDeployApiConnectorSpec
      with HttpClientV2Support
      with IntegrationPatience {
 
-  "getJobs" should {
+  "getBuildJobs" should {
 
     "Invoke the API and return build jobs if successful" in {
       stubFor(
@@ -47,7 +47,7 @@ class BuildDeployApiConnectorSpec
       def buildJob1(repoName: String): BuildJob = BuildJob(
         name        = s"Centre Technical Leads/$repoName",
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
-        jobType     = Some("job"),
+        jobType     = BuildJobType.Job,
         latestBuild = None,
         gitHubUrl   = None
       )
@@ -55,7 +55,7 @@ class BuildDeployApiConnectorSpec
       def buildJob2(repoName: String): BuildJob = BuildJob(
         name        = s"Centre Technical Leads/$repoName-pipeline",
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
-        jobType     = Some("pipeline"),
+        jobType     = BuildJobType.Pipeline,
         latestBuild = None,
         gitHubUrl   = None
       )

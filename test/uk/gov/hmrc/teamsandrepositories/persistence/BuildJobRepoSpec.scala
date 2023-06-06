@@ -20,7 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildResult}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildJobType, BuildResult}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -36,13 +36,13 @@ class JenkinsLinksPersistenceSpec
 
   "BuildJobRepository" should {
     "putAll correctly" in {
-      val job1 = mkBuildJob("service1Job", None, "service1")
-      val job2 = mkBuildJob("service2Job", None, "service2")
+      val job1 = mkBuildJob("service1Job", BuildJobType.Job, "service1")
+      val job2 = mkBuildJob("service2Job", BuildJobType.Job, "service2")
       repository.putAll(Seq(job1, job2)).futureValue
       repository.findByJobName("service1Job").futureValue shouldBe Some(job1)
       repository.findByJobName("service2Job").futureValue shouldBe Some(job2)
 
-      val job3 = mkBuildJob("service3Job", None, "service3")
+      val job3 = mkBuildJob("service3Job", BuildJobType.Job, "service3")
       repository.putAll(Seq(job1, job3)).futureValue
       repository.findByJobName("service1Job").futureValue shouldBe Some(job1)
       repository.findByJobName("service2Job").futureValue shouldBe None
@@ -50,24 +50,24 @@ class JenkinsLinksPersistenceSpec
     }
 
     "find all by repository name" in {
-      val job1 = mkBuildJob("service1Job1", None, "service1")
-      val job2 = mkBuildJob("service1Job2", None, "service1")
-      val job3 = mkBuildJob("service2Job", None, "service2")
+      val job1 = mkBuildJob("service1Job1", BuildJobType.Job, "service1")
+      val job2 = mkBuildJob("service1Job2", BuildJobType.Job, "service1")
+      val job3 = mkBuildJob("service2Job",  BuildJobType.Job, "service2")
       repository.putAll(Seq(job1, job2, job3)).futureValue
       repository.findAllByRepo("service1").futureValue shouldBe Seq(job1, job2)
       repository.findAllByRepo("service2").futureValue shouldBe Seq(job3)
     }
 
     "find all job type" in {
-      val job1 = mkBuildJob("service1Job1", Some("jobType1"), "service1")
-      val job2 = mkBuildJob("service1Job2", Some("jobType1"), "service1")
-      val job3 = mkBuildJob("service2Job", None, "service2")
+      val job1 = mkBuildJob("service1Job1", BuildJobType.Job,      "service1")
+      val job2 = mkBuildJob("service1Job2", BuildJobType.Pipeline, "service1")
+      val job3 = mkBuildJob("service2Job",  BuildJobType.Job,      "service2")
       repository.putAll(Seq(job1, job2, job3)).futureValue
-      repository.findAllByJobType("jobType1").futureValue shouldBe Seq(job1, job2)
+      repository.findAllByJobType(BuildJobType.Job.asString).futureValue shouldBe Seq(job1, job3)
     }
   }
 
-  def mkBuildJob(jobName: String, jobType: Option[String], repositoryName: String): BuildJob = {
+  def mkBuildJob(jobName: String, jobType: BuildJobType, repositoryName: String): BuildJob = {
     val jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$jobName/"
     val buildNumber = 1
     BuildJob(
