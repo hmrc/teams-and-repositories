@@ -27,7 +27,6 @@ import cats.implicits._
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import scala.::
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

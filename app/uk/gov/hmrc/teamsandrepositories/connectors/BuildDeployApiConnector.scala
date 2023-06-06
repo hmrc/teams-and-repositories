@@ -60,6 +60,7 @@ class BuildDeployApiConnector @Inject()(
         payload     = payload.map(v => Json.toBytes(v))
       )
 
+
   def getBuildJobs(): Future[Map[String, Seq[BuildJob]]] = {
 
     implicit val dr: Reads[Seq[Detail]] =

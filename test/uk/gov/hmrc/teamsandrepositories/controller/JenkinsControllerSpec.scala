@@ -49,7 +49,6 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
           )
         )
 
-
       val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
       val result = controller.lookup("foo").apply(FakeRequest())
       val bodyText = contentAsString(result)

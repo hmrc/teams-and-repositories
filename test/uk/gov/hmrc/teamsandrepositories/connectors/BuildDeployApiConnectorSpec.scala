@@ -65,7 +65,6 @@ class BuildDeployApiConnectorSpec
         "test-repo-2" -> List(buildJob1("test-repo-2"), buildJob2("test-repo-2"))
       )
 
-
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))
       )
