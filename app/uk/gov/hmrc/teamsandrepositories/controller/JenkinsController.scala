@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import javax.inject.{Inject, Singleton}
@@ -32,7 +32,7 @@ class JenkinsController @Inject()(
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val bjw: Writes[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.apiWrites
+  private implicit val bjw: Writes[BuildJob] = BuildJob.apiWrites
 
   def lookup(name: String): Action[AnyContent] = Action.async {
     jenkinsService.findByJobName(name).map {

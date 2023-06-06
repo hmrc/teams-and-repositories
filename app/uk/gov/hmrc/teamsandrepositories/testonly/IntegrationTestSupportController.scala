@@ -20,7 +20,7 @@ import org.mongodb.scala.bson.Document
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, JenkinsObject}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository}
 import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsLinksPersistence, RepositoriesPersistence}
 
 import javax.inject.Inject
@@ -33,7 +33,7 @@ class IntegrationTestSupportController @Inject()(
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
-  private implicit val bjf: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.mongoFormat
+  private implicit val bjf: Reads[BuildJob] = BuildJob.mongoFormat
   private implicit val ghf: OFormat[GitRepository]           = GitRepository.apiFormat
 
   private def validateJson[A: Reads] =
@@ -47,7 +47,7 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putJenkinsLinks() = Action.async(validateJson[Seq[JenkinsObject.StandardJob]]) { implicit request =>
+  def putJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
     jenkinsLinksPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 

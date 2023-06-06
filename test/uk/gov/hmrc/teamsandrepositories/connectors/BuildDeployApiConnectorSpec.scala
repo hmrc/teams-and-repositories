@@ -26,7 +26,7 @@ import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
-import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.{BuildJob, Detail, Result}
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -45,23 +45,26 @@ class BuildDeployApiConnectorSpec
       )
 
       def buildJob1(repoName: String): BuildJob = BuildJob(
-        name    = s"Centre Technical Leads/$repoName",
-        url     = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
-        jobType = "job"
+        name        = s"Centre Technical Leads/$repoName",
+        jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
+        jobType     = Some("job"),
+        latestBuild = None,
+        gitHubUrl   = None
       )
 
       def buildJob2(repoName: String): BuildJob = BuildJob(
-        name    = s"Centre Technical Leads/$repoName-pipeline",
-        url     = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
-        jobType = "pipeline"
+        name        = s"Centre Technical Leads/$repoName-pipeline",
+        jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
+        jobType     = Some("pipeline"),
+        latestBuild = None,
+        gitHubUrl   = None
       )
 
-      connector.getJobs().futureValue shouldBe Result(
-        List(
-          Detail("test-repo-1", List(buildJob1("test-repo-1"), buildJob2("test-repo-1"))),
-          Detail("test-repo-2", List(buildJob1("test-repo-2"), buildJob2("test-repo-2")))
-        )
+      connector.getBuildJobs().futureValue shouldBe Map(
+        "test-repo-1" -> List(buildJob1("test-repo-1"), buildJob2("test-repo-1")),
+        "test-repo-2" -> List(buildJob1("test-repo-2"), buildJob2("test-repo-2"))
       )
+
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import play.api.{Logger, Logging}
+import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
@@ -24,9 +24,10 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.{BuildJob, Detail, Result}
 import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
+import java.net.URL
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,33 +42,43 @@ class BuildDeployApiConnector @Inject()(
   ec: ExecutionContext
 ) extends Logging {
 
+  import BuildDeployApiConnector._
+
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def getJobs(): Future[Result] = {
-    implicit val detailReads: Reads[Result] = Result.reads
+  private def awsSigner(
+    url        : URL,
+    queryParams: Map[String, String],
+    payload    : => Option[JsValue]
+  ): Map[String, String] =
+    AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
+      .getSignedHeaders(
+        uri         = url.getPath,
+        method      = "POST",
+        queryParams = queryParams,
+        headers     = Map[String, String]("host" -> config.host),
+        payload     = payload.map(v => Json.toBytes(v))
+      )
+
+  def getBuildJobs(): Future[Map[String, Seq[BuildJob]]] = {
+
+    implicit val dr: Reads[Seq[Detail]] =
+      Reads.at(__ \ "details")(Reads.seq(Detail.reads))
 
     val queryParams = Map.empty[String, String]
 
     val url =
       url"${config.baseUrl}/v1/GetBuildJobs?$queryParams"
 
-    val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
-      .getSignedHeaders(
-        uri         = url.getPath,
-        method      = "POST",
-        queryParams = queryParams,
-        headers     = Map[String, String]("host" -> config.host),
-        payload     = None
-      )
-
-      httpClientV2.post(url)
-        .setHeader(headers.toSeq: _*)
-        .execute[Result]
-        .recoverWith {
-          case NonFatal(ex) =>
-            logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-            Future.failed(ex)
-        }
+    httpClientV2.post(url)
+      .setHeader(awsSigner(url, queryParams, None).toSeq: _*)
+      .execute[Seq[Detail]]
+      .map(_.map(detail => detail.repoName -> detail.buildJobs).toMap)
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
   }
 
   def enableBranchProtection(repoName: String): Future[Unit] = {
@@ -79,20 +90,11 @@ class BuildDeployApiConnector @Inject()(
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
 
-    val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
-      .getSignedHeaders(
-        uri         = url.getPath,
-        method      = "POST",
-        queryParams = queryParams,
-        headers     = Map[String, String]("host" -> config.host),
-        payload     = Some(Json.toBytes(payload))
-      )
-
     for {
       response <- httpClientV2
                     .post(url)
                     .withBody(payload)
-                    .setHeader(headers.toSeq: _*)
+                    .setHeader(awsSigner(url, queryParams, Some(payload)).toSeq: _*)
                     .execute[BuildDeployApiConnector.Response]
       _        <- if (response.success)
                     Future.unit
@@ -104,42 +106,17 @@ class BuildDeployApiConnector @Inject()(
 
 object BuildDeployApiConnector {
 
-  case class BuildJob(
-    name   : String,
-    url    : String,
-    jobType: String
-  )
-
-  object BuildJob {
-    val reads: Reads[BuildJob] =
-      ( (__ \ "name").read[String]
-      ~ (__ \ "url" ).read[String]
-      ~ (__ \ "type").read[String]
-      )(BuildJob.apply _)
-  }
-
-  case class Detail(
+   private case class Detail(
    repoName : String,
    buildJobs: List[BuildJob]
   )
 
-  object Detail {
+  private object Detail {
     val reads: Reads[Detail] = {
       implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
       ( (__ \ "repository_name").read[String]
-      ~ (__ \ "build_jobs").read[List[BuildJob]]
+      ~ (__ \ "build_jobs"     ).read[List[BuildJob]]
       )(Detail.apply _)
-    }
-  }
-
-  case class Result(
-    details: List[Detail]
-  )
-
-  object Result {
-    val reads: Reads[Result] = {
-      implicit val detailReads: Reads[Detail] = Detail.reads
-      (__ \ "details").read[List[Detail]].map(Result(_))
     }
   }
 

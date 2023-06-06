@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.models
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsResult, JsValue, Json}
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector.JenkinsObject
 
 class JenkinsSpec extends AnyWordSpec with Matchers {
 
@@ -39,7 +40,7 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
             "url": "https://..."
         }}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$PipelineJob"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$PipelineJob"
     }
 
     "simple job" in {
@@ -68,7 +69,7 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
       )
 
       val x: JsResult[JenkinsObject] = Json.fromJson[JenkinsObject](jsonString)
-      x.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$$StandardJob"
+      x.get.getClass.getName shouldBe s"uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$$JenkinsObject$$StandardJob"
       x.get.asInstanceOf[JenkinsObject.StandardJob].gitHubUrl shouldBe Some("https://github.com/hmrc/project.git")
     }
 
@@ -82,7 +83,7 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
         "url": "https://...",
        "jobs" : []}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$Folder"
     }
 
     "Folder with a job" in {
@@ -108,7 +109,7 @@ class JenkinsSpec extends AnyWordSpec with Matchers {
                   }
             }]}"""
       )
-      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.models.JenkinsObject$Folder"
+      Json.fromJson[JenkinsObject](jsonString).get.getClass.getName shouldBe "uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector$JenkinsObject$Folder"
     }
   }
 }

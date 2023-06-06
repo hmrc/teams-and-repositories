@@ -21,14 +21,13 @@ import akka.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, JenkinsObject}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
-import cats.implicits
-import cats.implicits.toTraverseOps
-import uk.gov.hmrc.teamsandrepositories.connectors.BuildDeployApiConnector.BuildJob
+import cats.implicits._
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
+import scala.::
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -42,45 +41,36 @@ class JenkinsService @Inject()(
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  def findByJobName(name: String): Future[Option[JenkinsObject.StandardJob]] =
+  def findByJobName(name: String): Future[Option[BuildJob]] =
     jenkinsLinksPersistence.findByJobName(name)
 
-  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[JenkinsObject.StandardJob]] =
+  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     jenkinsLinksPersistence.findAllByRepo(service)
 
-  def buildJobs()(implicit ec: ExecutionContext): Future[List[JenkinsObject.StandardJob]] =
+  def buildJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     for {
-      groupByRepo <- buildDeployApiConnector.getJobs().map(_.details.groupBy(_.repoName))
-      bJobsMap    =  groupByRepo.map { case (repoName, details) => repoName -> details.flatMap(_.buildJobs) }.toList
-      bJobs       <- bJobsMap.flatTraverse[Future, JenkinsObject.StandardJob] { case (repoName, buildJobs) =>
-                      buildJobs.traverse { buildJob =>
-                        jenkinsConnector.getLatestBuildData(buildJob.url).map { buildData =>
-                          JenkinsObject.StandardJob(
-                            name        = buildJob.name,
-                            jobType     = Some(buildJob.jobType),
-                            jenkinsUrl  = buildJob.url,
-                            latestBuild = Some(buildData),
-                            gitHubUrl   = Some(s"https://github.com/hmrc/$repoName.git")
-                          )
-                        }
-                      }
+      jobs      <- buildDeployApiConnector.getBuildJobs()
+      buildJobs <- jobs.toList.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, (repoName, buildJobs)) =>
+                     buildJobs.toList.foldLeftM[Future, List[BuildJob]](acc) { case (accJobs, buildJob) =>
+                       jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
+                         BuildJob(
+                           name        = buildJob.name,
+                           jenkinsUrl  = buildJob.jenkinsUrl,
+                           jobType     = buildJob.jobType,
+                           latestBuild = Some(buildData),
+                           gitHubUrl   = Some(s"https://github.com/hmrc/$repoName.git")
+                         ) :: accJobs
+                       }
+                     }
       }
-    } yield bJobs
+    } yield buildJobs
 
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      bJobs <- buildJobs()
-      pJobs <- jenkinsConnector.findPerformanceJobs().map(_.flatMap(extractStandardJobsFromTree))
-      _     <- jenkinsLinksPersistence.putAll(pJobs ++ bJobs)
+      buildJobs       <- buildJobs()
+      performanceJobs <- jenkinsConnector.findPerformanceJobs()
+      _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs)
     } yield ()
-
-  // Performance jobs still uses Jenkins Connector
-  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[JenkinsObject.StandardJob] =
-    jenkinsObject match {
-      case JenkinsObject.Folder(_, _, objects) => objects.flatMap(extractStandardJobsFromTree)
-      case job: JenkinsObject.StandardJob      => Seq(job)
-      case JenkinsObject.PipelineJob(_, _)     => Seq()
-    }
 
   def triggerBuildJob(
     serviceName: String,

@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import scala.concurrent.Future
@@ -38,7 +38,7 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
         .thenReturn(
           Future.successful(
             Some(
-              JenkinsObject.StandardJob(
+              BuildJob(
                 name        = "foo",
                 jobType     = None,
                 jenkinsUrl  = "http://bar/job/api/",

@@ -56,94 +56,36 @@ object BuildData {
     )(apply _)
 }
 
+case class BuildJob(
+  name       : String,
+  jenkinsUrl : String,
+  jobType    : Option[String],
+  latestBuild: Option[BuildData],
+  gitHubUrl  : Option[String]
+)
 
-case class JenkinsJobs(jobs: Seq[JenkinsObject.StandardJob])
-object JenkinsJobs {
-  implicit val reads: Reads[JenkinsJobs] = {
-    implicit val x: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.jenkinsReads
-    Json.reads[JenkinsJobs]
-  }
-}
+object BuildJob {
+  val reads: Reads[BuildJob] =
+    ( (__ \ "name"       ).read[String]
+    ~ (__ \ "url"        ).read[String]
+    ~ (__ \ "type"       ).readNullable[String]
+    ~ Reads.pure(Option.empty[BuildData])
+    ~ Reads.pure(Option.empty[String])
+    )(BuildJob.apply _)
 
-sealed trait JenkinsObject
+  val mongoFormat: Format[BuildJob] =
+    ( (__ \ "name"       ).format[String]
+    ~ (__ \ "jenkinsURL" ).format[String]
+    ~ (__ \ "jobType"    ).formatNullable[String]
+    ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
+    ~ (__ \ "gitHubUrl"  ).formatNullable[String]
+    )(apply, unlift(unapply))
 
-object JenkinsObject {
-
-  case class Folder(
-    name      : String,
-    jenkinsUrl: String,
-    jobs      : Seq[JenkinsObject]
-  ) extends JenkinsObject
-
-  case class StandardJob(
-    name       : String,
-    jobType    : Option[String],
-    jenkinsUrl : String,
-    latestBuild: Option[BuildData],
-    gitHubUrl  : Option[String]
-  ) extends JenkinsObject
-
-  case class PipelineJob(
-    name      : String,
-    jenkinsUrl: String
-  ) extends JenkinsObject
-
-  object StandardJob {
-
-    val mongoFormat: Format[StandardJob] =
-      ( (__ \ "name"       ).format[String]
-      ~ (__ \ "jobType"    ).formatNullable[String]
-      ~ (__ \ "jenkinsURL" ).format[String]
-      ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
-      ~ (__ \ "gitHubUrl"  ).formatNullable[String]
-      )(apply, unlift(unapply))
-
-    val apiWrites: Writes[StandardJob] =
-      ( (__ \ "name"       ).write[String]
-      ~ (__ \ "jobType"    ).formatNullable[String]
-      ~ (__ \ "jenkinsURL" ).write[String]
-      ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
-      ~ (__ \ "gitHubUrl"  ).writeNullable[String]
-      )(unlift(unapply))
-
-    private def extractGithubUrl = Reads[Option[String]] { js =>
-      val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
-      l.headOption match {
-        case Some(v) => JsSuccess(Some(v.as[String].toLowerCase)) // github organisation can be uppercase
-        case None    => JsSuccess(None)
-      }
-    }
-
-    val jenkinsReads: Reads[StandardJob] =
-      ( (__ \ "name"     ).read[String]
-      ~ (__ \ "jobType"  ).readNullable[String]
-      ~ (__ \ "url"      ).read[String]
-      ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
-      ~ extractGithubUrl
-      )(StandardJob.apply _)
-  }
-
-  private lazy val folderReads: Reads[Folder] =
-    ( (__ \ "name").read[String]
-    ~ (__ \ "url" ).read[String]
-    ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
-    )(Folder.apply _)
-
-  private val pipelineReads: Reads[PipelineJob] =
-    ( (__ \ "name").read[String]
-    ~ (__ \ "url" ).read[String]
-    )(PipelineJob.apply _)
-
-  implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
-    (json \ "_class").validate[String].flatMap {
-      case "com.cloudbees.hudson.plugins.folder.Folder"     => folderReads.reads(json)
-      case "hudson.model.FreeStyleProject"                  => StandardJob.jenkinsReads.reads(json)
-      case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => pipelineReads.reads(json)
-      case value                                            => throw new Exception(s"Unsupported Jenkins class $value")
-    }
-}
-
-object JenkinsObjects {
-  implicit val jenkinsReads: Reads[Seq[JenkinsObject]] =
-    (__ \ "jobs").read(Reads.seq[JenkinsObject])
+  val apiWrites: Writes[BuildJob] =
+    ( (__ \ "name"       ).write[String]
+    ~ (__ \ "jenkinsURL" ).write[String]
+    ~ (__ \ "jobType"    ).formatNullable[String]
+    ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
+    ~ (__ \ "gitHubUrl"  ).writeNullable[String]
+    )(unlift(unapply))
 }
