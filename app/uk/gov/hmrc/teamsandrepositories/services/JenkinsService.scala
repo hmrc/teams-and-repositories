@@ -49,17 +49,9 @@ class JenkinsService @Inject()(
   def buildJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     for {
       jobs      <- buildDeployApiConnector.getBuildJobs()
-      buildJobs <- jobs.toList.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, (repoName, buildJobs)) =>
-                     buildJobs.toList.foldLeftM[Future, List[BuildJob]](acc) { case (accJobs, buildJob) =>
-                       jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
-                         BuildJob(
-                           name        = buildJob.name,
-                           jenkinsUrl  = buildJob.jenkinsUrl,
-                           jobType     = buildJob.jobType,
-                           latestBuild = Some(buildData),
-                           gitHubUrl   = Some(s"https://github.com/hmrc/$repoName.git")
-                         ) :: accJobs
-                       }
+      buildJobs <- jobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
+                     jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
+                       buildJob.copy(latestBuild = Some(buildData)) :: acc
                      }
       }
     } yield buildJobs

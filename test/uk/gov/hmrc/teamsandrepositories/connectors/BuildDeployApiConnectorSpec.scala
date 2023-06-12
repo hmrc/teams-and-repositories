@@ -45,25 +45,28 @@ class BuildDeployApiConnectorSpec
       )
 
       def buildJob1(repoName: String): BuildJob = BuildJob(
-        name        = s"Centre Technical Leads/$repoName",
+        repoName    = repoName,
+        jobName     = s"Centre Technical Leads/$repoName",
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
         jobType     = BuildJobType.Job,
-        latestBuild = None,
-        gitHubUrl   = None
+        latestBuild = None
       )
 
       def buildJob2(repoName: String): BuildJob = BuildJob(
-        name        = s"Centre Technical Leads/$repoName-pipeline",
+        repoName    = repoName,
+        jobName     = s"Centre Technical Leads/$repoName-pipeline",
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
         jobType     = BuildJobType.Pipeline,
-        latestBuild = None,
-        gitHubUrl   = None
+        latestBuild = None
       )
 
-      connector.getBuildJobs().futureValue shouldBe Map(
-        "test-repo-1" -> List(buildJob1("test-repo-1"), buildJob2("test-repo-1")),
-        "test-repo-2" -> List(buildJob1("test-repo-2"), buildJob2("test-repo-2"))
-      )
+      connector.getBuildJobs().futureValue shouldBe
+        Seq(
+          buildJob1("test-repo-1"),
+          buildJob2("test-repo-1"),
+          buildJob1("test-repo-2"),
+          buildJob2("test-repo-2")
+        )
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))

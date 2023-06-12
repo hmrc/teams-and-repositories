@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 
 import java.time.Instant
 
@@ -72,7 +73,7 @@ object BuildJobType {
   def parse(s: String): BuildJobType =
     values
       .find(_.asString.equalsIgnoreCase(s)).getOrElse {
-        logger.info("Unable to find job type: $s, defaulted to: job")
+        logger.info(s"Unable to find job type: $s, defaulted to: job")
         Job
     }
 
@@ -81,35 +82,37 @@ object BuildJobType {
 }
 
 case class BuildJob(
-  name       : String,
+  repoName   : String,
+  jobName    : String,
   jenkinsUrl : String,
   jobType    : BuildJobType,
-  latestBuild: Option[BuildData],
-  gitHubUrl  : Option[String]
-)
+  latestBuild: Option[BuildData]
+) {
+  val gitHubUrl = s"https://github.com/hmrc/$repoName.git"
+}
 
 object BuildJob {
-  val reads: Reads[BuildJob] =
-    ( (__ \ "name"       ).read[String]
+  def reads(repoName: String): Reads[BuildJob] =
+    ( Reads.pure(repoName)
+    ~ (__ \ "name"       ).read[String]
     ~ (__ \ "url"        ).read[String]
     ~ (__ \ "type"       ).read[BuildJobType]
     ~ Reads.pure(Option.empty[BuildData])
-    ~ Reads.pure(Option.empty[String])
     )(BuildJob.apply _)
 
   val mongoFormat: Format[BuildJob] =
-    ( (__ \ "name"       ).format[String]
+    ( (__ \ "repoName"   ).format[String]
+    ~ (__ \ "jobName"    ).format[String]
     ~ (__ \ "jenkinsURL" ).format[String]
     ~ (__ \ "jobType"    ).format[BuildJobType]
     ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
-    ~ (__ \ "gitHubUrl"  ).formatNullable[String]
     )(apply, unlift(unapply))
 
   val apiWrites: Writes[BuildJob] =
-    ( (__ \ "name"       ).write[String]
+    ( (__ \ "repoName"   ).write[String]
+    ~ (__ \ "jobName"    ).write[String]
     ~ (__ \ "jenkinsURL" ).write[String]
     ~ (__ \ "jobType"    ).write[BuildJobType]
     ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
-    ~ (__ \ "gitHubUrl"  ).writeNullable[String]
     )(unlift(unapply))
 }

@@ -19,7 +19,9 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class JenkinsConnectorSpec extends AnyWordSpec with Matchers {
+class JenkinsConnectorSpec extends AnyWordSpec
+  with Matchers {
+
 
   "JenkinsConnector.generateJobQuery" should {
     "get only top level of jobs when depth is 1" in {
@@ -35,6 +37,12 @@ class JenkinsConnectorSpec extends AnyWordSpec with Matchers {
     "get deep tree of jobs if depth = 10" in {
       val res = JenkinsConnector.generateJobQuery(10)
       res shouldBe "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]]]]]]]]]]"
+    }
+  }
+
+  "JenkinsConnector.extractRepoNameFromGitHubUrl" should {
+    "successfully extract repo name from a github url" in {
+      JenkinsConnector.extractRepoNameFromGitHubUrl(s"https://github.com/hmrc/repo-one.git") shouldBe Some("repo-one")
     }
   }
 }

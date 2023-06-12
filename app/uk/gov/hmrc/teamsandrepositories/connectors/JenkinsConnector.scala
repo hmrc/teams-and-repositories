@@ -76,26 +76,30 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  // Currently only used for performance jobs
-  private def toBuildJob(job: JenkinsObject.StandardJob): BuildJob =
-    BuildJob(
-      name        = job.name,
-      jobType     = BuildJobType.Performance,
-      jenkinsUrl  = job.jenkinsUrl,
-      latestBuild = job.latestBuild,
-      gitHubUrl   = job.gitHubUrl
-    )
-
-  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] =
-    jenkinsObject match {
-      case JenkinsObject.Folder(_, _, objects) => objects.flatMap(extractStandardJobsFromTree)
-      case job: JenkinsObject.StandardJob      => Seq(toBuildJob(job))
-      case JenkinsObject.PipelineJob(_, _)     => Seq()
-    }
-
   def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[BuildJob]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+
+    def toBuildJob(job: JenkinsObject.StandardJob, repoName: String): BuildJob =
+      BuildJob(
+        repoName    = repoName,
+        jobName     = job.name,
+        jobType     = BuildJobType.Performance,
+        jenkinsUrl  = job.jenkinsUrl,
+        latestBuild = job.latestBuild,
+      )
+
+    def processGitHubUrl(job: JenkinsObject.StandardJob): Seq[BuildJob] =
+      job.gitHubUrl
+        .flatMap(extractRepoNameFromGitHubUrl)
+        .map(gitHubUrl => Seq(toBuildJob(job, gitHubUrl)))
+        .getOrElse(Seq.empty)
+
+    def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] = jenkinsObject match {
+      case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(extractStandardJobsFromTree)
+      case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => processGitHubUrl(job)
+      case JenkinsObject.PipelineJob(_, _)                                    => Seq.empty
+    }
 
     httpClientV2
       .get(url)
@@ -151,6 +155,9 @@ object JenkinsConnector {
       s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if (acc == "") "" else s",$acc"}]"
     }
 
+  def extractRepoNameFromGitHubUrl(gitHubUrl: String): Option[String] =
+    """.*hmrc/([^/]+)\.git""".r.findFirstMatchIn(gitHubUrl).map(_.group(1))
+
   case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
 
   object JenkinsQueueData {
@@ -170,7 +177,7 @@ object JenkinsConnector {
   }
 
   case class JenkinsJobs(jobs: Seq[JenkinsObject.StandardJob])
-  object JenkinsJobs {
+  private[connectors] object JenkinsJobs {
     implicit val reads: Reads[JenkinsJobs] = {
       implicit val x: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.jenkinsReads
       Json.reads[JenkinsJobs]
@@ -237,7 +244,7 @@ object JenkinsConnector {
       }
   }
 
-  object JenkinsObjects {
+  private[connectors] object JenkinsObjects {
     implicit val jenkinsReads: Reads[Seq[JenkinsObject]] =
       (__ \ "jobs").read(Reads.seq[JenkinsObject])
   }

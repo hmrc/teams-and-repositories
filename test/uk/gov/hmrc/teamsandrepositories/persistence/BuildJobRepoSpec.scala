@@ -63,7 +63,7 @@ class JenkinsLinksPersistenceSpec
       val job2 = mkBuildJob("service1Job2", BuildJobType.Pipeline, "service1")
       val job3 = mkBuildJob("service2Job",  BuildJobType.Job,      "service2")
       repository.putAll(Seq(job1, job2, job3)).futureValue
-      repository.findAllByJobType(BuildJobType.Job.asString).futureValue shouldBe Seq(job1, job3)
+      repository.findAllByJobType(BuildJobType.Job).futureValue shouldBe Seq(job1, job3)
     }
   }
 
@@ -71,7 +71,8 @@ class JenkinsLinksPersistenceSpec
     val jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$jobName/"
     val buildNumber = 1
     BuildJob(
-      name        = jobName,
+      repoName    = repositoryName,
+      jobName     = jobName,
       jobType     = jobType,
       jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$repositoryName-job/",
       latestBuild = Some(BuildData(
@@ -80,8 +81,7 @@ class JenkinsLinksPersistenceSpec
                       timestamp   = Instant.now().truncatedTo(ChronoUnit.MILLIS),
                       result      = Some(BuildResult.Success),
                       description = Some(s"$repositoryName 1.0.0")
-                    )),
-      gitHubUrl   = Some(s"https://github.com/hmrc/$repositoryName.git")
+                    ))
     )
   }
 }

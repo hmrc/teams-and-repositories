@@ -21,7 +21,7 @@ import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,9 +36,9 @@ class JenkinsLinksPersistence @Inject()(
   collectionName = "jenkinsLinks",
   domainFormat   = BuildJob.mongoFormat,
   indexes        = Seq(
-                     IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")),
+                     IndexModel(Indexes.hashed("jobName"), IndexOptions().name("jobNameIdx")),
                      IndexModel(Indexes.hashed("jobType")),
-                     IndexModel(Indexes.hashed("gitHubUrl"))
+                     IndexModel(Indexes.hashed("repoName"))
                    )
 ) with Transactions {
 
@@ -49,18 +49,18 @@ class JenkinsLinksPersistence @Inject()(
 
   def findByJobName(name: String): Future[Option[BuildJob]] =
     collection
-      .find(Filters.equal("name", name))
+      .find(Filters.equal("jobName", name))
       .first()
       .toFutureOption()
 
   def findAllByRepo(service: String): Future[Seq[BuildJob]] =
     collection
-      .find(Filters.equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
+      .find(Filters.equal("repoName", service))
       .toFuture()
 
-  def findAllByJobType(jobType: String): Future[Seq[BuildJob]] =
+  def findAllByJobType(jobType: BuildJobType): Future[Seq[BuildJob]] =
     collection
-      .find(Filters.equal("jobType", jobType))
+      .find(Filters.equal("jobType", jobType.asString))
       .toFuture()
 
   def putAll(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Unit] =

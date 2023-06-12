@@ -34,7 +34,7 @@ class IntegrationTestSupportController @Inject()(
   ec: ExecutionContext
 ) extends BackendController(cc) {
   private implicit val bjf: Reads[BuildJob] = BuildJob.mongoFormat
-  private implicit val ghf: OFormat[GitRepository]           = GitRepository.apiFormat
+  private implicit val ghf: OFormat[GitRepository]  = GitRepository.apiFormat
 
   private def validateJson[A: Reads] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))

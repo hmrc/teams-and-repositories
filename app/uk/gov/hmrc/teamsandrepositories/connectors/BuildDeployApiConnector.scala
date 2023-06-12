@@ -60,7 +60,7 @@ class BuildDeployApiConnector @Inject()(
         payload     = payload.map(v => Json.toBytes(v))
       )
 
-  def getBuildJobs(): Future[Map[String, Seq[BuildJob]]] = {
+  def getBuildJobs(): Future[Seq[BuildJob]] = {
 
     implicit val dr: Reads[Seq[Detail]] =
       Reads.at(__ \ "details")(Reads.seq(Detail.reads))
@@ -73,7 +73,7 @@ class BuildDeployApiConnector @Inject()(
     httpClientV2.post(url)
       .setHeader(awsSigner(url, queryParams, None).toSeq: _*)
       .execute[Seq[Detail]]
-      .map(_.map(detail => detail.repoName -> detail.buildJobs).toMap)
+      .map(_.flatMap(_.buildJobs))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -112,12 +112,13 @@ object BuildDeployApiConnector {
   )
 
   private object Detail {
-    val reads: Reads[Detail] = {
-      implicit val buildJobReads: Reads[BuildJob] = BuildJob.reads
+    val reads: Reads[Detail] =
       ( (__ \ "repository_name").read[String]
-      ~ (__ \ "build_jobs"     ).read[List[BuildJob]]
+      ~ (__ \ "repository_name").read[String].flatMap[List[BuildJob]]{ rn =>
+          implicit val bjr: Reads[BuildJob] = BuildJob.reads(rn)
+          (__ \ "build_jobs").read[List[BuildJob]]
+      }
       )(Detail.apply _)
-    }
   }
 
   final case class Request(
