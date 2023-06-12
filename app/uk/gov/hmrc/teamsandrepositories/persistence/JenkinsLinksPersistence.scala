@@ -21,7 +21,7 @@ import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
-import uk.gov.hmrc.teamsandrepositories.models.JenkinsObject
+import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,10 +34,11 @@ class JenkinsLinksPersistence @Inject()(
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "jenkinsLinks",
-  domainFormat   = JenkinsObject.StandardJob.mongoFormat,
+  domainFormat   = BuildJob.mongoFormat,
   indexes        = Seq(
-                     IndexModel(Indexes.hashed("name"), IndexOptions().name("nameIdx")),
-                     IndexModel(Indexes.hashed("gitHubUrl"))
+                     IndexModel(Indexes.hashed("jobName"), IndexOptions().name("jobNameIdx")),
+                     IndexModel(Indexes.hashed("jobType")),
+                     IndexModel(Indexes.hashed("repoName"))
                    )
 ) with Transactions {
 
@@ -46,18 +47,23 @@ class JenkinsLinksPersistence @Inject()(
 
   private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
 
-  def findByJobName(name: String): Future[Option[JenkinsObject.StandardJob]] =
+  def findByJobName(name: String): Future[Option[BuildJob]] =
     collection
-      .find(Filters.equal("name", name))
+      .find(Filters.equal("jobName", name))
       .first()
       .toFutureOption()
 
-  def findAllByRepo(service: String): Future[Seq[JenkinsObject.StandardJob]] =
+  def findAllByRepo(service: String): Future[Seq[BuildJob]] =
     collection
-      .find(Filters.equal("gitHubUrl", s"https://github.com/hmrc/$service.git"))
+      .find(Filters.equal("repoName", service))
       .toFuture()
 
-  def putAll(buildJobs: Seq[JenkinsObject.StandardJob])(implicit ec: ExecutionContext): Future[Unit] =
+  def findAllByJobType(jobType: BuildJobType): Future[Seq[BuildJob]] =
+    collection
+      .find(Filters.equal("jobType", jobType.asString))
+      .toFuture()
+
+  def putAll(buildJobs: Seq[BuildJob])(implicit ec: ExecutionContext): Future[Unit] =
      withSessionAndTransaction { session =>
       for {
         _ <- collection.deleteMany(session, BsonDocument()).toFuture()

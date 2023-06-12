@@ -25,10 +25,13 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
+import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
+import java.net.URL
 import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class BuildDeployApiConnector @Inject()(
@@ -39,7 +42,44 @@ class BuildDeployApiConnector @Inject()(
   ec: ExecutionContext
 ) extends Logging {
 
+  import BuildDeployApiConnector._
+
   private implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  private def awsSigner(
+    url        : URL,
+    queryParams: Map[String, String],
+    payload    : Option[JsValue]
+  ): Map[String, String] =
+    AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
+      .getSignedHeaders(
+        uri         = url.getPath,
+        method      = "POST",
+        queryParams = queryParams,
+        headers     = Map[String, String]("host" -> config.host),
+        payload     = payload.map(v => Json.toBytes(v))
+      )
+
+  def getBuildJobs(): Future[Seq[BuildJob]] = {
+
+    implicit val dr: Reads[Seq[Detail]] =
+      Reads.at(__ \ "details")(Reads.seq(Detail.reads))
+
+    val queryParams = Map.empty[String, String]
+
+    val url =
+      url"${config.baseUrl}/v1/GetBuildJobs?$queryParams"
+
+    httpClientV2.post(url)
+      .setHeader(awsSigner(url, queryParams, None).toSeq: _*)
+      .execute[Seq[Detail]]
+      .map(_.flatMap(_.buildJobs))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
 
   def enableBranchProtection(repoName: String): Future[Unit] = {
     val queryParams = Map.empty[String, String]
@@ -50,20 +90,11 @@ class BuildDeployApiConnector @Inject()(
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
 
-    val headers = AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
-      .getSignedHeaders(
-        uri         = url.getPath,
-        method      = "POST",
-        queryParams = queryParams,
-        headers     = Map[String, String]("host" -> config.host),
-        payload     = Some(Json.toBytes(payload))
-      )
-
     for {
       response <- httpClientV2
                     .post(url)
                     .withBody(payload)
-                    .setHeader(headers.toSeq: _*)
+                    .setHeader(awsSigner(url, queryParams, Some(payload)).toSeq: _*)
                     .execute[BuildDeployApiConnector.Response]
       _        <- if (response.success)
                     Future.unit
@@ -71,10 +102,24 @@ class BuildDeployApiConnector @Inject()(
                     Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${response.message}"))
     } yield ()
   }
-
 }
 
 object BuildDeployApiConnector {
+
+   private case class Detail(
+   repoName : String,
+   buildJobs: List[BuildJob]
+  )
+
+  private object Detail {
+    val reads: Reads[Detail] =
+      ( (__ \ "repository_name").read[String]
+      ~ (__ \ "repository_name").read[String].flatMap[List[BuildJob]]{ rn =>
+          implicit val bjr: Reads[BuildJob] = BuildJob.reads(rn)
+          (__ \ "build_jobs").read[List[BuildJob]]
+      }
+      )(Detail.apply _)
+  }
 
   final case class Request(
     repoName: String,

@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
+import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 
 import java.time.Instant
 
@@ -56,90 +58,61 @@ object BuildData {
     )(apply _)
 }
 
+sealed trait BuildJobType { def asString: String }
 
-case class JenkinsJobs(jobs: Seq[JenkinsObject.StandardJob])
-object JenkinsJobs {
-  implicit val reads: Reads[JenkinsJobs] = {
-    implicit val x: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.jenkinsReads
-    Json.reads[JenkinsJobs]
-  }
-}
+object BuildJobType {
+  case object Job         extends BuildJobType { override val asString = "job"         }
+  case object Pipeline    extends BuildJobType { override val asString = "pipeline"    }
+  case object Performance extends BuildJobType { override val asString = "performance" }
 
-sealed trait JenkinsObject
+  private val logger = Logger(this.getClass)
 
-object JenkinsObject {
+  val values: List[BuildJobType] =
+    List(Job, Pipeline, Performance)
 
-  case class Folder(
-    name      : String,
-    jenkinsUrl: String,
-    jobs      : Seq[JenkinsObject]
-  ) extends JenkinsObject
-
-  case class StandardJob(
-    name       : String,
-    jenkinsUrl : String,
-    latestBuild: Option[BuildData],
-    gitHubUrl  : Option[String]
-  ) extends JenkinsObject
-
-  case class PipelineJob(
-    name      : String,
-    jenkinsUrl: String
-  ) extends JenkinsObject
-
-  object StandardJob {
-
-    val mongoFormat: Format[StandardJob] =
-      ( (__ \ "name"       ).format[String]
-      ~ (__ \ "jenkinsURL" ).format[String]
-      ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
-      ~ (__ \ "gitHubUrl"  ).formatNullable[String]
-      )(apply, unlift(unapply))
-
-    val apiWrites: Writes[StandardJob] =
-      ( (__ \ "name"       ).write[String]
-      ~ (__ \ "jenkinsURL" ).write[String]
-      ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
-      ~ (__ \ "gitHubUrl"  ).writeNullable[String]
-      )(unlift(unapply))
-
-    private def extractGithubUrl = Reads[Option[String]] { js =>
-      val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
-      l.headOption match {
-        case Some(v) => JsSuccess(Some(v.as[String].toLowerCase)) // github organisation can be uppercase
-        case None    => JsSuccess(None)
-      }
+  def parse(s: String): BuildJobType =
+    values
+      .find(_.asString.equalsIgnoreCase(s)).getOrElse {
+        logger.info(s"Unable to find job type: $s, defaulted to: job")
+        Job
     }
 
-    val jenkinsReads: Reads[StandardJob] =
-      ( (__ \ "name"     ).read[String]
-      ~ (__ \ "url"      ).read[String]
-      ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
-      ~ extractGithubUrl
-      )(apply _)
-  }
-
-  private lazy val folderReads: Reads[Folder] =
-    ( (__ \ "name").read[String]
-    ~ (__ \ "url" ).read[String]
-    ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
-    )(Folder.apply _)
-
-  private val pipelineReads: Reads[PipelineJob] =
-    ( (__ \ "name").read[String]
-    ~ (__ \ "url" ).read[String]
-    )(PipelineJob.apply _)
-
-  implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
-    (json \ "_class").validate[String].flatMap {
-      case "com.cloudbees.hudson.plugins.folder.Folder"     => folderReads.reads(json)
-      case "hudson.model.FreeStyleProject"                  => StandardJob.jenkinsReads.reads(json)
-      case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => pipelineReads.reads(json)
-      case value                                            => throw new Exception(s"Unsupported Jenkins class $value")
-    }
+  implicit val format: Format[BuildJobType] =
+    Format.of[String].inmap(parse, _.asString)
 }
 
-object JenkinsObjects {
-  implicit val jenkinsReads: Reads[Seq[JenkinsObject]] =
-    (__ \ "jobs").read(Reads.seq[JenkinsObject])
+case class BuildJob(
+  repoName   : String,
+  jobName    : String,
+  jenkinsUrl : String,
+  jobType    : BuildJobType,
+  latestBuild: Option[BuildData]
+) {
+  val gitHubUrl = s"https://github.com/hmrc/$repoName.git"
+}
+
+object BuildJob {
+  def reads(repoName: String): Reads[BuildJob] =
+    ( Reads.pure(repoName)
+    ~ (__ \ "name"       ).read[String]
+    ~ (__ \ "url"        ).read[String]
+    ~ (__ \ "type"       ).read[BuildJobType]
+    ~ Reads.pure(Option.empty[BuildData])
+    )(BuildJob.apply _)
+
+  val mongoFormat: Format[BuildJob] =
+    ( (__ \ "repoName"   ).format[String]
+    ~ (__ \ "jobName"    ).format[String]
+    ~ (__ \ "jenkinsURL" ).format[String]
+    ~ (__ \ "jobType"    ).format[BuildJobType]
+    ~ (__ \ "latestBuild").formatNullable(BuildData.mongoFormat)
+    )(apply, unlift(unapply))
+
+  val apiWrites: Writes[BuildJob] =
+    ( (__ \ "repoName"   ).write[String]
+    ~ (__ \ "jobName"    ).write[String]
+    ~ (__ \ "jenkinsURL" ).write[String]
+    ~ (__ \ "jobType"    ).write[BuildJobType]
+    ~ (__ \ "latestBuild").writeNullable(BuildData.apiWrites)
+    )(unlift(unapply))
 }
