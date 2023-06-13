@@ -58,17 +58,17 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def getLatestBuildData(baseUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
+  def getLatestBuildData(jobUrl: String)(implicit ec: ExecutionContext): Future[Option[BuildData]] = {
     // Prevents Server-Side Request Forgery
-    assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
+    assert(jobUrl.startsWith(config.BuildJobs.baseUrl), s"$jobUrl does not match expected base url: ${config.BuildJobs.baseUrl}")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"$baseUrl/lastBuild/api/json?tree=number,url,timestamp,result"
+    val url = url"$jobUrl/lastBuild/api/json?tree=number,url,timestamp,result"
 
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
-      .execute[BuildData]
+      .execute[Option[BuildData]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -98,7 +98,7 @@ class JenkinsConnector @Inject()(
     def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] = jenkinsObject match {
       case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(extractStandardJobsFromTree)
       case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => processGitHubUrl(job)
-      case JenkinsObject.PipelineJob(_, _)                                    => Seq.empty
+      case _                                                                  => Seq.empty
     }
 
     httpClientV2

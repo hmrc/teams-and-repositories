@@ -51,7 +51,7 @@ class JenkinsService @Inject()(
       jobs      <- buildDeployApiConnector.getBuildJobs()
       buildJobs <- jobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
                      jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
-                       buildJob.copy(latestBuild = Some(buildData)) :: acc
+                       buildJob.copy(latestBuild = buildData) :: acc
                      }
       }
     } yield buildJobs
@@ -72,7 +72,7 @@ class JenkinsService @Inject()(
   ): Future[Option[BuildData]] =
     (for {
       latestBuild <- jenkinsConnector.getLatestBuildData(url)
-      build = if (latestBuild.timestamp.equals(timestamp)) {
+      build = if (latestBuild.exists(_.timestamp.equals(timestamp))) {
         for {
           _        <- Future.successful(logger.info(s"Triggering build for $serviceName"))
           location <- jenkinsConnector.triggerBuildJob(url)
