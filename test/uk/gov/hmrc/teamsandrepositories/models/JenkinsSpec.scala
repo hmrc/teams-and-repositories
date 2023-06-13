@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsResult, JsSuccess, JsValue, Json}
+import play.api.libs.json.{JsSuccess, JsValue, Json}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector.JenkinsObject
 
 import java.time.Instant
