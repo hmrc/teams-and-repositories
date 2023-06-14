@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import akka.http.scaladsl.model.StatusCode.int2StatusCode
 import play.api.Logger
+import play.api.http.Status
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -53,7 +53,7 @@ class JenkinsConnector @Inject()(
       .setHeader("Authorization" -> config.BuildJobs.rebuilderAuthorizationHeader)
       .execute[HttpResponse]
       .flatMap { res =>
-        if (res.status.isSuccess)
+        if (Status.isSuccessful(res.status))
           res.header("Location") match {
             case Some(location) => Future.successful(location)
             case None           => Future.failed(sys.error(s"No location header found in response from $url"))
@@ -73,6 +73,7 @@ class JenkinsConnector @Inject()(
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$jobUrl/lastBuild/api/json?tree=number,url,timestamp,result"
+    logger.info(s"Requesting latest build data from: $url")
 
     httpClientV2
       .post(url)
@@ -85,7 +86,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def toBuildJob(job: JenkinsObject.StandardJob, jobType: BuildJobType): Seq[BuildJob] =
+  private def toBuildJob(job: JenkinsObject.StandardJob, jobType: BuildJobType): Seq[BuildJob] =
     job.gitHubUrl.flatMap(extractRepoNameFromGitHubUrl) match {
       case Some(repoName) => Seq(
                                BuildJob(
@@ -99,7 +100,7 @@ class JenkinsConnector @Inject()(
       case None           => Seq.empty[BuildJob]
     }
 
-  def extractStandardJobsFromTree(jenkinsObject: JenkinsObject, jobType: BuildJobType): Seq[BuildJob] = jenkinsObject match {
+  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject, jobType: BuildJobType): Seq[BuildJob] = jenkinsObject match {
     case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(o => extractStandardJobsFromTree(o, jobType))
     case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => toBuildJob(job, jobType)
     case _                                                                  => Seq.empty

@@ -46,25 +46,22 @@ class JenkinsService @Inject()(
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     jenkinsLinksPersistence.findAllByRepo(service)
 
-  def buildJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
-    for {
-      jobs      <- jenkinsConnector.findBuildJobs()
-      buildJobs <- jobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
-                     jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
-                       buildJob.copy(latestBuild = buildData) :: acc
-                     }
-      }
-    } yield buildJobs
-
-
   def pipelineJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
-    buildDeployApiConnector.getBuildJobs().map(_.filter(_.jobType == BuildJobType.Pipeline))
+    for {
+      jobs         <- buildDeployApiConnector.getBuildJobs()
+      filteredJobs =  jobs.filter(_.jobType == BuildJobType.Pipeline)
+      pipelineJobs <- filteredJobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
+                        jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
+                          buildJob.copy(latestBuild = buildData) :: acc
+                        }
+      }
+    } yield pipelineJobs.sortBy(_.jobName)
 
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      buildJobs       <- buildJobs()
-      pipelineJobs    <- pipelineJobs()
+      buildJobs       <- jenkinsConnector.findBuildJobs()
       performanceJobs <- jenkinsConnector.findPerformanceJobs()
+      pipelineJobs    <- pipelineJobs()
       _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs ++ pipelineJobs)
     } yield ()
 
