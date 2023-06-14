@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+import akka.http.scaladsl.model.StatusCode.int2StatusCode
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import play.api.mvc.Results.Status
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
@@ -43,14 +45,22 @@ class JenkinsConnector @Inject()(
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
-    implicit val locationRead: HttpReads[String] = HttpReads[HttpResponse].map(_.header("Location").get)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$baseUrl/buildWithParameters"
+
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.rebuilderAuthorizationHeader)
-      .execute[String]
+      .execute[HttpResponse]
+      .flatMap { res =>
+        if (res.status.isSuccess)
+          res.header("Location") match {
+            case Some(location) => Future.successful(location)
+            case None           => Future.failed(sys.error(s"No location header found in response from $url"))
+          }
+        else Future.failed(sys.error(s"Call to $url failed with status: ${res.status}, body: ${res.body}"))
+      }
       .recoverWith {
         case NonFatal(ex) =>
           logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
