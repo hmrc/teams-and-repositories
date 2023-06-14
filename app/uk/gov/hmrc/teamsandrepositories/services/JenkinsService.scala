@@ -21,7 +21,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildJobType}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
 import cats.implicits._
 
@@ -48,7 +48,7 @@ class JenkinsService @Inject()(
 
   def buildJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     for {
-      jobs      <- buildDeployApiConnector.getBuildJobs()
+      jobs      <- jenkinsConnector.findBuildJobs()
       buildJobs <- jobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
                      jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
                        buildJob.copy(latestBuild = buildData) :: acc
@@ -56,11 +56,16 @@ class JenkinsService @Inject()(
       }
     } yield buildJobs
 
+
+  def pipelineJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
+    buildDeployApiConnector.getBuildJobs().map(_.filter(_.jobType == BuildJobType.Pipeline))
+
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
       buildJobs       <- buildJobs()
+      pipelineJobs    <- pipelineJobs()
       performanceJobs <- jenkinsConnector.findPerformanceJobs()
-      _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs)
+      _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs ++ pipelineJobs)
     } yield ()
 
   def triggerBuildJob(
