@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import play.api.Logger
+import play.api.http.Status
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -43,14 +44,22 @@ class JenkinsConnector @Inject()(
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
     // Prevents Server-Side Request Forgery
     assert(baseUrl.startsWith(config.BuildJobs.baseUrl), s"$baseUrl was requested for invalid host")
-    implicit val locationRead: HttpReads[String] = HttpReads[HttpResponse].map(_.header("Location").get)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$baseUrl/buildWithParameters"
+
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.rebuilderAuthorizationHeader)
-      .execute[String]
+      .execute[HttpResponse]
+      .flatMap { res =>
+        if (Status.isSuccessful(res.status))
+          res.header("Location") match {
+            case Some(location) => Future.successful(location)
+            case None           => Future.failed(sys.error(s"No location header found in response from $url"))
+          }
+        else Future.failed(sys.error(s"Call to $url failed with status: ${res.status}, body: ${res.body}"))
+      }
       .recoverWith {
         case NonFatal(ex) =>
           logger.error (s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -64,6 +73,7 @@ class JenkinsConnector @Inject()(
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"$jobUrl/lastBuild/api/json?tree=number,url,timestamp,result"
+    logger.info(s"Requesting latest build data from: $url")
 
     httpClientV2
       .post(url)
@@ -76,36 +86,51 @@ class JenkinsConnector @Inject()(
       }
   }
 
+  private def toBuildJob(job: JenkinsObject.StandardJob, jobType: BuildJobType): Seq[BuildJob] =
+    job.gitHubUrl.flatMap(extractRepoNameFromGitHubUrl) match {
+      case Some(repoName) => Seq(
+                               BuildJob(
+                                 repoName    = repoName,
+                                 jobName     = job.name,
+                                 jobType     = jobType,
+                                 jenkinsUrl  = job.jenkinsUrl,
+                                 latestBuild = job.latestBuild
+                               )
+                             )
+      case None           => Seq.empty[BuildJob]
+    }
+
+  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject, jobType: BuildJobType): Seq[BuildJob] = jenkinsObject match {
+    case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(o => extractStandardJobsFromTree(o, jobType))
+    case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => toBuildJob(job, jobType)
+    case _                                                                  => Seq.empty
+  }
+
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[Seq[BuildJob]] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val url = url"${config.BuildJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+
+    httpClientV2
+      .get(url)
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .execute[Seq[JenkinsObject]]
+      .map(_.flatMap(o => extractStandardJobsFromTree(o, BuildJobType.Job)))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+      }
+  }
+
   def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[BuildJob]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val url = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
-
-    def toBuildJob(job: JenkinsObject.StandardJob, repoName: String): BuildJob =
-      BuildJob(
-        repoName    = repoName,
-        jobName     = job.name,
-        jobType     = BuildJobType.Performance,
-        jenkinsUrl  = job.jenkinsUrl,
-        latestBuild = job.latestBuild,
-      )
-
-    def processGitHubUrl(job: JenkinsObject.StandardJob): Seq[BuildJob] =
-      job.gitHubUrl
-        .flatMap(extractRepoNameFromGitHubUrl)
-        .map(gitHubUrl => Seq(toBuildJob(job, gitHubUrl)))
-        .getOrElse(Seq.empty)
-
-    def extractStandardJobsFromTree(jenkinsObject: JenkinsObject): Seq[BuildJob] = jenkinsObject match {
-      case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(extractStandardJobsFromTree)
-      case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => processGitHubUrl(job)
-      case _                                                                  => Seq.empty
-    }
 
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> config.PerformanceJobs.authorizationHeader)
       .execute[Seq[JenkinsObject]]
-      .map(_.flatMap(extractStandardJobsFromTree))
+      .map(_.flatMap(o => extractStandardJobsFromTree(o, BuildJobType.Performance)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)

@@ -21,7 +21,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob}
+import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildJobType}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsLinksPersistence
 import cats.implicits._
 
@@ -46,21 +46,23 @@ class JenkinsService @Inject()(
   def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     jenkinsLinksPersistence.findAllByRepo(service)
 
-  def buildJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
+  def pipelineJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     for {
-      jobs      <- buildDeployApiConnector.getBuildJobs()
-      buildJobs <- jobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
-                     jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
-                       buildJob.copy(latestBuild = buildData) :: acc
-                     }
+      jobs         <- buildDeployApiConnector.getBuildJobs()
+      filteredJobs =  jobs.filter(_.jobType == BuildJobType.Pipeline)
+      pipelineJobs <- filteredJobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
+                        jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>
+                          buildJob.copy(latestBuild = buildData) :: acc
+                        }
       }
-    } yield buildJobs
+    } yield pipelineJobs.sortBy(_.jobName)
 
   def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      buildJobs       <- buildJobs()
+      buildJobs       <- jenkinsConnector.findBuildJobs()
       performanceJobs <- jenkinsConnector.findPerformanceJobs()
-      _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs)
+      pipelineJobs    <- pipelineJobs()
+      _               <- jenkinsLinksPersistence.putAll(performanceJobs ++ buildJobs ++ pipelineJobs)
     } yield ()
 
   def triggerBuildJob(
