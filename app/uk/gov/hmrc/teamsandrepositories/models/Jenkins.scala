@@ -93,11 +93,12 @@ case class BuildJob(
 object BuildJob {
   def reads(repoName: String): Reads[BuildJob] =
     ( Reads.pure(repoName)
-    ~ (__ \ "name"       ).read[String]
+    ~ (__ \ "name"       ).read[String].map(_.split("/").last)
     ~ (__ \ "url"        ).read[String]
     ~ (__ \ "type"       ).read[BuildJobType]
     ~ Reads.pure(Option.empty[BuildData])
     )(BuildJob.apply _)
+
 
   val mongoFormat: Format[BuildJob] =
     ( (__ \ "repoName"   ).format[String]
