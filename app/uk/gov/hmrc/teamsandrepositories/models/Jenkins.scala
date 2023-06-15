@@ -91,13 +91,22 @@ case class BuildJob(
 }
 
 object BuildJob {
+  private def removeFolderName(name: String): String = {
+    val regex = ".*/(.*)".r
+    name match {
+      case regex(withoutFolderName) => withoutFolderName
+      case _                        => name
+    }
+  }
+
   def reads(repoName: String): Reads[BuildJob] =
     ( Reads.pure(repoName)
-    ~ (__ \ "name"       ).read[String]
+    ~ (__ \ "name"       ).read[String].map(removeFolderName)
     ~ (__ \ "url"        ).read[String]
     ~ (__ \ "type"       ).read[BuildJobType]
     ~ Reads.pure(Option.empty[BuildData])
     )(BuildJob.apply _)
+
 
   val mongoFormat: Format[BuildJob] =
     ( (__ \ "repoName"   ).format[String]

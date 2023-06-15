@@ -46,7 +46,7 @@ class BuildDeployApiConnectorSpec
 
       def buildJob1(repoName: String): BuildJob = BuildJob(
         repoName    = repoName,
-        jobName     = s"Centre Technical Leads/$repoName",
+        jobName     = repoName,
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
         jobType     = BuildJobType.Job,
         latestBuild = None
@@ -54,7 +54,7 @@ class BuildDeployApiConnectorSpec
 
       def buildJob2(repoName: String): BuildJob = BuildJob(
         repoName    = repoName,
-        jobName     = s"Centre Technical Leads/$repoName-pipeline",
+        jobName     = s"$repoName-pipeline",
         jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
         jobType     = BuildJobType.Pipeline,
         latestBuild = None
