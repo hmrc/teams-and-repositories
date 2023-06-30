@@ -695,6 +695,42 @@ class GithubV3RepositoryDataSourceSpec
       )
     }
 
+    "set repoType as test if repoHeuristics has inferred that there are testsInName" in new Setup {
+      val catoRepo =
+        ghRepo.copy(
+          name = ghRepo.name + "-test",
+          repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(testsInName = true)
+        )
+      when(mockGithubConnector.getTeams())
+        .thenReturn(Future.successful(List(teamA)))
+
+      when(mockGithubConnector.getReposForTeam(teamA))
+        .thenReturn(Future.successful(List(catoRepo)))
+
+      val repositories = dataSource
+        .getTeamRepositories(teamA)
+        .futureValue
+
+      repositories shouldBe TeamRepositories(
+        teamName     = "A",
+        repositories = List(
+          GitRepository(
+            name               = "A_r-test",
+            description        = "some description",
+            url                = "url_A",
+            createdDate        = now,
+            lastActiveDate     = now,
+            repoType           = RepoType.Test,
+            digitalServiceName = None,
+            language           = Some("Scala"),
+            isArchived         = false,
+            defaultBranch      = "main")
+        ),
+        createdDate  = Some(teamCreatedDate),
+        updateDate   = now
+      )
+    }
+
     "set type Other if not Service, Library nor Prototype and no repository.yaml file" in new Setup {
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))

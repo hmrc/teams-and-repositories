@@ -459,7 +459,7 @@ object GhRepository {
   object RepoTypeHeuristics {
     val reads: Reads[RepoTypeHeuristics] =
       ( (__ \ "name"                      ).read[String].map(_.endsWith("-prototype"))
-      ~ (__ \ "name"                      ).read[String].map(_.endsWith("-tests"))
+      ~ (__ \ "name"                      ).read[String].map(name => name.endsWith("-tests") || name.endsWith("-test"))
       ~ (__ \ "hasApplicationConf" \ "id" ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasDeployProperties" \ "id").readNullable[String].map(_.isDefined)
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)

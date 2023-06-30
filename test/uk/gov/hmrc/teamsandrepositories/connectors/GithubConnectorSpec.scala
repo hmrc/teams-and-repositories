@@ -305,6 +305,38 @@ class GithubConnectorSpec
       }
      """
 
+  def heuristicsJson(repoName: String): String =
+    s"""
+      {
+        "data": {
+          "organization": {
+            "repository": {
+              "databaseId": 1,
+              "name": "$repoName",
+              "description": "d1",
+              "url": "url1",
+              "isFork": false,
+              "createdAt": "2019-04-01T11:41:33Z",
+              "pushedAt": "2019-04-02T11:41:33Z",
+              "isPrivate": true,
+              "primaryLanguage": {
+                "name": "l1"
+              },
+              "isArchived": false,
+              "defaultBranchRef": {
+                "name": "b1",
+                "branchProtectionRule": {
+                  "requiresApprovingReviews": true,
+                  "dismissesStaleReviews": true,
+                  "requiresCommitSignatures": true
+                }
+              }
+            }
+          }
+        }
+      }
+     """
+
   val dummyRepoTypeHeuristics =
     RepoTypeHeuristics(
       prototypeInName     = false,
@@ -488,6 +520,79 @@ class GithubConnectorSpec
       )
 
       connector.getRepo("n1").futureValue shouldBe Some(repo1)
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+      )
+    }
+  }
+
+  "RepoTypeHeuristics" should {
+    "infer the repo Type to be a test, if the name ends in -test" in {
+      val query =
+        getRepoQuery
+          .withVariable("repo", JsString("n1-test"))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(aResponse().withBody(heuristicsJson(repoName = "n1-test")))
+      )
+
+      connector.getRepo("n1-test").futureValue shouldBe Some(
+        repo1.copy(
+          name = repo1.name + "-test",
+          repoTypeHeuristics = repo1.repoTypeHeuristics.copy(testsInName = true)
+        )
+      )
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+      )
+    }
+
+    "infer the repo Type to be a test, if the name ends in -tests" in {
+      val query =
+        getRepoQuery
+          .withVariable("repo", JsString("n1-tests"))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(aResponse().withBody(heuristicsJson(repoName = "n1-tests")))
+      )
+
+      connector.getRepo("n1-tests").futureValue shouldBe Some(
+        repo1.copy(
+          name = repo1.name + "-tests",
+          repoTypeHeuristics = repo1.repoTypeHeuristics.copy(testsInName = true)
+        )
+      )
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+      )
+    }
+
+    "fail to infer the repoType to be a test, if the name ends in a typo" in {
+      val query =
+        getRepoQuery
+          .withVariable("repo", JsString("n1-testss"))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(aResponse().withBody(heuristicsJson(repoName = "n1-testss")))
+      )
+
+      connector.getRepo("n1-testss").futureValue shouldBe Some(
+        repo1.copy(
+          name = repo1.name + "-testss"
+        )
+      )
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
