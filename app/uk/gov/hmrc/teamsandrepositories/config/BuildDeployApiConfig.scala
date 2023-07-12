@@ -21,9 +21,6 @@ import javax.inject.Inject
 
 class BuildDeployApiConfig @Inject()(config: Configuration) {
 
-  val baseUrl: String =
-    config.get[String]("build-deploy-api.url")
-
   val host: String =
     config.get[String]("build-deploy-api.host")
 

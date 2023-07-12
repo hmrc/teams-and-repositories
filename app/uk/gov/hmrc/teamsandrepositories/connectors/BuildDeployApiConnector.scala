@@ -68,7 +68,7 @@ class BuildDeployApiConnector @Inject()(
     val queryParams = Map.empty[String, String]
 
     val url =
-      url"${config.baseUrl}/v1/GetBuildJobs?$queryParams"
+      url"https://${config.host}/v1/GetBuildJobs?$queryParams"
 
     httpClientV2.post(url)
       .setHeader(awsSigner(url, queryParams, None).toSeq: _*)
@@ -85,7 +85,7 @@ class BuildDeployApiConnector @Inject()(
     val queryParams = Map.empty[String, String]
 
     val url =
-      url"${config.baseUrl}/v1/UpdateGithubDefaultBranchProtection?$queryParams"
+      url"https://${config.host}/v1/UpdateGithubDefaultBranchProtection?$queryParams"
 
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
