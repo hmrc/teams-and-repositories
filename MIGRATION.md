@@ -1,3 +1,41 @@
+# Migration to 11.97.0
+
+ServiceType data model `FrontendService` -> `frontend`, `BackendService` -> `backend`
+
+```javascript
+db.repositories.updateMany(
+  { "serviceType": "BackendService" },
+  { $set: { "serviceType": "backend" } }
+);
+
+db.repositories.updateMany(
+  { "serviceType": "FrontendService" },
+  { $set: { "serviceType": "frontend" } }
+);
+```
+
+Tag data model `AdminFrontend` -> `admin`, `Stub` -> `stub`, `Api` -> `api`
+
+```javascript
+db.repositories.updateMany(
+  { "tags": "Stub" },
+  { $set: { "tags.$[element]": "stub" } },
+  { arrayFilters: [{ "element": "Stub" }] }
+);
+
+db.repositories.updateMany(
+  { "tags": "AdminFrontend" },
+  { $set: { "tags.$[element]": "admin" } },
+  { arrayFilters: [{ "element": "AdminFrontend" }] }
+);
+
+db.repositories.updateMany(
+  { "tags": "Api" },
+  { $set: { "tags.$[element]": "api" } },
+  { arrayFilters: [{ "element": "Api" }] }
+);
+```
+
 # Migration to 11.23.0
 
 Data model changes from teams with repos, to repos with teams. 
