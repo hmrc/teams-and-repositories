@@ -98,8 +98,8 @@ case class PersistingService @Inject()(
       case RepoType.Service
         if frontendRoutes.contains(repo.name)
         || adminFrontendRoutes.contains(repo.name)
-        || repo.name.contains("frontend") => repo.copy(serviceType = Some(ServiceType.FrontendService))
-      case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.BackendService))
+        || repo.name.contains("frontend") => repo.copy(serviceType = Some(ServiceType.Frontend))
+      case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.Backend))
       case _                              => repo
     }
 

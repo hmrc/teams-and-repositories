@@ -118,7 +118,7 @@ class RepositoriesPersistenceSpec
       now,
       isPrivate        = false,
       RepoType.Service,
-      serviceType      = Some(ServiceType.FrontendService),
+      serviceType      = Some(ServiceType.Frontend),
       tags             = None,
       None,
       Nil,
@@ -140,7 +140,7 @@ class RepositoriesPersistenceSpec
       now,
       isPrivate        = false,
       RepoType.Service,
-      serviceType      = Some(ServiceType.BackendService),
+      serviceType      = Some(ServiceType.Backend),
       tags             = None,
       None,
       Nil,
@@ -193,9 +193,9 @@ class RepositoriesPersistenceSpec
 
     "find repos by service type" in {
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
-      val results = repository.search(serviceType = Some(ServiceType.FrontendService)).futureValue
+      val results = repository.search(serviceType = Some(ServiceType.Frontend)).futureValue
       results must contain only repo4
-      val results2 = repository.search(serviceType = Some(ServiceType.BackendService)).futureValue
+      val results2 = repository.search(serviceType = Some(ServiceType.Backend)).futureValue
       results2 must contain only repo5
     }
   }

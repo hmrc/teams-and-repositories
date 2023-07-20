@@ -22,11 +22,11 @@ import play.api.mvc.QueryStringBindable
 sealed trait ServiceType {def asString: String}
 
 object ServiceType {
-  case object FrontendService extends ServiceType { def asString = "FrontendService" }
-  case object BackendService  extends ServiceType { def asString = "BackendService"  }
+  case object Frontend extends ServiceType { def asString = "frontend" }
+  case object Backend  extends ServiceType { def asString = "backend"  }
 
   val values =
-    Set(FrontendService, BackendService)
+    Set(Frontend, Backend)
 
   def parse(s: String): Either[String, ServiceType] =
     values
