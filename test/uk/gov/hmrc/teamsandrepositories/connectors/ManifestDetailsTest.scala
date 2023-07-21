@@ -57,13 +57,13 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val manifest =
         """
           |type: service
-          |service-type: FrontendService
+          |service-type: frontend
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined             mustBe true
       details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.FrontendService)
+      details.get.serviceType       mustBe Some(ServiceType.Frontend)
     }
 
     "parse invalid service-type" in {
@@ -83,14 +83,14 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val manifest =
         """
           |type: service
-          |service-type: FrontendService
-          |tags: ['Api', 'Stub', 'AdminFrontend']
+          |service-type: frontend
+          |tags: ['api', 'stub', 'admin']
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined             mustBe true
       details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.FrontendService)
+      details.get.serviceType       mustBe Some(ServiceType.Frontend)
       details.get.tags              mustBe Some(Set(Tag.Api, Tag.Stub, Tag.AdminFrontend))
     }
 
@@ -98,14 +98,14 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val manifest =
         """
           |type: service
-          |service-type: FrontendService
+          |service-type: frontend
           |tags: ['bad']
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined             mustBe true
       details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.FrontendService)
+      details.get.serviceType       mustBe Some(ServiceType.Frontend)
       details.get.tags              mustBe Some(Set.empty)
     }
   }

@@ -137,20 +137,20 @@ class PersistingServiceSpec
           .map(r => (r.name, r.repoType, r.serviceType))
           .toSet shouldBe(Set(
             ("other"       , RepoType.Other  , None                             )
-          , ("front-route"  , RepoType.Service, Some(ServiceType.FrontendService))
-          , ("admin-route"  , RepoType.Service, Some(ServiceType.FrontendService))
-          , ("some-frontend", RepoType.Service, Some(ServiceType.FrontendService))
-          , ("no-rules"     , RepoType.Service, Some(ServiceType.BackendService) )
+          , ("front-route"  , RepoType.Service, Some(ServiceType.Frontend))
+          , ("admin-route"  , RepoType.Service, Some(ServiceType.Frontend))
+          , ("some-frontend", RepoType.Service, Some(ServiceType.Frontend))
+          , ("no-rules"     , RepoType.Service, Some(ServiceType.Backend) )
           ))
       }
 
       "assign tags (for services)" in new Setup {
         val repo1 = aRepo.copy(name = "other-repo") // Other repo type
-        val repo2 = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: Service\nservice-type: FrontendService")) // Defined by name
-        val repo3 = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: Service\nservice-type: BackendService" )) // Defined by name
-        val repo4 = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: Service\nservice-type: FrontendService")) // 2 tags defined by name
-        val repo5 = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: Service\nservice-type: FrontendService\ntags: []")) // YAML says not a tag
-        val repo6 = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: Service\nservice-type: FrontendService\ntags: ['AdminFrontend', 'Api', 'Stub']")) // Defined by YAML
+        val repo2 = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
+        val repo3 = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
+        val repo4 = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
+        val repo5 = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
+        val repo6 = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5, repo6)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set.empty))
@@ -166,11 +166,11 @@ class PersistingServiceSpec
           .map(r => (r.name, r.repoType, r.serviceType, r.tags))
           .toSet shouldBe(Set(
             ("other-repo"         , RepoType.Other  , None                             , None)
-          , ("admin-frontend"     , RepoType.Service, Some(ServiceType.FrontendService), Some(Set(Tag.AdminFrontend)))
-          , ("repo-stub"          , RepoType.Service, Some(ServiceType.BackendService) , Some(Set(Tag.Stub)))
-          , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.FrontendService), Some(Set(Tag.AdminFrontend, Tag.Stub)))
-          , ("not-a-stub"         , RepoType.Service, Some(ServiceType.FrontendService), Some(Set.empty))
-          , ("all-tags-defined"   , RepoType.Service, Some(ServiceType.FrontendService), Some(Set(Tag.AdminFrontend, Tag.Api, Tag.Stub)))
+          , ("admin-frontend"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
+          , ("repo-stub"          , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
+          , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))
+          , ("not-a-stub"         , RepoType.Service, Some(ServiceType.Frontend), Some(Set.empty))
+          , ("all-tags-defined"   , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Api, Tag.Stub)))
           ))
       }
     }

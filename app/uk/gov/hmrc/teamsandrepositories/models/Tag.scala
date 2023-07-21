@@ -22,9 +22,9 @@ import play.api.mvc.QueryStringBindable
 sealed trait Tag {def asString: String}
 
 object Tag {
-  case object AdminFrontend extends Tag { def asString = "AdminFrontend" }
-  case object Api           extends Tag { def asString = "Api"           }
-  case object Stub          extends Tag { def asString = "Stub"          }
+  case object AdminFrontend extends Tag { def asString = "admin" }
+  case object Api           extends Tag { def asString = "api"   }
+  case object Stub          extends Tag { def asString = "stub"  }
 
   val values =
     Set(AdminFrontend, Api, Stub)
@@ -34,12 +34,9 @@ object Tag {
       .find(_.asString.equalsIgnoreCase(s))
       .toRight(s"Invalid tag - should be one of: ${values.map(_.asString).mkString(", ")}")
 
-  val format = new Format[Tag] {
+  val format: Format[Tag] = new Format[Tag] {
     override def reads(json: JsValue): JsResult[Tag] =
-      json match {
-        case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
-        case _           => JsError("String value expected")
-      }
+      json.validate[String].flatMap(s => parse(s).fold(msg => JsError(msg), t => JsSuccess(t)))
 
     override def writes(o: Tag): JsValue = JsString(o.asString)
   }
