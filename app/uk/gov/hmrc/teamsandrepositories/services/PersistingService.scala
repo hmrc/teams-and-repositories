@@ -75,7 +75,7 @@ case class PersistingService @Inject()(
                                githubConnector.getRepo(name)
                              , s"not found on github"
                              )
-      _ = if(rawRepo.name.contains("platops-test-repo")) logger.info(s"Repository.yaml as text for: $rawRepo is: ${rawRepo.repositoryYamlText}")
+      _ = if(rawRepo.name.contains("platops-test-repo")) logger.info(s"Repository.yaml as text for : $rawRepo is: ${rawRepo.repositoryYamlText}")
       teams               <- EitherT.liftF(githubConnector.getTeams(name))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
