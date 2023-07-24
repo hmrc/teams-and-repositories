@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
+import akka.actor.ActorSystem
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
-
 import cats.implicits._
 import cats.data.EitherT
-
 import play.api.{Configuration, Logging}
 import play.api.mvc.ControllerComponents
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -48,7 +48,13 @@ class WebhookController @Inject()(
   def processGithubWebhook() =
     Action.apply(parse.json[Push]) { implicit request =>
       (request.body match {
-        case Push(repo, "main") => persistingService.updateRepository(repo)
+        case Push(repo, "main") =>
+          val delayInSeconds = 8
+          val scheduler = ActorSystem("scheduler")
+          scheduler.scheduler.scheduleOnce(delayInSeconds.seconds) {
+            persistingService.updateRepository(repo)
+          }
+          EitherT.rightT[Future, Unit](())
         case _                  => EitherT.leftT[Future, Unit]("no change required")
       }).fold(
         err => logger.info(s"repo: ${request.body.repoName} branch: ${request.body.branchRef} - $err")

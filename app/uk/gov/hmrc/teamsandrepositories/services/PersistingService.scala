@@ -75,7 +75,7 @@ case class PersistingService @Inject()(
                                githubConnector.getRepo(name)
                              , s"not found on github"
                              )
-      _ = if(rawRepo.name.contains("platops-test-repo")) logger.info(s"Repository.yaml as text for : $rawRepo is: ${rawRepo.repositoryYamlText}")
+      _ = if(rawRepo.name.contains("platops-test-repo")) logger.info(s"Repository.yaml as text for : ${rawRepo.name} is: ${rawRepo.repositoryYamlText}")
       teams               <- EitherT.liftF(githubConnector.getTeams(name))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
@@ -95,7 +95,7 @@ case class PersistingService @Inject()(
     } yield ()
 
   private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository = {
-    if(repo.name.contains("platops-test-repo")) logger.info(s"Define service type for $repo.name, type: ${repo.serviceType}")
+    if(repo.name.contains("platops-test-repo")) logger.info(s"Define service type for ${repo.name}, type: ${repo.serviceType}")
     repo.repoType match {
       case RepoType.Service
         if repo.serviceType.nonEmpty      => repo // serviceType already defined in repository.yaml
