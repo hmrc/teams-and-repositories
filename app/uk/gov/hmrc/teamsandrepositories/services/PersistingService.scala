@@ -58,6 +58,7 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
       count               <- persister.updateRepos(reposToPersist)
+      _ = reposToPersist.map(r => if(r.name.contains("platops-test-repo")) logger.info(s"Repo: ${r.name} with service type: ${r.serviceType}"))
     } yield count
 
 
@@ -89,6 +90,7 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
                                .liftF(persister.addRepo(repo))
+      _ = logger.info(s" Updated repository: ${repo.name} and service type is: ${repo.serviceType}")
     } yield ()
 
   private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
