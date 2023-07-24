@@ -58,6 +58,7 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
       count               <- persister.updateRepos(reposToPersist)
+      _ = reposToPersist.map(r => if(r.name.contains("platops-test-repo")) logger.info(s"Repo: ${r.name} with service type: ${r.serviceType}"))
     } yield count
 
 
@@ -74,6 +75,7 @@ case class PersistingService @Inject()(
                                githubConnector.getRepo(name)
                              , s"not found on github"
                              )
+      _ = if(rawRepo.name.contains("platops-test-repo")) logger.info(s"Repository.yaml as text for: $rawRepo is: ${rawRepo.repositoryYamlText}")
       teams               <- EitherT.liftF(githubConnector.getTeams(name))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
@@ -89,9 +91,11 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
                                .liftF(persister.addRepo(repo))
+      _ = if(repo.name.contains("platops-test-repo")) logger.info(s" Updated repository: ${repo.name} and service type is: ${repo.serviceType}")
     } yield ()
 
-  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
+  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository = {
+    if(repo.name.contains("platops-test-repo")) logger.info(s"Define service type for $repo.name, type: ${repo.serviceType}")
     repo.repoType match {
       case RepoType.Service
         if repo.serviceType.nonEmpty      => repo // serviceType already defined in repository.yaml
@@ -102,6 +106,7 @@ case class PersistingService @Inject()(
       case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.Backend))
       case _                              => repo
     }
+  }
 
   private def defineTag(repo: GitRepository, adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {

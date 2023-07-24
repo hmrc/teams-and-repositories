@@ -340,10 +340,11 @@ case class GhRepository(
 ) {
 
   def toGitRepository(prototypeUrlTemplate: String) = {
-    val manifestDetails: ManifestDetails =
+    val manifestDetails: ManifestDetails = {
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
         .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeUrl = None))
+    }
 
     val repoType: RepoType =
       manifestDetails
