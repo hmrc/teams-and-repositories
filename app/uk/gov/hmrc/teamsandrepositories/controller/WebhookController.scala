@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
+import cats.data.EitherT
+import cats.implicits._
+import play.api.mvc.ControllerComponents
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
-
-import cats.implicits._
-import cats.data.EitherT
-
-import play.api.{Configuration, Logging}
-import play.api.mvc.ControllerComponents
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,6 +38,7 @@ class WebhookController @Inject()(
 
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
+
   private implicit val readsPush: Reads[Push] =
     ( (__ \ "repository" \ "name").read[String]
     ~ (__ \ "ref"                ).read[String].map(_.stripPrefix("refs/heads/"))

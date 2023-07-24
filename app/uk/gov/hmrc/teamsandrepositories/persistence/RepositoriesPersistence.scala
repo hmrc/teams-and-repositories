@@ -26,6 +26,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoReposito
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
+import org.mongodb.scala.model.Filters.equal
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
@@ -110,11 +111,16 @@ class RepositoriesPersistence @Inject()(
                   } else Future.unit
     } yield update
 
-  def addRepo(repo: GitRepository): Future[Unit] =
+  def upsertRepo(repo: GitRepository): Future[Unit] = {
     collection
-      .insertOne(repo)
+      .replaceOne(
+        filter      = equal("name", repo.name),
+        replacement = repo,
+        options     = ReplaceOptions().upsert(true)
+      )
       .toFuture()
       .map(_ => ())
+  }
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =

@@ -66,10 +66,6 @@ case class PersistingService @Inject()(
 
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
-      _                   <- EitherT.fromOptionF(
-                               persister.findRepo(name).map(_.fold(Option(()))(_ => None))
-                             , s"already exists in mongo"
-                             )
       rawRepo             <- EitherT.fromOptionF(
                                githubConnector.getRepo(name)
                              , s"not found on github"
@@ -88,10 +84,10 @@ case class PersistingService @Inject()(
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
-                               .liftF(persister.addRepo(repo))
+                               .liftF(persister.upsertRepo(repo))
     } yield ()
 
-  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
+  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository = {
     repo.repoType match {
       case RepoType.Service
         if repo.serviceType.nonEmpty      => repo // serviceType already defined in repository.yaml
@@ -102,6 +98,7 @@ case class PersistingService @Inject()(
       case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.Backend))
       case _                              => repo
     }
+  }
 
   private def defineTag(repo: GitRepository, adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {
