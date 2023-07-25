@@ -27,7 +27,7 @@ import scala.util.control.NonFatal
 
 @Singleton
 class TimeStamper {
-  def timestampF() = Instant.now()
+  def timestampF(): Instant = Instant.now()
 }
 @Singleton
 class GithubV3RepositoryDataSource @Inject()(
@@ -40,9 +40,6 @@ class GithubV3RepositoryDataSource @Inject()(
 
   val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
-
-  private val prototypeUrlTemplate =
-    configuration.get[String]("url-templates.prototype")
 
   def getTeams()(implicit ec: ExecutionContext): Future[List[GhTeam]] = {
     def notHidden(team: GhTeam) =
@@ -71,7 +68,7 @@ class GithubV3RepositoryDataSource @Inject()(
 
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository(prototypeUrlTemplate)) }
+      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository) }
     } yield
         TeamRepositories(
           teamName     = team.name,
@@ -92,7 +89,7 @@ class GithubV3RepositoryDataSource @Inject()(
     logger.info("Fetching all repositories from GitHub")
 
     githubConnector.getRepos()
-      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository(prototypeUrlTemplate) })
+      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository })
       .map { repos =>
         logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
         repos
