@@ -47,6 +47,7 @@ class WebhookController @Inject()(
 
   def processGithubWebhook() =
     Action.apply(parse.json[Push]) { implicit request =>
+      logger.info(s"Webhook payload for ${request.body.repoName}: ${request.body}")
       (request.body match {
         case Push(repo, "main") =>
           val delayInSeconds = 8
