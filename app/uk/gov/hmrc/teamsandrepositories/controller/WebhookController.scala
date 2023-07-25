@@ -40,22 +40,20 @@ class WebhookController @Inject()(
 
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
+
   private implicit val readsPush: Reads[Push] =
-    ( (__ \ "repository" \ "name").read[String]
-    ~ (__ \ "ref"                ).read[String].map(_.stripPrefix("refs/heads/"))
-    )(Push.apply _)
+    js => {
+      logger.info(s"Raw JSON: ${Json.stringify(js)}")
+      ( (__ \ "repository" \ "name").read[String]
+      ~ (__ \ "ref"                ).read[String].map(_.stripPrefix("refs/heads/"))
+      )(Push.apply _).reads(js)
+    }
 
   def processGithubWebhook() =
     Action.apply(parse.json[Push]) { implicit request =>
       logger.info(s"Webhook payload for ${request.body.repoName}: ${request.body}")
       (request.body match {
-        case Push(repo, "main") =>
-          val delayInSeconds = 8
-          val scheduler = ActorSystem("scheduler")
-          scheduler.scheduler.scheduleOnce(delayInSeconds.seconds) {
-            persistingService.updateRepository(repo)
-          }
-          EitherT.rightT[Future, Unit](())
+        case Push(repo, "main") => persistingService.updateRepository(repo)
         case _                  => EitherT.leftT[Future, Unit]("no change required")
       }).fold(
         err => logger.info(s"repo: ${request.body.repoName} branch: ${request.body.branchRef} - $err")

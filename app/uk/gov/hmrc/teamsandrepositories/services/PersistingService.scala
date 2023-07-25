@@ -67,10 +67,6 @@ case class PersistingService @Inject()(
 
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
-      _                   <- EitherT.fromOptionF(
-                               persister.findRepo(name).map(_.fold(Option(()))(_ => None))
-                             , s"already exists in mongo"
-                             )
       rawRepo             <- EitherT.fromOptionF(
                                githubConnector.getRepo(name)
                              , s"not found on github"
@@ -90,7 +86,7 @@ case class PersistingService @Inject()(
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
-                               .liftF(persister.addRepo(repo))
+                               .liftF(persister.upsertRepo(repo))
       _ = if(repo.name.contains("platops-test-repo")) logger.info(s" Updated repository: ${repo.name} and service type is: ${repo.serviceType}")
     } yield ()
 

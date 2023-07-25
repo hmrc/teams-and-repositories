@@ -26,6 +26,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoReposito
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
+import org.mongodb.scala.model.Filters.equal
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
@@ -109,6 +110,18 @@ class RepositoriesPersistence @Inject()(
                       .map(res => logger.info(s"removed ${res.getModifiedCount} deleted repos"))
                   } else Future.unit
     } yield update
+
+
+  def upsertRepo(repo: GitRepository): Future[Unit] = {
+    collection
+      .replaceOne(
+        filter      = equal("name", repo.name),
+        replacement = repo,
+        options     = ReplaceOptions().upsert(true)
+      )
+      .toFuture()
+      .map(_ => ())
+  }
 
   def addRepo(repo: GitRepository): Future[Unit] =
     collection

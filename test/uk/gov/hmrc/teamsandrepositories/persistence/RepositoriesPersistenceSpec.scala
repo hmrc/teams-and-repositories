@@ -242,4 +242,24 @@ class RepositoriesPersistenceSpec
       } yield ()).futureValue
     }
   }
+
+  "upsertRepo" should {
+    "insert a new repository" in {
+      repository.upsertRepo(repo1).futureValue
+      repository.upsertRepo(repo2).futureValue
+      findAll().futureValue must contain allOf(repo1, repo2)
+    }
+
+    "update an existing repository" in {
+      (for {
+        _                        <- repository.upsertRepo(repo1)
+        serviceTypeBefore        <- repository.findRepo(repo1.name).map(_.value.serviceType)
+        expectedServiceTypeAfter =  ServiceType.Backend
+        _                        <- repository.upsertRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter)))
+        serviceTypeAfter         <- repository.findRepo(repo1.name).map(_.value.serviceType)
+        _                        =  serviceTypeAfter mustNot be(serviceTypeBefore)
+        _                        =  serviceTypeAfter mustBe Some(expectedServiceTypeAfter)
+      } yield ()).futureValue
+    }
+  }
 }
