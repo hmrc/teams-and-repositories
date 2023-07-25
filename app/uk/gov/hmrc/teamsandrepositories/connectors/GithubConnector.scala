@@ -339,22 +339,22 @@ case class GhRepository(
   repoTypeHeuristics: RepoTypeHeuristics
 ) {
 
-  def toGitRepository(prototypeUrlTemplate: String) = {
+  def toGitRepository: GitRepository = {
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeUrl = None))
+        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeName = None))
 
     val repoType: RepoType =
       manifestDetails
         .repoType
         .getOrElse(repoTypeHeuristics.inferredRepoType)
 
-    val prototypeUrl: Option[String] =
+    val prototypeName: Option[String] =
       Option.when(repoType == RepoType.Prototype)(
         manifestDetails
-          .prototypeUrl
-          .getOrElse(prototypeUrlTemplate.replace(s"$${app-name}", name))
+          .prototypeName
+          .getOrElse(name) // default to repository name if not defined in repository.yaml
       )
 
     GitRepository(
@@ -374,7 +374,7 @@ case class GhRepository(
       defaultBranch      = defaultBranch,
       branchProtection   = branchProtection,
       isDeprecated       = manifestDetails.isDeprecated,
-      prototypeUrl       = prototypeUrl
+      prototypeName      = prototypeName
     )
   }
 }
@@ -388,7 +388,7 @@ object GhRepository {
     digitalServiceName: Option[String],
     owningTeams:        Seq[String],
     isDeprecated:       Boolean = false,
-    prototypeUrl:       Option[String]
+    prototypeName:      Option[String]
   )
 
   object ManifestDetails {
@@ -408,7 +408,7 @@ object GhRepository {
           , digitalServiceName = get(config, "digital-service")
           , owningTeams        = getArray(config, "owning-teams", repoName).getOrElse(Nil)
           , isDeprecated       = get(config, "deprecated").getOrElse(false)
-          , prototypeUrl       = get(config, "prototype-url")
+          , prototypeName      = get(config, "prototype-name")
           )
           logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest")
           Some(manifestDetails)

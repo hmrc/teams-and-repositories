@@ -60,10 +60,6 @@ case class PersistingService @Inject()(
       count               <- persister.updateRepos(reposToPersist)
     } yield count
 
-
-  private val prototypeUrlTemplate =
-    configuration.get[String]("url-templates.prototype")
-
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
       rawRepo             <- EitherT.fromOptionF(
@@ -79,7 +75,7 @@ case class PersistingService @Inject()(
                                .map(x => if (x) Set(name) else Set.empty[String])
       repo                <- EitherT
                                .pure[Future, String](rawRepo)
-                               .map(_.toGitRepository(prototypeUrlTemplate))
+                               .map(_.toGitRepository)
                                .map(_.copy(teams = teams))
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))

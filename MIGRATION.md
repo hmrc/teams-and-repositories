@@ -1,3 +1,11 @@
+# Migration to 11.102.0
+
+`prototypeUrl` renamed to `prototypeName`
+
+```javascript
+db.repositories.updateMany({}, { $rename: { "prototypeUrl": "prototypeName" } });
+```
+
 # Migration to 11.97.0
 
 ServiceType data model `FrontendService` -> `frontend`, `BackendService` -> `backend`
