@@ -111,7 +111,7 @@ class RepositoriesPersistence @Inject()(
                   } else Future.unit
     } yield update
 
-  def upsertRepo(repo: GitRepository): Future[Unit] = {
+  def upsertRepo(repo: GitRepository): Future[Unit] =
     collection
       .replaceOne(
         filter      = equal("name", repo.name),
@@ -120,7 +120,6 @@ class RepositoriesPersistence @Inject()(
       )
       .toFuture()
       .map(_ => ())
-  }
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =

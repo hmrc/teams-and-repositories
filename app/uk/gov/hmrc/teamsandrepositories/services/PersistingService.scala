@@ -87,7 +87,7 @@ case class PersistingService @Inject()(
                                .liftF(persister.upsertRepo(repo))
     } yield ()
 
-  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository = {
+  private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {
       case RepoType.Service
         if repo.serviceType.nonEmpty      => repo // serviceType already defined in repository.yaml
@@ -98,7 +98,6 @@ case class PersistingService @Inject()(
       case RepoType.Service               => repo.copy(serviceType = Some(ServiceType.Backend))
       case _                              => repo
     }
-  }
 
   private def defineTag(repo: GitRepository, adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {
