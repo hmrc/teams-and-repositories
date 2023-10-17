@@ -55,6 +55,21 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
+  def getTeams(repoName: String)(implicit ec: ExecutionContext): Future[List[String]] = {
+    def notHidden(teamName: String) =
+      !githubConfig.hiddenTeams.contains(teamName)
+
+    githubConnector
+      .getTeams(repoName)
+      .map(_.filter(team => notHidden(team)))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"Could not retrieve teams for repo: $repoName.", ex)
+          Future.failed(ex)
+      }
+  }
+
+
   def getTeamRepositories(
     team : GhTeam,
     cache: Map[String, GitRepository] = Map.empty
@@ -100,6 +115,23 @@ class GithubV3RepositoryDataSource @Inject()(
           Future.failed(ex)
       }
   }
+
+  def getRepo(repoName: String)(implicit ec: ExecutionContext): Future[Option[GitRepository]] = {
+    def notHidden(repoName: String) =
+      !githubConfig.hiddenRepositories.contains(repoName)
+
+    logger.info(s"Fetching repo: $repoName from GitHub")
+
+    githubConnector.getRepo(repoName)
+      .map(_.filter(repo => notHidden(repo.name)))
+      .map(_.map(_.toGitRepository))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(s"Could not retrieve repo: $repoName.", ex)
+          Future.failed(ex)
+      }
+  }
+
 
   def getAllRepositoriesByName()(implicit ec: ExecutionContext): Future[Map[String, GitRepository]] =
     getAllRepositories()
