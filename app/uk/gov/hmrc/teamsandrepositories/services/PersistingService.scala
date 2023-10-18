@@ -21,7 +21,7 @@ import cats.data.EitherT
 
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, ServiceConfigsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 
@@ -33,7 +33,6 @@ case class PersistingService @Inject()(
   dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
   serviceConfigsConnector : ServiceConfigsConnector,
-  githubConnector         : GithubConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -63,10 +62,10 @@ case class PersistingService @Inject()(
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
       rawRepo             <- EitherT.fromOptionF(
-                               githubConnector.getRepo(name)
+                               dataSource.getRepo(name)
                              , s"not found on github"
                              )
-      teams               <- EitherT.liftF(githubConnector.getTeams(name))
+      teams               <- EitherT.liftF(dataSource.getTeams(name))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
                                .map(x => if (x) Set(name) else Set.empty[String])
@@ -75,7 +74,6 @@ case class PersistingService @Inject()(
                                .map(x => if (x) Set(name) else Set.empty[String])
       repo                <- EitherT
                                .pure[Future, String](rawRepo)
-                               .map(_.toGitRepository)
                                .map(_.copy(teams = teams))
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
