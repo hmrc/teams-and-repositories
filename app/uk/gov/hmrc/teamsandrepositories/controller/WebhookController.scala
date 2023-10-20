@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import cats.implicits._
 import play.api.Logging
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{Json, Reads, __}
@@ -69,7 +68,7 @@ class WebhookController @Inject()(
       )(Push.apply _)
   }
 
-  def processGithubWebhook(): Action[GithubRequest] = Action.async(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
+  def processGithubWebhook(): Action[GithubRequest] = Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
     def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] = {
       persistingService.updateRepository(repoName).fold(
         err => logger.info(s"repo: $repoName - failed action: $action - $err"),
@@ -81,24 +80,24 @@ class WebhookController @Inject()(
 
     request.body match {
       case push: Push if push.branchRef == "main" =>
-        updateRepositoryForAction(push.repoName, "successfully created repo", "repo creation")
-        Future.successful(Accepted(details("Push accepted")))
+        updateRepositoryForAction(push.repoName, "successfully updated repo", "push")
+        Accepted(details("Push accepted"))
 
       case push: Push =>
         logger.info(s"repo: ${push.repoName} branch: ${push.branchRef} - no change required for push event")
-        Future.successful(Ok(details("No change required for push event")))
+        Ok(details("No change required for push event"))
 
       case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("added_to_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully added team: ${teamEvent.teamName}", s"${teamEvent.action}")
-        Future.successful(Accepted(details("Team added event accepted")))
+        updateRepositoryForAction(teamEvent.repoName, s"successfully added team: ${teamEvent.teamName}", teamEvent.action)
+        Accepted(details("Team added event accepted"))
 
       case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("removed_from_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully removed team: ${teamEvent.teamName}", "remove team")
-        Future.successful(Accepted(details("Team removal event accepted")))
+        updateRepositoryForAction(teamEvent.repoName, s"successfully removed team: ${teamEvent.teamName}", teamEvent.action)
+        Accepted(details("Team removal event accepted"))
 
       case teamEvent: TeamEvent =>
         logger.info(s"repo: ${teamEvent.repoName} - team event: ${teamEvent.action} are ignored")
-        Future.successful(Ok(details(s"Team events for: ${teamEvent.action} are ignored")))
+        Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
     }
   }
 
