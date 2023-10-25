@@ -16,17 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
 import javax.inject.Inject
 
-class BuildDeployApiConfig @Inject()(config: Configuration) {
+class BuildDeployApiConfig @Inject()(config: ServicesConfig) {
 
   val baseUrl: String =
-    config.get[String]("build-deploy-api.url")
-
-  val host: String =
-    config.get[String]("build-deploy-api.host")
-
-  val awsRegion: String =
-    config.get[String]("build-deploy-api.aws-region")
+    config.baseUrl("platops-bnd-api")
 }

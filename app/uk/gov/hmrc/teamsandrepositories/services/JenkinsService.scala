@@ -48,7 +48,7 @@ class JenkinsService @Inject()(
 
   def pipelineJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
     for {
-      jobs         <- buildDeployApiConnector.getBuildJobs()
+      jobs         <- buildDeployApiConnector.getBuildJobs
       filteredJobs =  jobs.filter(_.jobType == BuildJobType.Pipeline)
       pipelineJobs <- filteredJobs.foldLeftM[Future, List[BuildJob]](List.empty) { case (acc, buildJob) =>
                         jenkinsConnector.getLatestBuildData(buildJob.jenkinsUrl).map { buildData =>

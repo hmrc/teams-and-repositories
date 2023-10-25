@@ -25,7 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
-import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 
 class BuildDeployApiConnectorSpec
@@ -40,7 +40,7 @@ class BuildDeployApiConnectorSpec
 
     "Invoke the API and return build jobs if successful" in {
       stubFor(
-        post("/v1/GetBuildJobs")
+        post("/get-build-jobs")
           .willReturn(aResponse().withBody(buildJobResponseJson))
       )
 
@@ -60,7 +60,7 @@ class BuildDeployApiConnectorSpec
         latestBuild = None
       )
 
-      connector.getBuildJobs().futureValue shouldBe
+      connector.getBuildJobs.futureValue shouldBe
         Seq(
           buildJob1("test-repo-1"),
           buildJob2("test-repo-1"),
@@ -69,7 +69,7 @@ class BuildDeployApiConnectorSpec
         )
 
       wireMockServer.verify(
-        postRequestedFor(urlPathEqualTo("/v1/GetBuildJobs"))
+        postRequestedFor(urlPathEqualTo("/get-build-jobs"))
       )
     }
   }
@@ -78,7 +78,7 @@ class BuildDeployApiConnectorSpec
 
     "Invoke the API and return unit if successful" in {
       stubFor(
-        post("/v1/UpdateGithubDefaultBranchProtection")
+        post("/set-branch-protection")
           .withRequestBody(equalToJson(branchProtectionRequestJson))
           .willReturn(aResponse().withBody(
             """
@@ -94,14 +94,14 @@ class BuildDeployApiConnectorSpec
       connector.enableBranchProtection("some-repo").futureValue
 
       wireMockServer.verify(
-        postRequestedFor(urlPathEqualTo("/v1/UpdateGithubDefaultBranchProtection"))
+        postRequestedFor(urlPathEqualTo("/set-branch-protection"))
           .withRequestBody(equalToJson(branchProtectionRequestJson))
       )
     }
 
     "Invoke the API and raise an error if unsuccessful" in {
       stubFor(
-        post("/v1/UpdateGithubDefaultBranchProtection")
+        post("/set-branch-protection")
           .withRequestBody(equalToJson(branchProtectionRequestJson))
           .willReturn(aResponse().withBody(
             """
@@ -123,7 +123,7 @@ class BuildDeployApiConnectorSpec
       error.getMessage should include ("some error message")
 
       wireMockServer.verify(
-        postRequestedFor(urlPathEqualTo("/v1/UpdateGithubDefaultBranchProtection"))
+        postRequestedFor(urlPathEqualTo("/set-branch-protection"))
           .withRequestBody(equalToJson(branchProtectionRequestJson))
       )
     }
@@ -176,17 +176,15 @@ class BuildDeployApiConnectorSpec
     """
 
   private lazy val connector =
-    new BuildDeployApiConnector(httpClientV2, awsCredentialsProvider, config)
+    new BuildDeployApiConnector(httpClientV2, config)
 
   private lazy val config =
     new BuildDeployApiConfig(
-      Configuration(
-        "build-deploy-api.url"        -> wireMockUrl,
-        "build-deploy-api.host"       -> wireMockHost,
-        "build-deploy-api.aws-region" -> "eu-west-2",
+      new ServicesConfig(
+        Configuration(
+          "microservice.services.platops-bnd-api.port" -> wireMockPort,
+          "microservice.services.platops-bnd-api.host" -> wireMockHost
+        )
       )
     )
-
-  private lazy val awsCredentialsProvider =
-    StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test"))
 }
