@@ -19,16 +19,12 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import play.api.Logging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.signer.AwsSigner
 import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
-import java.net.URL
-import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -36,7 +32,6 @@ import scala.util.control.NonFatal
 @Singleton
 class BuildDeployApiConnector @Inject()(
   httpClientV2          : HttpClientV2,
-  awsCredentialsProvider: AwsCredentialsProvider,
   config                : BuildDeployApiConfig
 )(implicit
   ec: ExecutionContext
@@ -46,32 +41,15 @@ class BuildDeployApiConnector @Inject()(
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  private def awsSigner(
-    url        : URL,
-    queryParams: Map[String, String],
-    payload    : Option[JsValue]
-  ): Map[String, String] =
-    AwsSigner(awsCredentialsProvider, config.awsRegion, "execute-api", () => LocalDateTime.now())
-      .getSignedHeaders(
-        uri         = url.getPath,
-        method      = "POST",
-        queryParams = queryParams,
-        headers     = Map[String, String]("host" -> config.host),
-        payload     = payload.map(v => Json.toBytes(v))
-      )
-
-  def getBuildJobs(): Future[Seq[BuildJob]] = {
+  def getBuildJobs: Future[Seq[BuildJob]] = {
 
     implicit val dr: Reads[Seq[Detail]] =
       Reads.at(__ \ "details")(Reads.seq(Detail.reads))
 
-    val queryParams = Map.empty[String, String]
-
     val url =
-      url"${config.baseUrl}/v1/GetBuildJobs?$queryParams"
+      url"${config.baseUrl}/get-build-jobs"
 
     httpClientV2.post(url)
-      .setHeader(awsSigner(url, queryParams, None).toSeq: _*)
       .execute[Seq[Detail]]
       .map(_.flatMap(_.buildJobs))
       .recoverWith {
@@ -82,10 +60,9 @@ class BuildDeployApiConnector @Inject()(
   }
 
   def enableBranchProtection(repoName: String): Future[Unit] = {
-    val queryParams = Map.empty[String, String]
 
     val url =
-      url"${config.baseUrl}/v1/UpdateGithubDefaultBranchProtection?$queryParams"
+      url"${config.baseUrl}/set-branch-protection"
 
     val payload =
       Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
@@ -94,7 +71,6 @@ class BuildDeployApiConnector @Inject()(
       response <- httpClientV2
                     .post(url)
                     .withBody(payload)
-                    .setHeader(awsSigner(url, queryParams, Some(payload)).toSeq: _*)
                     .execute[BuildDeployApiConnector.Response]
       _        <- if (response.success)
                     Future.unit

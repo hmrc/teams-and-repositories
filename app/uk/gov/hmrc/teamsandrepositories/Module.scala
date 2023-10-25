@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import com.google.inject.AbstractModule
-import software.amazon.awssdk.auth.credentials.{AwsCredentialsProvider, DefaultCredentialsProvider}
 import uk.gov.hmrc.teamsandrepositories.schedulers.{DataReloadScheduler, GithubRatelimitMetricsScheduler, JenkinsScheduler, RebuildScheduler}
 
 class Module() extends AbstractModule {
@@ -26,11 +25,5 @@ class Module() extends AbstractModule {
     bind(classOf[JenkinsScheduler]).asEagerSingleton()
     bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
     bind(classOf[RebuildScheduler]).asEagerSingleton()
-  }
-}
-
-class AwsCredentialsModule extends AbstractModule {
-  override def configure(): Unit = {
-    bind(classOf[AwsCredentialsProvider]).toInstance(DefaultCredentialsProvider.create())
   }
 }

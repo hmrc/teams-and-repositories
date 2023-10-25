@@ -13,7 +13,6 @@ object AppDependencies {
     "org.yaml"               %  "snakeyaml"                    % "1.28",
     "org.typelevel"          %% "cats-core"                    % "2.10.0",
     "org.codehaus.groovy"    %  "groovy-astbuilder"            % "3.0.12",
-    "software.amazon.awssdk" %  "auth"                         % "2.18.21"
   )
 
   val test = Seq(
