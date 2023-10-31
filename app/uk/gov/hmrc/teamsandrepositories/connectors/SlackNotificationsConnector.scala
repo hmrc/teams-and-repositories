@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import com.google.common.io.BaseEncoding
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,7 +29,7 @@ import scala.util.control.NonFatal
 @Singleton
 class SlackNotificationsConnector @Inject()(
   httpClientV2  : HttpClientV2,
-  configuration : SlackConfig,
+  configuration : Configuration,
   servicesConfig: ServicesConfig,
 )(implicit ec: ExecutionContext) {
   import HttpReads.Implicits._
@@ -40,21 +38,16 @@ class SlackNotificationsConnector @Inject()(
 
   val url: String = servicesConfig.baseUrl("slack-notifications")
 
-  private val authorizationHeaderValue = {
-    val username = configuration.user
-    val password = configuration.password
-
-    s"Basic ${BaseEncoding.base64().encode(s"$username:$password".getBytes("UTF-8"))}"
-  }
+  private val internalAuthToken = configuration.get[String]("internal-auth.token")
 
   def sendMessage(message: SlackNotificationRequest): Future[SlackNotificationResponse] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val snrw = SlackNotificationRequest.writes
     implicit val snrf = SlackNotificationResponse.format
     httpClientV2
-      .post(url"$url/slack-notifications/notification")
+      .post(url"$url/slack-notifications/v2/notification")
       .withBody(Json.toJson(message))
-      .setHeader("Authorization" -> authorizationHeaderValue)
+      .setHeader("Authorization" -> internalAuthToken)
       .execute[SlackNotificationResponse]
       .recoverWith {
         case NonFatal(ex) =>
@@ -112,51 +105,17 @@ object ChannelLookup {
     }
 }
 
-final case class Attachment(
-  text  : String,
-  fields: Seq[Attachment.Field] = Seq.empty
-)
-
-object Attachment {
-  final case class Field(
-    title: String,
-    value: String,
-    short: Boolean
-  )
-
-  object Field {
-    implicit val format: OFormat[Field] =
-      Json.format[Field]
-  }
-
-  val format: OFormat[Attachment] =
-    Json.format[Attachment]
-}
-
-final case class MessageDetails(
-  text                : String,
-  username            : String,
-  iconEmoji           : String,
-  attachments         : Seq[Attachment],
-  showAttachmentAuthor: Boolean
-)
-
-object MessageDetails {
-  val writes: OWrites[MessageDetails] = {
-    implicit val af = Attachment.format
-    Json.writes[MessageDetails]
-  }
-}
-
 final case class SlackNotificationRequest(
-  channelLookup : ChannelLookup,
-  messageDetails: MessageDetails
+  channelLookup: ChannelLookup,
+  displayName  : String,
+  emoji        : String,
+  text         : String,
+  blocks       : Seq[JsValue]
 )
 
 object SlackNotificationRequest {
   val writes: OWrites[SlackNotificationRequest] = {
     implicit val clw = ChannelLookup.writes
-    implicit val mdw = MessageDetails.writes
     Json.writes[SlackNotificationRequest]
   }
 }
