@@ -25,7 +25,7 @@ import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{Json, OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{BuildJobsConnector, ChannelLookup, SlackNotificationError, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{BuildJobsConnector, ChannelLookup, SlackNotificationRequest, SlackNotificationsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildResult}
 
 import java.time.Instant
@@ -81,16 +81,15 @@ case class RebuildService @Inject()(
         _          =  logger.error(s"Errors sending rebuild FAILED notification: ${rsp.errors.mkString("[", ",", "]")}")
 
         if rsp.errors.nonEmpty
-        errMessage =  s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\\n$message"
         errRsp     <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
                         channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel))
                       , displayName   = "Automatic Rebuilder"
                       , emoji         = ":hammer_and_wrench:"
-                      , text          = errMessage
-                      , blocks        = jsSection(errMessage)                                        ::
-                                        jsSection(rsp.errors.map(" - " + _.message).mkString("\\n")) ::
-                                        Json.parse("""{"type": "divider"}""")                        ::
-                                        jsSection(s"<${build.url}|$serviceName>")                    ::
+                      , text          = s"Automatic Rebuilder failed to deliver slack message for service: $serviceName"
+                      , blocks        = jsSection(s"Failed to deliver the following slack message to intended channel(s).\\n$message") ::
+                                        jsSection(rsp.errors.map(" - " + _.message).mkString("\\n"))                                               ::
+                                        Json.parse("""{"type": "divider"}""")                                                                      ::
+                                        jsSection(s"<${build.url}|$serviceName>")                                                                  ::
                                         Nil
                       ))
         if !errRsp.hasSentMessages
