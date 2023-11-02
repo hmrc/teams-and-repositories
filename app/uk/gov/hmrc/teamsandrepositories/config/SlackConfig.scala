@@ -23,8 +23,6 @@ import play.api.Configuration
 @Singleton
 class SlackConfig @Inject()(configuration: Configuration) {
   val enabled     : Boolean = configuration.get[Boolean]("slack.enabled")
-  val user        : String  = configuration.get[String]("slack.username")
-  val password    : String  = configuration.get[String]("slack.password")
   val messageText : String  = configuration.get[String]("slack.messageText")
   val adminChannel: String  = configuration.get[String]("slack.adminChannel")
 }

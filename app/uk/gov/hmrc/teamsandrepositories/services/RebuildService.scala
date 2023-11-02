@@ -22,10 +22,10 @@ import org.codehaus.groovy.ast.expr.{ArgumentListExpression, ConstantExpression,
 import org.codehaus.groovy.ast.stmt.{BlockStatement, ExpressionStatement}
 import org.codehaus.groovy.control.CompilePhase
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{OWrites, __}
+import play.api.libs.json.{Json, OWrites, __}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.config.SlackConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.{Attachment, BuildJobsConnector, ChannelLookup, MessageDetails, SlackNotificationError, SlackNotificationRequest, SlackNotificationsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{BuildJobsConnector, ChannelLookup, SlackNotificationRequest, SlackNotificationsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildResult}
 
 import java.time.Instant
@@ -55,7 +55,8 @@ case class RebuildService @Inject()(
         val oldestJob = jobs.head
         for {
           build <- jenkinsService.triggerBuildJob(oldestJob.name, oldestJob.jenkinsURL, oldestJob.lastBuildTime)
-                     if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == BuildResult.Failure
+
+          if build.nonEmpty && build.get.result.nonEmpty && build.get.result.get == BuildResult.Failure
           _     <- sendBuildFailureAlert(build.get, oldestJob.name)
         } yield ()
       }
@@ -64,48 +65,41 @@ case class RebuildService @Inject()(
   private def sendBuildFailureAlert(build: BuildData, serviceName: String)(implicit ec: ExecutionContext) =
     if (slackConfig.enabled) {
       logger.info(s"Rebuild failed for $serviceName")
-      val channelLookup: ChannelLookup = ChannelLookup.RepositoryChannel(serviceName)
-      val messageDetails: MessageDetails = MessageDetails(
-        slackConfig.messageText.replace("{serviceName}", serviceName),
-        slackConfig.user,
-        "",
-        Seq(Attachment(build.url)),
-        showAttachmentAuthor = false
-      )
+      val message = slackConfig.messageText.replace("{serviceName}", serviceName)
       for {
-        response <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(channelLookup, messageDetails))
-                      if !response.hasSentMessages
-        _        =  logger.error(s"Errors sending rebuild FAILED notification: ${response.errors.mkString("[", ",", "]")}")
-        _        <- alertAdminsIfNoSlackChannelFound(response.errors, messageDetails)
-      } yield response
+        rsp        <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
+                        channelLookup = ChannelLookup.RepositoryChannel(serviceName)
+                      , displayName   = "Automatic Rebuilder"
+                      , emoji         = ":hammer_and_wrench:"
+                      , text          = message
+                      , blocks        = jsSection(message)                        ::
+                                        Json.parse("""{"type": "divider"}""")     ::
+                                        jsSection(s"<${build.url}|$serviceName>") ::
+                                        Nil
+                      ))
+        if !rsp.hasSentMessages
+        _          =  logger.error(s"Errors sending rebuild FAILED notification: ${rsp.errors.mkString("[", ",", "]")}")
+
+        if rsp.errors.nonEmpty
+        errRsp     <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
+                        channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel))
+                      , displayName   = "Automatic Rebuilder"
+                      , emoji         = ":hammer_and_wrench:"
+                      , text          = s"Automatic Rebuilder failed to deliver slack message for service: $serviceName"
+                      , blocks        = jsSection(s"Failed to deliver the following slack message to intended channel(s).\\n$message") ::
+                                        jsSection(rsp.errors.map(" - " + _.message).mkString("\\n"))                                               ::
+                                        Json.parse("""{"type": "divider"}""")                                                                      ::
+                                        jsSection(s"<${build.url}|$serviceName>")                                                                  ::
+                                        Nil
+                      ))
+        if !errRsp.hasSentMessages
+        _          =  logger.error(s"Errors sending rebuild alert FAILED notification: ${errRsp.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
+      } yield rsp
     }
     else
       Future.unit
 
-
-  private def alertAdminsIfNoSlackChannelFound(
-    errors        : List[SlackNotificationError],
-    messageDetails: MessageDetails
-  )(implicit
-    ec: ExecutionContext
-  ): Future[Unit] =
-    if (errors.nonEmpty)
-      for {
-        response <- slackNotificationsConnector
-                      .sendMessage(
-                        SlackNotificationRequest(
-                          channelLookup  = ChannelLookup.SlackChannel(List(slackConfig.adminChannel)),
-                          messageDetails = messageDetails.copy(
-                                             text        = s"Teams and repositories failed to deliver slack message to intended channel(s) for the following message.\n${messageDetails.text}",
-                                             attachments = errors.map(e => Attachment(e.message)) ++ messageDetails.attachments
-                                           )
-                        )
-                      )
-                      if !response.hasSentMessages
-        _        = logger.error(s"Errors sending rebuild alert FAILED notification: ${response.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
-      } yield ()
-    else
-      Future.unit
+  private def jsSection(mrkdwn: String) = Json.parse(s"""{"type": "section", "text": {"type": "mrkdwn", "text": "$mrkdwn"}}""")
 
   private def getJobsWithNoBuildFor(daysUnbuilt: Int)(implicit ec: ExecutionContext): Future[Seq[RebuildJobData]] = {
     val cutoff = Instant.now().minus(daysUnbuilt, DAYS)
