@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -42,8 +43,8 @@ class SlackNotificationsConnector @Inject()(
 
   def sendMessage(message: SlackNotificationRequest): Future[SlackNotificationResponse] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val snrw = SlackNotificationRequest.writes
-    implicit val snrf = SlackNotificationResponse.format
+    implicit val snrW: OWrites[SlackNotificationRequest] = SlackNotificationRequest.writes
+    implicit val snrR: Reads[SlackNotificationResponse] = SlackNotificationResponse.reads
     httpClientV2
       .post(url"$url/slack-notifications/v2/notification")
       .withBody(Json.toJson(message))
@@ -62,23 +63,20 @@ final case class SlackNotificationError(
   message: String
 )
 
-object SlackNotificationError {
-  val format: OFormat[SlackNotificationError] =
-    Json.format[SlackNotificationError]
-}
-
 final case class SlackNotificationResponse(
-  successfullySentTo: Seq[String]                  = Seq.empty,
-  errors            : List[SlackNotificationError] = Nil
-) {
-  def hasSentMessages: Boolean =
-    successfullySentTo.nonEmpty
-}
+  errors: List[SlackNotificationError]
+)
 
 object SlackNotificationResponse {
-  val format: OFormat[SlackNotificationResponse] = {
-    implicit val snef = SlackNotificationError.format
-    Json.format[SlackNotificationResponse]
+  val reads: Reads[SlackNotificationResponse] = {
+    implicit val sneReads: Reads[SlackNotificationError] =
+      ( (__ \ "code").read[String]
+      ~ (__ \ "message").read[String]
+      )(SlackNotificationError.apply _)
+
+    (__ \ "errors")
+      .readWithDefault[List[SlackNotificationError]](List.empty)
+      .map(SlackNotificationResponse.apply)
   }
 }
 

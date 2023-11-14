@@ -77,7 +77,7 @@ case class RebuildService @Inject()(
                                         jsSection(s"<${build.url}|$serviceName>") ::
                                         Nil
                       ))
-        if !rsp.hasSentMessages
+        if rsp.errors.nonEmpty
         _          =  logger.error(s"Errors sending rebuild FAILED notification: ${rsp.errors.mkString("[", ",", "]")}")
 
         if rsp.errors.nonEmpty
@@ -92,7 +92,7 @@ case class RebuildService @Inject()(
                                         jsSection(s"<${build.url}|$serviceName>")                                                                  ::
                                         Nil
                       ))
-        if !errRsp.hasSentMessages
+        if errRsp.errors.nonEmpty
         _          =  logger.error(s"Errors sending rebuild alert FAILED notification: ${errRsp.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
       } yield rsp
     }
