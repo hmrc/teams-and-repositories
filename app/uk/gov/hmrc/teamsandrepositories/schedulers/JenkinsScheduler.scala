@@ -20,9 +20,10 @@ import akka.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.TimestampSupport
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
 
 import javax.inject.{Inject, Singleton}
@@ -30,9 +31,10 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class JenkinsScheduler @Inject()(
-  jenkinsService: JenkinsService,
-  config        : SchedulerConfigs,
-  mongoLocks    : MongoLocks
+  jenkinsService     : JenkinsService,
+  config             : SchedulerConfigs,
+  mongoLockRepository: MongoLockRepository,
+  timestampSupport   : TimestampSupport
 )(implicit
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
@@ -44,7 +46,15 @@ class JenkinsScheduler @Inject()(
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, mongoLocks.jenkinsLock) {
+  private val lockService =
+    ScheduledLockService(
+      lockRepository    = mongoLockRepository,
+      lockId            = "jenkins-lock",
+      timestampSupport  = timestampSupport,
+      schedulerInterval = config.jenkinsScheduler.interval
+    )
+
+  scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, lockService) {
     for {
       _ <- jenkinsService.updateBuildAndPerformanceJobs()
       _ =  logger.info("Finished updating Build and Performance Jobs")

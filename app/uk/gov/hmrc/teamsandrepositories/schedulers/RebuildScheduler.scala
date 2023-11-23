@@ -20,9 +20,10 @@ import akka.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.TimestampSupport
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.RebuildService
 
 import javax.inject.{Inject, Singleton}
@@ -30,9 +31,10 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class RebuildScheduler @Inject()(
-  rebuildService: RebuildService,
-  config        : SchedulerConfigs,
-  mongoLocks    : MongoLocks
+  rebuildService     : RebuildService,
+  config             : SchedulerConfigs,
+  mongoLockRepository: MongoLockRepository,
+  timestampSupport   : TimestampSupport
 )(implicit
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
@@ -44,7 +46,15 @@ class RebuildScheduler @Inject()(
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  scheduleWithLock("Job Rebuilder", config.rebuildScheduler, mongoLocks.reloadLock) {
+  private val lockService =
+    ScheduledLockService(
+      lockRepository    = mongoLockRepository,
+      lockId            = "reload-lock",
+      timestampSupport  = timestampSupport,
+      schedulerInterval = config.rebuildScheduler.interval
+    )
+
+  scheduleWithLock("Job Rebuilder", config.rebuildScheduler, lockService) {
     logger.info("Starting rebuilding Jobs")
     for {
       _ <- rebuildService.rebuildJobWithNoRecentBuild()
