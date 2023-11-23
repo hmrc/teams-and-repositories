@@ -22,23 +22,24 @@ import com.kenshoo.play.metrics.Metrics
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class GithubRatelimitMetricsScheduler @Inject()(
-  githubConnector: GithubConnector,
-  schedulerConfig: SchedulerConfigs,
-  githubConfig   : GithubConfig,
-  mongoLocks     : MongoLocks,
-  metrics        : Metrics,
-  mongoComponent : MongoComponent
+  githubConnector    : GithubConnector,
+  schedulerConfig    : SchedulerConfigs,
+  githubConfig       : GithubConfig,
+  metrics            : Metrics,
+  mongoComponent     : MongoComponent,
+  mongoLockRepository: MongoLockRepository
 )(implicit
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
@@ -48,7 +49,7 @@ class GithubRatelimitMetricsScheduler @Inject()(
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  val metricsDefinitions: Map[String, () => Future[Int]] = {
+  private val metricsDefinitions: Map[String, () => Future[Int]] = {
     import RateLimitMetrics.Resource._
 
     githubConfig.tokens
@@ -64,15 +65,22 @@ class GithubRatelimitMetricsScheduler @Inject()(
       }.toMap
   }
 
-  val source: MetricSource =
+  private val source: MetricSource =
     new MetricSource {
       def metrics(implicit ec: ExecutionContext): Future[Map[String, Int]] =
         metricsDefinitions.toList.traverse { case (k, f) => f().map(i => (k, i)) }.map(_.toMap)
     }
 
-  val metricOrchestrator = new MetricOrchestrator(
+  private val lockService: LockService =
+    LockService(
+      lockRepository = mongoLockRepository,
+      lockId         = "metrix-lock",
+      ttl            = 20.minutes
+    )
+
+  private val metricOrchestrator = new MetricOrchestrator(
     metricSources    = List(source),
-    lockService      = mongoLocks.metrixLock,
+    lockService      = lockService,
     metricRepository = new MongoMetricRepository(mongoComponent),
     metricRegistry   = metrics.defaultRegistry
   )

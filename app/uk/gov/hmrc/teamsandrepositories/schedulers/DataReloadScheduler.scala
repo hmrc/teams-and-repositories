@@ -21,18 +21,20 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.TimestampSupport
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.persistence.MongoLocks
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DataReloadScheduler @Inject()(
-  persistingService: PersistingService,
-  config          : SchedulerConfigs,
-  mongoLocks      : MongoLocks
+  persistingService  : PersistingService,
+  config             : SchedulerConfigs,
+  mongoLockRepository: MongoLockRepository,
+  timestampSupport   : TimestampSupport
 )(implicit
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
@@ -44,7 +46,15 @@ class DataReloadScheduler @Inject()(
 
   implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, mongoLocks.dataReloadLock) {
+  private val lockService =
+    ScheduledLockService(
+      lockRepository    = mongoLockRepository,
+      lockId            = "data-reload-lock",
+      timestampSupport  = timestampSupport,
+      schedulerInterval = config.dataReloadScheduler.interval
+    )
+
+  scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, lockService) {
     for {
       count <- persistingService.updateRepositories()
       _     =  logger.info(s"Finished updating Teams and Repos - $count records updated")
@@ -52,12 +62,12 @@ class DataReloadScheduler @Inject()(
   }
 
   def reload: Future[Unit] =
-    mongoLocks.dataReloadLock
+    lockService
       .withLock {
         logger.info(s"Starting mongo update")
         persistingService.updateRepositories()
       }
-      .map(_.getOrElse(sys.error(s"Mongo is locked for ${mongoLocks.dataReloadLock.lockId}")))
+      .map(_.getOrElse(sys.error(s"Mongo is locked for ${lockService.lockId}")))
       .map { _ =>
         logger.info(s"mongo update completed")
       }

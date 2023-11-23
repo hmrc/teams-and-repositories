@@ -19,9 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.helpers
 import akka.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.mongo.lock.LockService
+import uk.gov.hmrc.mongo.lock.ScheduledLockService
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfig
-// import uk.gov.hmrc.lock.LockKeeper
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -67,7 +66,7 @@ trait SchedulerUtils {
   def scheduleWithLock(
     label          : String,
     schedulerConfig: SchedulerConfig,
-    lock           : LockService
+    lock           : ScheduledLockService
   )(f: => Future[Unit]
   )(implicit
     actorSystem         : ActorSystem,
