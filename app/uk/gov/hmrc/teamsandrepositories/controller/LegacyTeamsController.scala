@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
+import play.api.libs.json.Format
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -39,7 +40,7 @@ class LegacyTeamsController @Inject()(
   lazy val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
 
-  private implicit val tf = Team.format
+  private implicit val tf: Format[Team] = Team.format
 
   def teams(includeRepos: Boolean) = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)

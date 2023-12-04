@@ -49,7 +49,7 @@ class LegacyCompatibilitySpec
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(None).futureValue
       results.length must be(1)
-      results.head.repositories.map(_.name) must contain allOf("repo1", "repo2")
+      results.head.repositories.map(_.name) must contain theSameElementsAs Seq("repo1", "repo2")
     }
 
     "show non-archived repos" in {

@@ -42,7 +42,7 @@ object Tag {
   }
 
   import cats.implicits._
-  implicit val queryStringBindable = new QueryStringBindable[List[Tag]] {
+  implicit val queryStringBindable: QueryStringBindable[List[Tag]] = new QueryStringBindable[List[Tag]] {
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, List[Tag]]] =
       params.get(key).map {
         case Nil  => Left("missing tag value")

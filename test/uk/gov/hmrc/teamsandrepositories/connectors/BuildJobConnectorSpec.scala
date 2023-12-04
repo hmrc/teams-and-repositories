@@ -52,7 +52,7 @@ class BuildJobConnectorSpec
   }
 
 
-  implicit val headerCarrier = HeaderCarrier()
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   "BuildJobConnector.getBuildjobFiles" should {
     "return jobfiles" in {

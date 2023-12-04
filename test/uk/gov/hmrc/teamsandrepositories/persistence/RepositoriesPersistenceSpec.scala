@@ -179,7 +179,7 @@ class RepositoriesPersistenceSpec
       val bar = repo1.copy(name = "bar")
       repository.collection.insertMany(Seq(repo1, repo2, foo, bar)).toFuture().futureValue
       val results = repository.search(name = Some("repo")).futureValue
-      results must contain only (repo1, repo2)
+      results must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "find repos by repo type" in {
@@ -187,7 +187,7 @@ class RepositoriesPersistenceSpec
       val results = repository.search(repoType = Some(RepoType.Prototype)).futureValue
       results must contain only (repo3)
       val results2 = repository.search(repoType = Some(RepoType.Service)).futureValue
-      results2 must contain only (repo1, repo2)
+      results2 must contain theSameElementsAs Seq(repo1, repo2)
 
     }
 
@@ -204,20 +204,20 @@ class RepositoriesPersistenceSpec
     "return all the unique team names" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.findTeamSummaries().futureValue
-      results.map(_.name) must contain allOf("team1", "team2", "team3")
+      results.map(_.name) must contain theSameElementsAs Seq("team1", "team2", "team3")
     }
   }
 
   "update" must {
     "insert new repositories" in {
       repository.updateRepos(Seq(repo1,repo2)).futureValue
-      findAll().futureValue must contain allOf(repo1, repo2)
+      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "update existing repositories" in {
       insert(repo1.copy(description = "the old description")).futureValue
       repository.updateRepos(Seq(repo1,repo2)).futureValue
-      findAll().futureValue must contain allOf(repo1, repo2)
+      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "delete repos not in the update list" in {
@@ -225,7 +225,7 @@ class RepositoriesPersistenceSpec
       insert(repo2).futureValue
       repository.updateRepos(Seq(repo1)).futureValue
       findAll().futureValue must contain (repo1)
-      findAll().futureValue must not contain (repo2)
+      findAll().futureValue must not contain repo2
     }
   }
 
@@ -247,7 +247,7 @@ class RepositoriesPersistenceSpec
     "insert a new repository" in {
       repository.putRepo(repo1).futureValue
       repository.putRepo(repo2).futureValue
-      findAll().futureValue must contain allOf(repo1, repo2)
+      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "update an existing repository" in {

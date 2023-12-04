@@ -25,6 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Format
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -45,7 +46,7 @@ class LegacyTeamsControllerSpec
      with GuiceOneServerPerSuite
      with Eventually {
 
-  implicit val tf = Team.format
+  implicit val tf: Format[Team] = Team.format
 
   private val now = Instant.now()
 
@@ -63,7 +64,6 @@ class LegacyTeamsControllerSpec
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
