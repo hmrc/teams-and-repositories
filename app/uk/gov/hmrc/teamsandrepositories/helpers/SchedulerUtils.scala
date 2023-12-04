@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.helpers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.mongo.lock.ScheduledLockService

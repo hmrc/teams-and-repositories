@@ -48,7 +48,7 @@ object RepoType {
       JsString(o.asString)
   }
 
-  implicit val queryStringBindable = new QueryStringBindable[RepoType] {
+  implicit val queryStringBindable: QueryStringBindable[RepoType] = new QueryStringBindable[RepoType] {
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, RepoType]] =
       params.get(key).map {
         case Nil         => Left("missing repoType value")

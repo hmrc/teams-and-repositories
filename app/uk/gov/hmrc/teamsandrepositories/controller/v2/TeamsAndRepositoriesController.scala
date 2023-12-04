@@ -37,8 +37,8 @@ class TeamsAndRepositoriesController @Inject()(
   ec: ExecutionContext
 ) extends BackendController(cc) {
 
-  implicit val grf = GitRepository.apiFormat
-  implicit val tnf = TeamSummary.apiFormat
+  implicit val grf: Format[GitRepository] = GitRepository.apiFormat
+  implicit val tnf: Format[TeamSummary]   = TeamSummary.apiFormat
 
   def allRepos(
     name       : Option[String],

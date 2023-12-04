@@ -32,7 +32,7 @@ class BuildJobsConnector @Inject()(
 )(implicit ec: ExecutionContext) {
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
 
-  private implicit val hc = HeaderCarrier()
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   def getBuildjobFiles(): Future[Seq[BuildJobFilename]] = {
     implicit val bjfr = Reads.at[String](__ \ "name").map(BuildJobFilename.apply)

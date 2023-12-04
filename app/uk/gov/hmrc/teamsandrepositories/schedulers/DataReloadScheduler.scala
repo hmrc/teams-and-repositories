@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.schedulers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle

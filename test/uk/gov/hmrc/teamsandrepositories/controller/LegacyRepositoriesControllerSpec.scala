@@ -64,7 +64,6 @@ class LegacyRepositoriesControllerSpec
 
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",

@@ -61,7 +61,7 @@ class GithubConnectorSpec
 
   private val connector = app.injector.instanceOf[GithubConnector]
 
-  implicit val headerCarrier = HeaderCarrier()
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val createdAt =
     Instant.parse("2019-03-01T12:00:00Z")

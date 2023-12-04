@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.Format
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models._
@@ -39,8 +40,8 @@ class LegacyRepositoriesController @Inject()(
   ec                      : ExecutionContext
 ) extends BackendController(cc) {
 
-  private implicit val rdf = RepositoryDetails.format
-  private implicit val dsf = DigitalService.format
+  private implicit val rdf: Format[RepositoryDetails] = RepositoryDetails.format
+  private implicit val dsf: Format[DigitalService]    = DigitalService.format
 
   def repositoryTeams = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>

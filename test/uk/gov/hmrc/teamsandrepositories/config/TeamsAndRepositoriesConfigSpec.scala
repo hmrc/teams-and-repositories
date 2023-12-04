@@ -20,15 +20,15 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.collection.immutable.ListMap
 
 class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
-  implicit override lazy val app =
+  implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      .disable(classOf[com.kenshoo.play.metrics.PlayModule])
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",

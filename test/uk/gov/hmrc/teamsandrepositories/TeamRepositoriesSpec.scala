@@ -179,8 +179,8 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues {
         )
       )
 
-      val Some(repositoryDetails) =
-        TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(ListMap()))
+      val repositoryDetails =
+        TeamRepositories.findRepositoryDetails(teams, "REPO1", UrlTemplates(ListMap())).get
 
       repositoryDetails.name       shouldBe "repo1"
       repositoryDetails.repoType   shouldBe Library

@@ -43,7 +43,7 @@ object ServiceType {
     override def writes(o: ServiceType): JsValue = JsString(o.asString)
   }
 
-  implicit val queryStringBindable = new QueryStringBindable[ServiceType] {
+  implicit val queryStringBindable: QueryStringBindable[ServiceType] = new QueryStringBindable[ServiceType] {
     override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ServiceType]] =
       params.get(key).map {
         case Nil         => Left("missing serviceType value")

@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+import com.codahale.metrics.MetricRegistry
+
 import java.time.Instant
-import com.kenshoo.play.metrics.Metrics
 import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
@@ -37,19 +38,17 @@ import scala.util.{Failure, Success, Try}
 
 @Singleton
 class GithubConnector @Inject()(
-  githubConfig: GithubConfig,
-  httpClientV2: HttpClientV2,
-  metrics     : Metrics,
+  githubConfig  : GithubConfig,
+  httpClientV2  : HttpClientV2,
+  metricRegistry: MetricRegistry,
 )(implicit ec: ExecutionContext) {
 
   import GithubConnector._
 
-  private val defaultMetricsRegistry = metrics.defaultRegistry
-
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
-  private implicit val hc = HeaderCarrier()
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   def getTeams(): Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
@@ -162,9 +161,9 @@ class GithubConnector @Inject()(
   def withCounter[T](name: String)(f: Future[T]) =
     f.andThen {
       case Success(_) =>
-        defaultMetricsRegistry.counter(s"$name.success").inc()
+        metricRegistry.counter(s"$name.success").inc()
       case Failure(_) =>
-        defaultMetricsRegistry.counter(s"$name.failure").inc()
+        metricRegistry.counter(s"$name.failure").inc()
     }
 }
 

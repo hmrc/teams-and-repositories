@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
@@ -43,7 +43,7 @@ class JenkinsService @Inject()(
   def findByJobName(name: String): Future[Option[BuildJob]] =
     jenkinsLinksPersistence.findByJobName(name)
 
-  def findAllByRepo(service: String)(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
+  def findAllByRepo(service: String): Future[Seq[BuildJob]] =
     jenkinsLinksPersistence.findAllByRepo(service)
 
   def pipelineJobs()(implicit ec: ExecutionContext): Future[Seq[BuildJob]] =
