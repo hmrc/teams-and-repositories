@@ -51,7 +51,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Library,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main",
         )
 
@@ -72,7 +71,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Library,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -99,7 +97,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Library,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -120,7 +117,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Library,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -142,7 +138,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -163,7 +158,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -190,7 +184,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           isPrivate      = true,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -210,7 +203,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           lastActiveDate = now,
           repoType       = RepoType.Prototype,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -229,7 +221,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           lastActiveDate = now,
           repoType       = RepoType.Other,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -248,7 +239,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           lastActiveDate = now,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -274,7 +264,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           lastActiveDate = now,
           repoType       = RepoType.Library,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )
 
@@ -292,7 +281,6 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
         lastActiveDate = now,
         repoType       = RepoType.Other,
         language       = Some("Scala"),
-        isArchived     = false,
         defaultBranch  = "main"
       )
 

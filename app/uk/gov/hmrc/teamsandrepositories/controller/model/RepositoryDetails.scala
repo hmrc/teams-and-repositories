@@ -22,7 +22,7 @@ import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepositoryStatus, RepoType}
 
 import scala.util.{Failure, Success, Try}
 
@@ -64,12 +64,11 @@ case class RepositoryDetails(
   owningTeams      : Seq[String],
   teamNames        : Seq[String],
   githubUrl        : Link,
-  ci               : Seq[Link]        = Seq.empty,
-  environments     : Seq[Environment] = Seq.empty,
+  ci               : Seq[Link]                = Seq.empty,
+  environments     : Seq[Environment]         = Seq.empty,
   language         : String,
-  isArchived       : Boolean,
   defaultBranch    : String,
-  isDeprecated     : Boolean          = false
+  status           : Option[RepositoryStatus] = None,
 )
 
 object RepositoryDetails {
@@ -79,6 +78,7 @@ object RepositoryDetails {
     implicit val rtf = RepoType.format
     implicit val lf  = Link.format
     implicit val ef  = Environment.format
+    implicit val sf  = RepositoryStatus.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "description"  ).format[String]
     ~ (__ \ "isPrivate"    ).format[Boolean]
@@ -91,9 +91,8 @@ object RepositoryDetails {
     ~ (__ \ "ci"           ).format[Seq[Link]]
     ~ (__ \ "environments" ).format[Seq[Environment]]
     ~ (__ \ "language"     ).format[String]
-    ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
-    ~ (__ \ "isDeprecated"   ).format[Boolean]
+    ~ (__ \ "status"       ).formatNullable[RepositoryStatus]
     )(apply, unlift(unapply))
   }
 
@@ -110,9 +109,8 @@ object RepositoryDetails {
         teamNames     = teamNames,
         githubUrl     = Link("github-com", "GitHub.com", repo.url),
         language      = repo.language.getOrElse(""),
-        isArchived    = repo.isArchived,
         defaultBranch = repo.defaultBranch,
-        isDeprecated  = repo.isDeprecated
+        status        = None
       )
 
     repo.repoType match {

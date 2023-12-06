@@ -28,7 +28,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepositoryStatus, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 
@@ -356,6 +356,12 @@ case class GhRepository(
           .getOrElse(name) // default to repository name if not defined in repository.yaml
       )
 
+    val status = (isArchived, manifestDetails.isDeprecated) match {
+      case (true, _)     => Some(RepositoryStatus.Archived)
+      case (false, true) => Some(RepositoryStatus.Deprecated)
+      case _             => None
+    }
+
     GitRepository(
       name               = name,
       description        = description.getOrElse(""),
@@ -369,11 +375,10 @@ case class GhRepository(
       digitalServiceName = manifestDetails.digitalServiceName,
       owningTeams        = manifestDetails.owningTeams,
       language           = language,
-      isArchived         = isArchived,
       defaultBranch      = defaultBranch,
       branchProtection   = branchProtection,
-      isDeprecated       = manifestDetails.isDeprecated,
-      prototypeName      = prototypeName
+      prototypeName      = prototypeName,
+      status             = status,
     )
   }
 }

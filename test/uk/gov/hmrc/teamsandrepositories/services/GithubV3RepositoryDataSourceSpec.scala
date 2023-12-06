@@ -170,7 +170,6 @@ class GithubV3RepositoryDataSourceSpec
           digitalServiceName = None,
           owningTeams        = List(),
           language           = Some("Scala"),
-          isArchived         = false,
           defaultBranch      = "main"
         ),
         GitRepository(
@@ -184,8 +183,7 @@ class GithubV3RepositoryDataSourceSpec
           digitalServiceName = None,
           owningTeams        = List(),
           language           = Some("Scala"),
-          isArchived         = false,
-          defaultBranch      = "main"
+                    defaultBranch      = "main"
         )
       )
     }
@@ -246,7 +244,6 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               owningTeams        = Nil,
               language           = Some("Scala"),
-              isArchived         = false,
               defaultBranch      = "main"
             )
           ),
@@ -284,8 +281,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -323,7 +319,6 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              isArchived         = false,
               defaultBranch      = "main",
               prototypeName      = None
             )
@@ -362,7 +357,6 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Service,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main",
             prototypeName      = None
           )
@@ -401,8 +395,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Service,
               digitalServiceName = None,
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -440,8 +433,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Other,
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -482,8 +474,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Service,
               digitalServiceName = Some("service-abcd"),
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -518,8 +509,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Library,
               digitalServiceName = None,
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -554,8 +544,7 @@ class GithubV3RepositoryDataSourceSpec
               repoType           = RepoType.Other,
               digitalServiceName = None,
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -600,8 +589,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
+                        defaultBranch      = "main",
             prototypeName      = None
           )
         ),
@@ -646,8 +634,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Library,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
+                        defaultBranch      = "main",
             prototypeName      = None
           )
         ),
@@ -684,8 +671,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Prototype,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
+                        defaultBranch      = "main",
             prototypeName      = Some("A_r-prototype")
           )
         ),
@@ -722,8 +708,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Test,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main")
+                        defaultBranch      = "main")
         ),
         createdDate  = Some(teamCreatedDate),
         updateDate   = now
@@ -753,8 +738,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Other,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
+                        defaultBranch      = "main",
             prototypeName      = None
           )
         ),
@@ -800,8 +784,7 @@ class GithubV3RepositoryDataSourceSpec
               digitalServiceName = None,
               owningTeams        = List("team1", "team2"),
               language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
+                            defaultBranch      = "main",
               prototypeName      = None
             )
           ),
@@ -835,8 +818,7 @@ class GithubV3RepositoryDataSourceSpec
             repoType           = RepoType.Other,
             digitalServiceName = None,
             language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
+                        defaultBranch      = "main",
             prototypeName      = None
           )
         ),
@@ -864,8 +846,7 @@ class GithubV3RepositoryDataSourceSpec
         repoType           = RepoType.Other,
         digitalServiceName = None,
         language           = Some("Scala"),
-        isArchived         = false,
-        defaultBranch      = "main",
+                defaultBranch      = "main",
         prototypeName      = None
       )
 

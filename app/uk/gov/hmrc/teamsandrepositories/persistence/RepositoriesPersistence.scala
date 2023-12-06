@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonArray, BsonDocument}
 import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepositoryStatus, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import org.mongodb.scala.model.Filters.equal
@@ -45,7 +44,8 @@ class RepositoriesPersistence @Inject()(
   indexes        = Seq(
                        IndexModel(Indexes.ascending("name", "isArchived"), IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)),
                        IndexModel(Indexes.ascending("repoType"), IndexOptions().name("repoTypeIdx").background(true)),
-                       IndexModel(Indexes.ascending("serviceType"), IndexOptions().name("serviceTypeIdx").background(true))
+                       IndexModel(Indexes.ascending("serviceType"), IndexOptions().name("serviceTypeIdx").background(true)),
+                       IndexModel(Indexes.ascending("status"), IndexOptions().name("statusIdx").background(true))
                       )
 ) {
   private val logger = Logger(this.getClass)
@@ -70,7 +70,7 @@ class RepositoriesPersistence @Inject()(
     val filters = Seq(
       name       .map(n  => Filters.regex("name"       , n)),
       team       .map(t  => Filters.equal("teamNames"  , t)),
-      isArchived .map(b  => Filters.equal("isArchived" , b)),
+      isArchived .map(b  => if (b) Filters.equal("status" , RepositoryStatus.Archived.asString) else Filters.ne("status" , RepositoryStatus.Archived.asString)),
       repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
       serviceType.map(st => Filters.equal("serviceType", st.asString)),
       tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)):_*)),
@@ -111,20 +111,31 @@ class RepositoriesPersistence @Inject()(
                   } else Future.unit
     } yield update
 
-  def putRepo(repo: GitRepository): Future[Unit] =
-    collection
-      .replaceOne(
-        filter      = equal("name", repo.name),
-        replacement = repo,
-        options     = ReplaceOptions().upsert(true)
-      )
-      .toFuture()
-      .map(_ => ())
+  def putRepo(repo: GitRepository): Future[Unit] = {
+    (repo.status match {
+      case Some(RepositoryStatus.Archived) => Future.successful(repo)
+      case _                               => Future.successful(repo)
+    }).flatMap(repoWithStatus =>
+      collection
+        .replaceOne(
+          filter      = equal("name", repo.name),
+          replacement = repoWithStatus,
+          options     = ReplaceOptions().upsert(true)
+        )
+        .toFuture()
+        .map(_ => ())
+    )
+  }
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
-  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
+  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] = {
+    val statusFilter = archived match { 
+        case Some(true)  => Filters.eq("status", RepositoryStatus.Archived.asString)
+        case Some(false) => Filters.ne("status", RepositoryStatus.Archived.asString)
+        case _           => Filters.empty()
+    }
     legacyCollection.aggregate(Seq(
-      `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
+      `match`(statusFilter),
       unwind("$teamNames"),
       addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
       group(
@@ -136,6 +147,7 @@ class RepositoriesPersistence @Inject()(
       ),
       sort(Sorts.ascending("_id"))
     )).toFuture()
+  }
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
     implicit val bpf = BranchProtection.format

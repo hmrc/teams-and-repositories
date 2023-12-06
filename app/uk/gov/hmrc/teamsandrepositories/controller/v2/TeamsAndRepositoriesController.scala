@@ -17,11 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
 import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepositoryStatus, RepoType, ServiceType, Tag, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DecommissionRepository, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
@@ -31,6 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
   branchProtectionService: BranchProtectionService,
+  decommissionRepository : DecommissionRepository,
   auth                   : BackendAuthComponents,
   cc                     : ControllerComponents
 )(implicit
@@ -57,7 +58,20 @@ class TeamsAndRepositoriesController @Inject()(
   }
 
   def findRepo(repoName:String) = Action.async { request =>
-    repositoriesPersistence.findRepo(repoName).map {
+    for {
+      repo           <- repositoriesPersistence.findRepo(repoName)
+      repoWithStatus <- repo match {
+                          case Some(r) if r.status != Some(RepositoryStatus.Archived) =>
+                            decommissionRepository.isBeingDecommissioned(repoName)
+                              .map(isBeingDecommissioned => 
+                                if (isBeingDecommissioned)
+                                  Some(r.copy(status = Some(RepositoryStatus.BeingDecommissioned)))
+                                else
+                                  Some(r)
+                              )
+                          case _ => Future.successful(repo)
+                        }
+    } yield repoWithStatus match {
       case None       => NotFound
       case Some(repo) => Ok(Json.toJson(repo))
     }
@@ -83,4 +97,14 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
+
+  def toBeDecommissioned(repoName: String): Action[AnyContent] =
+    auth
+      .authorizedAction(Predicate.Permission(
+          Resource.from("catalogue-repository", s"$repoName"),
+          IAAction("MARK_FOR_DECOMMISSIONING"))
+      ).async(
+        decommissionRepository.toBeDecommissioned(repoName)
+          .map(_ => NoContent)
+      )
 }

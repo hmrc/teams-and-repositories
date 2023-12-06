@@ -22,7 +22,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, GitRepository}
+import uk.gov.hmrc.teamsandrepositories.models.{RepositoryStatus, RepoType, ServiceType, GitRepository}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -57,11 +57,10 @@ class RepositoriesPersistenceSpec
       None,
       Nil,
       None,
-      isArchived       = false,
       "main",
       branchProtection = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
-      isDeprecated     = false,
       List("team1", "team2"),
+      None,
       None
     )
 
@@ -79,12 +78,11 @@ class RepositoriesPersistenceSpec
       None,
       Nil,
       None,
-      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated     = false,
       List("team2", "team3"),
-      None
+      None,
+      Some(RepositoryStatus.Archived)
     )
 
   private val repo3 =
@@ -101,12 +99,11 @@ class RepositoriesPersistenceSpec
       None,
       Nil,
       None,
-      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated     = false,
       List("team1","team2", "team3"),
-      Some("https://repo3.herokuapp.com")
+      Some("https://repo3.herokuapp.com"),
+      Some(RepositoryStatus.Archived)
     )
 
   private val repo4 =
@@ -123,12 +120,11 @@ class RepositoriesPersistenceSpec
       None,
       Nil,
       None,
-      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated     = false,
       List("team2", "team3"),
-      None
+      None,
+      Some(RepositoryStatus.Archived)
     )
 
   private val repo5 =
@@ -145,12 +141,11 @@ class RepositoriesPersistenceSpec
       None,
       Nil,
       None,
-      isArchived       = true,
       "main",
       branchProtection = None,
-      isDeprecated     = false,
       List("team2", "team3"),
-      None
+      None,
+      Some(RepositoryStatus.Archived)
     )
 
   "search" must  {

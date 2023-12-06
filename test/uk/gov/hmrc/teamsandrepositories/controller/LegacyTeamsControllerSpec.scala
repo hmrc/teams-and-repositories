@@ -90,7 +90,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -102,7 +101,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-3"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -121,7 +119,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -133,7 +130,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -145,7 +141,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -157,7 +152,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Prototype,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -169,7 +163,6 @@ class LegacyTeamsControllerSpec
             repoType           = RepoType.Other,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -190,7 +183,6 @@ class LegacyTeamsControllerSpec
           lastActiveDate = now,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )),
         createdDate = Some(now),
@@ -239,7 +231,6 @@ class LegacyTeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -257,7 +248,6 @@ class LegacyTeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -310,7 +300,6 @@ class LegacyTeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -328,7 +317,6 @@ class LegacyTeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -370,7 +358,6 @@ class LegacyTeamsControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Library,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),

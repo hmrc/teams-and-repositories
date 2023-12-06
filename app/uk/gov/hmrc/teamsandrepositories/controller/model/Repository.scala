@@ -20,7 +20,7 @@ import java.time.Instant
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepositoryStatus, RepoType}
 
 case class Repository(
   name         : String,
@@ -29,9 +29,8 @@ case class Repository(
   lastUpdatedAt: Instant,
   repoType     : RepoType,
   language     : Option[String],
-  isArchived   : Boolean,
   defaultBranch: String,
-  isDeprecated : Boolean
+  status       : Option[RepositoryStatus]
 )
 
 object Repository {
@@ -44,22 +43,21 @@ object Repository {
       lastUpdatedAt = gr.lastActiveDate,
       repoType      = gr.repoType,
       language      = gr.language,
-      isArchived    = gr.isArchived,
       defaultBranch = gr.defaultBranch,
-      isDeprecated  = gr.isDeprecated
+      status        = gr.status
     )
 
   implicit val format: OFormat[Repository] = {
-    implicit val rtf: Format[RepoType] = RepoType.format
+    implicit val rsf: Format[RepositoryStatus] = RepositoryStatus.format
+    implicit val rtf: Format[RepoType]         = RepoType.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "teamNames"    ).format[Seq[String]]
     ~ (__ \ "createdAt"    ).format[Instant]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repoType"     ).format[RepoType]
     ~ (__ \ "language"     ).formatNullable[String]
-    ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
-    ~ (__ \ "isDeprecated" ).format[Boolean]
+    ~ (__ \ "status"       ).formatNullable[RepositoryStatus]
     )(apply, unlift(unapply))
   }
 }

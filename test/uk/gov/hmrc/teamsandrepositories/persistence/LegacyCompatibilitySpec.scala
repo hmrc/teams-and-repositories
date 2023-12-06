@@ -20,6 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.teamsandrepositories.models.RepositoryStatus.Archived
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 
@@ -40,8 +41,8 @@ class LegacyCompatibilitySpec
 
   val legacyPersistence = new RepositoriesPersistence(mongoComponent)
 
-  private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, isArchived = false, "main", branchProtection = None, isDeprecated = false, List("team1"))
-  private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, isArchived = true, "main", branchProtection = None, isDeprecated = false, List("team1"))
+  private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, status = None, defaultBranch =  "main", branchProtection = None, teams = List("team1"))
+  private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, status = Some(Archived), defaultBranch = "main", branchProtection = None, teams = List("team1"))
 
   "search" must {
 

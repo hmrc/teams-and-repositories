@@ -23,7 +23,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models._
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{DecommissionRepository, RepositoriesPersistence}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,6 +33,7 @@ case class PersistingService @Inject()(
   dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
   serviceConfigsConnector : ServiceConfigsConnector,
+  decommissionRepository  : DecommissionRepository,
 ) {
   private val logger = Logger(this.getClass)
 
@@ -52,10 +53,11 @@ case class PersistingService @Inject()(
                              }
       allRepos            <- dataSource.getAllRepositoriesByName()
       orphanRepos         =  (allRepos -- reposWithTeams.keys).values
-      reposToPersist      =  (reposWithTeams.values.toSeq ++ orphanRepos)
+      repos               =  (reposWithTeams.values.toSeq ++ orphanRepos)
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
-      _                   =  logger.info(s"found ${reposToPersist.length} repos")
+      _                   =  logger.info(s"found ${repos.length} repos")
+      reposToPersist      <- repos.foldLeftM(Seq.empty[GitRepository]){ case (acc, repo) => updateRepositoryStatus(repo).map (_ +: acc)}
       count               <- persister.updateRepos(reposToPersist)
     } yield count
 
@@ -77,8 +79,10 @@ case class PersistingService @Inject()(
                                .map(_.copy(teams = teams))
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+      repoWithStatus      <- EitherT
+                               .liftF(updateRepositoryStatus(repo))
       _                   <- EitherT
-                               .liftF(persister.putRepo(repo))
+                               .liftF(persister.putRepo(repoWithStatus))
     } yield ()
 
   private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
@@ -103,5 +107,16 @@ case class PersistingService @Inject()(
                                    Option.when(repo.name.contains("admin-frontend"))(Tag.AdminFrontend)
                                  repo.copy(tags = Some(newTags.toSet))
       case _                  => repo
+    }
+
+  private def updateRepositoryStatus(repo: GitRepository)(implicit ec: ExecutionContext): Future[GitRepository] =
+    (repo.status, repo.repoType) match {
+      case (Some(RepositoryStatus.Archived), _) => Future.successful(repo)
+      case (_, RepoType.Service)                => decommissionRepository.isBeingDecommissioned(repo.name).map(isBeingDecommissioned =>                                                                            if (isBeingDecommissioned)
+                                                      repo.copy(status = Some(RepositoryStatus.BeingDecommissioned))
+                                                    else
+                                                      repo
+                                                    )
+      case _                                    => Future.successful(repo)
     }
 }

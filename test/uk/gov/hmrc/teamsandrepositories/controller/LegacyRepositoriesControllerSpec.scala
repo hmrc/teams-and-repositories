@@ -90,7 +90,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -102,7 +101,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-3"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -121,7 +119,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -133,7 +130,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Service,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -145,7 +141,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Library,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -157,7 +152,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Prototype,
             digitalServiceName = Some("digital-service-2"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           ),
           GitRepository(
@@ -169,7 +163,6 @@ class LegacyRepositoriesControllerSpec
             repoType           = RepoType.Other,
             digitalServiceName = Some("digital-service-1"),
             language           = Some("Scala"),
-            isArchived         = false,
             defaultBranch      = "main"
           )
         ),
@@ -194,7 +187,6 @@ class LegacyRepositoriesControllerSpec
           lastActiveDate = now,
           repoType       = RepoType.Service,
           language       = Some("Scala"),
-          isArchived     = false,
           defaultBranch  = "main"
         )),
         createdDate = Some(now),
@@ -345,7 +337,6 @@ class LegacyRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               ),
               GitRepository(
@@ -356,7 +347,6 @@ class LegacyRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               ),
               GitRepository(
@@ -367,7 +357,6 @@ class LegacyRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -399,7 +388,6 @@ class LegacyRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),
@@ -417,7 +405,6 @@ class LegacyRepositoriesControllerSpec
                 lastActiveDate = now,
                 repoType       = RepoType.Service,
                 language       = Some("Scala"),
-                isArchived     = false,
                 defaultBranch  = "main"
               )
             ),

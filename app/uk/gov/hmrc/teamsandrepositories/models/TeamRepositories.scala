@@ -21,6 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
+import uk.gov.hmrc.teamsandrepositories.models.RepositoryStatus
 import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 
 import java.time.Instant
@@ -106,7 +107,7 @@ object TeamRepositories {
                                             repo.lastUpdatedAt,
                                             repo.repoType,
                                             repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
-                                            repo.isArchived
+                                            repo.status.map(_ == RepositoryStatus.Archived).getOrElse(false)
                                           )
                                         )
                      ))
