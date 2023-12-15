@@ -24,20 +24,20 @@ import uk.gov.hmrc.mongo.TimestampSupport
 import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.services.RebuildService
+import uk.gov.hmrc.teamsandrepositories.services.JenkinsReloadService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class RebuildScheduler @Inject()(
-  rebuildService     : RebuildService,
-  config             : SchedulerConfigs,
-  mongoLockRepository: MongoLockRepository,
-  timestampSupport   : TimestampSupport
+class JenkinsReloadScheduler @Inject()(
+  jenkinsReloadService: JenkinsReloadService
+, config              : SchedulerConfigs
+, mongoLockRepository : MongoLockRepository
+, timestampSupport    : TimestampSupport
 )(implicit
-  actorSystem         : ActorSystem,
-  applicationLifecycle: ApplicationLifecycle
+  actorSystem         : ActorSystem
+, applicationLifecycle: ApplicationLifecycle
 ) extends SchedulerUtils {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -49,16 +49,15 @@ class RebuildScheduler @Inject()(
   private val lockService =
     ScheduledLockService(
       lockRepository    = mongoLockRepository,
-      lockId            = "reload-lock",
+      lockId            = "jenkins-lock",
       timestampSupport  = timestampSupport,
-      schedulerInterval = config.rebuildScheduler.interval
+      schedulerInterval = config.jenkinsScheduler.interval
     )
 
-  scheduleWithLock("Job Rebuilder", config.rebuildScheduler, lockService) {
-    logger.info("Starting rebuilding Jobs")
+  scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, lockService) {
     for {
-      _ <- rebuildService.rebuildJobWithNoRecentBuild()
-      _ =  logger.info("Finished rebuilding Build Jobs")
+      _ <- jenkinsReloadService.updateBuildAndPerformanceJobs()
+      _ =  logger.info("Finished Jenkins Reloader")
     } yield ()
   }
 }

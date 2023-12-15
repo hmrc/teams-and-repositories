@@ -26,7 +26,6 @@ import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.tomakehurst.wiremock.client.WireMock._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -44,29 +43,22 @@ class BuildDeployApiConnectorSpec
           .willReturn(aResponse().withBody(buildJobResponseJson))
       )
 
-      def buildJob1(repoName: String): BuildJob = BuildJob(
-        repoName    = repoName,
-        jobName     = repoName,
-        jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
-        jobType     = BuildJobType.Job,
-        latestBuild = None
+      def buildJob1(repoName: String) = BuildDeployApiConnector.BuildJob(
+        jobName    = repoName,
+        jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
+        jobType    = BuildDeployApiConnector.JobType.Job
       )
 
-      def buildJob2(repoName: String): BuildJob = BuildJob(
-        repoName    = repoName,
-        jobName     = s"$repoName-pipeline",
-        jenkinsUrl  = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
-        jobType     = BuildJobType.Pipeline,
-        latestBuild = None
+      def buildJob2(repoName: String) = BuildDeployApiConnector.BuildJob(
+        jobName    = s"$repoName-pipeline",
+        jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
+        jobType    = BuildDeployApiConnector.JobType.Pipeline
       )
 
-      connector.getBuildJobs.futureValue shouldBe
-        Seq(
-          buildJob1("test-repo-1"),
-          buildJob2("test-repo-1"),
-          buildJob1("test-repo-2"),
-          buildJob2("test-repo-2")
-        )
+      connector.getBuildJobsDetails().futureValue shouldBe List(
+        BuildDeployApiConnector.Detail("test-repo-1", List(buildJob1("test-repo-1"), buildJob2("test-repo-1")))
+      , BuildDeployApiConnector.Detail("test-repo-2", List(buildJob1("test-repo-2"), buildJob2("test-repo-2")))
+      )
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/get-build-jobs"))

@@ -23,9 +23,9 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
-import uk.gov.hmrc.teamsandrepositories.models.{BuildData, BuildJob, BuildJobType}
 
 import javax.inject.Inject
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -38,7 +38,7 @@ class JenkinsConnector @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  private implicit val br: Reads[BuildData]          = BuildData.jenkinsReads
+  private implicit val lb: Reads[LatestBuild]        = LatestBuild.jenkinsReads
   private implicit val jo: Reads[Seq[JenkinsObject]] = JenkinsObjects.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(implicit ec: ExecutionContext): Future[String] = {
@@ -55,7 +55,7 @@ class JenkinsConnector @Inject()(
       .flatMap { res =>
         if (Status.isSuccessful(res.status))
           res.header("Location") match {
-            case Some(location) => Future.successful(location)
+            case Some(location) => Future.successful(location.replace("http:", "https:"))
             case None           => Future.failed(sys.error(s"No location header found in response from $url"))
           }
         else Future.failed(sys.error(s"Call to $url failed with status: ${res.status}, body: ${res.body}"))
@@ -67,7 +67,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def getLatestBuildData(jobUrl: String)(implicit ec: ExecutionContext): Future[Option[BuildData]] = {
+  def getLatestBuildData(jobUrl: String)(implicit ec: ExecutionContext): Future[Option[LatestBuild]] = {
     // Prevents Server-Side Request Forgery
     assert(jobUrl.startsWith(config.BuildJobs.baseUrl), s"$jobUrl does not match expected base url: ${config.BuildJobs.baseUrl}")
 
@@ -78,7 +78,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
-      .execute[Option[BuildData]]
+      .execute[Option[LatestBuild]]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -86,35 +86,32 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  private def toBuildJob(job: JenkinsObject.StandardJob, jobType: BuildJobType): Seq[BuildJob] =
-    job.gitHubUrl.flatMap(extractRepoNameFromGitHubUrl) match {
-      case Some(repoName) => Seq(
-                               BuildJob(
-                                 repoName    = repoName,
-                                 jobName     = job.name,
-                                 jobType     = jobType,
-                                 jenkinsUrl  = job.jenkinsUrl,
-                                 latestBuild = job.latestBuild
-                               )
-                             )
-      case None           => Seq.empty[BuildJob]
-    }
-
-  private def extractStandardJobsFromTree(jenkinsObject: JenkinsObject, jobType: BuildJobType): Seq[BuildJob] = jenkinsObject match {
-    case JenkinsObject.Folder(_, _, objects)                                => objects.flatMap(o => extractStandardJobsFromTree(o, jobType))
-    case job: JenkinsObject.StandardJob if job.gitHubUrl.exists(_.nonEmpty) => toBuildJob(job, jobType)
-    case _                                                                  => Seq.empty
+  private def extractFreeStyleProjectFromTree(jenkinsObject: JenkinsObject): Seq[JenkinsObject.FreeStyleProject] = jenkinsObject match {
+    case JenkinsObject.Folder(_, _, objects)                                     => objects.flatMap(extractFreeStyleProjectFromTree)
+    case job: JenkinsObject.FreeStyleProject if job.gitHubUrl.exists(_.nonEmpty) => Seq(job)
+    case _                                                                       => Seq.empty
   }
 
-  def findBuildJobs()(implicit  ec: ExecutionContext): Future[Seq[BuildJob]] = {
+  def findBuildJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject.FreeStyleProject]] =
+    findJobs(
+      url        = url"${config.BuildJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+    , authHeader = config.BuildJobs.authorizationHeader
+    )
+
+  def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject.FreeStyleProject]] =
+    findJobs(
+      url        = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
+    , authHeader = config.PerformanceJobs.authorizationHeader
+    )
+
+  private def findJobs(url: java.net.URL, authHeader: String)(implicit  ec: ExecutionContext): Future[Seq[JenkinsObject.FreeStyleProject]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${config.BuildJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
 
     httpClientV2
       .get(url)
-      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .setHeader("Authorization" -> authHeader)
       .execute[Seq[JenkinsObject]]
-      .map(_.flatMap(o => extractStandardJobsFromTree(o, BuildJobType.Job)))
+      .map(_.flatMap(extractFreeStyleProjectFromTree))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -122,21 +119,6 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def findPerformanceJobs()(implicit  ec: ExecutionContext): Future[Seq[BuildJob]] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    val url = url"${config.PerformanceJobs.baseUrl}api/json?tree=${JenkinsConnector.generateJobQuery(config.searchDepth)}"
-
-    httpClientV2
-      .get(url)
-      .setHeader("Authorization" -> config.PerformanceJobs.authorizationHeader)
-      .execute[Seq[JenkinsObject]]
-      .map(_.flatMap(o => extractStandardJobsFromTree(o, BuildJobType.Performance)))
-      .recoverWith {
-        case NonFatal(ex) =>
-          logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
-          Future.failed(ex)
-      }
-  }
 
   def getQueueDetails(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsQueueData] = {
     assert(queueUrl.startsWith(config.BuildJobs.baseUrl), s"$queueUrl was requested for invalid host")
@@ -155,7 +137,7 @@ class JenkinsConnector @Inject()(
       }
   }
 
-  def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[BuildData] = {
+  def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[LatestBuild] = {
     // Prevents Server-Side Request Forgery
     assert(buildUrl.startsWith(config.BuildJobs.baseUrl), s"$buildUrl was requested for invalid host")
 
@@ -165,7 +147,7 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
-      .execute[BuildData]
+      .execute[LatestBuild]
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -179,9 +161,6 @@ object JenkinsConnector {
     (0 until depth).foldLeft(""){(acc, _) =>
       s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if (acc == "") "" else s",$acc"}]"
     }
-
-  def extractRepoNameFromGitHubUrl(gitHubUrl: String): Option[String] =
-    """.*hmrc/([^/]+)\.git""".r.findFirstMatchIn(gitHubUrl).map(_.group(1))
 
   case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
 
@@ -201,14 +180,6 @@ object JenkinsConnector {
       )(JenkinsQueueExecutable.apply _)
   }
 
-  case class JenkinsJobs(jobs: Seq[JenkinsObject.StandardJob])
-  private[connectors] object JenkinsJobs {
-    implicit val reads: Reads[JenkinsJobs] = {
-      implicit val x: Reads[JenkinsObject.StandardJob] = JenkinsObject.StandardJob.jenkinsReads
-      Json.reads[JenkinsJobs]
-    }
-  }
-
   sealed trait JenkinsObject
 
   object JenkinsObject {
@@ -219,52 +190,49 @@ object JenkinsConnector {
       jobs      : Seq[JenkinsObject]
     ) extends JenkinsObject
 
-    case class StandardJob(
+    case class FreeStyleProject(
       name       : String,
       jenkinsUrl : String,
-      latestBuild: Option[BuildData],
+      latestBuild: Option[LatestBuild],
       gitHubUrl  : Option[String]
     ) extends JenkinsObject
 
-    case class PipelineJob(
+    case class WorkflowJob(
       name      : String,
       jenkinsUrl: String
     ) extends JenkinsObject
 
-    object StandardJob {
-
-      private def extractGithubUrl = Reads[Option[String]] { js =>
-        val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
-        l.headOption match {
-          case Some(v) => JsSuccess(Some(v.as[String].toLowerCase)) // github organisation can be uppercase
-          case None    => JsSuccess(None)
-        }
+    private def extractGithubUrl = Reads[Option[String]] { js =>
+      val l: List[JsValue] = (__ \ "scm" \ "userRemoteConfigs" \\ "url") (js)
+      l.headOption match {
+        case Some(v) => JsSuccess(Some(v.as[String].toLowerCase)) // github organisation can be uppercase
+        case None    => JsSuccess(None)
       }
-
-      val jenkinsReads: Reads[StandardJob] =
-        ( (__ \ "name"     ).read[String]
-          ~ (__ \ "url"      ).read[String]
-          ~ (__ \ "lastBuild").readNullable[BuildData](BuildData.jenkinsReads)
-          ~ extractGithubUrl
-          )(StandardJob.apply _)
     }
+
+    private val readsFreeStyleProject: Reads[FreeStyleProject] =
+      ( (__ \ "name"     ).read[String]
+      ~ (__ \ "url"      ).read[String]
+      ~ (__ \ "lastBuild").readNullable[LatestBuild](LatestBuild.jenkinsReads)
+      ~ extractGithubUrl
+      )(FreeStyleProject.apply _)
 
     private lazy val folderReads: Reads[Folder] =
       ( (__ \ "name").read[String]
-        ~ (__ \ "url" ).read[String]
-        ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
-        )(Folder.apply _)
+      ~ (__ \ "url" ).read[String]
+      ~ (__ \ "jobs").lazyRead(Reads.seq[JenkinsObject](jenkinsObjectReads))
+      )(Folder.apply _)
 
-    private val pipelineReads: Reads[PipelineJob] =
+    private val readsWorkflowJob: Reads[WorkflowJob] =
       ( (__ \ "name").read[String]
-        ~ (__ \ "url" ).read[String]
-        )(PipelineJob.apply _)
+      ~ (__ \ "url" ).read[String]
+      )(WorkflowJob.apply _)
 
     implicit val jenkinsObjectReads: Reads[JenkinsObject] = json =>
       (json \ "_class").validate[String].flatMap {
         case "com.cloudbees.hudson.plugins.folder.Folder"     => folderReads.reads(json)
-        case "hudson.model.FreeStyleProject"                  => StandardJob.jenkinsReads.reads(json)
-        case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => pipelineReads.reads(json)
+        case "hudson.model.FreeStyleProject"                  => readsFreeStyleProject.reads(json)
+        case "org.jenkinsci.plugins.workflow.job.WorkflowJob" => readsWorkflowJob.reads(json)
         case value                                            => throw new Exception(s"Unsupported Jenkins class $value")
       }
   }
@@ -272,5 +240,50 @@ object JenkinsConnector {
   private[connectors] object JenkinsObjects {
     implicit val jenkinsReads: Reads[Seq[JenkinsObject]] =
       (__ \ "jobs").read(Reads.seq[JenkinsObject])
+  }
+
+  case class LatestBuild(
+    number     : Int,
+    url        : String,
+    timestamp  : Instant,
+    result     : Option[LatestBuild.BuildResult],
+    description: Option[String]
+  )
+  object LatestBuild {
+    sealed trait BuildResult { def asString: String }
+
+    object BuildResult {
+      case object Failure  extends BuildResult { override val asString = "FAILURE"  }
+      case object Success  extends BuildResult { override val asString = "SUCCESS"  }
+      case object Aborted  extends BuildResult { override val asString = "ABORTED"  }
+      case object Unstable extends BuildResult { override val asString = "UNSTABLE" }
+      case object Other    extends BuildResult { override val asString = "Other"    }
+
+      val values: List[BuildResult] =
+        List(Failure, Success, Aborted, Unstable, Other)
+
+      def parse(s: String): BuildResult =
+        values
+          .find(_.asString.equalsIgnoreCase(s)).getOrElse(Other)
+
+      implicit val format: Format[BuildResult] =
+        Format.of[String].inmap(parse, _.asString)
+    }
+
+    val apiWrites: Writes[LatestBuild] =
+      ( (__ \ "number"     ).write[Int]
+      ~ (__ \ "url"        ).write[String]
+      ~ (__ \ "timestamp"  ).write[Instant]
+      ~ (__ \ "result"     ).writeNullable[BuildResult]
+      ~ (__ \ "description").writeNullable[String]
+      )(unlift(unapply))
+
+    val jenkinsReads: Reads[LatestBuild] =
+      ( (__ \ "number"     ).read[Int]
+      ~ (__ \ "url"        ).read[String]
+      ~ (__ \ "timestamp"  ).read[Instant]
+      ~ (__ \ "result"     ).readNullable[BuildResult]
+      ~ (__ \ "description").readNullable[String]
+      )(apply _)
   }
 }

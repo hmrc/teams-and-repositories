@@ -20,21 +20,21 @@ import org.mongodb.scala.bson.Document
 import play.api.libs.json.{JsError, OFormat, Reads}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, GitRepository}
-import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsLinksPersistence, RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class IntegrationTestSupportController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
-  jenkinsLinksPersistence: JenkinsLinksPersistence,
+  jenkinsJobsPersistence : JenkinsJobsPersistence,
   cc                     : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
-  private implicit val bjf: Reads[BuildJob] = BuildJob.mongoFormat
-  private implicit val ghf: OFormat[GitRepository]  = GitRepository.apiFormat
+  private implicit val bjf: Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
+  private implicit val ghf: OFormat[GitRepository]            = GitRepository.apiFormat
 
   private def validateJson[A: Reads] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
@@ -47,11 +47,11 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putJenkinsLinks() = Action.async(validateJson[Seq[BuildJob]]) { implicit request =>
-    jenkinsLinksPersistence.putAll(request.body).map(_ => Ok("Done"))
+  def putJenkinsLinks() = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
+    jenkinsJobsPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 
   def clearJenkins() = Action.async {
-    jenkinsLinksPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
+    jenkinsJobsPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 }

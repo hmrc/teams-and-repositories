@@ -23,7 +23,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
-import uk.gov.hmrc.teamsandrepositories.models.BuildJob
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,8 +40,7 @@ class BuildDeployApiConnector @Inject()(
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def getBuildJobs: Future[Seq[BuildJob]] = {
-
+  def getBuildJobsDetails(): Future[Seq[BuildDeployApiConnector.Detail]] = {
     implicit val dr: Reads[Seq[Detail]] =
       Reads.at(__ \ "details")(Reads.seq(Detail.reads))
 
@@ -51,7 +49,6 @@ class BuildDeployApiConnector @Inject()(
 
     httpClientV2.post(url)
       .execute[Seq[Detail]]
-      .map(_.flatMap(_.buildJobs))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -82,20 +79,49 @@ class BuildDeployApiConnector @Inject()(
 
 object BuildDeployApiConnector {
 
-   private case class Detail(
+  case class Detail(
    repoName : String,
    buildJobs: List[BuildJob]
   )
 
-  private object Detail {
-    val reads: Reads[Detail] =
+  case class BuildJob(
+    jobName    : String,
+    jenkinsUrl : String,
+    jobType    : JobType,
+  )
+
+  object Detail {
+    val reads: Reads[Detail] = {
+      implicit val readsBuildJob: Reads[BuildJob] =
+        ( (__ \ "name").read[String].map(_.split("/").last)
+        ~ (__ \ "url" ).read[String]
+        ~ (__ \ "type").read[JobType]
+        )(BuildJob.apply _)
+
       ( (__ \ "repository_name").read[String]
-      ~ (__ \ "repository_name").read[String].flatMap[List[BuildJob]]{ rn =>
-          implicit val bjr: Reads[BuildJob] = BuildJob.reads(rn)
-          (__ \ "build_jobs").read[List[BuildJob]]
-      }
+      ~ (__ \ "build_jobs"     ).read[List[BuildJob]]
       )(Detail.apply _)
+    }
   }
+
+  sealed trait JobType { def asString: String }
+
+  object JobType {
+    case object Job         extends JobType { override val asString = "job"         }
+    case object Pipeline    extends JobType { override val asString = "pipeline"    }
+
+    val values: List[JobType] = List(Job, Pipeline)
+
+    def parse(s: String): JobType =
+      values
+        .find(_.asString.equalsIgnoreCase(s)).getOrElse {
+          Job
+      }
+
+    implicit val format: Format[JobType] =
+      Format.of[String].inmap(parse, _.asString)
+  }
+
 
   final case class Request(
     repoName: String,
