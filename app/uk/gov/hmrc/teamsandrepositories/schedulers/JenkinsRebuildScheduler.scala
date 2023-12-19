@@ -24,14 +24,15 @@ import uk.gov.hmrc.mongo.TimestampSupport
 import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
-import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
+import uk.gov.hmrc.teamsandrepositories.services.JenkinsRebuildService
+
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class JenkinsScheduler @Inject()(
-  jenkinsService     : JenkinsService,
+class JenkinsRebuildScheduler @Inject()(
+  rebuildService     : JenkinsRebuildService,
   config             : SchedulerConfigs,
   mongoLockRepository: MongoLockRepository,
   timestampSupport   : TimestampSupport
@@ -49,15 +50,16 @@ class JenkinsScheduler @Inject()(
   private val lockService =
     ScheduledLockService(
       lockRepository    = mongoLockRepository,
-      lockId            = "jenkins-lock",
+      lockId            = "reload-lock",
       timestampSupport  = timestampSupport,
-      schedulerInterval = config.jenkinsScheduler.interval
+      schedulerInterval = config.rebuildScheduler.interval
     )
 
-  scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, lockService) {
+  scheduleWithLock("Jenkins Rebuilder", config.rebuildScheduler, lockService) {
+    logger.info("Starting Jenkins Rebuilder")
     for {
-      _ <- jenkinsService.updateBuildAndPerformanceJobs()
-      _ =  logger.info("Finished updating Build and Performance Jobs")
+      _ <- rebuildService.rebuildJobWithNoRecentBuild()
+      _ =  logger.info("Finished Jenkins Rebuilder")
     } yield ()
   }
 }

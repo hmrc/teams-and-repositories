@@ -22,44 +22,45 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.{BuildJob, BuildJobType}
-import uk.gov.hmrc.teamsandrepositories.services.JenkinsService
+import uk.gov.hmrc.teamsandrepositories.models.RepoType
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with MockitoSugar {
 
-  val mockJenkinsService = mock[JenkinsService]
+  val mockJenkinsJobsPersistence = mock[JenkinsJobsPersistence]
 
   "JenkinsController" should {
     "return a single match as Json" in {
-      when(mockJenkinsService.findByJobName("job-foo"))
+      when(mockJenkinsJobsPersistence.findByJobName("job-foo"))
         .thenReturn(
           Future.successful(
             Some(
-              BuildJob(
+              JenkinsJobsPersistence.Job(
                 repoName    = "repo-one",
                 jobName     = "job-foo",
                 jenkinsUrl  = "http://bar/job/api/",
-                jobType     = BuildJobType.Job,
+                jobType     = JenkinsJobsPersistence.JobType.Job,
+                repoType    = Some(RepoType.Service),
                 latestBuild = None
               )
             )
           )
         )
 
-      val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
+      val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("job-foo").apply(FakeRequest())
       val bodyText = contentAsString(result)
-      bodyText mustBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job"}"""
+      bodyText mustBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
     }
 
     "return a not found when no matches found" in {
-      when(mockJenkinsService.findByJobName("bar"))
+      when(mockJenkinsJobsPersistence.findByJobName("bar"))
         .thenReturn(Future.successful(None))
 
-      val controller = new JenkinsController(mockJenkinsService, stubControllerComponents())
+      val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("bar").apply(FakeRequest())
       status(result) mustBe 404
     }
