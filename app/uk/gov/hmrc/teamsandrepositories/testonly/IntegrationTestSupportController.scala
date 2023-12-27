@@ -47,7 +47,7 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putJenkinsLinks() = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
+  def putJenkinsJobs() = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
     jenkinsJobsPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 
