@@ -35,15 +35,15 @@ class JenkinsController @Inject()(
 
   def lookup(name: String): Action[AnyContent] = Action.async {
     jenkinsJobsPersistence.findByJobName(name).map {
-      case Some(links) => Ok(Json.toJson(links))
-      case None        => NotFound
+      case Some(jobs) => Ok(Json.toJson(jobs))
+      case None       => NotFound
     }
   }
 
   def findAllJobsByRepo(name: String): Action[AnyContent] = Action.async {
     jenkinsJobsPersistence
       .findAllByRepo(name)
-      .map(links => Ok(Json.obj("jobs" -> Json.toJson(links))))
+      .map(jobs => Ok(Json.obj("jobs" -> Json.toJson(jobs))))
   }
 }
 
