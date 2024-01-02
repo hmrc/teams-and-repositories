@@ -14,11 +14,9 @@ GET         /api/repositories                                        uk.gov.hmrc
 GET         /api/digital-services/:name                              uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServiceDetails(name)
 GET         /api/digital-services                                    uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServices
 
+# deprecated in favour of v2 routes below
 GET         /api/jenkins-url/:service                                uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 GET         /api/jenkins-jobs/:service                               uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
-
-GET         /api/:serviceRepo/test-repositories                      uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.testRepositories(serviceRepo)
-GET         /api/:testRepo/services-under-test                       uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.servicesUnderTest(testRepo)
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
@@ -27,6 +25,10 @@ GET         /api/cache/reload                                        uk.gov.hmrc
 # v2 api
 GET         /api/v2/repositories                                     uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
 GET         /api/v2/repositories/:repoName                           uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)
+GET         /api/v2/repositories/:repoName/jenkins-url               uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(repoName)
+GET         /api/v2/repositories/:repoName/jenkins-jobs              uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(repoName)
+GET         /api/v2/repositories/:repoName/test-repositories         uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.testRepositories(repoName)
+GET         /api/v2/repositories/:repoName/services-under-test       uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.servicesUnderTest(repoName)
 POST        /api/v2/repositories/:repoName/branch-protection/enabled uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
 GET         /api/v2/teams                                            uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
 
