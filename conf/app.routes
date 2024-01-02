@@ -4,27 +4,30 @@ GET         /api/teams                                               uk.gov.hmrc
 GET         /api/teams/:team                                         uk.gov.hmrc.teamsandrepositories.controller.LegacyTeamsController.team(team, includeRepos: Boolean ?= false)
 GET         /api/teams_with_repositories                             uk.gov.hmrc.teamsandrepositories.controller.LegacyTeamsController.allTeamsAndRepositories
 
-GET         /api/repository_teams                                    @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryTeams
+GET         /api/repository_teams                                    uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryTeams
 
-GET         /api/services                                            @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.services(details: Boolean ?= false)
-GET         /api/libraries                                           @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.libraries(details: Boolean ?= false)
+GET         /api/services                                            uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.services(details: Boolean ?= false)
+GET         /api/libraries                                           uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.libraries(details: Boolean ?= false)
 
-GET         /api/repositories/:name                                  @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryDetails(name)
-GET         /api/repositories                                        @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositories(archived: Option[Boolean])
-GET         /api/digital-services/:name                              @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServiceDetails(name)
-GET         /api/digital-services                                    @uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServices
+GET         /api/repositories/:name                                  uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryDetails(name)
+GET         /api/repositories                                        uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositories(archived: Option[Boolean])
+GET         /api/digital-services/:name                              uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServiceDetails(name)
+GET         /api/digital-services                                    uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServices
 
-GET         /api/jenkins-url/:service                                @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
-GET         /api/jenkins-jobs/:service                               @uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
+GET         /api/jenkins-url/:service                                uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
+GET         /api/jenkins-jobs/:service                               uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
+
+GET         /api/:serviceRepo/test-repositories                      uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.testRepositories(serviceRepo)
+GET         /api/:testRepo/services-under-test                       uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.servicesUnderTest(testRepo)
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
 
 
 # v2 api
-GET         /api/v2/repositories                                     @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
-GET         /api/v2/repositories/:repoName                           @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)
-POST        /api/v2/repositories/:repoName/branch-protection/enabled @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
-GET         /api/v2/teams                                            @uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
+GET         /api/v2/repositories                                     uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allRepos(name: Option[String], team: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
+GET         /api/v2/repositories/:repoName                           uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)
+POST        /api/v2/repositories/:repoName/branch-protection/enabled uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
+GET         /api/v2/teams                                            uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
 
 POST       /teams-and-repositories/webhook                           uk.gov.hmrc.teamsandrepositories.controller.WebhookController.processGithubWebhook()
