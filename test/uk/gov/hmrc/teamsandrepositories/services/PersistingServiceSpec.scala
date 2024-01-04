@@ -25,6 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
 import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TestRepoRelationshipsPersistence}
 
 import java.time.Instant
@@ -42,9 +43,9 @@ class PersistingServiceSpec
   "PersistingService" when {
     "updating repositories" should {
       "assign teams to repositories" in new Setup {
-        val repo1 = aRepo.copy(name = "repo-1")
-        val repo2 = aRepo.copy(name = "repo-2")
-        val repo3 = aRepo.copy(name = "repo-3")
+        val repo1: GhRepository = aRepo.copy(name = "repo-1")
+        val repo2: GhRepository = aRepo.copy(name = "repo-2")
+        val repo3: GhRepository = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
@@ -53,8 +54,8 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         onTest.updateRepositories().futureValue
 
-        val persistedRepos = {
-          val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        val persistedRepos: Seq[GitRepository] = {
+          val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(persister).updateRepos(argCaptor.capture())
           argCaptor.getValue
         }
@@ -67,9 +68,9 @@ class PersistingServiceSpec
       }
 
       "assign multiple teams to same repository" in new Setup {
-        val repo1 = aRepo.copy(name = "repo-1")
-        val repo2 = aRepo.copy(name = "repo-2")
-        val repo3 = aRepo.copy(name = "repo-3")
+        val repo1: GhRepository = aRepo.copy(name = "repo-1")
+        val repo2: GhRepository = aRepo.copy(name = "repo-2")
+        val repo3: GhRepository = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo2, repo3)))
@@ -78,8 +79,8 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         onTest.updateRepositories().futureValue
 
-        val persistedRepos = {
-          val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        val persistedRepos: Seq[GitRepository] = {
+          val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(persister).updateRepos(argCaptor.capture())
           argCaptor.getValue
         }
@@ -94,10 +95,10 @@ class PersistingServiceSpec
       }
 
       "include repositories without any associated teams" in new Setup {
-        val repo1 = aRepo.copy(name = "repo-1")
-        val repo2 = aRepo.copy(name = "repo-2")
-        val repo3 = aRepo.copy(name = "repo-3")
-        val repo4 = aRepo.copy(name = "repo-4")
+        val repo1: GhRepository = aRepo.copy(name = "repo-1")
+        val repo2: GhRepository = aRepo.copy(name = "repo-2")
+        val repo3: GhRepository = aRepo.copy(name = "repo-3")
+        val repo4: GhRepository = aRepo.copy(name = "repo-4")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
@@ -106,8 +107,8 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         onTest.updateRepositories().futureValue
 
-        val persistedRepos = {
-          val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        val persistedRepos: Seq[GitRepository] = {
+          val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(persister).updateRepos(argCaptor.capture())
           argCaptor.getValue
         }
@@ -117,88 +118,119 @@ class PersistingServiceSpec
       }
 
       "assign service type" in new Setup {
-        val repo1 = aRepo.copy(name = "other")                                                                           // Other repo type
-        val repo2 = aRepo.copy(name = "front-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by frontend routes (not name)
-        val repo3 = aRepo.copy(name = "admin-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by admin frontend routes
-        val repo4 = aRepo.copy(name = "some-frontend", repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by name
-        val repo5 = aRepo.copy(name = "no-rules",      repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defaults to backend as not other rule satified
+        val repo1: GhRepository = aRepo.copy(name = "other")                                                                           // Other repo type
+        val repo2: GhRepository = aRepo.copy(name = "front-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by frontend routes (not name)
+        val repo3: GhRepository = aRepo.copy(name = "admin-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by admin frontend routes
+        val repo4: GhRepository = aRepo.copy(name = "some-frontend", repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by name
+        val repo5: GhRepository = aRepo.copy(name = "no-rules",      repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defaults to backend as not other rule satified
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set(repo2.name)))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set(repo3.name)))
         onTest.updateRepositories().futureValue
 
-        val persistedRepos = {
-          val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        val persistedRepos: Seq[GitRepository] = {
+          val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(persister).updateRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType))
-          .toSet shouldBe(Set(
+          .toSet shouldBe Set(
             ("other"       , RepoType.Other  , None                             )
           , ("front-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("admin-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("some-frontend", RepoType.Service, Some(ServiceType.Frontend))
           , ("no-rules"     , RepoType.Service, Some(ServiceType.Backend) )
-          ))
+          )
       }
 
       "assign tags (for services)" in new Setup {
-        val repo1 = aRepo.copy(name = "other-repo") // Other repo type
-        val repo2 = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
-        val repo3 = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
-        val repo4 = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
-        val repo5 = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
-        val repo6 = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
+        val repo1: GhRepository = aRepo.copy(name = "other-repo") // Other repo type
+        val repo2: GhRepository = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
+        val repo3: GhRepository = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
+        val repo4: GhRepository = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
+        val repo5: GhRepository = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
+        val repo6: GhRepository = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5, repo6)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set.empty))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set.empty))
         onTest.updateRepositories().futureValue
 
-        val persistedRepos = {
-          val argCaptor = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
+        val persistedRepos: Seq[GitRepository] = {
+          val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(persister).updateRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType, r.tags))
-          .toSet shouldBe(Set(
+          .toSet shouldBe Set(
             ("other-repo"         , RepoType.Other  , None                             , None)
           , ("admin-frontend"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
           , ("repo-stub"          , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
           , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))
           , ("not-a-stub"         , RepoType.Service, Some(ServiceType.Frontend), Some(Set.empty))
           , ("all-tags-defined"   , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Api, Tag.Stub)))
-          ))
+          )
+      }
+
+      "update test repo relationships" in new Setup {
+        val yaml: String =
+          """
+            |test-repositories:
+            |  - repo-1-acceptance-tests
+            |  - repo-1-performance-tests
+            |""".stripMargin
+
+        val repo1: GhRepository = aRepo.copy(name = "repo-1", repositoryYamlText = Some(yaml))
+
+        when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
+        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1)))
+        when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set.empty))
+        when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set.empty))
+
+        onTest.updateRepositories().futureValue
+
+        val persistedRelationships: Seq[TestRepoRelationship] = {
+          val argCaptor: ArgumentCaptor[Seq[TestRepoRelationship]] = ArgumentCaptor.forClass(classOf[Seq[TestRepoRelationship]])
+          verify(relationshipsPersistence).putRelationships(any, argCaptor.capture())
+          argCaptor.getValue
+        }
+
+        persistedRelationships.length shouldBe 2
+        persistedRelationships should contain theSameElementsAs Seq(
+          TestRepoRelationship("repo-1-acceptance-tests", "repo-1"),
+          TestRepoRelationship("repo-1-performance-tests", "repo-1")
+        )
       }
     }
   }
 
   trait Setup {
-    val githubConfig: GithubConfig         = mock[GithubConfig]
-    val persister: RepositoriesPersistence = mock[RepositoriesPersistence]
-    val relationshipsPersistence           = mock[TestRepoRelationshipsPersistence]
-    val githubConnector                    = mock[GithubConnector]
-    val serviceConfigsConnector            = mock[ServiceConfigsConnector]
-    val timestamper: TimeStamper           = new TimeStamper
-    val configuration: Configuration       = mock[Configuration]
+    val githubConfig            : GithubConfig                     = mock[GithubConfig]
+    val persister               : RepositoriesPersistence          = mock[RepositoriesPersistence]
+    val relationshipsPersistence: TestRepoRelationshipsPersistence = mock[TestRepoRelationshipsPersistence]
+    val githubConnector         : GithubConnector                  = mock[GithubConnector]
+    val serviceConfigsConnector : ServiceConfigsConnector          = mock[ServiceConfigsConnector]
+    val timestamper             : TimeStamper                      = new TimeStamper
+    val configuration           : Configuration                    = mock[Configuration]
 
     when(githubConfig.hiddenTeams).thenReturn(Set.empty)
     when(githubConfig.hiddenRepositories).thenReturn(Set.empty)
     when(configuration.get[Seq[String]]("shared.repositories")).thenReturn(Seq.empty)
     when(persister.updateRepos(any)).thenReturn(Future.successful(0))
+    when(relationshipsPersistence.putRelationships(any[String], anySeq[TestRepoRelationship])).thenReturn(Future.unit)
 
     val datasource = new GithubV3RepositoryDataSource(githubConfig, githubConnector, timestamper, configuration)
 
     val onTest: PersistingService =
-      new PersistingService(persister, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
+      PersistingService(persister, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
 
     val teamA: GhTeam = GhTeam("team-a", Instant.now())
     val teamB: GhTeam = GhTeam("team-b", Instant.now())
 
-    val aHeuristics = RepoTypeHeuristics(
+    val aHeuristics: RepoTypeHeuristics = RepoTypeHeuristics(
       prototypeInName     = false,
       testsInName         = false,
       hasApplicationConf  = false,
@@ -209,7 +241,7 @@ class PersistingServiceSpec
       hasTags             = false
     )
 
-    val aRepo = GhRepository(
+    val aRepo: GhRepository = GhRepository(
       name               = "repo",
       description        = Some("a test repo"),
       htmlUrl            = "http://github.com/repo1",

@@ -58,6 +58,7 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
       count               <- persister.updateRepos(reposToPersist)
+      _                   <- Future.traverse(reposToPersist)(updateTestRepoRelationships)
     } yield count
 
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
@@ -81,21 +82,20 @@ case class PersistingService @Inject()(
       _                   <- EitherT
                                .liftF(persister.putRepo(repo))
       _                   <- EitherT
-                               .liftF(updateTestRepoRelationships(name))
+                               .liftF(updateTestRepoRelationships(rawRepo))
     } yield ()
 
-  private def updateTestRepoRelationships(repoName: String)(implicit ec: ExecutionContext): Future[Unit] = {
+  private def updateTestRepoRelationships(repo: GitRepository)(implicit ec: ExecutionContext): Future[Unit] = {
     import uk.gov.hmrc.teamsandrepositories.util.YamlUtils._
 
-    val testRepos: OptionT[Future, List[String]] =
-      for {
-        yamlText       <- OptionT(dataSource.getRepositoryYaml(repoName))
-        yamlMap        <- OptionT.fromOption[Future](parseYaml(yamlText).toOption)
-        testReposArray <- OptionT.fromOption[Future](yamlMap.getArray("test-repositories"))
-      } yield testReposArray
+    val testRepos: OptionT[Future, List[String]] = for {
+      yamlText       <- OptionT.fromOption[Future](repo.repositoryYamlText)
+      yamlMap        <- OptionT.fromOption[Future](parseYaml(yamlText).toOption)
+      testReposArray <- OptionT.fromOption[Future](yamlMap.getArray("test-repositories"))
+    } yield testReposArray
 
     testRepos.value.flatMap {
-      case Some(repos) => relationshipsPersistence.putRelationships(repoName, repos.map(TestRepoRelationship(_, repoName)))
+      case Some(repos) => relationshipsPersistence.putRelationships(repo.name, repos.map(TestRepoRelationship(_, repo.name)))
       case None        => Future.successful(())
     }
   }

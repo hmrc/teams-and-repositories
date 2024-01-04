@@ -132,16 +132,6 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-  def getRepositoryYaml(repoName: String)(implicit ec: ExecutionContext): Future[Option[String]] =
-    githubConnector.getRepo(repoName)
-      .map(_.flatMap(_.repositoryYamlText))
-      .recoverWith {
-        case NonFatal(ex) =>
-          logger.error(s"Unable to retrieve repository.yaml for repo: $repoName - ${ex.getMessage}", ex)
-          Future.failed(ex)
-      }
-
-
   def getAllRepositoriesByName()(implicit ec: ExecutionContext): Future[Map[String, GitRepository]] =
     getAllRepositories()
       .map(_.map(r => r.name -> r).toMap)

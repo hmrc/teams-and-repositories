@@ -371,7 +371,8 @@ case class GhRepository(
       defaultBranch      = defaultBranch,
       branchProtection   = branchProtection,
       isDeprecated       = manifestDetails.isDeprecated,
-      prototypeName      = prototypeName
+      prototypeName      = prototypeName,
+      repositoryYamlText = repositoryYamlText
     )
   }
 }
