@@ -17,19 +17,20 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import cats.implicits._
-import cats.data.EitherT
-
+import cats.data.{EitherT, OptionT}
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models._
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class PersistingService @Inject()(
   persister               : RepositoriesPersistence,
+  relationshipsPersistence: TestRepoRelationshipsPersistence,
   dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
   serviceConfigsConnector : ServiceConfigsConnector,
@@ -79,7 +80,25 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
                                .liftF(persister.putRepo(repo))
+      _                   <- EitherT
+                               .liftF(updateTestRepoRelationships(name))
     } yield ()
+
+  private def updateTestRepoRelationships(repoName: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    import uk.gov.hmrc.teamsandrepositories.util.YamlUtils._
+
+    val testRepos: OptionT[Future, List[String]] =
+      for {
+        yamlText       <- OptionT(dataSource.getRepositoryYaml(repoName))
+        yamlMap        <- OptionT.fromOption[Future](parseYaml(yamlText).toOption)
+        testReposArray <- OptionT.fromOption[Future](yamlMap.getArray("test-repositories"))
+      } yield testReposArray
+
+    testRepos.value.flatMap {
+      case Some(repos) => relationshipsPersistence.putRelationships(repoName, repos.map(TestRepoRelationship(_, repoName)))
+      case None        => Future.successful(())
+    }
+  }
 
   private def defineServiceType(repo: GitRepository, frontendRoutes: Set[String], adminFrontendRoutes: Set[String]): GitRepository =
     repo.repoType match {

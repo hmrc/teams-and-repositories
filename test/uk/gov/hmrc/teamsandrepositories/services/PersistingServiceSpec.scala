@@ -25,7 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TestRepoRelationshipsPersistence}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -179,6 +179,7 @@ class PersistingServiceSpec
   trait Setup {
     val githubConfig: GithubConfig         = mock[GithubConfig]
     val persister: RepositoriesPersistence = mock[RepositoriesPersistence]
+    val relationshipsPersistence           = mock[TestRepoRelationshipsPersistence]
     val githubConnector                    = mock[GithubConnector]
     val serviceConfigsConnector            = mock[ServiceConfigsConnector]
     val timestamper: TimeStamper           = new TimeStamper
@@ -192,7 +193,7 @@ class PersistingServiceSpec
     val datasource = new GithubV3RepositoryDataSource(githubConfig, githubConnector, timestamper, configuration)
 
     val onTest: PersistingService =
-      new PersistingService(persister, datasource, configuration, serviceConfigsConnector)
+      new PersistingService(persister, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
 
     val teamA: GhTeam = GhTeam("team-a", Instant.now())
     val teamB: GhTeam = GhTeam("team-b", Instant.now())

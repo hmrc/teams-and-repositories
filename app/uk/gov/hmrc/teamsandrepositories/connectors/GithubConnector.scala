@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import com.codahale.metrics.MetricRegistry
 
 import java.time.Instant
-import org.yaml.snakeyaml.Yaml
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
@@ -33,8 +32,7 @@ import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @Singleton
 class GithubConnector @Inject()(
@@ -391,42 +389,27 @@ object GhRepository {
   )
 
   object ManifestDetails {
+    import uk.gov.hmrc.teamsandrepositories.util.YamlUtils._
 
     private val logger = Logger(this.getClass)
 
-    def parse(repoName: String, manifest: String): Option[ManifestDetails] =
-      parseAppConfigFile(manifest) match {
+    def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
+      parseYaml(repositoryYaml) match {
         case Failure(exception) =>
           logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType           = RepoType.parse(get(config, "type").getOrElse("")).toOption
-          , serviceType        = ServiceType.parse(get(config, "service-type").getOrElse("")).toOption
-          , tags               = getArray(config, "tags", repoName).map(_.flatMap(str => Tag.parse(str).toOption).toSet)
-          , digitalServiceName = get(config, "digital-service")
-          , owningTeams        = getArray(config, "owning-teams", repoName).getOrElse(Nil)
-          , isDeprecated       = get(config, "deprecated").getOrElse(false)
-          , prototypeName      = get(config, "prototype-name")
+            repoType           = RepoType.parse(config.getValue[String]("type").getOrElse("")).toOption
+          , serviceType        = ServiceType.parse(config.getValue[String]("service-type").getOrElse("")).toOption
+          , tags               = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
+          , digitalServiceName = config.getValue[String]("digital-service")
+          , owningTeams        = config.getArray("owning-teams").getOrElse(Nil)
+          , isDeprecated       = config.getValue[Boolean]("deprecated").getOrElse(false)
+          , prototypeName      = config.getValue[String]("prototype-name")
           )
-          logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $manifest")
+          logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $repositoryYaml")
           Some(manifestDetails)
-      }
-
-    import scala.jdk.CollectionConverters._
-    private def parseAppConfigFile(contents: String): Try[Map[String, Object]] =
-      Try(new Yaml().load[java.util.Map[String, Object]](contents))
-        .map(_.asScala.toMap)
-
-    private def get[A](config: Map[String, Object], key: String): Option[A] =
-      config.get(key).map(v => v.asInstanceOf[A])
-
-    private def getArray(config: Map[String, Object], key: String, repoName: String): Option[List[String]] =
-      try { get[java.util.List[String]](config, key).map(_.asScala.toList) }
-      catch {
-        case NonFatal(ex) =>
-          logger.warn(s"Unable to get '$key' for repo '$repoName' from repository.yaml, problems were: ${ex.getMessage}")
-          None
       }
   }
 
