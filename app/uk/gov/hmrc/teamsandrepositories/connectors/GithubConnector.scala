@@ -390,24 +390,24 @@ object GhRepository {
   )
 
   object ManifestDetails {
-    import uk.gov.hmrc.teamsandrepositories.util.YamlUtils._
+    import uk.gov.hmrc.teamsandrepositories.util.YamlMap
 
     private val logger = Logger(this.getClass)
 
     def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
-      parseYaml(repositoryYaml) match {
+      YamlMap.parse(repositoryYaml) match {
         case Failure(exception) =>
           logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType           = RepoType.parse(config.getValue[String]("type").getOrElse("")).toOption
-          , serviceType        = ServiceType.parse(config.getValue[String]("service-type").getOrElse("")).toOption
+            repoType           = RepoType.parse(config.get[String]("type").getOrElse("")).toOption
+          , serviceType        = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
           , tags               = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
-          , digitalServiceName = config.getValue[String]("digital-service")
+          , digitalServiceName = config.get[String]("digital-service")
           , owningTeams        = config.getArray("owning-teams").getOrElse(Nil)
-          , isDeprecated       = config.getValue[Boolean]("deprecated").getOrElse(false)
-          , prototypeName      = config.getValue[String]("prototype-name")
+          , isDeprecated       = config.get[Boolean]("deprecated").getOrElse(false)
+          , prototypeName      = config.get[String]("prototype-name")
           )
           logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $repositoryYaml")
           Some(manifestDetails)

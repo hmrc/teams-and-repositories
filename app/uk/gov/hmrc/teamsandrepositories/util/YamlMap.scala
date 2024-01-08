@@ -23,25 +23,26 @@ import scala.jdk.CollectionConverters._
 import scala.util.Try
 import scala.util.control.NonFatal
 
-object YamlUtils {
-
-  type YamlMap = Map[String, Object]
+case class YamlMap(asMap: Map[String, Object]) {
   private val logger = Logger(this.getClass)
 
-  def parseYaml(contents: String): Try[YamlMap] =
+  def get[A](key: String): Option[A] =
+    asMap.get(key).map(_.asInstanceOf[A])
+
+  def getArray(key: String): Option[List[String]] =
+    try {
+      get[java.util.List[String]](key).map(_.asScala.toList)
+    }
+    catch {
+      case NonFatal(ex) =>
+        logger.warn(s"Unable to get '$key' from yaml, problems were: ${ex.getMessage}")
+        None
+    }
+}
+
+object YamlMap {
+  def parse(contents: String): Try[YamlMap] =
     Try(new Yaml().load[java.util.Map[String, Object]](contents))
       .map(_.asScala.toMap)
-
-  implicit class RichYamlMap(config: YamlMap) {
-    def getValue[A](key: String): Option[A] =
-      config.get(key).map(_.asInstanceOf[A])
-
-    def getArray(key: String): Option[List[String]] =
-      try { getValue[java.util.List[String]](key).map(_.asScala.toList) }
-      catch {
-        case NonFatal(ex) =>
-          logger.warn(s"Unable to get '$key' from yaml, problems were: ${ex.getMessage}")
-          None
-      }
-  }
+      .map(apply)
 }

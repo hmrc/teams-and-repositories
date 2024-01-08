@@ -43,9 +43,9 @@ class PersistingServiceSpec
   "PersistingService" when {
     "updating repositories" should {
       "assign teams to repositories" in new Setup {
-        val repo1: GhRepository = aRepo.copy(name = "repo-1")
-        val repo2: GhRepository = aRepo.copy(name = "repo-2")
-        val repo3: GhRepository = aRepo.copy(name = "repo-3")
+        val repo1 = aRepo.copy(name = "repo-1")
+        val repo2 = aRepo.copy(name = "repo-2")
+        val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
@@ -68,9 +68,9 @@ class PersistingServiceSpec
       }
 
       "assign multiple teams to same repository" in new Setup {
-        val repo1: GhRepository = aRepo.copy(name = "repo-1")
-        val repo2: GhRepository = aRepo.copy(name = "repo-2")
-        val repo3: GhRepository = aRepo.copy(name = "repo-3")
+        val repo1 = aRepo.copy(name = "repo-1")
+        val repo2 = aRepo.copy(name = "repo-2")
+        val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo2, repo3)))
@@ -95,10 +95,10 @@ class PersistingServiceSpec
       }
 
       "include repositories without any associated teams" in new Setup {
-        val repo1: GhRepository = aRepo.copy(name = "repo-1")
-        val repo2: GhRepository = aRepo.copy(name = "repo-2")
-        val repo3: GhRepository = aRepo.copy(name = "repo-3")
-        val repo4: GhRepository = aRepo.copy(name = "repo-4")
+        val repo1 = aRepo.copy(name = "repo-1")
+        val repo2 = aRepo.copy(name = "repo-2")
+        val repo3 = aRepo.copy(name = "repo-3")
+        val repo4 = aRepo.copy(name = "repo-4")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
         when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
         when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
@@ -118,11 +118,11 @@ class PersistingServiceSpec
       }
 
       "assign service type" in new Setup {
-        val repo1: GhRepository = aRepo.copy(name = "other")                                                                           // Other repo type
-        val repo2: GhRepository = aRepo.copy(name = "front-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by frontend routes (not name)
-        val repo3: GhRepository = aRepo.copy(name = "admin-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by admin frontend routes
-        val repo4: GhRepository = aRepo.copy(name = "some-frontend", repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by name
-        val repo5: GhRepository = aRepo.copy(name = "no-rules",      repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defaults to backend as not other rule satified
+        val repo1 = aRepo.copy(name = "other")                                                                           // Other repo type
+        val repo2 = aRepo.copy(name = "front-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by frontend routes (not name)
+        val repo3 = aRepo.copy(name = "admin-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by admin frontend routes
+        val repo4 = aRepo.copy(name = "some-frontend", repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by name
+        val repo5 = aRepo.copy(name = "no-rules",      repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defaults to backend as not other rule satified
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set(repo2.name)))
@@ -146,12 +146,12 @@ class PersistingServiceSpec
       }
 
       "assign tags (for services)" in new Setup {
-        val repo1: GhRepository = aRepo.copy(name = "other-repo") // Other repo type
-        val repo2: GhRepository = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
-        val repo3: GhRepository = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
-        val repo4: GhRepository = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
-        val repo5: GhRepository = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
-        val repo6: GhRepository = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
+        val repo1 = aRepo.copy(name = "other-repo") // Other repo type
+        val repo2 = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
+        val repo3 = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
+        val repo4 = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
+        val repo5 = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
+        val repo6 = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5, repo6)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set.empty))
@@ -183,7 +183,7 @@ class PersistingServiceSpec
             |  - repo-1-performance-tests
             |""".stripMargin
 
-        val repo1: GhRepository = aRepo.copy(name = "repo-1", repositoryYamlText = Some(yaml))
+        val repo1 = aRepo.copy(name = "repo-1", repositoryYamlText = Some(yaml))
 
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1)))

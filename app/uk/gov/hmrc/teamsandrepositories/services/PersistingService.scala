@@ -58,7 +58,7 @@ case class PersistingService @Inject()(
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
       count               <- persister.updateRepos(reposToPersist)
-      _                   <- Future.traverse(reposToPersist)(updateTestRepoRelationships)
+      _                   <- reposToPersist.toList.traverse(updateTestRepoRelationships)
     } yield count
 
   def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
@@ -86,17 +86,17 @@ case class PersistingService @Inject()(
     } yield ()
 
   private def updateTestRepoRelationships(repo: GitRepository)(implicit ec: ExecutionContext): Future[Unit] = {
-    import uk.gov.hmrc.teamsandrepositories.util.YamlUtils._
+    import uk.gov.hmrc.teamsandrepositories.util.YamlMap
 
     val testRepos: OptionT[Future, List[String]] = for {
       yamlText       <- OptionT.fromOption[Future](repo.repositoryYamlText)
-      yamlMap        <- OptionT.fromOption[Future](parseYaml(yamlText).toOption)
+      yamlMap        <- OptionT.fromOption[Future](YamlMap.parse(yamlText).toOption)
       testReposArray <- OptionT.fromOption[Future](yamlMap.getArray("test-repositories"))
     } yield testReposArray
 
     testRepos.value.flatMap {
       case Some(repos) => relationshipsPersistence.putRelationships(repo.name, repos.map(TestRepoRelationship(_, repo.name)))
-      case None        => Future.successful(())
+      case None        => Future.unit
     }
   }
 
