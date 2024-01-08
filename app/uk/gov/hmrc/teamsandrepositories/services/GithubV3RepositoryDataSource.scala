@@ -132,7 +132,6 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-
   def getAllRepositoriesByName()(implicit ec: ExecutionContext): Future[Map[String, GitRepository]] =
     getAllRepositories()
       .map(_.map(r => r.name -> r).toMap)

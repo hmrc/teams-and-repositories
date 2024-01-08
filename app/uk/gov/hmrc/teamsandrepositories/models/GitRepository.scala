@@ -41,7 +41,8 @@ case class GitRepository(
   branchProtection    : Option[BranchProtection] = None,
   isDeprecated        : Boolean                  = false,
   teams               : List[String]             = Nil,
-  prototypeName       : Option[String]           = None
+  prototypeName       : Option[String]           = None,
+  repositoryYamlText  : Option[String]           = None
 )
 
 object GitRepository {
@@ -68,6 +69,7 @@ object GitRepository {
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     ~ (__ \ "prototypeName"     ).formatNullable[String]
+    ~ (__ \ "repositoryYamlText").formatNullable[String]
     )(apply, unlift(unapply))
   }
 
@@ -94,6 +96,7 @@ object GitRepository {
     ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
     ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
     ~ (__ \ "prototypeName"     ).formatNullable[String]
+    ~ (__ \ "repositoryYamlText").formatNullable[String]
     )(apply, unlift(unapply))
   }
 }

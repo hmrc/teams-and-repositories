@@ -403,7 +403,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some("type: service")
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -442,7 +443,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some("digital-service: service-abcd")
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -484,7 +486,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some(manifestYaml)
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -520,7 +523,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some("type: library")
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -556,7 +560,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some("type: somethingelse")
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -802,7 +807,8 @@ class GithubV3RepositoryDataSourceSpec
               language           = Some("Scala"),
               isArchived         = false,
               defaultBranch      = "main",
-              prototypeName      = None
+              prototypeName      = None,
+              repositoryYamlText = Some(repositoryYamlContents)
             )
           ),
           createdDate  = Some(teamCreatedDate),
