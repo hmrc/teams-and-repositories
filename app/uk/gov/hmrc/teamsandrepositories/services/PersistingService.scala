@@ -85,6 +85,12 @@ case class PersistingService @Inject()(
                                .liftF(updateTestRepoRelationships(rawRepo))
     } yield ()
 
+  def repositoryArchived(repoName: String): Future[Unit] =
+    persister.archiveRepo(repoName)
+
+  def repositoryDeleted(repoName: String): Future[Unit] =
+    persister.deleteRepo(repoName)
+
   private def updateTestRepoRelationships(repo: GitRepository)(implicit ec: ExecutionContext): Future[Unit] = {
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap
 

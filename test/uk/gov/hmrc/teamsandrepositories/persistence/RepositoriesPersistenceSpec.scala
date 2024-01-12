@@ -262,4 +262,29 @@ class RepositoriesPersistenceSpec
       } yield ()).futureValue
     }
   }
+
+  "archiveRepo" should {
+    "set the isArchived flag to true" in {
+      repository.putRepo(repo1).futureValue
+
+      findAll().futureValue must contain theSameElementsAs Seq(repo1)
+
+      repository.archiveRepo(repo1.name).futureValue
+
+      findAll().futureValue must contain theSameElementsAs Seq(repo1.copy(isArchived = true))
+    }
+  }
+
+  "deleteRepo" should {
+    "delete the repository" in {
+      repository.putRepo(repo1).futureValue
+      repository.putRepo(repo2).futureValue
+
+      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
+
+      repository.deleteRepo(repo1.name).futureValue
+
+      findAll().futureValue must contain theSameElementsAs Seq(repo2)
+    }
+  }
 }

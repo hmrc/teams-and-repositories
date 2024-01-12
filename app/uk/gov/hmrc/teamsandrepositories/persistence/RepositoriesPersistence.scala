@@ -105,7 +105,7 @@ class RepositoriesPersistence @Inject()(
                     .map(_.getModifiedCount)
       toDelete =  (oldRepos -- repos.map(_.name)).toSeq
       _        <- if (toDelete.nonEmpty) {
-                    logger.info(s"about to remove ${toDelete.length} deleted repos")
+                    logger.info(s"about to remove ${toDelete.length} deleted repos: ${toDelete.mkString(", ")}")
                     collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture()
                       .map(res => logger.info(s"removed ${res.getModifiedCount} deleted repos"))
                   } else Future.unit
@@ -117,6 +117,23 @@ class RepositoriesPersistence @Inject()(
         filter      = equal("name", repo.name),
         replacement = repo,
         options     = ReplaceOptions().upsert(true)
+      )
+      .toFuture()
+      .map(_ => ())
+
+  def archiveRepo(repoName: String): Future[Unit] =
+    collection
+      .updateOne(
+        filter = equal("name", repoName),
+        update = Updates.set("isArchived", true)
+      )
+      .toFuture()
+      .map(_ => ())
+
+  def deleteRepo(repoName: String): Future[Unit] =
+    collection
+      .deleteOne(
+        filter = equal("name", repoName)
       )
       .toFuture()
       .map(_ => ())
