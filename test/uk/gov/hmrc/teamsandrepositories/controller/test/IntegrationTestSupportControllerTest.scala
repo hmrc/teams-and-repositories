@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.test
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.libs.json.{JsError, JsSuccess, Json, OFormat}
 import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 
 class IntegrationTestSupportControllerTest extends AnyWordSpec {
@@ -44,7 +44,7 @@ class IntegrationTestSupportControllerTest extends AnyWordSpec {
                    |}]""".stripMargin
 
 
-      implicit val trf = TeamRepositories.apiFormat
+      implicit val trf: OFormat[TeamRepositories] = TeamRepositories.mongoFormat
 
       Json.parse(json).validate[Seq[TeamRepositories]] match {
         case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
