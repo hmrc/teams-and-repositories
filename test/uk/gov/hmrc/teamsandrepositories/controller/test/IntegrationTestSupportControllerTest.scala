@@ -44,7 +44,7 @@ class IntegrationTestSupportControllerTest extends AnyWordSpec {
                    |}]""".stripMargin
 
 
-      implicit val trf: OFormat[TeamRepositories] = TeamRepositories.mongoFormat
+      implicit val trf: OFormat[TeamRepositories] = TeamRepositories.apiFormat
 
       Json.parse(json).validate[Seq[TeamRepositories]] match {
         case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
