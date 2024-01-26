@@ -123,13 +123,13 @@ object TeamRepositories {
 
   val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
-  val apiWrites: Writes[TeamRepositories] = {
-    implicit val grW = GitRepository.apiWrites
-    ( (__ \ "teamName"    ).write[String]
-    ~ (__ \ "repositories").write[List[GitRepository]]
-    ~ (__ \ "createdDate" ).writeNullable[Instant]
-    ~ (__ \ "updateDate"  ).write[Instant]
-    )(unlift(unapply))
+  val apiFormat: OFormat[TeamRepositories] = {
+    implicit val grf = GitRepository.apiFormat
+    ( (__ \ "teamName"    ).format[String]
+    ~ (__ \ "repositories").format[List[GitRepository]]
+    ~ (__ \ "createdDate" ).formatNullable[Instant]
+    ~ (__ \ "updateDate"  ).format[Instant]
+    )(apply, unlift(unapply))
   }
 
   val mongoFormat: OFormat[TeamRepositories] = {
