@@ -340,7 +340,18 @@ case class GhRepository(
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeName = None))
+        .getOrElse(
+          ManifestDetails(
+            repoType             = None,
+            serviceType          = None,
+            tags                 = None,
+            digitalServiceName   = None,
+            owningTeams          = Seq.empty,
+            isDeprecated         = false,
+            prototypeName        = None,
+            prototypeAutoPublish = None
+          )
+        )
 
     val repoType: RepoType =
       manifestDetails
@@ -355,24 +366,25 @@ case class GhRepository(
       )
 
     GitRepository(
-      name               = name,
-      description        = description.getOrElse(""),
-      url                = htmlUrl,
-      createdDate        = createdDate,
-      lastActiveDate     = pushedAt,
-      isPrivate          = isPrivate,
-      repoType           = repoType,
-      serviceType        = manifestDetails.serviceType,
-      tags               = manifestDetails.tags,
-      digitalServiceName = manifestDetails.digitalServiceName,
-      owningTeams        = manifestDetails.owningTeams,
-      language           = language,
-      isArchived         = isArchived,
-      defaultBranch      = defaultBranch,
-      branchProtection   = branchProtection,
-      isDeprecated       = manifestDetails.isDeprecated,
-      prototypeName      = prototypeName,
-      repositoryYamlText = repositoryYamlText
+      name                 = name,
+      description          = description.getOrElse(""),
+      url                  = htmlUrl,
+      createdDate          = createdDate,
+      lastActiveDate       = pushedAt,
+      isPrivate            = isPrivate,
+      repoType             = repoType,
+      serviceType          = manifestDetails.serviceType,
+      tags                 = manifestDetails.tags,
+      digitalServiceName   = manifestDetails.digitalServiceName,
+      owningTeams          = manifestDetails.owningTeams,
+      language             = language,
+      isArchived           = isArchived,
+      defaultBranch        = defaultBranch,
+      branchProtection     = branchProtection,
+      isDeprecated         = manifestDetails.isDeprecated,
+      prototypeName        = prototypeName,
+      prototypeAutoPublish = manifestDetails.prototypeAutoPublish,
+      repositoryYamlText   = repositoryYamlText
     )
   }
 }
@@ -380,13 +392,14 @@ case class GhRepository(
 object GhRepository {
 
   final case class ManifestDetails(
-    repoType:           Option[RepoType],
-    serviceType:        Option[ServiceType],
-    tags:               Option[Set[Tag]],
-    digitalServiceName: Option[String],
-    owningTeams:        Seq[String],
-    isDeprecated:       Boolean = false,
-    prototypeName:      Option[String]
+    repoType            : Option[RepoType],
+    serviceType         : Option[ServiceType],
+    tags                : Option[Set[Tag]],
+    digitalServiceName  : Option[String],
+    owningTeams         : Seq[String],
+    isDeprecated        : Boolean = false,
+    prototypeName       : Option[String],
+    prototypeAutoPublish: Option[Boolean]
   )
 
   object ManifestDetails {
@@ -401,13 +414,14 @@ object GhRepository {
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType           = RepoType.parse(config.get[String]("type").getOrElse("")).toOption
-          , serviceType        = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
-          , tags               = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
-          , digitalServiceName = config.get[String]("digital-service")
-          , owningTeams        = config.getArray("owning-teams").getOrElse(Nil)
-          , isDeprecated       = config.get[Boolean]("deprecated").getOrElse(false)
-          , prototypeName      = config.get[String]("prototype-name")
+            repoType             = RepoType.parse(config.get[String]("type").getOrElse("")).toOption
+          , serviceType          = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
+          , tags                 = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
+          , digitalServiceName   = config.get[String]("digital-service")
+          , owningTeams          = config.getArray("owning-teams").getOrElse(Nil)
+          , isDeprecated         = config.get[Boolean]("deprecated").getOrElse(false)
+          , prototypeName        = config.get[String]("prototype-name")
+          , prototypeAutoPublish = config.get[Boolean]("prototype-auto-publish")
           )
           logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $repositoryYaml")
           Some(manifestDetails)

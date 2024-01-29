@@ -108,5 +108,18 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.get.serviceType       mustBe Some(ServiceType.Frontend)
       details.get.tags              mustBe Some(Set.empty)
     }
+
+    "parse prototype-auto-publish" in {
+      val manifest =
+        """
+          |prototype-name: my-prototype
+          |prototype-auto-publish: true
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("my-prototype", manifest)
+      details.isDefined                mustBe true
+      details.get.prototypeName        mustBe Some("my-prototype")
+      details.get.prototypeAutoPublish mustBe Some(true)
+    }
   }
 }
