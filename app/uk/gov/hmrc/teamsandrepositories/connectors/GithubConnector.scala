@@ -340,7 +340,7 @@ case class GhRepository(
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
-        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, owningTeams = Seq.empty, isDeprecated = false, prototypeName = None))
+        .getOrElse(ManifestDetails(repoType = None, serviceType = None, tags = None, digitalServiceName = None, description = None, owningTeams = Seq.empty, isDeprecated = false, prototypeName = None))
 
     val repoType: RepoType =
       manifestDetails
@@ -356,7 +356,7 @@ case class GhRepository(
 
     GitRepository(
       name               = name,
-      description        = description.getOrElse(""),
+      description        = manifestDetails.description.getOrElse(""), // Get yaml description or get admin set description
       url                = htmlUrl,
       createdDate        = createdDate,
       lastActiveDate     = pushedAt,
@@ -384,6 +384,7 @@ object GhRepository {
     serviceType:        Option[ServiceType],
     tags:               Option[Set[Tag]],
     digitalServiceName: Option[String],
+    description:        Option[String],
     owningTeams:        Seq[String],
     isDeprecated:       Boolean = false,
     prototypeName:      Option[String]
@@ -405,6 +406,7 @@ object GhRepository {
           , serviceType        = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
           , tags               = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
           , digitalServiceName = config.get[String]("digital-service")
+          , description        = config.get[String]("description")
           , owningTeams        = config.getArray("owning-teams").getOrElse(Nil)
           , isDeprecated       = config.get[Boolean]("deprecated").getOrElse(false)
           , prototypeName      = config.get[String]("prototype-name")
