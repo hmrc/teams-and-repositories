@@ -322,7 +322,6 @@ object GhTeam {
 
 case class GhRepository(
   name              : String,
-  description       : Option[String],
   htmlUrl           : String,
   fork              : Boolean,
   createdDate       : Instant,
@@ -456,7 +455,6 @@ object GhRepository {
 
   val reads: Reads[GhRepository] =
     ( (__ \ "name"                                     ).read[String]
-    ~ (__ \ "description"                              ).readNullable[String]
     ~ (__ \ "url"                                      ).read[String]
     ~ (__ \ "isFork"                                   ).read[Boolean]
     ~ (__ \ "createdAt"                                ).read[Instant]

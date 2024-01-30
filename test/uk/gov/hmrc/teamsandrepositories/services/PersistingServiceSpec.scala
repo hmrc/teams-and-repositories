@@ -243,7 +243,6 @@ class PersistingServiceSpec
 
     val aRepo: GhRepository = GhRepository(
       name               = "repo",
-      description        = Some("a test repo"),
       htmlUrl            = "http://github.com/repo1",
       fork               = false,
       createdDate        = Instant.now(),
