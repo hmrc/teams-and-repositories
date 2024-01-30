@@ -356,7 +356,7 @@ case class GhRepository(
 
     GitRepository(
       name               = name,
-      description        = manifestDetails.description.getOrElse(""), // Get yaml description or get admin set description
+      description        = manifestDetails.description.getOrElse(""),
       url                = htmlUrl,
       createdDate        = createdDate,
       lastActiveDate     = pushedAt,
