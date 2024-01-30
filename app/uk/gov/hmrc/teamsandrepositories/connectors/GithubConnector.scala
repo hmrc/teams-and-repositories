@@ -190,7 +190,6 @@ object GithubConnector {
   private val repositoryFields =
     """
       name
-      description
       url
       isFork
       createdAt
