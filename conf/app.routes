@@ -20,6 +20,7 @@ GET         /api/jenkins-jobs/:service                               uk.gov.hmrc
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache
+GET         /api/cache/reload/:serviceName                           uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCacheForService(serviceName)
 
 
 # v2 api

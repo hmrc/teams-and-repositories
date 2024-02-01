@@ -97,18 +97,17 @@ class BranchProtectionServiceSpec
 
   private lazy val someRepository =
     GhRepository(
-      "some-repo",
-      None,
-      "",
-      false,
-      Instant.now(),
-      Instant.now(),
-      false,
-      None,
-      false,
-      "main",
-      Some(BranchProtection(true, true, true)),
-      None,
-      GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false, false)
+      name = "some-repo",
+      htmlUrl = "",
+      fork = false,
+      createdDate = Instant.now(),
+      pushedAt = Instant.now(),
+      isPrivate = false,
+      language = None,
+      isArchived = false,
+      defaultBranch = "main",
+      branchProtection = Some(BranchProtection(true, true, true)),
+      repositoryYamlText = None,
+      repoTypeHeuristics = GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false, false)
     )
 }

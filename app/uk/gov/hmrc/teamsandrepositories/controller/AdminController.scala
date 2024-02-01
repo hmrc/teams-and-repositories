@@ -19,18 +19,27 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import com.google.inject.{Inject, Singleton}
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
 import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
+import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class AdminController @Inject()(
   dataReloadScheduler     : DataReloadScheduler,
-  repositoriesPersistence : RepositoriesPersistence,
+  persistingService       : PersistingService,
   cc                      : ControllerComponents
-) extends BackendController(cc) {
+)(implicit ec: ExecutionContext) extends BackendController(cc) {
 
-  def reloadCache() = Action {
+  def reloadCache(): Action[AnyContent] = Action {
     dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
+  }
+
+  def reloadCacheForService(serviceName: String): Action[AnyContent] = Action.async {
+    persistingService.updateRepository(serviceName).value.map {
+      case Right(_)    => Ok(s"Cache reload for $serviceName triggered successfully")
+      case Left(error) => InternalServerError(s"Failed to reload service $serviceName with error $error")
+    }
   }
 }
