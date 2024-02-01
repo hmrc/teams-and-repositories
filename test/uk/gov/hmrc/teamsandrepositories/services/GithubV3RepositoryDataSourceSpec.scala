@@ -88,7 +88,6 @@ class GithubV3RepositoryDataSourceSpec
   val ghRepo =
     GhRepository(
       name               = "A_r",
-      description        = Some("some description"),
       htmlUrl            = "url_A",
       fork               = false,
       createdDate        = now,
@@ -124,7 +123,6 @@ class GithubV3RepositoryDataSourceSpec
     "return a list of teams and data sources filtering out hidden teams" in new Setup {
       private val repo1 = GhRepository(
         name               = "repo1",
-        description        = Some("a test repo"),
         htmlUrl            = "http://github.com/repo1",
         fork               = false,
         createdDate        = now,
@@ -139,7 +137,6 @@ class GithubV3RepositoryDataSourceSpec
       )
       private val repo2 = GhRepository(
         name               = "repo2",
-        description        = Some("another test repo"),
         htmlUrl            = "http://github.com/repo2",
         fork               = false,
         createdDate        = now,
@@ -149,7 +146,7 @@ class GithubV3RepositoryDataSourceSpec
         isArchived         = false,
         defaultBranch      = "main",
         branchProtection   = None,
-        repositoryYamlText = None,
+        repositoryYamlText = Some("description: a test repo"),
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
       when(mockGithubConnector.getRepos())
@@ -161,7 +158,7 @@ class GithubV3RepositoryDataSourceSpec
       result      should contain theSameElementsAs List(
         GitRepository(
           name               = "repo1",
-          description        = "a test repo",
+          description        = "",
           url                = "http://github.com/repo1",
           createdDate        = now,
           lastActiveDate     = now,
@@ -175,7 +172,7 @@ class GithubV3RepositoryDataSourceSpec
         ),
         GitRepository(
           name               = "repo2",
-          description        = "another test repo",
+          description        = "a test repo",
           url                = "http://github.com/repo2",
           createdDate        = now,
           lastActiveDate     = now,
@@ -185,7 +182,8 @@ class GithubV3RepositoryDataSourceSpec
           owningTeams        = List(),
           language           = Some("Scala"),
           isArchived         = false,
-          defaultBranch      = "main"
+          defaultBranch      = "main",
+          repositoryYamlText = Some("description: a test repo"),
         )
       )
     }
@@ -199,7 +197,6 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(
           GhRepository(
             name               = "hidden_repo1",
-            description        = Some("some description"),
             htmlUrl            = "url_A",
             fork               = false,
             createdDate        = now,
@@ -214,7 +211,6 @@ class GithubV3RepositoryDataSourceSpec
           ),
           GhRepository(
             name               = "A_r",
-            description        = Some("some description"),
             htmlUrl            = "url_A",
             fork               = false,
             createdDate        = now,
@@ -224,7 +220,7 @@ class GithubV3RepositoryDataSourceSpec
             isArchived         = false,
             defaultBranch      = "main",
             branchProtection   = None,
-            repositoryYamlText = None,
+            repositoryYamlText = Some("description: a test repo"),
             repoTypeHeuristics = dummyRepoTypeHeuristics
           )
         )))
@@ -237,7 +233,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "a test repo",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -247,7 +243,8 @@ class GithubV3RepositoryDataSourceSpec
               owningTeams        = Nil,
               language           = Some("Scala"),
               isArchived         = false,
-              defaultBranch      = "main"
+              defaultBranch      = "main",
+              repositoryYamlText = Some("description: a test repo")
             )
           ),
           createdDate  = Some(teamCreatedDate),
@@ -277,7 +274,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -316,7 +313,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -355,7 +352,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -394,7 +391,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -434,7 +431,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -452,7 +449,7 @@ class GithubV3RepositoryDataSourceSpec
         )
     }
 
-    "extract digital service name and repo type from repository.yaml" in new Setup {
+    "extract digital service name and repo type from repository.yaml and description" in new Setup {
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))
 
@@ -460,6 +457,7 @@ class GithubV3RepositoryDataSourceSpec
         """
           |digital-service: service-abcd
           |type: service
+          |description: some description
         """.stripMargin
 
       when(mockGithubConnector.getReposForTeam(teamA))
@@ -514,7 +512,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -551,7 +549,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -598,7 +596,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -644,7 +642,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -682,7 +680,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name                 = "A_r-prototype",
-            description          = "some description",
+            description          = "",
             url                  = "url_A",
             createdDate          = now,
             lastActiveDate       = now,
@@ -721,7 +719,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r-test",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -752,7 +750,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -798,7 +796,7 @@ class GithubV3RepositoryDataSourceSpec
           repositories = List(
             GitRepository(
               name               = "A_r",
-              description        = "some description",
+              description        = "",
               url                = "url_A",
               createdDate        = now,
               lastActiveDate     = now,
@@ -834,7 +832,7 @@ class GithubV3RepositoryDataSourceSpec
         repositories = List(
           GitRepository(
             name               = "A_r",
-            description        = "some description",
+            description        = "",
             url                = "url_A",
             createdDate        = now,
             lastActiveDate     = now,
@@ -864,7 +862,7 @@ class GithubV3RepositoryDataSourceSpec
 
       val repository = GitRepository(
         name               = "A_r",
-        description        = "some description",
+        description        = "",
         url                = "url_A",
         createdDate        = Instant.ofEpochMilli(0L),
         lastActiveDate     = Instant.ofEpochMilli(0L),
@@ -900,7 +898,6 @@ class GithubV3RepositoryDataSourceSpec
       val repo1 =
         GhRepository(
           name               = "b",
-          description        = Some("a test repo"),
           htmlUrl            = "http://github.com/repo1",
           fork               = false,
           createdDate        = now,

@@ -352,7 +352,6 @@ class GithubConnectorSpec
   val repo1 =
     GhRepository(
       name               = "n1",
-      description        = Some("d1"),
       htmlUrl            = "url1",
       fork               = false,
       createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
@@ -371,7 +370,6 @@ class GithubConnectorSpec
       repo1,
       GhRepository(
         name               = "n2",
-        description        = Some("d2"),
         htmlUrl            = "url2",
         fork               = false,
         createdDate        = Instant.parse("2019-04-03T11:41:33Z"),
@@ -386,7 +384,6 @@ class GithubConnectorSpec
       ),
       GhRepository(
         name               = "n3",
-        description        = None,
         htmlUrl            = "url3",
         fork               = true,
         createdDate        = Instant.parse("2019-04-05T11:41:33Z"),
