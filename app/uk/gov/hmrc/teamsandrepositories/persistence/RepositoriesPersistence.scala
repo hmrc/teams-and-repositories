@@ -23,7 +23,7 @@ import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwi
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import org.mongodb.scala.model.Filters.equal
@@ -55,9 +55,6 @@ class RepositoriesPersistence @Inject()(
 
   private val legacyCollection: MongoCollection[TeamRepositories] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
-
-  private val teamsCollection: MongoCollection[TeamSummary] =
-    CollectionFactory.collection(mongoComponent.database, collectionName, TeamSummary.mongoFormat)
 
   private val Quoted = """^\"(.*)\"$""".r
 
@@ -91,20 +88,6 @@ class RepositoriesPersistence @Inject()(
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection
       .find(filter = Filters.equal("name", repoName)).headOption()
-
-  def findTeamSummaries(): Future[Seq[TeamSummary]] =
-    teamsCollection
-      .aggregate(Seq(
-        addFields(Field("teamSize", BsonDocument("$size" -> "$teamNames"))),
-        `match`(Filters.lt("teamSize", 8)), // ignore repos shared by more than n teams
-        unwind("$teamNames"),
-        group("$teamNames", Accumulators.min("createdDate", "$createdDate"),
-                            Accumulators.max("lastActiveDate", "$lastActiveDate"),
-                            Accumulators.sum("repos", 1)
-        ),
-        sort(Sorts.ascending("_id"))
-      ))
-      .toFuture()
 
   def updateRepos(repos: Seq[GitRepository]): Future[Int] =
     for {

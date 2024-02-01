@@ -206,14 +206,6 @@ class RepositoriesPersistenceSpec
     }
   }
 
-  "findTeamSummaries" must {
-    "return all the unique team names" in {
-      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.findTeamSummaries().futureValue
-      results.map(_.name) must contain theSameElementsAs Seq("team1", "team2", "team3")
-    }
-  }
-
   "update" must {
     "insert new repositories" in {
       repository.updateRepos(Seq(repo1,repo2)).futureValue
