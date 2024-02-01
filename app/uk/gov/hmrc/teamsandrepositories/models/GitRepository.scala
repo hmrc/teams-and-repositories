@@ -42,6 +42,7 @@ case class GitRepository(
   isDeprecated        : Boolean                  = false,
   teams               : List[String]             = Nil,
   prototypeName       : Option[String]           = None,
+  prototypeAutoPublish: Option[Boolean]          = None,
   repositoryYamlText  : Option[String]           = None
 )
 
@@ -51,25 +52,26 @@ object GitRepository {
     implicit val rtf = RepoType.format
     implicit val stf = ServiceType.format
     implicit val tf  = Tag.format
-    ( (__ \ "name"              ).format[String]
-    ~ (__ \ "description"       ).format[String]
-    ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[Instant]
-    ~ (__ \ "lastActiveDate"    ).format[Instant]
-    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"          ).format[RepoType]
-    ~ (__ \ "serviceType"       ).formatNullable[ServiceType]
-    ~ (__ \ "tags"              ).format[Set[Tag]].inmap[Option[Set[Tag]]](Option.apply, _.getOrElse(Set.empty))
-    ~ (__ \ "digitalServiceName").formatNullable[String]
-    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"     ).format[String]
-    ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
-    ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
-    ~ (__ \ "prototypeName"     ).formatNullable[String]
-    ~ (__ \ "repositoryYamlText").formatNullable[String]
+    ( (__ \ "name"                ).format[String]
+    ~ (__ \ "description"         ).format[String]
+    ~ (__ \ "url"                 ).format[String]
+    ~ (__ \ "createdDate"         ).format[Instant]
+    ~ (__ \ "lastActiveDate"      ).format[Instant]
+    ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"            ).format[RepoType]
+    ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
+    ~ (__ \ "tags"                ).format[Set[Tag]].inmap[Option[Set[Tag]]](Option.apply, _.getOrElse(Set.empty))
+    ~ (__ \ "digitalServiceName"  ).formatNullable[String]
+    ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"            ).formatNullable[String]
+    ~ (__ \ "isArchived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"       ).format[String]
+    ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
+    ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
+    ~ (__ \ "teamNames"           ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeName"       ).formatNullable[String]
+    ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
+    ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
     )(apply, unlift(unapply))
       .bimap(
         identity,
@@ -82,25 +84,26 @@ object GitRepository {
     implicit val rtf  = RepoType.format
     implicit val stf  = ServiceType.format
     implicit val tf   = Tag.format
-    ( (__ \ "name"              ).format[String]
-    ~ (__ \ "description"       ).format[String]
-    ~ (__ \ "url"               ).format[String]
-    ~ (__ \ "createdDate"       ).format[Instant]
-    ~ (__ \ "lastActiveDate"    ).format[Instant]
-    ~ (__ \ "isPrivate"         ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"          ).format[RepoType]
-    ~ (__ \ "serviceType"       ).formatNullable[ServiceType]
-    ~ (__ \ "tags"              ).formatNullable[Set[Tag]]
-    ~ (__ \ "digitalServiceName").formatNullable[String]
-    ~ (__ \ "owningTeams"       ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"          ).formatNullable[String]
-    ~ (__ \ "isArchived"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"     ).formatWithDefault[String]("master")
-    ~ (__ \ "branchProtection"  ).formatNullable(BranchProtection.format)
-    ~ (__ \ "isDeprecated"      ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"         ).formatWithDefault[List[String]](Nil)
-    ~ (__ \ "prototypeName"     ).formatNullable[String]
-    ~ (__ \ "repositoryYamlText").formatNullable[String]
+    ( (__ \ "name"                ).format[String]
+    ~ (__ \ "description"         ).format[String]
+    ~ (__ \ "url"                 ).format[String]
+    ~ (__ \ "createdDate"         ).format[Instant]
+    ~ (__ \ "lastActiveDate"      ).format[Instant]
+    ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
+    ~ (__ \ "repoType"            ).format[RepoType]
+    ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
+    ~ (__ \ "tags"                ).formatNullable[Set[Tag]]
+    ~ (__ \ "digitalServiceName"  ).formatNullable[String]
+    ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
+    ~ (__ \ "language"            ).formatNullable[String]
+    ~ (__ \ "isArchived"          ).formatWithDefault[Boolean](false)
+    ~ (__ \ "defaultBranch"       ).formatWithDefault[String]("master")
+    ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
+    ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
+    ~ (__ \ "teamNames"           ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "prototypeName"       ).formatNullable[String]
+    ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
+    ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
     )(apply, unlift(unapply))
   }
 }

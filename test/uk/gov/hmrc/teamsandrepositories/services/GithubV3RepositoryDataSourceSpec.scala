@@ -679,17 +679,18 @@ class GithubV3RepositoryDataSourceSpec
         teamName     = "A",
         repositories = List(
           GitRepository(
-            name               = "A_r-prototype",
-            description        = "",
-            url                = "url_A",
-            createdDate        = now,
-            lastActiveDate     = now,
-            repoType           = RepoType.Prototype,
-            digitalServiceName = None,
-            language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
-            prototypeName      = Some("A_r-prototype")
+            name                 = "A_r-prototype",
+            description          = "",
+            url                  = "url_A",
+            createdDate          = now,
+            lastActiveDate       = now,
+            repoType             = RepoType.Prototype,
+            digitalServiceName   = None,
+            language             = Some("Scala"),
+            isArchived           = false,
+            defaultBranch        = "main",
+            prototypeName        = Some("A_r-prototype"),
+            prototypeAutoPublish = None
           )
         ),
         createdDate  = Some(teamCreatedDate),
