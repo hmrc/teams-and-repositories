@@ -50,7 +50,9 @@ case class PersistingService @Inject()(
                                  val r = acc.getOrElse(repo.name, repo)
                                  acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
                                }
-                             }
+                             }.mapValues(repo =>
+                               repo.copy(owningTeams = if (repo.owningTeams.isEmpty) repo.teams else repo.owningTeams)
+                             )
       allRepos            <- dataSource.getAllRepositoriesByName()
       orphanRepos         =  (allRepos -- reposWithTeams.keys).values
       reposToPersist      =  (reposWithTeams.values.toSeq ++ orphanRepos)
@@ -61,22 +63,27 @@ case class PersistingService @Inject()(
       _                   <- reposToPersist.toList.traverse(updateTestRepoRelationships)
     } yield count
 
-  def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
+  def updateRepository(repoName: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
       rawRepo             <- EitherT.fromOptionF(
-                               dataSource.getRepo(name)
+                               dataSource.getRepo(repoName)
                              , s"not found on github"
                              )
-      teams               <- EitherT.liftF(dataSource.getTeams(name))
+      teams               <- EitherT.liftF(dataSource.getTeams(repoName))
       frontendRoutes      <- EitherT
-                               .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
-                               .map(x => if (x) Set(name) else Set.empty[String])
+                               .liftF(serviceConfigsConnector.hasFrontendRoutes(repoName))
+                               .map(x => if (x) Set(repoName) else Set.empty[String])
       adminFrontendRoutes <- EitherT
-                               .liftF(serviceConfigsConnector.hasAdminFrontendRoutes(name))
-                               .map(x => if (x) Set(name) else Set.empty[String])
+                               .liftF(serviceConfigsConnector.hasAdminFrontendRoutes(repoName))
+                               .map(x => if (x) Set(repoName) else Set.empty[String])
       repo                <- EitherT
                                .pure[Future, String](rawRepo)
-                               .map(_.copy(teams = teams))
+                               .map(repo =>
+                                  repo.copy(
+                                    teams       = teams,
+                                    owningTeams = if (repo.owningTeams.isEmpty) teams else repo.owningTeams
+                                  )
+                                )
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
