@@ -73,10 +73,6 @@ object GitRepository {
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
     )(apply, unlift(unapply))
-      .bimap(
-        identity,
-        repo => if (repo.owningTeams.isEmpty) repo.copy(owningTeams = repo.teams) else repo
-      )
   }
 
   val mongoFormat: OFormat[GitRepository] = {

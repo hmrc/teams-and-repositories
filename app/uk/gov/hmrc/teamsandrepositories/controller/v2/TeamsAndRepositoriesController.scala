@@ -40,20 +40,22 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val grf: Format[GitRepository] = GitRepository.apiFormat
   implicit val tnf: Format[TeamSummary]   = TeamSummary.apiFormat
 
-  def allRepos(
+  def repositories(
     name       : Option[String],
     team       : Option[String],
+    owningTeam : Option[String],
     archived   : Option[Boolean],
     repoType   : Option[RepoType],
     serviceType: Option[ServiceType],
     tags       : Option[List[Tag]],
   ) = Action.async { request =>
-    repositoriesPersistence.search(name, team, archived, repoType, serviceType, tags)
+    repositoriesPersistence.find(name, team, owningTeam, archived, repoType, serviceType, tags)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 
   def allTeams() = Action.async { request =>
-    repositoriesPersistence.findTeamSummaries().map(result => Ok(Json.toJson(result)))
+    repositoriesPersistence.findTeamSummaries()
+      .map(result => Ok(Json.toJson(result)))
   }
 
   def findRepo(repoName:String) = Action.async { request =>

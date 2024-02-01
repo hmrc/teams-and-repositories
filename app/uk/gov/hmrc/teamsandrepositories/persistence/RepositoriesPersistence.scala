@@ -59,9 +59,10 @@ class RepositoriesPersistence @Inject()(
   private val teamsCollection: MongoCollection[TeamSummary] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamSummary.mongoFormat)
 
-  def search(
+  def find(
     name       : Option[String]      = None,
     team       : Option[String]      = None,
+    owningTeam : Option[String]      = None,
     isArchived : Option[Boolean]     = None,
     repoType   : Option[RepoType]    = None,
     serviceType: Option[ServiceType] = None,
@@ -70,15 +71,16 @@ class RepositoriesPersistence @Inject()(
     val filters = Seq(
       name       .map(n  => Filters.regex("name"       , n)),
       team       .map(t  => Filters.equal("teamNames"  , t)),
+      owningTeam .map(t  => Filters.equal("owningTeams", t)),
       isArchived .map(b  => Filters.equal("isArchived" , b)),
       repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
       serviceType.map(st => Filters.equal("serviceType", st.asString)),
-      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)):_*)),
+      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*)),
     ).flatten
-    filters match {
-      case Nil  => collection.find().toFuture()
-      case more => collection.find(Filters.and(more:_*)).toFuture()
-    }
+
+    collection
+      .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
+      .toFuture()
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
@@ -91,7 +93,10 @@ class RepositoriesPersistence @Inject()(
         addFields(Field("teamSize", BsonDocument("$size" -> "$teamNames"))),
         `match`(Filters.lt("teamSize", 8)), // ignore repos shared by more than n teams
         unwind("$teamNames"),
-        group("$teamNames", Accumulators.min("createdDate", "$createdDate"), Accumulators.max("lastActiveDate", "$lastActiveDate"), Accumulators.sum("repos", 1)),
+        group("$teamNames", Accumulators.min("createdDate", "$createdDate"),
+                            Accumulators.max("lastActiveDate", "$lastActiveDate"),
+                            Accumulators.sum("repos", 1)
+        ),
         sort(Sorts.ascending("_id"))
       ))
       .toFuture()
@@ -140,19 +145,21 @@ class RepositoriesPersistence @Inject()(
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
-    legacyCollection.aggregate(Seq(
-      `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
-      unwind("$teamNames"),
-      addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
-      group(
-        id = "$teamid",
-        first("teamName", "$teamid"),
-        addToSet("repositories", "$$ROOT"),
-        min("createdDate", "$createdDate"),
-        max("updateDate", "$lastActiveDate")
-      ),
-      sort(Sorts.ascending("_id"))
-    )).toFuture()
+    legacyCollection
+      .aggregate(Seq(
+        `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
+        unwind("$teamNames"),
+        addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
+        group(
+          id = "$teamid",
+          first("teamName", "$teamid"),
+          addToSet("repositories", "$$ROOT"),
+          min("createdDate", "$createdDate"),
+          max("updateDate", "$lastActiveDate")
+        ),
+        sort(Sorts.ascending("_id"))
+      ))
+      .toFuture()
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
     implicit val bpf = BranchProtection.format
