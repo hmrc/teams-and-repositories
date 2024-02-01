@@ -45,132 +45,138 @@ class RepositoriesPersistenceSpec
 
   private val repo1 =
     GitRepository(
-      "repo1",
-      "desc 1",
-      "git/repo1",
-      now,
-      now,
-      isPrivate        = false,
-      RepoType.Service,
-      serviceType      = None,
-      tags             = None,
-      None,
-      Nil,
-      None,
-      isArchived       = false,
-      "main",
-      branchProtection = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
-      isDeprecated     = false,
-      List("team1", "team2"),
-      None
+      name                = "repo1",
+      description         = "desc 1",
+      url                 = "git/repo1",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Service,
+      serviceType         = None,
+      tags                = None,
+      digitalServiceName  = None,
+      owningTeams         = Nil,
+      language            = None,
+      isArchived          = false,
+      defaultBranch       = "main",
+      branchProtection    = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
+      isDeprecated        = false,
+      teams               = List("team1", "team2"),
+      prototypeName       = None
     )
 
   private val repo2 =
     GitRepository(
-      "repo2",
-      "desc 2",
-      "git/repo2",
-      now,
-      now,
-      isPrivate        = false,
-      RepoType.Service,
-      serviceType      = None,
-      tags             = None,
-      None,
-      Nil,
-      None,
-      isArchived       = true,
-      "main",
-      branchProtection = None,
-      isDeprecated     = false,
-      List("team2", "team3"),
-      None
+      name                = "repo2",
+      description         = "desc 2",
+      url                 = "git/repo2",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Service,
+      serviceType         = None,
+      tags                = None,
+      digitalServiceName  = None,
+      owningTeams         = List("team4", "team5"),
+      language            = None,
+      isArchived          = true,
+      defaultBranch       = "main",
+      branchProtection    = None,
+      isDeprecated        = false,
+      teams               = List("team2", "team3"),
+      prototypeName       = None
     )
 
   private val repo3 =
     GitRepository(
-      "repo3",
-      "desc 3",
-      "git/repo3",
-      now,
-      now,
-      isPrivate        = false,
-      RepoType.Prototype,
-      serviceType      = None,
-      tags             = None,
-      None,
-      Nil,
-      None,
-      isArchived       = true,
-      "main",
-      branchProtection = None,
-      isDeprecated     = false,
-      List("team1","team2", "team3"),
-      Some("https://repo3.herokuapp.com")
+      name                = "repo3",
+      description         = "desc 3",
+      url                 = "git/repo3",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Prototype,
+      serviceType         = None,
+      tags                = None,
+      digitalServiceName  = None,
+      owningTeams         = Nil,
+      language            = None,
+      isArchived          = true,
+      defaultBranch       = "main",
+      branchProtection    = None,
+      isDeprecated        = false,
+      teams               = List("team1","team2", "team3"),
+      prototypeName       = Some("https://repo3.herokuapp.com")
     )
 
   private val repo4 =
     GitRepository(
-      "repo4",
-      "desc 4",
-      "git/repo4",
-      now,
-      now,
-      isPrivate        = false,
-      RepoType.Service,
-      serviceType      = Some(ServiceType.Frontend),
-      tags             = None,
-      None,
-      Nil,
-      None,
-      isArchived       = true,
-      "main",
-      branchProtection = None,
-      isDeprecated     = false,
-      List("team2", "team3"),
-      None
+      name                = "repo4",
+      description         = "desc 4",
+      url                 = "git/repo4",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Service,
+      serviceType         = Some(ServiceType.Frontend),
+      tags                = None,
+      digitalServiceName  = None,
+      owningTeams         = Nil,
+      language            = None,
+      isArchived          = true,
+      defaultBranch       = "main",
+      branchProtection    = None,
+      isDeprecated        = false,
+      teams               = List("team2", "team3"),
+      prototypeName       = None
     )
 
   private val repo5 =
     GitRepository(
-      "repo5",
-      "desc 5",
-      "git/repo5",
-      now,
-      now,
-      isPrivate        = false,
-      RepoType.Service,
-      serviceType      = Some(ServiceType.Backend),
-      tags             = None,
-      None,
-      Nil,
-      None,
-      isArchived       = true,
-      "main",
-      branchProtection = None,
-      isDeprecated     = false,
-      List("team2", "team3"),
-      None
+      name                = "repo5",
+      description         = "desc 5",
+      url                 = "git/repo5",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Service,
+      serviceType         = Some(ServiceType.Backend),
+      tags                = None,
+      digitalServiceName  = None,
+      owningTeams         = Nil,
+      language            = None,
+      isArchived          = true,
+      defaultBranch       = "main",
+      branchProtection    = None,
+      isDeprecated        = false,
+      teams               = List("team2", "team3"),
+      prototypeName       = None
     )
 
-  "search" must  {
+  "find" must  {
     "find all repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.search().futureValue
+      val results = repository.find().futureValue
       results must contain (repo1)
       results must contain (repo2)
     }
 
     "exclude archived repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.search(isArchived = Some(false)).futureValue
+      val results = repository.find(isArchived = Some(false)).futureValue
       results must contain (repo1)
       results must not contain (repo2)
     }
 
-    "find repos belonging to a team" in {
+    "find repos with team write-access" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.search(team = Some("team3")).futureValue
+      val results = repository.find(team = Some("team3")).futureValue
+      results must contain only (repo2)
+    }
+
+    "find repos owned by team" in {
+      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
+      val results = repository.find(owningTeam = Some("team4")).futureValue
       results must contain only (repo2)
     }
 
@@ -178,33 +184,25 @@ class RepositoriesPersistenceSpec
       val foo = repo1.copy(name = "foo")
       val bar = repo1.copy(name = "bar")
       repository.collection.insertMany(Seq(repo1, repo2, foo, bar)).toFuture().futureValue
-      val results = repository.search(name = Some("repo")).futureValue
+      val results = repository.find(name = Some("repo")).futureValue
       results must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "find repos by repo type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
-      val results = repository.search(repoType = Some(RepoType.Prototype)).futureValue
+      val results = repository.find(repoType = Some(RepoType.Prototype)).futureValue
       results must contain only (repo3)
-      val results2 = repository.search(repoType = Some(RepoType.Service)).futureValue
+      val results2 = repository.find(repoType = Some(RepoType.Service)).futureValue
       results2 must contain theSameElementsAs Seq(repo1, repo2)
 
     }
 
     "find repos by service type" in {
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
-      val results = repository.search(serviceType = Some(ServiceType.Frontend)).futureValue
+      val results = repository.find(serviceType = Some(ServiceType.Frontend)).futureValue
       results must contain only repo4
-      val results2 = repository.search(serviceType = Some(ServiceType.Backend)).futureValue
+      val results2 = repository.find(serviceType = Some(ServiceType.Backend)).futureValue
       results2 must contain only repo5
-    }
-  }
-
-  "findTeamSummaries" must {
-    "return all the unique team names" in {
-      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      val results = repository.findTeamSummaries().futureValue
-      results.map(_.name) must contain theSameElementsAs Seq("team1", "team2", "team3")
     }
   }
 
@@ -232,14 +230,15 @@ class RepositoriesPersistenceSpec
   "updateRepoBranchProtection" should {
     "update the branch protection policy of the given repository" in {
       (for {
-        _               <- insert(repo1)
-        bpBefore        <- repository.findRepo(repo1.name).map(_.value.branchProtection)
-        expectedBpAfter =  BranchProtection(false, false, false)
-        _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
-        bpAfter         <- repository.findRepo(repo1.name).map(_.value.branchProtection)
-        _               =  bpAfter mustNot be(bpBefore)
-        _               =  bpAfter mustBe Some(expectedBpAfter)
-      } yield ()).futureValue
+         _               <- insert(repo1)
+         bpBefore        <- repository.findRepo(repo1.name).map(_.value.branchProtection)
+         expectedBpAfter =  BranchProtection(false, false, false)
+         _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
+         bpAfter         <- repository.findRepo(repo1.name).map(_.value.branchProtection)
+         _               =  bpAfter mustNot be(bpBefore)
+         _               =  bpAfter mustBe Some(expectedBpAfter)
+       } yield ()
+      ).futureValue
     }
   }
 
@@ -252,14 +251,15 @@ class RepositoriesPersistenceSpec
 
     "update an existing repository" in {
       (for {
-        _                        <- repository.putRepo(repo1)
-        serviceTypeBefore        <- repository.findRepo(repo1.name).map(_.value.serviceType)
-        expectedServiceTypeAfter =  ServiceType.Backend
-        _                        <- repository.putRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter)))
-        serviceTypeAfter         <- repository.findRepo(repo1.name).map(_.value.serviceType)
-        _                        =  serviceTypeAfter mustNot be(serviceTypeBefore)
-        _                        =  serviceTypeAfter mustBe Some(expectedServiceTypeAfter)
-      } yield ()).futureValue
+         _                        <- repository.putRepo(repo1)
+         serviceTypeBefore        <- repository.findRepo(repo1.name).map(_.value.serviceType)
+         expectedServiceTypeAfter =  ServiceType.Backend
+         _                        <- repository.putRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter)))
+         serviceTypeAfter         <- repository.findRepo(repo1.name).map(_.value.serviceType)
+         _                        =  serviceTypeAfter mustNot be(serviceTypeBefore)
+         _                        =  serviceTypeAfter mustBe Some(expectedServiceTypeAfter)
+       } yield ()
+      ).futureValue
     }
   }
 

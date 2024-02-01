@@ -22,14 +22,15 @@ import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models._
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class PersistingService @Inject()(
-  persister               : RepositoriesPersistence,
+  repositoriesPersistence : RepositoriesPersistence,
+  teamSummaryPersistence  : TeamSummaryPersistence,
   relationshipsPersistence: TestRepoRelationshipsPersistence,
   dataSource              : GithubV3RepositoryDataSource,
   configuration           : Configuration,
@@ -37,59 +38,86 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  def updateRepositories()(implicit ec: ExecutionContext): Future[Int] =
+  private def updateTeams(gitRepos: List[GitRepository], teamRepos: List[TeamRepositories])(implicit ec: ExecutionContext): Future[Unit] = {
+    for {
+      count <- teamSummaryPersistence.updateTeamSummaries(
+                 TeamSummary.createTeamSummaries(gitRepos) ++
+                   teamRepos.collect {
+                     // we also store teams with no repos
+                     case trs if trs.repositories.isEmpty => TeamSummary(trs.teamName, None, Seq.empty)
+                   }
+               )
+      _     =  logger.info(s"Persisted: $count Teams")
+    } yield ()
+  }
+
+  private def updateRepositories(reposWithTeams: Map[String, GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
     for {
       frontendRoutes      <- serviceConfigsConnector.getFrontendServices()
       adminFrontendRoutes <- serviceConfigsConnector.getAdminFrontendServices()
-      teams               <- dataSource.getTeams()
-      teamRepos           <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-                               dataSource.getTeamRepositories(team).map(_ :: acc)
-                             }
-      reposWithTeams      =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
-                               trs.repositories.foldLeft(acc) { case (acc, repo) =>
-                                 val r = acc.getOrElse(repo.name, repo)
-                                 acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
-                               }
-                             }
       allRepos            <- dataSource.getAllRepositoriesByName()
       orphanRepos         =  (allRepos -- reposWithTeams.keys).values
       reposToPersist      =  (reposWithTeams.values.toSeq ++ orphanRepos)
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
-      count               <- persister.updateRepos(reposToPersist)
+      count               <- repositoriesPersistence.updateRepos(reposToPersist)
+      _                   =  logger.info(s"Persisted: $count repos")
       _                   <- reposToPersist.toList.traverse(updateTestRepoRelationships)
-    } yield count
+    } yield ()
 
-  def updateRepository(name: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
+  def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
+    for {
+      teams          <- dataSource.getTeams()
+      teamRepos      <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+                          dataSource.getTeamRepositories(team).map(_ :: acc)
+                       }
+      reposWithTeams =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
+                          trs.repositories.foldLeft(acc) { case (acc, repo) =>
+                            val r = acc.getOrElse(repo.name, repo)
+                            acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
+                          }
+                        }.view.mapValues(repo =>
+                          repo.copy(owningTeams = if (repo.owningTeams.isEmpty) repo.teams else repo.owningTeams)
+                        )
+      _             <- updateTeams(reposWithTeams.values.toList, teamRepos)
+      _             <- updateRepositories(reposWithTeams.toMap)
+    } yield ()
+
+  def updateRepository(repoName: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
       rawRepo             <- EitherT.fromOptionF(
-                               dataSource.getRepo(name)
+                               dataSource.getRepo(repoName)
                              , s"not found on github"
                              )
-      teams               <- EitherT.liftF(dataSource.getTeams(name))
+      teams               <- EitherT.liftF(dataSource.getTeams(repoName))
       frontendRoutes      <- EitherT
-                               .liftF(serviceConfigsConnector.hasFrontendRoutes(name))
-                               .map(x => if (x) Set(name) else Set.empty[String])
+                               .liftF(serviceConfigsConnector.hasFrontendRoutes(repoName))
+                               .map(x => if (x) Set(repoName) else Set.empty[String])
       adminFrontendRoutes <- EitherT
-                               .liftF(serviceConfigsConnector.hasAdminFrontendRoutes(name))
-                               .map(x => if (x) Set(name) else Set.empty[String])
+                               .liftF(serviceConfigsConnector.hasAdminFrontendRoutes(repoName))
+                               .map(x => if (x) Set(repoName) else Set.empty[String])
       repo                <- EitherT
                                .pure[Future, String](rawRepo)
-                               .map(_.copy(teams = teams))
+                               .map(repo =>
+                                  repo.copy(
+                                    teams       = teams,
+                                    owningTeams = if (repo.owningTeams.isEmpty) teams else repo.owningTeams
+                                  )
+                                )
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
-                               .liftF(persister.putRepo(repo))
+                               .liftF(repositoriesPersistence.putRepo(repo))
       _                   <- EitherT
                                .liftF(updateTestRepoRelationships(rawRepo))
     } yield ()
 
   def repositoryArchived(repoName: String): Future[Unit] =
-    persister.archiveRepo(repoName)
+    repositoriesPersistence.archiveRepo(repoName)
 
   def repositoryDeleted(repoName: String): Future[Unit] =
-    persister.deleteRepo(repoName)
+    repositoriesPersistence.deleteRepo(repoName)
 
   private def updateTestRepoRelationships(repo: GitRepository)(implicit ec: ExecutionContext): Future[Unit] = {
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap

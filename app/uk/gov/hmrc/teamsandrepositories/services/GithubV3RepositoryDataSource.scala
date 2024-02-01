@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 import com.google.inject.{Inject, Singleton}
-import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
+import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 
@@ -31,23 +30,15 @@ class TimeStamper {
 }
 @Singleton
 class GithubV3RepositoryDataSource @Inject()(
-  githubConfig   : GithubConfig,
   githubConnector: GithubConnector,
-  timeStamper    : TimeStamper,
-  configuration  : Configuration
+  timeStamper    : TimeStamper
 ) {
   private val logger = Logger(this.getClass)
 
-  val sharedRepos: List[String] =
-    configuration.get[Seq[String]]("shared.repositories").toList
-
   def getTeams()(implicit ec: ExecutionContext): Future[List[GhTeam]] = {
-    def notHidden(team: GhTeam) =
-      !githubConfig.hiddenTeams.contains(team.name)
 
     githubConnector
       .getTeams()
-      .map(_.filter(team => notHidden(team)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve teams for organisation list.", ex)
@@ -56,12 +47,8 @@ class GithubV3RepositoryDataSource @Inject()(
   }
 
   def getTeams(repoName: String)(implicit ec: ExecutionContext): Future[List[String]] = {
-    def notHidden(teamName: String) =
-      !githubConfig.hiddenTeams.contains(teamName)
-
     githubConnector
       .getTeams(repoName)
-      .map(_.filter(team => notHidden(team)))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"Could not retrieve teams for repo: $repoName.", ex)
@@ -78,12 +65,9 @@ class GithubV3RepositoryDataSource @Inject()(
   ): Future[TeamRepositories] = {
     logger.info(s"Fetching TeamRepositories for team: ${team.name}")
 
-    def notHidden(repoName: String) =
-      !githubConfig.hiddenRepositories.contains(repoName)
-
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos.collect { case r if notHidden(r.name) => cache.getOrElse(r.name, r.toGitRepository) }
+      repos   =  ghRepos.map(repo => cache.getOrElse(repo.name, repo.toGitRepository))
     } yield
         TeamRepositories(
           teamName     = team.name,
@@ -98,13 +82,11 @@ class GithubV3RepositoryDataSource @Inject()(
   }
 
   def getAllRepositories()(implicit ec: ExecutionContext): Future[List[GitRepository]] = {
-    def notHidden(repoName: String) =
-      !githubConfig.hiddenRepositories.contains(repoName)
 
     logger.info("Fetching all repositories from GitHub")
 
     githubConnector.getRepos()
-      .map(_.collect { case repo if notHidden(repo.name) => repo.toGitRepository })
+      .map(_.map(_.toGitRepository))
       .map { repos =>
         logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
         repos
@@ -117,13 +99,9 @@ class GithubV3RepositoryDataSource @Inject()(
   }
 
   def getRepo(repoName: String)(implicit ec: ExecutionContext): Future[Option[GitRepository]] = {
-    def notHidden(repoName: String) =
-      !githubConfig.hiddenRepositories.contains(repoName)
-
     logger.info(s"Fetching repo: $repoName from GitHub")
 
     githubConnector.getRepo(repoName)
-      .map(_.filter(repo => notHidden(repo.name)))
       .map(_.map(_.toGitRepository))
       .recoverWith {
         case NonFatal(ex) =>

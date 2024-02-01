@@ -21,7 +21,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
@@ -30,6 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
+  teamSummaryPersistence : TeamSummaryPersistence,
   branchProtectionService: BranchProtectionService,
   auth                   : BackendAuthComponents,
   cc                     : ControllerComponents
@@ -40,20 +41,22 @@ class TeamsAndRepositoriesController @Inject()(
   implicit val grf: Format[GitRepository] = GitRepository.apiFormat
   implicit val tnf: Format[TeamSummary]   = TeamSummary.apiFormat
 
-  def allRepos(
+  def repositories(
     name       : Option[String],
     team       : Option[String],
+    owningTeam : Option[String],
     archived   : Option[Boolean],
     repoType   : Option[RepoType],
     serviceType: Option[ServiceType],
     tags       : Option[List[Tag]],
   ) = Action.async { request =>
-    repositoriesPersistence.search(name, team, archived, repoType, serviceType, tags)
+    repositoriesPersistence.find(name, team, owningTeam, archived, repoType, serviceType, tags)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 
   def allTeams() = Action.async { request =>
-    repositoriesPersistence.findTeamSummaries().map(result => Ok(Json.toJson(result)))
+    teamSummaryPersistence.findTeamSummaries()
+      .map(result => Ok(Json.toJson(result)))
   }
 
   def findRepo(repoName:String) = Action.async { request =>

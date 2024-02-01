@@ -23,7 +23,7 @@ import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwi
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import org.mongodb.scala.model.Filters.equal
@@ -56,12 +56,10 @@ class RepositoriesPersistence @Inject()(
   private val legacyCollection: MongoCollection[TeamRepositories] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
 
-  private val teamsCollection: MongoCollection[TeamSummary] =
-    CollectionFactory.collection(mongoComponent.database, collectionName, TeamSummary.mongoFormat)
-
-  def search(
+  def find(
     name       : Option[String]      = None,
     team       : Option[String]      = None,
+    owningTeam : Option[String]      = None,
     isArchived : Option[Boolean]     = None,
     repoType   : Option[RepoType]    = None,
     serviceType: Option[ServiceType] = None,
@@ -70,31 +68,21 @@ class RepositoriesPersistence @Inject()(
     val filters = Seq(
       name       .map(n  => Filters.regex("name"       , n)),
       team       .map(t  => Filters.equal("teamNames"  , t)),
+      owningTeam .map(t  => Filters.equal("owningTeams", t)),
       isArchived .map(b  => Filters.equal("isArchived" , b)),
       repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
       serviceType.map(st => Filters.equal("serviceType", st.asString)),
-      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)):_*)),
+      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*)),
     ).flatten
-    filters match {
-      case Nil  => collection.find().toFuture()
-      case more => collection.find(Filters.and(more:_*)).toFuture()
-    }
+
+    collection
+      .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
+      .toFuture()
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection
       .find(filter = Filters.equal("name", repoName)).headOption()
-
-  def findTeamSummaries(): Future[Seq[TeamSummary]] =
-    teamsCollection
-      .aggregate(Seq(
-        addFields(Field("teamSize", BsonDocument("$size" -> "$teamNames"))),
-        `match`(Filters.lt("teamSize", 8)), // ignore repos shared by more than n teams
-        unwind("$teamNames"),
-        group("$teamNames", Accumulators.min("createdDate", "$createdDate"), Accumulators.max("lastActiveDate", "$lastActiveDate"), Accumulators.sum("repos", 1)),
-        sort(Sorts.ascending("_id"))
-      ))
-      .toFuture()
 
   def updateRepos(repos: Seq[GitRepository]): Future[Int] =
     for {
@@ -140,19 +128,21 @@ class RepositoriesPersistence @Inject()(
 
   // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
-    legacyCollection.aggregate(Seq(
-      `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
-      unwind("$teamNames"),
-      addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
-      group(
-        id = "$teamid",
-        first("teamName", "$teamid"),
-        addToSet("repositories", "$$ROOT"),
-        min("createdDate", "$createdDate"),
-        max("updateDate", "$lastActiveDate")
-      ),
-      sort(Sorts.ascending("_id"))
-    )).toFuture()
+    legacyCollection
+      .aggregate(Seq(
+        `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
+        unwind("$teamNames"),
+        addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
+        group(
+          id = "$teamid",
+          first("teamName", "$teamid"),
+          addToSet("repositories", "$$ROOT"),
+          min("createdDate", "$createdDate"),
+          max("updateDate", "$lastActiveDate")
+        ),
+        sort(Sorts.ascending("_id"))
+      ))
+      .toFuture()
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
     implicit val bpf = BranchProtection.format
