@@ -29,21 +29,14 @@ case class TeamSummary(
 )
 
 object TeamSummary {
-  def createTeamSummaries(gitRepositories: List[GitRepository]): Seq[TeamSummary] =
-    gitRepositories
-      .flatMap(repo => repo.teams.map(team => (team, repo)))
-      .groupBy { case (team, _) => team }
-      .view.mapValues(_.map{ case (_, repo) => repo })
-      .map {
-        case (team, gitRepos) =>
-          TeamSummary(
-            name           = team,
-            lastActiveDate = Some(gitRepos.map(_.lastActiveDate).max),
-            repos          = gitRepos.collect {
-                               case gitRepo if gitRepo.owningTeams.contains(team) && !gitRepo.isArchived => gitRepo.name
-                             }
-          )
-      }.toSeq
+  def apply(teamName: String, gitRepos: Seq[GitRepository]): TeamSummary =
+    TeamSummary(
+      name           = teamName,
+      lastActiveDate = if (gitRepos.nonEmpty) Some(gitRepos.map(_.lastActiveDate).max) else None,
+      repos          = gitRepos.collect {
+                         case gitRepo if gitRepo.owningTeams.contains(teamName) && !gitRepo.isArchived => gitRepo.name
+                       }
+    )
 
   val apiFormat: OFormat[TeamSummary] =
     ( (__ \ "name"          ).format[String]

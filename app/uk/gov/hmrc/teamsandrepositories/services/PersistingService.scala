@@ -38,26 +38,13 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  private def updateTeams(gitRepos: List[GitRepository], teamRepos: List[TeamRepositories])(implicit ec: ExecutionContext): Future[Unit] = {
-    for {
-      count <- teamSummaryPersistence.updateTeamSummaries(
-                 TeamSummary.createTeamSummaries(gitRepos) ++
-                   teamRepos.collect {
-                     // we also store teams with no repos
-                     case trs if trs.repositories.isEmpty => TeamSummary(trs.teamName, None, Seq.empty)
-                   }
-               )
-      _     =  logger.info(s"Persisted: $count Teams")
-    } yield ()
-  }
-
-  private def updateRepositories(reposWithTeams: Map[String, GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
+  private def updateRepositories(reposWithTeams: Seq[GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
     for {
       frontendRoutes      <- serviceConfigsConnector.getFrontendServices()
       adminFrontendRoutes <- serviceConfigsConnector.getAdminFrontendServices()
       allRepos            <- dataSource.getAllRepositoriesByName()
-      orphanRepos         =  (allRepos -- reposWithTeams.keys).values
-      reposToPersist      =  (reposWithTeams.values.toSeq ++ orphanRepos)
+      orphanRepos         =  (allRepos -- reposWithTeams.map(_.name).toSet).values
+      reposToPersist      =  (reposWithTeams ++ orphanRepos)
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   =  logger.info(s"found ${reposToPersist.length} repos")
@@ -68,20 +55,26 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      teams          <- dataSource.getTeams()
+      teams          <- dataSource.getTeams() // TODO filter out hidden
       teamRepos      <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
                           dataSource.getTeamRepositories(team).map(_ :: acc)
-                       }
-      reposWithTeams =  teamRepos.foldLeft(Map.empty[String, GitRepository]) { case (acc, trs) =>
-                          trs.repositories.foldLeft(acc) { case (acc, repo) =>
-                            val r = acc.getOrElse(repo.name, repo)
-                            acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
-                          }
-                        }.view.mapValues(repo =>
-                          repo.copy(owningTeams = if (repo.owningTeams.isEmpty) repo.teams else repo.owningTeams)
-                        )
-      _             <- updateTeams(reposWithTeams.values.toList, teamRepos)
-      _             <- updateRepositories(reposWithTeams.toMap)
+                        }
+
+      repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
+
+      teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
+
+      reposWithTeams =  repos.map { repo =>
+                          val teams = teamsForRepo(repo.name)
+                          repo.copy(
+                            teams       = teams,
+                            owningTeams = if (repo.owningTeams.isEmpty) teams else repo.owningTeams
+                          )
+                        }
+      teamSummaries  =  teams.map(team => TeamSummary(team.name, reposWithTeams.filter(_.owningTeams.contains(team.name))))
+      count          <- teamSummaryPersistence.updateTeamSummaries(teamSummaries)
+      _              =  logger.info(s"Persisted: $count Teams")
+      _              <- updateRepositories(reposWithTeams)
     } yield ()
 
   def updateRepository(repoName: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
