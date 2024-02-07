@@ -23,6 +23,12 @@ GET         /api/cache/reload                                        uk.gov.hmrc
 GET         /api/cache/reload/:serviceName                           uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCacheForService(serviceName)
 
 
+# deleted repositories
+
+POST       /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.addDeletedRepo()
+GET        /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepo(name: Option[String])
+DELETE     /api/deleted-repositories/:name                          uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.removeDeleteRepoByName(name: String)
+
 # v2 api
 GET         /api/v2/repositories                                     uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.repositories(name: Option[String], team: Option[String], owningTeam: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
 GET         /api/v2/repositories/:repoName                           uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.findRepo(repoName)

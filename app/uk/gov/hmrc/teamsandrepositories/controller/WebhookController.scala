@@ -22,15 +22,20 @@ import play.api.libs.json.{Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
+import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class WebhookController @Inject()(
-  persistingService: PersistingService,
-  cc               : ControllerComponents
+  persistingService             : PersistingService,
+  repositoriesPersistence       : RepositoriesPersistence,
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  cc                            : ControllerComponents
 )(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def processGithubWebhook(): Action[GithubRequest] = Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
@@ -40,6 +45,18 @@ class WebhookController @Inject()(
         _   => logger.info(s"repo: $repoName - $message")
       ).recover {
         case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
+      }
+    }
+
+    def deletedRepositoryEvent(repoName: String): Future[Unit] = {
+     repositoriesPersistence.findRepo(repoName).flatMap {
+        case Some(repo) =>
+          deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now()))).flatMap {
+            _ => {
+              persistingService.repositoryDeleted(repoName)
+            }
+          }
+        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now()))).map(_ => ())
       }
     }
 
@@ -70,8 +87,8 @@ class WebhookController @Inject()(
         Accepted(details(s"Repository archived event accepted"))
 
       case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("deleted") =>
-        persistingService.repositoryDeleted(repositoryEvent.repoName)
         logger.info(s"repo: ${repositoryEvent.repoName} - repository deleted webhook event has been actioned")
+        deletedRepositoryEvent(repositoryEvent.repoName)
         Accepted(details(s"Repository deleted event accepted"))
 
       case repositoryEvent: RepositoryEvent =>
