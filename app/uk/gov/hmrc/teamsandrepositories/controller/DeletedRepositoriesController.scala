@@ -35,8 +35,9 @@ class DeletedRepositoriesController @Inject()(
                                              ) extends BackendController(cc) {
 
   def addDeletedRepo(): Action[JsValue] = Action.async(parse.json) { request =>
-    request.body.validate[DeletedGitRepository](DeletedGitRepository.apiFormat) match {
-      case JsSuccess(value, _) => deletedRepositoriesPersistence.set(Seq(value)).map(_ => Created)
+    implicit val apiFormats: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
+    request.body.validate[Seq[DeletedGitRepository]] match {
+      case JsSuccess(value, _) => deletedRepositoriesPersistence.set(value).map(_ => Created)
       case JsError(errors)     => Future.successful(BadRequest(s"Failed to parse json with errors: $errors"))
     }
   }
