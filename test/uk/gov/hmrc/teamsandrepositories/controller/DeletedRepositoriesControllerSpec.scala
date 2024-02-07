@@ -55,7 +55,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
   }
 
   private lazy val addRoute                   = routes.DeletedRepositoriesController.addDeletedRepo().url
-  private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepo(name).url
+  private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepo(name, None).url
   private def removeRoute(name: String)       = routes.DeletedRepositoriesController.removeDeleteRepoByName(name).url
 
   private lazy val now = Instant.now()
@@ -140,7 +140,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
         DeletedGitRepository("Bar", now),
       )
 
-      when(mockDeletedRepositoriesPersistence.get(any()))
+      when(mockDeletedRepositoriesPersistence.get(any(), any()))
         .thenReturn(Future.successful(expectedModel))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(None))
@@ -150,7 +150,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(expectedModel)
 
-      verify(mockDeletedRepositoriesPersistence).get(eqTo(None))
+      verify(mockDeletedRepositoriesPersistence).get(eqTo(None), eqTo(None))
     }
 
     "get deleted repository by name" in {
@@ -161,7 +161,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
         DeletedGitRepository("Foo", now)
       )
 
-      when(mockDeletedRepositoriesPersistence.get(any()))
+      when(mockDeletedRepositoriesPersistence.get(any(), any()))
         .thenReturn(Future.successful(expectedModel))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(Some("Foo")))
@@ -171,7 +171,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(expectedModel)
 
-      verify(mockDeletedRepositoriesPersistence).get(eqTo(Some("Foo")))
+      verify(mockDeletedRepositoriesPersistence).get(eqTo(Some("Foo")), eqTo(None))
     }
 
     "remove a deleted repository" in {

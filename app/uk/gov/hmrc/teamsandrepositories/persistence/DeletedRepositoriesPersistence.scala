@@ -50,16 +50,17 @@ class DeletedRepositoriesPersistence @Inject()(
   }
 
 
-  def get(name: Option[String]): Future[Seq[DeletedGitRepository]] = {
+  def get(name: Option[String], team: Option[String]): Future[Seq[DeletedGitRepository]] = {
 
-    val nameFilter: Option[Bson] = name.map(name => mEq("name", name))
+    val nameFilter: Option[Bson]       = name.map(name => mEq("name", name))
+    val owningTeamFilter: Option[Bson] = team.map(team => mEq("owningTeams", team))
 
-    val filters = Seq(nameFilter).flatten
+    val filters = Seq(nameFilter, owningTeamFilter).flatten
 
-    val primaryFilter = Aggregates.filter(mAnd(filters: _*))
+    val primaryFilters = Aggregates.filter(mAnd(filters: _*))
 
     val aggregates: Seq[Bson] = Seq(
-      primaryFilter
+      primaryFilters
     )
 
     filters match {

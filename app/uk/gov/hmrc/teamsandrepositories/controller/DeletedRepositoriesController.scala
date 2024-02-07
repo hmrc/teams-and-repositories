@@ -42,10 +42,10 @@ class DeletedRepositoriesController @Inject()(
     }
   }
 
-  def getDeletedRepo(name: Option[String]): Action[AnyContent] = Action.async { _ =>
-    deletedRepositoriesPersistence.get(name).map {
+  def getDeletedRepo(name: Option[String], owningTeam: Option[String]): Action[AnyContent] = Action.async { _ =>
+    deletedRepositoriesPersistence.get(name, owningTeam).map {
       result =>
-        implicit val rds = DeletedGitRepository.apiFormat
+        implicit val rds: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
         Ok(Json.toJson(result))
     }
   }

@@ -71,21 +71,27 @@ class DeletedRepositoriesPersistenceSpec
     "get" must  {
       "get all repos" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.get(None).futureValue
+        val results = repository.get(None, None).futureValue
         results mustBe Seq(repo1, repo2)
       }
 
       "get repo by name" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.get(Some(repo1.name)).futureValue
+        val results = repository.get(Some(repo1.name), None).futureValue
         results mustBe Seq(repo1)
+      }
+
+      "get repo by team" in {
+        repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
+        val results = repository.get(None, repo2.owningTeams.map(_.head)).futureValue
+        results mustBe Seq(repo2)
       }
   }
 
   "set" must {
     "insert repo" in {
       repository.set(Seq(repo1)).futureValue
-      val results = repository.get(None).futureValue
+      val results = repository.get(None, None).futureValue
       results mustBe Seq(repo1)
     }
   }
@@ -94,7 +100,7 @@ class DeletedRepositoriesPersistenceSpec
     "remove repo" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       repository.removeByName(repo1.name).futureValue
-      val results = repository.get(None).futureValue
+      val results = repository.get(None, None).futureValue
       results mustBe Seq(repo2)
     }
   }
