@@ -20,6 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.Configuration
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType}
 
@@ -34,11 +35,9 @@ class DeletedRepositoriesPersistenceSpec
      with DefaultPlayMongoRepositorySupport[DeletedGitRepository]
      with OptionValues {
 
-    override protected val repository = new DeletedRepositoriesPersistence(mongoComponent)
+    private val mockConfiguration: Configuration = mock[Configuration]
 
-    override protected val checkIndexedQueries: Boolean =
-      // we run unindexed queries
-      false
+    override protected val repository = new DeletedRepositoriesPersistence(mongoComponent, mockConfiguration)
 
     private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
@@ -71,19 +70,19 @@ class DeletedRepositoriesPersistenceSpec
     "get" must  {
       "get all repos" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.get(None, None).futureValue
+        val results = repository.find(None, None).futureValue
         results mustBe Seq(repo1, repo2)
       }
 
       "get repo by name" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.get(Some(repo1.name), None).futureValue
+        val results = repository.find(Some(repo1.name), None).futureValue
         results mustBe Seq(repo1)
       }
 
       "get repo by team" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.get(None, repo2.owningTeams.map(_.head)).futureValue
+        val results = repository.find(None, repo2.owningTeams.map(_.head)).futureValue
         results mustBe Seq(repo2)
       }
   }
@@ -91,17 +90,8 @@ class DeletedRepositoriesPersistenceSpec
   "set" must {
     "insert repo" in {
       repository.set(Seq(repo1)).futureValue
-      val results = repository.get(None, None).futureValue
+      val results = repository.find(None, None).futureValue
       results mustBe Seq(repo1)
-    }
-  }
-
-  "remove" must {
-    "remove repo" in {
-      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-      repository.removeByName(repo1.name).futureValue
-      val results = repository.get(None, None).futureValue
-      results mustBe Seq(repo2)
     }
   }
 }

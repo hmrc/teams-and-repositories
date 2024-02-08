@@ -18,29 +18,38 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import com.mongodb.client.model.Filters.{and => mAnd, eq => mEq}
 import org.bson.conversions.Bson
+import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
+import play.api.Configuration
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models._
 
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DeletedRepositoriesPersistence @Inject()(
-  mongoComponent: MongoComponent
+  mongoComponent: MongoComponent,
+  configuration  : Configuration
 )(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "deleted-repositories",
-  domainFormat   = DeletedGitRepository.mongoFormat,
-  indexes        = Seq(
-    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx"))
+  domainFormat = DeletedGitRepository.mongoFormat,
+  indexes = Seq(
+    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx")),
+    IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
+    IndexModel(
+      keys         = Indexes.ascending("deletedDate"),
+      indexOptions = IndexOptions().name("deleted-repo-created-date").expireAfter(
+        configuration.get[Int]("mongodb.deleted-repositories.ttlInDays"), TimeUnit.DAYS)
+    )
   )
 ) {
-
-  override lazy val requiresTtlIndex = false
 
   def set(repos: Seq[DeletedGitRepository]): Future[Boolean] = {
     collection
@@ -50,29 +59,15 @@ class DeletedRepositoriesPersistence @Inject()(
   }
 
 
-  def get(name: Option[String], team: Option[String]): Future[Seq[DeletedGitRepository]] = {
+  def find(name: Option[String], team: Option[String]): Future[Seq[DeletedGitRepository]] = {
 
-    val nameFilter: Option[Bson]       = name.map(name => mEq("name", name))
-    val owningTeamFilter: Option[Bson] = team.map(team => mEq("owningTeams", team))
+    val nameFilter: Option[Bson]       = name.map(name => equal("name", name))
+    val owningTeamFilter: Option[Bson] = team.map(team => equal("owningTeams", team))
 
     val filters = Seq(nameFilter, owningTeamFilter).flatten
 
-    val primaryFilters = Aggregates.filter(mAnd(filters: _*))
-
-    val aggregates: Seq[Bson] = Seq(
-      primaryFilters
-    )
-
-    filters match {
-      case Nil => collection.find().toFuture()
-      case _   => collection.aggregate(aggregates).toFuture()
-    }
-  }
-
-  def removeByName(name: String): Future[Boolean] = {
     collection
-      .deleteOne(Filters.equal("name", name))
+      .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
       .toFuture()
-      .map(_.wasAcknowledged())
   }
 }

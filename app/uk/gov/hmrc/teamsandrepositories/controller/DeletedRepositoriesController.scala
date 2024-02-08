@@ -24,17 +24,17 @@ import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.DeletedRepositoriesPersistence
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class DeletedRepositoriesController @Inject()(
-                                               deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
-                                               cc: ControllerComponents
-                                             )(implicit
-                                               ec: ExecutionContext
-                                             ) extends BackendController(cc) {
-  def getDeletedRepo(name: Option[String], owningTeam: Option[String]): Action[AnyContent] = Action.async { _ =>
-    deletedRepositoriesPersistence.get(name, owningTeam).map {
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  cc: ControllerComponents
+)(implicit
+  ec: ExecutionContext
+) extends BackendController(cc) {
+  def getDeletedRepos(name: Option[String], owningTeam: Option[String]): Action[AnyContent] = Action.async { _ =>
+    deletedRepositoriesPersistence.find(name, owningTeam).map {
       result =>
         implicit val rds: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
         Ok(Json.toJson(result))

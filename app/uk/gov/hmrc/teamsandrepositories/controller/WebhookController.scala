@@ -52,19 +52,10 @@ class WebhookController @Inject()(
       repositoriesPersistence.findRepo(repoName).flatMap {
         case Some(repo) =>
           for {
-            set <- deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now())))
+            _   <- deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now())))
             _   <- persistingService.repositoryDeleted(repoName)
-          } yield {
-            set match {
-              case true => logger.info(s"Deleted repository event: $repoName successfully set")
-              case false => logger.info(s"Deleted repository event: $repoName unsuccessfully set")
-            }
-          }
-        case None =>
-          deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now()))).map {
-            case true => logger.info(s"Deleted repository event: $repoName successfully set")
-            case false => logger.info(s"Deleted repository event: $repoName unsuccessfully set")
-          }
+          } yield ()
+        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now()))).map(_ => ())
       }
     }
 

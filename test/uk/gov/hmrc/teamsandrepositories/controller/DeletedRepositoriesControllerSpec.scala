@@ -37,7 +37,13 @@ import uk.gov.hmrc.teamsandrepositories.persistence.DeletedRepositoriesPersisten
 import java.time.Instant
 import scala.concurrent.Future
 
-class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with OptionValues with BeforeAndAfterEach {
+class DeletedRepositoriesControllerSpec
+  extends AnyWordSpec
+    with Matchers
+    with GuiceOneAppPerSuite
+    with MockitoSugar
+    with OptionValues
+    with BeforeAndAfterEach {
 
   val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
 
@@ -53,7 +59,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
     super.beforeEach()
     reset(mockDeletedRepositoriesPersistence)
   }
-  private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepo(name, None).url
+  private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepos(name, None).url
 
   private lazy val now = Instant.now()
 
@@ -68,7 +74,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
         DeletedGitRepository("Bar", now),
       )
 
-      when(mockDeletedRepositoriesPersistence.get(any(), any()))
+      when(mockDeletedRepositoriesPersistence.find(any(), any()))
         .thenReturn(Future.successful(expectedModel))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(None))
@@ -78,7 +84,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(expectedModel)
 
-      verify(mockDeletedRepositoriesPersistence).get(eqTo(None), eqTo(None))
+      verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None))
     }
 
     "get deleted repository by name" in {
@@ -89,7 +95,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
         DeletedGitRepository("Foo", now)
       )
 
-      when(mockDeletedRepositoriesPersistence.get(any(), any()))
+      when(mockDeletedRepositoriesPersistence.find(any(), any()))
         .thenReturn(Future.successful(expectedModel))
 
       val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(Some("Foo")))
@@ -99,7 +105,7 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(expectedModel)
 
-      verify(mockDeletedRepositoriesPersistence).get(eqTo(Some("Foo")), eqTo(None))
+      verify(mockDeletedRepositoriesPersistence).find(eqTo(Some("Foo")), eqTo(None))
     }
   }
 }

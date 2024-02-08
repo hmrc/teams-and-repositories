@@ -24,7 +24,7 @@ GET         /api/cache/reload/:serviceName                           uk.gov.hmrc
 
 
 # deleted repositories
-GET        /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepo(name: Option[String], team: Option[String])
+GET         /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepos(name: Option[String], team: Option[String])
 
 # v2 api
 GET         /api/v2/repositories                                     uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.repositories(name: Option[String], team: Option[String], owningTeam: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
@@ -36,4 +36,4 @@ GET         /api/v2/repositories/:repoName/services-under-test       uk.gov.hmrc
 POST        /api/v2/repositories/:repoName/branch-protection/enabled uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
 GET         /api/v2/teams                                            uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
 
-POST       /teams-and-repositories/webhook                           uk.gov.hmrc.teamsandrepositories.controller.WebhookController.processGithubWebhook()
+POST        /teams-and-repositories/webhook                          uk.gov.hmrc.teamsandrepositories.controller.WebhookController.processGithubWebhook()
