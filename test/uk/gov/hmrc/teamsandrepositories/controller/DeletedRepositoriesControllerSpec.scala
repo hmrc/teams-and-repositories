@@ -53,83 +53,11 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
     super.beforeEach()
     reset(mockDeletedRepositoriesPersistence)
   }
-
-  private lazy val addRoute                   = routes.DeletedRepositoriesController.addDeletedRepo().url
   private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepo(name, None).url
-  private def removeRoute(name: String)       = routes.DeletedRepositoriesController.removeDeleteRepoByName(name).url
 
   private lazy val now = Instant.now()
 
   "DeletedRepositoriesController" should {
-
-    "add a repo to deleted repository when given valid DeletedGitRepository json" in {
-
-      val expectedModel = Seq(
-        DeletedGitRepository("Foo", now),
-        DeletedGitRepository("Bar", now),
-      )
-
-      when(mockDeletedRepositoriesPersistence.set(eqTo(expectedModel)))
-        .thenReturn(Future.successful(true))
-
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, addRoute)
-        .withJsonBody(
-          Json.parse(
-            s"""
-              |[
-              | {
-              |   "name": "Foo",
-              |   "deletedDate": "${now.toString}"
-              | },
-              | {
-              |   "name": "Bar",
-              |   "deletedDate": "${now.toString}"
-              | }
-              |]
-              |""".stripMargin
-          )
-        )
-
-      val result = route(app, request).value
-
-      status(result) mustBe CREATED
-
-      verify(mockDeletedRepositoriesPersistence).set(eqTo(expectedModel))
-    }
-
-    "not add a repo to deleted repository when given invalid DeletedGitRepository json" in {
-
-      val expectedModel = Seq(
-        DeletedGitRepository("Foo", now),
-        DeletedGitRepository("Bar", now),
-      )
-
-      when(mockDeletedRepositoriesPersistence.set(eqTo(expectedModel)))
-        .thenReturn(Future.successful(true))
-
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, addRoute)
-        .withJsonBody(
-          Json.parse(
-            s"""
-               |[
-               | {
-               |   "name": "Foo"
-               | },
-               | {
-               |   "name": "Bar",
-               |   "deletedDate": "${now.toString}"
-               | }
-               |]
-               |""".stripMargin
-          )
-        )
-
-      val result = route(app, request).value
-
-      status(result) mustBe BAD_REQUEST
-
-      verifyZeroInteractions(mockDeletedRepositoriesPersistence)
-    }
 
     "get all deleted repositories" in {
 
@@ -172,20 +100,6 @@ class DeletedRepositoriesControllerSpec extends AnyWordSpec with Matchers with G
       contentAsJson(result) mustBe Json.toJson(expectedModel)
 
       verify(mockDeletedRepositoriesPersistence).get(eqTo(Some("Foo")), eqTo(None))
-    }
-
-    "remove a deleted repository" in {
-
-      when(mockDeletedRepositoriesPersistence.removeByName(any()))
-        .thenReturn(Future.successful(true))
-
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(DELETE, removeRoute("Foo"))
-
-      val result = route(app, request).value
-
-      status(result) mustBe NO_CONTENT
-
-      verify(mockDeletedRepositoriesPersistence).removeByName(eqTo("Foo"))
     }
   }
 }

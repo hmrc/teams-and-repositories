@@ -33,26 +33,11 @@ class DeletedRepositoriesController @Inject()(
                                              )(implicit
                                                ec: ExecutionContext
                                              ) extends BackendController(cc) {
-
-  def addDeletedRepo(): Action[JsValue] = Action.async(parse.json) { request =>
-    implicit val apiFormats: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
-    request.body.validate[Seq[DeletedGitRepository]] match {
-      case JsSuccess(value, _) => deletedRepositoriesPersistence.set(value).map(_ => Created)
-      case JsError(errors)     => Future.successful(BadRequest(s"Failed to parse json with errors: $errors"))
-    }
-  }
-
   def getDeletedRepo(name: Option[String], owningTeam: Option[String]): Action[AnyContent] = Action.async { _ =>
     deletedRepositoriesPersistence.get(name, owningTeam).map {
       result =>
         implicit val rds: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
         Ok(Json.toJson(result))
-    }
-  }
-
-  def removeDeleteRepoByName(name: String): Action[AnyContent] = Action.async { _ =>
-    deletedRepositoriesPersistence.removeByName(name).map {
-      _ => NoContent
     }
   }
 
