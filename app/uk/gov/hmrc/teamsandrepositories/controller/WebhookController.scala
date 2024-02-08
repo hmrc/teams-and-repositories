@@ -55,7 +55,7 @@ class WebhookController @Inject()(
             _   <- deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now())))
             _   <- persistingService.repositoryDeleted(repoName)
           } yield ()
-        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now()))).map(_ => ())
+        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now())))
       }
     }
 

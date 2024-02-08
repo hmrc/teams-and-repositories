@@ -45,11 +45,11 @@ class DeletedRepositoriesPersistence @Inject()(
   // need to keep permanent record of deleted repositories
   override lazy val requiresTtlIndex = false
 
-  def set(repos: Seq[DeletedGitRepository]): Future[Boolean] = {
+  def set(repos: Seq[DeletedGitRepository]): Future[Unit] = {
     collection
       .insertMany(repos)
       .toFuture()
-      .map(_.wasAcknowledged())
+      .map(_ => ())
   }
 
 
