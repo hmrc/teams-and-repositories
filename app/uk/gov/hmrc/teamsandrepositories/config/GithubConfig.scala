@@ -29,14 +29,6 @@ class GithubConfig @Inject()(configuration: Configuration) {
   val apiUrl = configuration.get[String]("github.open.api.url")
   val rawUrl = configuration.get[String]("github.open.api.rawurl")
 
-  val hiddenRepositories: Set[String] =
-    configuration.getOptional[String]("github.hidden.repositories")
-      .fold(Set.empty[String])(_.split(",").toSet)
-
-  val hiddenTeams: Set[String] =
-    configuration.getOptional[String]("github.hidden.teams")
-      .fold(Set.empty[String])(_.split(",").toSet)
-
   val tokens: List[(String, String)] =
     configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
       .map(cv => new Configuration(cv.asInstanceOf[ConfigObject].toConfig))

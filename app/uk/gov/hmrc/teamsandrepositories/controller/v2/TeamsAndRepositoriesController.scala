@@ -21,7 +21,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
@@ -30,6 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
+  teamSummaryPersistence : TeamSummaryPersistence,
   branchProtectionService: BranchProtectionService,
   auth                   : BackendAuthComponents,
   cc                     : ControllerComponents
@@ -54,7 +55,7 @@ class TeamsAndRepositoriesController @Inject()(
   }
 
   def allTeams() = Action.async { request =>
-    repositoriesPersistence.findTeamSummaries()
+    teamSummaryPersistence.findTeamSummaries()
       .map(result => Ok(Json.toJson(result)))
   }
 
