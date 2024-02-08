@@ -38,6 +38,8 @@ case class PersistingService @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
+  private val hiddenTeams = configuration.get[Seq[String]]("hidden.teams").toSet
+
   private def updateRepositories(reposWithTeams: Seq[GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
     for {
       frontendRoutes      <- serviceConfigsConnector.getFrontendServices()
@@ -55,15 +57,12 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      teams          <- dataSource.getTeams() // TODO filter out hidden
-      teamRepos      <- teams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
+      gitHubTeams    <- dataSource.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
+      teamRepos      <- gitHubTeams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
                           dataSource.getTeamRepositories(team).map(_ :: acc)
                         }
-
       repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
-
       teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
-
       reposWithTeams =  repos.map { repo =>
                           val teams = teamsForRepo(repo.name)
                           repo.copy(
@@ -71,7 +70,10 @@ case class PersistingService @Inject()(
                             owningTeams = if (repo.owningTeams.isEmpty) teams else repo.owningTeams
                           )
                         }
-      teamSummaries  =  teams.map(team => TeamSummary(team.name, reposWithTeams.filter(_.owningTeams.contains(team.name))))
+      teamSummaries  =  gitHubTeams.map(team => TeamSummary(
+                          teamName = team.name,
+                          gitRepos = reposWithTeams.filter(repo => repo.owningTeams.contains(team.name) && !repo.isArchived)
+                        ))
       count          <- teamSummaryPersistence.updateTeamSummaries(teamSummaries)
       _              =  logger.info(s"Persisted: $count Teams")
       _              <- updateRepositories(reposWithTeams)

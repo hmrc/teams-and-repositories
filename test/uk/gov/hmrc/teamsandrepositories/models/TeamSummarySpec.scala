@@ -25,17 +25,13 @@ import java.time.temporal.ChronoUnit
 
 class TeamSummarySpec extends AnyWordSpec with Matchers {
 
-  "TeamSummary.createTeamSummaries" in new Setup {
+  "TeamSummary.apply" in new Setup {
     val gitRepo1 = gitRepository.copy(name = "repo-one",   owningTeams = Seq("A"),      teams = List("A", "B", "C"))
     val gitRepo2 = gitRepository.copy(name = "repo-two",   owningTeams = Seq("B"),      teams = List("A", "B", "C"), lastActiveDate = now.minus(5, ChronoUnit.DAYS))
-    val gitRepo3 = gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), lastActiveDate = now.minus(15, ChronoUnit.DAYS))
-    val gitRepo4 = gitRepository.copy(name = "repo-four",  owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), isArchived     = true)
+    val gitRepo3 = gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), lastActiveDate = now)
 
-/*    TeamSummary.createTeamSummaries(List(gitRepo1, gitRepo2, gitRepo3, gitRepo4)) shouldBe Seq(
-      TeamSummary("A", Some(now), Seq("repo-one", "repo-three")),
-      TeamSummary("B", Some(now), Seq("repo-two", "repo-three")),
-      TeamSummary("C", Some(now), Seq.empty)
-    )*/
+    TeamSummary.apply("A", List(gitRepo1, gitRepo3)) shouldBe TeamSummary("A", Some(now), Seq("repo-one", "repo-three"))
+    TeamSummary.apply("B", List(gitRepo2, gitRepo3)) shouldBe TeamSummary("B", Some(now), Seq("repo-two", "repo-three"))
   }
 
   trait Setup {
@@ -56,5 +52,4 @@ class TeamSummarySpec extends AnyWordSpec with Matchers {
         defaultBranch = "main"
     )
   }
-
 }

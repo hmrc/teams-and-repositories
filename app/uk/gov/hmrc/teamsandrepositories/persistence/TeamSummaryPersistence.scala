@@ -43,6 +43,7 @@ class TeamSummaryPersistence @Inject()(
 
   private val logger = Logger(this.getClass)
 
+  // we don't need a ttl since the data is managed by updateTeamSummaries
   override lazy val requiresTtlIndex = false
 
   def updateTeamSummaries(teams: Seq[TeamSummary]): Future[Int] =

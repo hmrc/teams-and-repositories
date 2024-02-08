@@ -33,9 +33,7 @@ object TeamSummary {
     TeamSummary(
       name           = teamName,
       lastActiveDate = if (gitRepos.nonEmpty) Some(gitRepos.map(_.lastActiveDate).max) else None,
-      repos          = gitRepos.collect {
-                         case gitRepo if gitRepo.owningTeams.contains(teamName) && !gitRepo.isArchived => gitRepo.name
-                       }
+      repos          = gitRepos.map(_.name)
     )
 
   val apiFormat: OFormat[TeamSummary] =
