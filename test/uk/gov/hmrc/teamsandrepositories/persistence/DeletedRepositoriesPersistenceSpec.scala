@@ -35,9 +35,7 @@ class DeletedRepositoriesPersistenceSpec
      with DefaultPlayMongoRepositorySupport[DeletedGitRepository]
      with OptionValues {
 
-    private val mockConfiguration: Configuration = mock[Configuration]
-
-    override protected val repository = new DeletedRepositoriesPersistence(mongoComponent, mockConfiguration)
+    override protected val repository = new DeletedRepositoriesPersistence(mongoComponent)
 
     private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 

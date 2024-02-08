@@ -16,24 +16,20 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import com.mongodb.client.model.Filters.{and => mAnd, eq => mEq}
 import org.bson.conversions.Bson
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
-import play.api.Configuration
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models._
 
-import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DeletedRepositoriesPersistence @Inject()(
-  mongoComponent: MongoComponent,
-  configuration  : Configuration
+  mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository(
@@ -42,14 +38,12 @@ class DeletedRepositoriesPersistence @Inject()(
   domainFormat = DeletedGitRepository.mongoFormat,
   indexes = Seq(
     IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx")),
-    IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
-    IndexModel(
-      keys         = Indexes.ascending("deletedDate"),
-      indexOptions = IndexOptions().name("deleted-repo-created-date").expireAfter(
-        configuration.get[Int]("mongodb.deleted-repositories.ttlInDays"), TimeUnit.DAYS)
-    )
+    IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx"))
   )
 ) {
+
+  // need to keep permanent record of deleted repositories
+  override lazy val requiresTtlIndex = false
 
   def set(repos: Seq[DeletedGitRepository]): Future[Boolean] = {
     collection
