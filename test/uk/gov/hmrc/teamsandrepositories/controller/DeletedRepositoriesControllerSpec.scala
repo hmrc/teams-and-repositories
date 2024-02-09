@@ -27,8 +27,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Json, OFormat}
-import play.api.mvc.Results.NoContent
-import play.api.mvc.{AnyContent, AnyContentAsEmpty, AnyContentAsJson}
+import play.api.mvc.{AnyContent, AnyContentAsEmpty}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository

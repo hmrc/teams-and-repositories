@@ -50,7 +50,7 @@ case class PersistingService @Inject()(
                                  val r = acc.getOrElse(repo.name, repo)
                                  acc + (r.name -> r.copy(teams = trs.teamName :: r.teams))
                                }
-                             }.mapValues(repo =>
+                             }.view.mapValues(repo =>
                                repo.copy(owningTeams = if (repo.owningTeams.isEmpty) repo.teams else repo.owningTeams)
                              )
       allRepos            <- dataSource.getAllRepositoriesByName()

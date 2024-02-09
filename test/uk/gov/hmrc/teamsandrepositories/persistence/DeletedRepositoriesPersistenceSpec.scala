@@ -20,7 +20,6 @@ import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import play.api.Configuration
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType}
 
