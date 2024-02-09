@@ -59,6 +59,8 @@ class RepositoriesPersistence @Inject()(
   private val teamsCollection: MongoCollection[TeamSummary] =
     CollectionFactory.collection(mongoComponent.database, collectionName, TeamSummary.mongoFormat)
 
+  private val Quoted = """^\"(.*)\"$""".r
+
   def find(
     name       : Option[String]      = None,
     team       : Option[String]      = None,
@@ -69,7 +71,10 @@ class RepositoriesPersistence @Inject()(
     tags       : Option[List[Tag]]   = None,
   ): Future[Seq[GitRepository]] = {
     val filters = Seq(
-      name       .map(n  => Filters.regex("name"       , n)),
+      name       .map {
+                   case Quoted(n) => Filters.equal("name", n)
+                   case n         => Filters.regex("name", n)
+                 },
       team       .map(t  => Filters.equal("teamNames"  , t)),
       owningTeam .map(t  => Filters.equal("owningTeams", t)),
       isArchived .map(b  => Filters.equal("isArchived" , b)),
