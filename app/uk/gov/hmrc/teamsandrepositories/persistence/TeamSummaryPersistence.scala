@@ -37,7 +37,7 @@ class TeamSummaryPersistence @Inject()(
   collectionName = "teamSummaries",
   domainFormat = TeamSummary.mongoFormat,
   indexes = Seq(
-    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx").collation(caseInsensitive).unique(true)),
+    IndexModel(Indexes.ascending("name"), IndexOptions().collation(caseInsensitive).unique(true))
   )
 ){
 

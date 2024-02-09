@@ -64,7 +64,7 @@ case class PersistingService @Inject()(
       repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
       teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
       reposWithTeams =  repos.map { repo =>
-                          val teams = teamsForRepo(repo.name)
+                          val teams = teamsForRepo(repo.name).sorted
                           repo.copy(
                             teams       = teams,
                             owningTeams = if (repo.owningTeams.isEmpty) teams else repo.owningTeams

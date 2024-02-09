@@ -82,5 +82,4 @@ class TeamSummaryPersistenceSpec
       repository.findTeamSummaries().futureValue must contain theSameElementsAs Seq(teamSummary1, teamSummary2)
     }
   }
-
 }
