@@ -250,7 +250,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
         .thenReturn(Future.successful(Some(repo)))
 
       when(mockDeletedRepositoriesPersistence.set(any()))
-        .thenReturn(Future.successful(true))
+        .thenReturn(Future.unit)
 
       when(mockPersistingService.repositoryDeleted(eqTo("foo")))
         .thenReturn(Future.successful(()))
@@ -285,8 +285,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
         .thenReturn(Future.successful(None))
 
       when(mockDeletedRepositoriesPersistence.set(any()))
-        .thenReturn(Future.successful(true))
-
+        .thenReturn(Future.unit)
 
       val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
         .withJsonBody(
