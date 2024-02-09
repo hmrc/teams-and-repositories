@@ -23,7 +23,6 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.time.SpanSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
@@ -56,19 +55,9 @@ class GithubV3RepositoryDataSourceSpec
 
     val dataSource =
       new GithubV3RepositoryDataSource(
-        githubConfig    = githubConfig,
         githubConnector = mockGithubConnector,
-        timeStamper     = testTimeStamper,
-        configuration   = Configuration(
-                            "shared.repositories"     ->  Seq()
-                          )
+        timeStamper     = testTimeStamper
       )
-
-    when(githubConfig.hiddenRepositories)
-      .thenReturn(testHiddenRepositories)
-
-    when(githubConfig.hiddenTeams)
-      .thenReturn(testHiddenTeams)
   }
 
   val teamA = GhTeam(name = "A", createdAt = teamCreatedDate)
@@ -101,16 +90,13 @@ class GithubV3RepositoryDataSourceSpec
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 
-  val testHiddenRepositories = Set("hidden_repo1", "hidden_repo2")
-  val testHiddenTeams        = Set("hidden_team1", "hidden_team2")
 
   "GithubV3RepositoryDataSource.getTeams" should {
-    "return a list of teams and data sources filtering out hidden teams" in new Setup {
+    "return a list of teams and data sources" in new Setup {
       private val teamB       = GhTeam(name = "B"           , createdAt = teamCreatedDate)
-      private val hiddenTeam1 = GhTeam(name = "hidden_team1", createdAt = teamCreatedDate)
 
       when(mockGithubConnector.getTeams())
-        .thenReturn(Future.successful(List(teamA, teamB, hiddenTeam1)))
+        .thenReturn(Future.successful(List(teamA, teamB)))
 
       val result = dataSource.getTeams().futureValue
 
@@ -120,7 +106,7 @@ class GithubV3RepositoryDataSourceSpec
   }
 
   "GithubV3RepositoryDataSource.getAllRepositories" should {
-    "return a list of teams and data sources filtering out hidden teams" in new Setup {
+    "return a list of teams and data sources" in new Setup {
       private val repo1 = GhRepository(
         name               = "repo1",
         htmlUrl            = "http://github.com/repo1",
@@ -190,68 +176,6 @@ class GithubV3RepositoryDataSourceSpec
   }
 
   "GithubV3RepositoryDataSource.getTeamRepositories" should {
-    "filter out repositories according to the hidden config" in new Setup {
-      when(mockGithubConnector.getTeams())
-        .thenReturn(Future.successful(List(teamA)))
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(
-          GhRepository(
-            name               = "hidden_repo1",
-            htmlUrl            = "url_A",
-            fork               = false,
-            createdDate        = now,
-            pushedAt           = now,
-            isPrivate          = false,
-            language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
-            branchProtection   = None,
-            repositoryYamlText = None,
-            repoTypeHeuristics = dummyRepoTypeHeuristics
-          ),
-          GhRepository(
-            name               = "A_r",
-            htmlUrl            = "url_A",
-            fork               = false,
-            createdDate        = now,
-            pushedAt           = now,
-            isPrivate          = false,
-            language           = Some("Scala"),
-            isArchived         = false,
-            defaultBranch      = "main",
-            branchProtection   = None,
-            repositoryYamlText = Some("description: a test repo"),
-            repoTypeHeuristics = dummyRepoTypeHeuristics
-          )
-        )))
-
-      dataSource
-        .getTeamRepositories(teamA)
-        .futureValue shouldBe
-        TeamRepositories(
-          teamName     = "A",
-          repositories = List(
-            GitRepository(
-              name               = "A_r",
-              description        = "a test repo",
-              url                = "url_A",
-              createdDate        = now,
-              lastActiveDate     = now,
-              isPrivate          = false,
-              repoType           = RepoType.Other,
-              digitalServiceName = None,
-              owningTeams        = Nil,
-              language           = Some("Scala"),
-              isArchived         = false,
-              defaultBranch      = "main",
-              repositoryYamlText = Some("description: a test repo")
-            )
-          ),
-          createdDate  = Some(teamCreatedDate),
-          updateDate   = now
-        )
-    }
-
     "set repoType Service if the repository contains an app/application.conf file" in new Setup {
       when(mockGithubConnector.getTeams())
         .thenReturn(Future.successful(List(teamA)))

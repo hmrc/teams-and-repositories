@@ -375,7 +375,7 @@ case class GhRepository(
       serviceType          = manifestDetails.serviceType,
       tags                 = manifestDetails.tags,
       digitalServiceName   = manifestDetails.digitalServiceName,
-      owningTeams          = manifestDetails.owningTeams,
+      owningTeams          = manifestDetails.owningTeams.sorted,
       language             = language,
       isArchived           = isArchived,
       defaultBranch        = defaultBranch,

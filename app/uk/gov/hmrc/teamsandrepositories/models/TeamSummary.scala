@@ -24,27 +24,27 @@ import java.time.Instant
 
 case class TeamSummary(
   name          : String,
-  createdDate   : Instant,
-  lastActiveDate: Instant,
-  repos         : Int
+  lastActiveDate: Option[Instant],
+  repos         : Seq[String]
 )
 
 object TeamSummary {
+  def apply(teamName: String, gitRepos: Seq[GitRepository]): TeamSummary =
+    TeamSummary(
+      name           = teamName,
+      lastActiveDate = if (gitRepos.nonEmpty) Some(gitRepos.map(_.lastActiveDate).max) else None,
+      repos          = gitRepos.map(_.name)
+    )
 
-  val apiFormat: OFormat[TeamSummary] = {
+  val apiFormat: OFormat[TeamSummary] =
     ( (__ \ "name"          ).format[String]
-    ~ (__ \ "createdDate"   ).format[Instant]
-    ~ (__ \ "lastActiveDate").format[Instant]
-    ~ (__ \ "repos"         ).format[Int]
+    ~ (__ \ "lastActiveDate").formatNullable[Instant]
+    ~ (__ \ "repos"         ).format[Seq[String]]
     )(TeamSummary.apply, unlift(TeamSummary.unapply))
-  }
 
-  val mongoFormat: OFormat[TeamSummary] = {
-    implicit val inf = MongoJavatimeFormats.instantFormat
-    ( (__ \ "_id"          ).format[String]
-    ~ (__ \ "createdDate"   ).format[Instant]
-    ~ (__ \ "lastActiveDate").format[Instant]
-    ~ (__ \ "repos"         ).format[Int]
+  val mongoFormat: OFormat[TeamSummary] =
+    ( (__ \ "name"           ).format[String]
+    ~ (__ \ "lastActiveDate" ).formatNullable[Instant](MongoJavatimeFormats.instantFormat)
+    ~ (__ \ "repos"          ).format[Seq[String]]
     )(TeamSummary.apply, unlift(TeamSummary.unapply))
-  }
 }
