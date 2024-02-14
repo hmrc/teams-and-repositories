@@ -68,16 +68,4 @@ class TeamSummaryPersistence @Inject()(
       .sort(ascending("name"))
       .toFuture()
 
-  def addTeamSummaries(teams: Seq[TeamSummary]): Future[Unit] =
-    collection
-      .insertMany(teams)
-      .toFuture()
-      .map(_ => ())
-
-  def deleteAll(): Future[Unit] =
-   collection
-     .deleteMany(BsonDocument())
-     .toFuture()
-     .map(_ => ())
-
 }

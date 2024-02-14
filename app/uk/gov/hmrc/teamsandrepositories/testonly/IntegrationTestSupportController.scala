@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.testonly
 
-import org.mongodb.scala.bson.Document
+import org.mongodb.scala.bson.{BsonDocument, Document}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -60,12 +60,12 @@ class IntegrationTestSupportController @Inject()(
     Action.async(parse.json) { implicit request =>
       implicit val tsFormat: OFormat[TeamSummary] =  TeamSummary.apiFormat
       request.body.validate[Seq[TeamSummary]] match {
-        case JsSuccess(teams, _) => teamSummaryPersistence.addTeamSummaries(teams).map(_ => Ok("Ok"))
+        case JsSuccess(teams, _) => teamSummaryPersistence.collection.insertMany(teams).toFuture().map(_ => Ok("Ok"))
         case e: JsError => Future.successful(BadRequest(e.errors.mkString))
       }
   }
 
   def deleteAllTeamSummaries(): Action[AnyContent] = Action.async {
-    teamSummaryPersistence.deleteAll().map(_ => Ok("Ok"))
+    teamSummaryPersistence.collection.deleteMany(BsonDocument()).toFuture().map(_ => Ok("Ok"))
   }
 }
