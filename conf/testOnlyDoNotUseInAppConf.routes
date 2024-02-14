@@ -11,10 +11,14 @@
 
 # Add all the application routes to the prod.routes file
 
-POST       /test-only/repos           @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addRepositories()
-DELETE     /test-only/repos           @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearAll
+POST       /test-only/repos                  @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addRepositories()
+DELETE     /test-only/repos                  @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearAll
 
-POST       /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.putJenkinsJobs
-DELETE     /test-only/jenkins         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearJenkins
+POST       /test-only/jenkins                @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.putJenkinsJobs
+DELETE     /test-only/jenkins                @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearJenkins
 
-->         /                          prod.Routes
+POST       /test-only/team-summaries         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addTeamSummary()
+DELETE     /test-only/team-summaries         @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.deleteAllTeamSummaries()
+
+
+->         /                                 prod.Routes

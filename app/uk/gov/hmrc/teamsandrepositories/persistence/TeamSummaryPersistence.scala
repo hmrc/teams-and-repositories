@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
+import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{DeleteOneModel, Filters, IndexModel, IndexOptions, Indexes, ReplaceOneModel, ReplaceOptions}
 import play.api.Logger
@@ -66,4 +67,5 @@ class TeamSummaryPersistence @Inject()(
       .find()
       .sort(ascending("name"))
       .toFuture()
+
 }

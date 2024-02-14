@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.teamsandrepositories.testonly
 
-import org.mongodb.scala.bson.Document
-import play.api.libs.json.{JsError, OFormat, Reads}
+import org.mongodb.scala.bson.{BsonDocument, Document}
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.GitRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
+  teamSummaryPersistence: TeamSummaryPersistence,
   jenkinsJobsPersistence : JenkinsJobsPersistence,
   cc                     : ControllerComponents
 )(implicit
@@ -53,5 +54,18 @@ class IntegrationTestSupportController @Inject()(
 
   def clearJenkins(): Action[AnyContent] = Action.async {
     jenkinsJobsPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
+  }
+
+  def addTeamSummary(): Action[JsValue] =
+    Action.async(parse.json) { implicit request =>
+      implicit val tsFormat: OFormat[TeamSummary] =  TeamSummary.apiFormat
+      request.body.validate[Seq[TeamSummary]] match {
+        case JsSuccess(teams, _) => teamSummaryPersistence.collection.insertMany(teams).toFuture().map(_ => Ok("Ok"))
+        case e: JsError => Future.successful(BadRequest(e.errors.mkString))
+      }
+  }
+
+  def deleteAllTeamSummaries(): Action[AnyContent] = Action.async {
+    teamSummaryPersistence.collection.deleteMany(BsonDocument()).toFuture().map(_ => Ok("Ok"))
   }
 }
