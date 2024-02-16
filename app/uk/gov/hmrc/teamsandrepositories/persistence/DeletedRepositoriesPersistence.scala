@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.bson.conversions.Bson
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
@@ -37,7 +36,7 @@ class DeletedRepositoriesPersistence @Inject()(
   collectionName = "deleted-repositories",
   domainFormat = DeletedGitRepository.mongoFormat,
   indexes = Seq(
-    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx")),
+    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx").collation(Collations.caseInsensitive).unique(true)),
     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx"))
   )
 ) {
@@ -45,23 +44,22 @@ class DeletedRepositoriesPersistence @Inject()(
   // need to keep permanent record of deleted repositories
   override lazy val requiresTtlIndex = false
 
-  def set(repos: Seq[DeletedGitRepository]): Future[Unit] = {
+  def set(repo: DeletedGitRepository): Future[Unit] =
     collection
-      .insertMany(repos)
+      .insertOne(repo)
       .toFuture()
       .map(_ => ())
-  }
 
 
   def find(name: Option[String], team: Option[String]): Future[Seq[DeletedGitRepository]] = {
-
-    val nameFilter: Option[Bson]       = name.map(name => equal("name", name))
-    val owningTeamFilter: Option[Bson] = team.map(team => equal("owningTeams", team))
-
-    val filters = Seq(nameFilter, owningTeamFilter).flatten
+    val filters = Seq(
+      name.map(name => equal("name", name)),
+      team.map(team => equal("owningTeams", team))
+    ).flatten
 
     collection
       .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
+      .collation(if (name.isDefined) Collations.caseInsensitive else Collation.builder().build())
       .toFuture()
   }
 }

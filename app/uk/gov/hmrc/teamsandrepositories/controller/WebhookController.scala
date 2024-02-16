@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import play.api.Logging
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Json, Reads, __}
+import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
@@ -48,16 +48,21 @@ class WebhookController @Inject()(
       }
     }
 
-    def deletedRepositoryEvent(repoName: String): Future[Unit] = {
+    def deletedRepositoryEvent(repoName: String): Future[Unit] =
       repositoriesPersistence.findRepo(repoName).flatMap {
         case Some(repo) =>
           for {
-            _   <- deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now())))
+            _   <- deletedRepositoriesPersistence.set(DeletedGitRepository.fromGitRepository(repo, Instant.now()))
             _   <- persistingService.repositoryDeleted(repoName)
           } yield ()
-        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now())))
+        case None =>
+          deletedRepositoriesPersistence.set(DeletedGitRepository(repoName, Instant.now()))
+      }.recover {
+        case ex: com.mongodb.MongoWriteException if ex.getMessage.contains("duplicate key error") =>
+          logger.info(s"repository: $repoName already stored in deleted-repositories collection")
+        case ex =>
+          logger.warn(s"Unexpected error when storing deleted repository $repoName - ${ex.getMessage}", ex)
       }
-    }
 
     request.body match {
       case push: Push if push.branchRef == "main" =>
@@ -95,7 +100,7 @@ class WebhookController @Inject()(
     }
   }
 
-  private def details(msg: String) =
+  private def details(msg: String): JsObject =
     Json.obj("details" -> msg)
 }
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.testonly
 
 import org.mongodb.scala.bson.{BsonDocument, Document}
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Json, OFormat, Reads}
+import play.api.libs.json.{JsError, JsSuccess, JsValue, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamSummary}

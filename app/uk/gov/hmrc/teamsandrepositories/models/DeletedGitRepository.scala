@@ -38,21 +38,21 @@ object DeletedGitRepository {
 
   def fromGitRepository(gitRepository: GitRepository, deletedDate: Instant): DeletedGitRepository = {
     DeletedGitRepository(
-      name = gitRepository.name,
-      deletedDate = deletedDate,
-      isPrivate = Some(gitRepository.isPrivate),
-      repoType = Some(gitRepository.repoType),
-      serviceType = gitRepository.serviceType,
+      name               = gitRepository.name,
+      deletedDate        = deletedDate,
+      isPrivate          = Some(gitRepository.isPrivate),
+      repoType           = Some(gitRepository.repoType),
+      serviceType        = gitRepository.serviceType,
       digitalServiceName = gitRepository.digitalServiceName,
-      owningTeams = Some(gitRepository.owningTeams),
-      teams = Some(gitRepository.teams),
-      prototypeName = gitRepository.prototypeName
+      owningTeams        = Some(gitRepository.owningTeams),
+      teams              = Some(gitRepository.teams),
+      prototypeName      = gitRepository.prototypeName
     )
   }
 
   val apiFormat: OFormat[DeletedGitRepository] = {
-    implicit val rtf = RepoType.format
-    implicit val stf = ServiceType.format
+    implicit val rtf: Format[RepoType]    = RepoType.format
+    implicit val stf: Format[ServiceType] = ServiceType.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "deletedDate"         ).format[Instant]
     ~ (__ \ "isPrivate"           ).formatNullable[Boolean]
@@ -66,9 +66,9 @@ object DeletedGitRepository {
   }
 
   val mongoFormat: OFormat[DeletedGitRepository] = {
-    implicit val ldtf = MongoJavatimeFormats.instantFormat
-    implicit val rtf  = RepoType.format
-    implicit val stf  = ServiceType.format
+    implicit val ldtf: Format[Instant]    = MongoJavatimeFormats.instantFormat
+    implicit val rtf: Format[RepoType]    = RepoType.format
+    implicit val stf: Format[ServiceType] = ServiceType.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "deletedDate"         ).format[Instant]
     ~ (__ \ "isPrivate"           ).formatNullable[Boolean]

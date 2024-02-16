@@ -79,16 +79,25 @@ class DeletedRepositoriesPersistenceSpec
 
       "get repo by team" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.find(None, repo2.owningTeams.map(_.head)).futureValue
+        val results = repository.find(None, repo2.owningTeams.flatMap(_.headOption)).futureValue
         results mustBe Seq(repo2)
       }
   }
 
   "set" must {
     "insert repo" in {
-      repository.set(Seq(repo1)).futureValue
+      repository.set(repo1).futureValue
       val results = repository.find(None, None).futureValue
       results mustBe Seq(repo1)
+    }
+
+    "fail when inserting a duplicate" in {
+      repository.set(repo2).futureValue
+
+      val result = repository.set(repo2).failed.futureValue
+
+      result mustBe a[com.mongodb.MongoWriteException]
+      result.getMessage must include("duplicate key error")
     }
   }
 }
