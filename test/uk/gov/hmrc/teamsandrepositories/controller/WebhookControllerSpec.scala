@@ -17,6 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import cats.data.EitherT
+import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
+import org.bson.BsonDocument
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
@@ -308,6 +310,37 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
       verify(mockRepositoriesService).findRepo(any())
       verify(mockDeletedRepositoriesPersistence).set(any())
       verifyZeroInteractions(mockPersistingService)
+    }
+
+    "handle 'deleted' event in an idempotent manner and ignore duplicates" in {
+      when(mockRepositoriesService.findRepo(eqTo("foo")))
+        .thenReturn(Future.successful(None))
+
+      when(mockDeletedRepositoriesPersistence.set(any()))
+        .thenThrow(
+          new MongoWriteException(
+            new WriteError(11000, "duplicate key error", new BsonDocument()),
+            new ServerAddress("localhost")
+          )
+        )
+
+      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
+        .withJsonBody(
+          Json.parse(
+            """
+              |{
+              | "action": "deleted",
+              | "repository": {
+              |   "name": "foo"
+              | }
+              |}
+              |""".stripMargin
+          )
+        )
+
+      val result = route(app, request).value
+
+      status(result) mustBe ACCEPTED
     }
   }
 

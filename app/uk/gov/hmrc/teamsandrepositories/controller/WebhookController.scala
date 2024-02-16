@@ -25,6 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
 import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -58,10 +59,8 @@ class WebhookController @Inject()(
         case None =>
           deletedRepositoriesPersistence.set(DeletedGitRepository(repoName, Instant.now()))
       }.recover {
-        case ex: com.mongodb.MongoWriteException if ex.getMessage.contains("duplicate key error") =>
-          logger.info(s"repository: $repoName already stored in deleted-repositories collection")
-        case ex =>
-          logger.warn(s"Unexpected error when storing deleted repository $repoName - ${ex.getMessage}", ex)
+        case DuplicateKey(_) =>
+          logger.info(s"repository: $repoName already stored in deleted-repositories collection, ignoring webhook.")
       }
 
     request.body match {
