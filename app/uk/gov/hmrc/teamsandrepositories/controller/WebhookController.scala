@@ -18,13 +18,14 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import play.api.Logging
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Json, Reads, __}
+import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
 import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -48,16 +49,19 @@ class WebhookController @Inject()(
       }
     }
 
-    def deletedRepositoryEvent(repoName: String): Future[Unit] = {
+    def deletedRepositoryEvent(repoName: String): Future[Unit] =
       repositoriesPersistence.findRepo(repoName).flatMap {
         case Some(repo) =>
           for {
-            _   <- deletedRepositoriesPersistence.set(Seq(DeletedGitRepository.fromGitRepository(repo, Instant.now())))
+            _   <- deletedRepositoriesPersistence.set(DeletedGitRepository.fromGitRepository(repo, Instant.now()))
             _   <- persistingService.repositoryDeleted(repoName)
           } yield ()
-        case None => deletedRepositoriesPersistence.set(Seq(DeletedGitRepository(repoName, Instant.now())))
+        case None =>
+          deletedRepositoriesPersistence.set(DeletedGitRepository(repoName, Instant.now()))
+      }.recover {
+        case DuplicateKey(_) =>
+          logger.info(s"repository: $repoName already stored in deleted-repositories collection, ignoring webhook.")
       }
-    }
 
     request.body match {
       case push: Push if push.branchRef == "main" =>
@@ -95,7 +99,7 @@ class WebhookController @Inject()(
     }
   }
 
-  private def details(msg: String) =
+  private def details(msg: String): JsObject =
     Json.obj("details" -> msg)
 }
 
