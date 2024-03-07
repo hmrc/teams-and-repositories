@@ -23,6 +23,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -56,25 +57,21 @@ class BuildDeployApiConnector @Inject()(
       }
   }
 
-  def enableBranchProtection(repoName: String): Future[Unit] = {
-
-    val url =
-      url"${config.baseUrl}/set-branch-protection"
-
-    val payload =
-      Json.toJson(BuildDeployApiConnector.Request(repoName, enable = true))
-
+  def enableBranchProtection(repoName: String, statusChecks: List[JenkinsJobsPersistence.Job]): Future[Unit] =
     for {
-      response <- httpClientV2
-                    .post(url)
-                    .withBody(payload)
-                    .execute[BuildDeployApiConnector.Response]
-      _        <- if (response.success)
-                    Future.unit
-                  else
-                    Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${response.message}"))
+      res <- httpClientV2
+              .post(url"${config.baseUrl}/set-branch-protection")
+              .withBody(
+                Json.toJson(BuildDeployApiConnector.BranchProtection(
+                  repoName              = repoName
+                , enable                = true
+                , requireBranchUpToDate = false
+                , statusChecks          = statusChecks.map(_.jobName)
+                ))
+              ).execute[BuildDeployApiConnector.ChangesBranchProtectionResult]
+      _   <- if (res.success) Future.unit
+             else             Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${res.message}"))
     } yield ()
-  }
 }
 
 object BuildDeployApiConnector {
@@ -122,34 +119,31 @@ object BuildDeployApiConnector {
       Format.of[String].inmap(parse, _.asString)
   }
 
-
-  final case class Request(
-    repoName: String,
-    enable  : Boolean
+  final case class BranchProtection(
+    repoName             : String
+  , enable               : Boolean
+  , requireBranchUpToDate: Boolean
+  , statusChecks         : List[String]
   )
 
-  object Request {
-
-    implicit val writes: Writes[Request] =
-      ( (__ \ "repository_names"          ).write[String]
-      ~ (__ \ "set_branch_protection_rule").write[Boolean]
-      )(unlift(Request.unapply))
+  object BranchProtection {
+    implicit val writes: Writes[BranchProtection] =
+    ( (__ \ "repository_name"           ).write[String]
+    ~ (__ \ "set_branch_protection_rule").write[Boolean]
+    ~ (__ \ "require_branch_up_to_date" ).write[Boolean]
+    ~ (__ \ "status_checks"             ).write[List[String]]
+    )(unlift(BranchProtection.unapply))
   }
 
-  final case class Response(
-    success: Boolean,
-    message: String
+  final case class ChangesBranchProtectionResult(
+    success: Boolean
+  , message: String
   )
 
-  object Response {
-
-    implicit val reads: Reads[Response] =
-      Reads.list {
-        ( (__ \ "success").read[Boolean]
-        ~ (__ \ "message").read[String]
-        ) (Response.apply _)
-      }.collect(JsonValidationError("A single-element array of responses was expected but not found")) {
-        case x :: Nil => x
-      }
+  object ChangesBranchProtectionResult {
+    implicit val reads: Reads[ChangesBranchProtectionResult] =
+      ( (__ \ "success").read[Boolean]
+      ~ (__ \ "message").read[String]
+      ) (ChangesBranchProtectionResult.apply _)
   }
 }
