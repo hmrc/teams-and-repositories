@@ -20,12 +20,16 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
+
+import com.github.tomakehurst.wiremock.client.WireMock._
+
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
+import uk.gov.hmrc.teamsandrepositories.models.RepoType
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 class BuildDeployApiConnectorSpec
   extends AnyWordSpec
@@ -71,7 +75,13 @@ class BuildDeployApiConnectorSpec
     "Invoke the API and return unit if successful" in {
       stubFor(
         post("/set-branch-protection")
-          .withRequestBody(equalToJson(branchProtectionRequestJson))
+          .withRequestBody(equalToJson("""
+            { "repository_name"           : "some-repo",
+              "set_branch_protection_rule": true,
+              "require_branch_up_to_date" : false,
+              "status_checks"             : [ "some-repo-pr-builder" ]
+            }"""
+          ))
           .willReturn(aResponse().withBody(
             """
               [
@@ -83,18 +93,39 @@ class BuildDeployApiConnectorSpec
           ))
       )
 
-      connector.enableBranchProtection("some-repo").futureValue
+      val prJob = JenkinsJobsPersistence.Job(
+        repoName    = "some-repo"
+      , jobName     = "some-repo-pr-builder"
+      , jenkinsUrl  = "http://path/to/jenkins"
+      , jobType     = JenkinsJobsPersistence.JobType.PullRequest
+      , repoType    = Some(RepoType.Service)
+      , latestBuild = None
+      )
+
+      connector.enableBranchProtection("some-repo", List(prJob)).futureValue
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/set-branch-protection"))
-          .withRequestBody(equalToJson(branchProtectionRequestJson))
+          .withRequestBody(equalToJson("""
+            { "repository_name"           : "some-repo",
+              "set_branch_protection_rule": true,
+              "require_branch_up_to_date" : false,
+              "status_checks"             : [ "some-repo-pr-builder" ]
+            }"""
+          ))
       )
     }
 
     "Invoke the API and raise an error if unsuccessful" in {
       stubFor(
         post("/set-branch-protection")
-          .withRequestBody(equalToJson(branchProtectionRequestJson))
+          .withRequestBody(equalToJson("""
+            { "repository_name"           : "some-repo",
+              "set_branch_protection_rule": true,
+              "require_branch_up_to_date" : false,
+              "status_checks"             : [ ]
+            }"""
+          ))
           .willReturn(aResponse().withBody(
             """
               [
@@ -108,7 +139,7 @@ class BuildDeployApiConnectorSpec
 
       val error =
         connector
-          .enableBranchProtection("some-repo")
+          .enableBranchProtection("some-repo", Nil)
           .failed
           .futureValue
 
@@ -116,7 +147,13 @@ class BuildDeployApiConnectorSpec
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/set-branch-protection"))
-          .withRequestBody(equalToJson(branchProtectionRequestJson))
+          .withRequestBody(equalToJson("""
+            { "repository_name"           : "some-repo",
+              "set_branch_protection_rule": true,
+              "require_branch_up_to_date" : false,
+              "status_checks"             : [ ]
+            }"""
+          ))
       )
     }
   }
@@ -159,13 +196,6 @@ class BuildDeployApiConnectorSpec
       |    ]
       |}
       |""".stripMargin
-
-  private lazy val branchProtectionRequestJson =
-    """
-      { "repository_names": "some-repo",
-        "set_branch_protection_rule": true
-      }
-    """
 
   private lazy val connector =
     new BuildDeployApiConnector(httpClientV2, config)
