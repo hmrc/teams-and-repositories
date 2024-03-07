@@ -17,24 +17,28 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import cats.data.OptionT
+
+import play.api.Logging
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, GhRepository, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.NoSuchRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BranchProtectionService @Inject()(
-  buildDeployApiConnector: BuildDeployApiConnector,
-  githubConnector        : GithubConnector,
-  repositoriesPersistence: RepositoriesPersistence
-) {
+  buildDeployApiConnector: BuildDeployApiConnector
+, githubConnector        : GithubConnector
+, repositoriesPersistence: RepositoriesPersistence
+, jenkinsJobsPersistence : JenkinsJobsPersistence
+) extends Logging {
 
   def enableBranchProtection(repoName: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      _ <- buildDeployApiConnector.enableBranchProtection(repoName)
-      r <- OptionT(githubConnector.getRepo(repoName)).getOrElseF(Future.failed[GhRepository](NoSuchRepository(repoName)))
-      _ <- repositoriesPersistence.updateRepoBranchProtection(repoName, r.branchProtection)
+      jobs <- jenkinsJobsPersistence.findAllByRepo(repoName)
+      _    <- buildDeployApiConnector.enableBranchProtection(repoName, jobs.filter(_.jobType == JenkinsJobsPersistence.JobType.PullRequest).toList)
+      repo <- OptionT(githubConnector.getRepo(repoName)).getOrElseF(Future.failed[GhRepository](NoSuchRepository(repoName)))
+      _    <- repositoriesPersistence.updateRepoBranchProtection(repoName, repo.branchProtection)
     } yield ()
 }
