@@ -27,7 +27,6 @@ import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, Service
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import org.mongodb.scala.model.Filters.equal
-import play.api.Logger
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
 import javax.inject.{Inject, Singleton}
@@ -48,8 +47,6 @@ class RepositoriesPersistence @Inject()(
                        IndexModel(Indexes.ascending("serviceType"), IndexOptions().name("serviceTypeIdx").background(true))
                       )
 ) {
-  private val logger = Logger(this.getClass)
-
   // updateRepos cleans up unreferenced teams
   override lazy val requiresTtlIndex = false
 
@@ -89,29 +86,14 @@ class RepositoriesPersistence @Inject()(
     collection
       .find(filter = Filters.equal("name", repoName)).headOption()
 
-  def updateRepos(repos: Seq[GitRepository]): Future[Int] =
-    for {
-      oldRepos <- collection.find().map(_.name).toFuture().map(_.toSet)
-      update   <- collection
-                    .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
-                    .toFuture()
-                    .map(_.getModifiedCount)
-      toDelete =  (oldRepos -- repos.map(_.name)).toSeq
-      _        <- if (toDelete.nonEmpty) {
-                    logger.info(s"about to remove ${toDelete.length} deleted repos: ${toDelete.mkString(", ")}")
-                    collection.bulkWrite(toDelete.map(repo => DeleteOneModel(Filters.eq("name", repo)))).toFuture()
-                      .map(res => logger.info(s"removed ${res.getModifiedCount} deleted repos"))
-                  } else Future.unit
-    } yield update
-
-  def putRepo(repo: GitRepository): Future[Unit] =
+  def putRepos(repos: Seq[GitRepository]): Future[Int] =
     collection
-      .replaceOne(
-        filter      = equal("name", repo.name),
-        replacement = repo,
-        options     = ReplaceOptions().upsert(true)
-      )
+      .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
       .toFuture()
+      .map(_.getModifiedCount)
+
+  def putRepo(repos: GitRepository): Future[Unit] =
+    putRepos(Seq(repos))
       .map(_ => ())
 
   def archiveRepo(repoName: String): Future[Unit] =

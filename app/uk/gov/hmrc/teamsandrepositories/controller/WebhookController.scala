@@ -22,45 +22,24 @@ import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
-import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
-import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
-import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class WebhookController @Inject()(
-  persistingService             : PersistingService,
-  repositoriesPersistence       : RepositoriesPersistence,
-  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
-  cc                            : ControllerComponents
+  persistingService: PersistingService,
+  cc               : ControllerComponents
 )(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def processGithubWebhook(): Action[GithubRequest] = Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
-    def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] = {
+    def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] =
       persistingService.updateRepository(repoName).fold(
         err => logger.info(s"repo: $repoName - failed action: $action - $err"),
         _   => logger.info(s"repo: $repoName - $message")
       ).recover {
         case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
-      }
-    }
-
-    def deletedRepositoryEvent(repoName: String): Future[Unit] =
-      repositoriesPersistence.findRepo(repoName).flatMap {
-        case Some(repo) =>
-          for {
-            _   <- deletedRepositoriesPersistence.set(DeletedGitRepository.fromGitRepository(repo, Instant.now()))
-            _   <- persistingService.repositoryDeleted(repoName)
-          } yield ()
-        case None =>
-          deletedRepositoriesPersistence.set(DeletedGitRepository(repoName, Instant.now()))
-      }.recover {
-        case DuplicateKey(_) =>
-          logger.info(s"repository: $repoName already stored in deleted-repositories collection, ignoring webhook.")
       }
 
     request.body match {
@@ -85,13 +64,17 @@ class WebhookController @Inject()(
         Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
 
       case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("archived") =>
-        persistingService.repositoryArchived(repositoryEvent.repoName)
-        logger.info(s"repo: ${repositoryEvent.repoName} - repository archived webhook event has been actioned")
+        persistingService
+          .archiveRepository(repositoryEvent.repoName)
+          .map(_ => logger.info(s"repo: ${repositoryEvent.repoName} - repository archived webhook event has been actioned"))
+          .recover {  case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex)  }
         Accepted(details(s"Repository archived event accepted"))
 
       case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("deleted") =>
-        logger.info(s"repo: ${repositoryEvent.repoName} - repository deleted webhook event has been actioned")
-        deletedRepositoryEvent(repositoryEvent.repoName)
+        persistingService
+          .deleteRepository(repositoryEvent.repoName)
+          .map(_ => logger.info(s"repo: ${repositoryEvent.repoName} - repository deleted webhook event has been actioned"))
+          .recover { case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex) }
         Accepted(details(s"Repository deleted event accepted"))
 
       case repositoryEvent: RepositoryEvent =>

@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.bson.BsonDocument
-import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.{Collation, DeleteOptions, Filters, Indexes, IndexModel, IndexOptions}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.models._
+import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,32 +32,57 @@ class DeletedRepositoriesPersistence @Inject()(
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "deleted-repositories",
-  domainFormat = DeletedGitRepository.mongoFormat,
-  indexes = Seq(
-    IndexModel(Indexes.ascending("name"), IndexOptions().name("nameIdx").collation(Collations.caseInsensitive).unique(true)),
-    IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx"))
-  )
+  domainFormat   = DeletedGitRepository.mongoFormat,
+  indexes        = Seq(
+                     IndexModel(Indexes.ascending("name"),        IndexOptions().name("nameIdx").collation(Collations.caseInsensitive).unique(true)),
+                     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
+                     IndexModel(Indexes.ascending("repoType"),    IndexOptions().name("repoTypeIdx"))
+                   )
 ) {
 
   // need to keep permanent record of deleted repositories
   override lazy val requiresTtlIndex = false
 
-  def set(repo: DeletedGitRepository): Future[Unit] =
+  private val Quoted = """^\"(.*)\"$""".r
+
+  def find(
+    name       : Option[String]      = None
+  , team       : Option[String]      = None
+  , repoType   : Option[RepoType]    = None
+  , serviceType: Option[ServiceType] = None
+  ): Future[Seq[DeletedGitRepository]] =
+    collection
+      .find(
+        Seq(
+          name.map {
+            case Quoted(n) => Filters.equal("name", n)
+            case n         => Filters.regex("name", n)
+          },
+          team       .map(tm => Filters.equal("owningTeams", tm         )),
+          repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
+          serviceType.map(st => Filters.equal("serviceType", st.asString))
+        ).flatten
+         .foldLeft(Filters.empty())(Filters.and(_, _))
+      )
+      .collation(name.fold(Collation.builder().build())(_ => Collations.caseInsensitive))
+      .toFuture()
+
+  def putRepo(repo: DeletedGitRepository): Future[Unit] =
     collection
       .insertOne(repo)
       .toFuture()
       .map(_ => ())
 
-
-  def find(name: Option[String], team: Option[String]): Future[Seq[DeletedGitRepository]] = {
-    val filters = Seq(
-      name.map(name => equal("name", name)),
-      team.map(team => equal("owningTeams", team))
-    ).flatten
-
-    collection
-      .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
-      .collation(if (name.isDefined) Collations.caseInsensitive else Collation.builder().build())
-      .toFuture()
-  }
+  // Remove when repo has been recreated - added to repositories collection
+  def deleteRepos(repoNames: Seq[String]): Future[Long] =
+    if (repoNames.isEmpty)
+      Future.successful(0)
+    else
+      collection
+        .deleteMany(
+          Filters.or(repoNames.map(name => Filters.eq("name", name)): _*)
+        , DeleteOptions().collation(Collations.caseInsensitive)
+        )
+        .toFuture()
+        .map(_.getDeletedCount)
 }

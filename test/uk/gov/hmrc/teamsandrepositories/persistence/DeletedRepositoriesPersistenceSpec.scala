@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
-import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -31,8 +30,7 @@ class DeletedRepositoriesPersistenceSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with DefaultPlayMongoRepositorySupport[DeletedGitRepository]
-     with OptionValues {
+     with DefaultPlayMongoRepositorySupport[DeletedGitRepository] {
 
     override protected val repository = new DeletedRepositoriesPersistence(mongoComponent)
 
@@ -56,7 +54,7 @@ class DeletedRepositoriesPersistenceSpec
         name                = "repo2",
         deletedDate         = now,
         isPrivate           = Some(false),
-        repoType            = Some(RepoType.Service),
+        repoType            = Some(RepoType.Library),
         serviceType         = None,
         digitalServiceName  = None,
         owningTeams         = Some(List("team4", "team5")),
@@ -64,40 +62,71 @@ class DeletedRepositoriesPersistenceSpec
         prototypeName       = None
       )
 
-    "get" must  {
+    "find" must  {
       "get all repos" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.find(None, None).futureValue
+        val results = repository.find().futureValue
         results mustBe Seq(repo1, repo2)
       }
 
       "get repo by name" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.find(Some(repo1.name), None).futureValue
+        val results = repository.find(name = Some(repo1.name)).futureValue
         results mustBe Seq(repo1)
       }
 
       "get repo by team" in {
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
-        val results = repository.find(None, repo2.owningTeams.flatMap(_.headOption)).futureValue
+        val results = repository.find(team = repo2.owningTeams.flatMap(_.headOption)).futureValue
         results mustBe Seq(repo2)
+      }
+
+      "get all services" in {
+        repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
+        val results = repository.find(repoType = Some(RepoType.Service)).futureValue
+        results mustBe Seq(repo1)
       }
   }
 
-  "set" must {
+  "putRepo" must {
     "insert repo" in {
-      repository.set(repo1).futureValue
-      val results = repository.find(None, None).futureValue
+      repository.putRepo(repo1).futureValue
+      val results = repository.find().futureValue
       results mustBe Seq(repo1)
     }
 
     "fail when inserting a duplicate" in {
-      repository.set(repo2).futureValue
+      repository.putRepo(repo2).futureValue
 
-      val result = repository.set(repo2).failed.futureValue
+      val result = repository.putRepo(repo2).failed.futureValue
 
       result mustBe a[com.mongodb.MongoWriteException]
       result.getMessage must include("duplicate key error")
     }
   }
+
+  "deleteRepos" must {
+    "delete repo1" in {
+      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
+      repository.deleteRepos(Seq(repo1.name)).futureValue mustBe 1
+      repository.find().futureValue                       mustBe Seq(repo2)
+    }
+
+    "delete repo1 & repo2" in {
+      repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
+      repository.deleteRepos(Seq(repo1.name, repo2.name)).futureValue mustBe 2
+      repository.find().futureValue                                   mustBe Seq.empty
+    }
+
+    "handle repo not found" in {
+      repository.deleteRepos(Seq(repo1.name)).futureValue mustBe 0
+      repository.find().futureValue                       mustBe Seq.empty
+    }
+
+    "handle Nil" in {
+      repository.deleteRepos(Seq.empty).futureValue mustBe 0
+      repository.find().futureValue                 mustBe Seq.empty
+    }
+  }
+
 }
