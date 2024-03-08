@@ -21,7 +21,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.connectors.{BranchProtection, BuildDeployApiConnector, GhRepository, GithubConnector}
-import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, JenkinsJobsPersistence}
+import uk.gov.hmrc.teamsandrepositories.models.RepoType
 
 import java.time.Instant
 import scala.concurrent.Future
@@ -36,7 +37,28 @@ class BranchProtectionServiceSpec
   "enableBranchProtection" should {
 
     "Invoke the branch protection API and invalidate the cache with the latest view from GitHub" in new Setup {
-      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
+      val buildJob = JenkinsJobsPersistence.Job(
+        repoName    = "some-repo"
+      , jobName     = "some-repo-job"
+      , jenkinsUrl  = "http://path/to/jenkins"
+      , jobType     = JenkinsJobsPersistence.JobType.Job
+      , repoType    = Some(RepoType.Service)
+      , latestBuild = None
+      )
+
+      val prJob = JenkinsJobsPersistence.Job(
+        repoName    = "some-repo"
+      , jobName     = "some-repo-pr-builder"
+      , jenkinsUrl  = "http://path/to/jenkins"
+      , jobType     = JenkinsJobsPersistence.JobType.PullRequest
+      , repoType    = Some(RepoType.Service)
+      , latestBuild = None
+      )
+
+      when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
+        .thenReturn(Future.successful(Seq(buildJob, prJob)))
+
+      when(buildDeployApiConnector.enableBranchProtection("some-repo", List(prJob)))
         .thenReturn(Future.unit)
 
       when(githubConnector.getRepo("some-repo"))
@@ -54,7 +76,11 @@ class BranchProtectionServiceSpec
     }
 
     "Short-circuit and fail if the branch protection API invocation fails" in new Setup {
-      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
+
+      when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
+        .thenReturn(Future.successful(Nil))
+
+      when(buildDeployApiConnector.enableBranchProtection("some-repo", Nil))
         .thenReturn(Future.failed(new Throwable("some error")))
 
       service
@@ -66,7 +92,11 @@ class BranchProtectionServiceSpec
     }
 
     "Short-circuit and fail if the repository cannot be found on GitHub" in new Setup {
-      when(buildDeployApiConnector.enableBranchProtection("some-repo"))
+
+      when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
+        .thenReturn(Future.successful(Nil))
+
+      when(buildDeployApiConnector.enableBranchProtection("some-repo", Nil))
         .thenReturn(Future.unit)
 
       when(githubConnector.getRepo("some-repo"))
@@ -82,17 +112,13 @@ class BranchProtectionServiceSpec
   }
 
   trait Setup {
-    val buildDeployApiConnector: BuildDeployApiConnector =
-      mock[BuildDeployApiConnector]
-
-    val githubConnector: GithubConnector =
-      mock[GithubConnector]
-
-    val repositoriesPersistence: RepositoriesPersistence =
-      mock[RepositoriesPersistence]
+    val buildDeployApiConnector: BuildDeployApiConnector = mock[BuildDeployApiConnector]
+    val githubConnector        : GithubConnector         = mock[GithubConnector]
+    val repositoriesPersistence: RepositoriesPersistence = mock[RepositoriesPersistence]
+    val jenkinsJobsPersistence : JenkinsJobsPersistence  = mock[JenkinsJobsPersistence]
 
     val service: BranchProtectionService =
-      new BranchProtectionService(buildDeployApiConnector, githubConnector, repositoriesPersistence)
+      new BranchProtectionService(buildDeployApiConnector, githubConnector, repositoriesPersistence, jenkinsJobsPersistence)
   }
 
   private lazy val someRepository =
