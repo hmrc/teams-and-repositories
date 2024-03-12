@@ -121,6 +121,8 @@ case class PersistingService @Inject()(
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
       _                   <- EitherT
+                               .liftF(deletedRepositoriesPersistence.deleteRepos(Seq(repo.name)))
+      _                   <- EitherT
                                .liftF(repositoriesPersistence.putRepo(repo))
       _                   <- EitherT
                                .liftF(updateTestRepoRelationships(rawRepo))
