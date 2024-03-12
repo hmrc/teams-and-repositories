@@ -41,7 +41,7 @@ class IntegrationTestSupportController @Inject()(
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
 
   def addRepositories(): Action[Seq[GitRepository]] = Action.async(validateJson[Seq[GitRepository]]){ implicit request =>
-    repositoriesPersistence.updateRepos(request.body).map( _ => Ok("Ok"))
+    repositoriesPersistence.putRepos(request.body).map( _ => Ok("Ok"))
   }
 
   def clearAll(): Action[AnyContent] = Action.async {

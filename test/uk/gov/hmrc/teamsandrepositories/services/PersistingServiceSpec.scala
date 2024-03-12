@@ -25,7 +25,7 @@ import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristi
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -56,7 +56,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos.length                                         shouldBe 3
@@ -81,7 +81,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos.length                                         shouldBe 3
@@ -109,7 +109,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos.length      shouldBe 4
@@ -131,7 +131,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos
@@ -160,7 +160,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
         persistedRepos
@@ -270,7 +270,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).updateRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
         }
 
@@ -340,6 +340,7 @@ class PersistingServiceSpec
 
   trait Setup {
     val reposPersistence        : RepositoriesPersistence          = mock[RepositoriesPersistence]
+    val deletedRepoPersistence  : DeletedRepositoriesPersistence   = mock[DeletedRepositoriesPersistence]
     val teamsPersistence        : TeamSummaryPersistence           = mock[TeamSummaryPersistence]
     val relationshipsPersistence: TestRepoRelationshipsPersistence = mock[TestRepoRelationshipsPersistence]
     val githubConnector         : GithubConnector                  = mock[GithubConnector]
@@ -351,13 +352,16 @@ class PersistingServiceSpec
 
     when(configuration.get[Seq[String]]("hidden.teams")).thenReturn(Seq(hiddenTeamName))
     when(teamsPersistence.updateTeamSummaries(any)).thenReturn(Future.successful(0))
-    when(reposPersistence.updateRepos(any)).thenReturn(Future.successful(0))
+    when(reposPersistence.find()).thenReturn(Future.successful(Nil))
+    when(reposPersistence.putRepos(any)).thenReturn(Future.successful(0))
+    when(deletedRepoPersistence.find()).thenReturn(Future.successful(Nil))
+    when(deletedRepoPersistence.deleteRepos(any)).thenReturn(Future.successful(0))
     when(relationshipsPersistence.putRelationships(any[String], anySeq[TestRepoRelationship])).thenReturn(Future.unit)
 
     val datasource = new GithubV3RepositoryDataSource(githubConnector, timestamper)
 
     val onTest: PersistingService =
-      PersistingService(reposPersistence, teamsPersistence, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
+      PersistingService(reposPersistence, deletedRepoPersistence, teamsPersistence, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
 
     val now: Instant = Instant.now()
 

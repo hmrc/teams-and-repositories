@@ -30,7 +30,7 @@ import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.DeletedGitRepository
+import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.DeletedRepositoriesPersistence
 
 import java.time.Instant
@@ -58,53 +58,67 @@ class DeletedRepositoriesControllerSpec
     super.beforeEach()
     reset(mockDeletedRepositoriesPersistence)
   }
-  private def getRoute(name: Option[String])  = routes.DeletedRepositoriesController.getDeletedRepos(name, None).url
+  private def getRoute(name: Option[String] = None, repoType: Option[RepoType] = None, serviceType: Option[ServiceType] = None) =
+    routes.DeletedRepositoriesController.getDeletedRepos(name = name, team = None, repoType = repoType, serviceType = serviceType).url
 
   private lazy val now = Instant.now()
 
   "DeletedRepositoriesController" should {
 
     "get all deleted repositories" in {
+      when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
+        .thenReturn(Future.successful(Seq(
+          DeletedGitRepository("Foo", now)
+        , DeletedGitRepository("Bar", now)
+        )))
 
-      implicit val reads: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
+      val result = route(app, FakeRequest(GET, getRoute())).value
 
-      val expectedModel = Seq(
-        DeletedGitRepository("Foo", now),
-        DeletedGitRepository("Bar", now),
-      )
+      status(result)        mustBe OK
+      contentAsJson(result) mustBe Json.parse(s"""
+        [
+          {"name":"Foo","deletedDate":"$now"}
+        , {"name":"Bar","deletedDate":"$now"}
+        ]
+      """)
 
-      when(mockDeletedRepositoriesPersistence.find(any(), any()))
-        .thenReturn(Future.successful(expectedModel))
-
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(None))
-
-      val result = route(app, request).value
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(expectedModel)
-
-      verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None))
+      verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None), eqTo(None), eqTo(None))
     }
 
     "get deleted repository by name" in {
+      when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
+        .thenReturn(Future.successful(Seq(
+          DeletedGitRepository("Foo", now)
+        )))
 
-      implicit val reads: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
+      val result = route(app, FakeRequest(GET, getRoute(name = Some("Foo")))).value
 
-      val expectedModel = Seq(
-        DeletedGitRepository("Foo", now)
-      )
+      status(result)        mustBe OK
+      contentAsJson(result) mustBe Json.parse(s"""
+        [
+          {"name":"Foo","deletedDate":"$now"}
+        ]
+      """)
 
-      when(mockDeletedRepositoriesPersistence.find(any(), any()))
-        .thenReturn(Future.successful(expectedModel))
+      verify(mockDeletedRepositoriesPersistence).find(eqTo(Some("Foo")), eqTo(None), eqTo(None), eqTo(None))
+    }
 
-      val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(GET, getRoute(Some("Foo")))
+    "get all deleted services" in {
+      when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
+        .thenReturn(Future.successful(Seq(
+          DeletedGitRepository("Foo", now)
+        )))
 
-      val result = route(app, request).value
+      val result = route(app, FakeRequest(GET, getRoute(repoType = Some(RepoType.Service)))).value
 
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(expectedModel)
+      status(result)        mustBe OK
+      contentAsJson(result) mustBe Json.parse(s"""
+        [
+          {"name":"Foo","deletedDate":"$now"}
+        ]
+      """)
 
-      verify(mockDeletedRepositoriesPersistence).find(eqTo(Some("Foo")), eqTo(None))
+      verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None), eqTo(Some(RepoType.Service)), eqTo(None))
     }
   }
 }

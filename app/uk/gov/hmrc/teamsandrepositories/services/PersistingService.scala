@@ -22,19 +22,22 @@ import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
 import uk.gov.hmrc.teamsandrepositories.models._
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
+import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 case class PersistingService @Inject()(
-  repositoriesPersistence : RepositoriesPersistence,
-  teamSummaryPersistence  : TeamSummaryPersistence,
-  relationshipsPersistence: TestRepoRelationshipsPersistence,
-  dataSource              : GithubV3RepositoryDataSource,
-  configuration           : Configuration,
-  serviceConfigsConnector : ServiceConfigsConnector,
+  repositoriesPersistence       : RepositoriesPersistence,
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  teamSummaryPersistence        : TeamSummaryPersistence,
+  relationshipsPersistence      : TestRepoRelationshipsPersistence,
+  dataSource                    : GithubV3RepositoryDataSource,
+  configuration                 : Configuration,
+  serviceConfigsConnector       : ServiceConfigsConnector,
 ) {
   private val logger = Logger(this.getClass)
 
@@ -42,17 +45,32 @@ case class PersistingService @Inject()(
 
   private def updateRepositories(reposWithTeams: Seq[GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      frontendRoutes      <- serviceConfigsConnector.getFrontendServices()
-      adminFrontendRoutes <- serviceConfigsConnector.getAdminFrontendServices()
-      allRepos            <- dataSource.getAllRepositoriesByName()
-      orphanRepos         =  (allRepos -- reposWithTeams.map(_.name).toSet).values
-      reposToPersist      =  (reposWithTeams ++ orphanRepos)
-                               .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
-                               .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
-      _                   =  logger.info(s"found ${reposToPersist.length} repos")
-      count               <- repositoriesPersistence.updateRepos(reposToPersist)
-      _                   =  logger.info(s"Persisted: $count repos")
-      _                   <- reposToPersist.toList.traverse(updateTestRepoRelationships)
+      frontendRoutes             <- serviceConfigsConnector.getFrontendServices()
+      adminFrontendRoutes        <- serviceConfigsConnector.getAdminFrontendServices()
+      allRepos                   <- dataSource.getAllRepositoriesByName()
+      orphanRepos                =  (allRepos -- reposWithTeams.map(_.name).toSet).values
+      toPersistRepos             =  (reposWithTeams ++ orphanRepos)
+                                      .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
+                                      .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+      toPersistReposNames        =  toPersistRepos.map(_.name).toSet
+
+      _                          =  logger.info(s"found ${toPersistRepos.length} repos")
+      updateCount                <- repositoriesPersistence.putRepos(toPersistRepos)
+
+      alreadyDeletedReposNames   <- deletedRepositoriesPersistence.find().map(_.map(_.name).toSet)
+      recreatedRepos             =  (alreadyDeletedReposNames intersect toPersistReposNames).toSeq
+      _                          =  if (recreatedRepos.nonEmpty) logger.info(s"About to recreate ${recreatedRepos.length} previously deleted repos: ${recreatedRepos.mkString(", ")}")
+                                    else                         ()
+      recreateCount              <- deletedRepositoriesPersistence.deleteRepos(recreatedRepos)
+
+      alreadyPersistedReposNames <- repositoriesPersistence.find().map(_.map(_.name).toSet)
+      deletedRepos               =  (alreadyPersistedReposNames -- toPersistReposNames).toSeq
+      _                          =  if (deletedRepos.nonEmpty) logger.info(s"About to remove ${deletedRepos.length} deleted repos: ${deletedRepos.mkString(", ")}")
+                                    else                       ()
+      deletedCount               <- deletedRepos.foldLeftM(0) { case (acc, repo) => deleteRepository(repo).map(_ => acc + 1) }
+
+      _                          =  logger.info(s"Updated: $updateCount repos. Deleted: $deletedCount repos. Recreated: $recreateCount previously deleted repos.")
+      _                          <- toPersistRepos.toList.traverse(updateTestRepoRelationships)
     } yield ()
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
@@ -108,11 +126,21 @@ case class PersistingService @Inject()(
                                .liftF(updateTestRepoRelationships(rawRepo))
     } yield ()
 
-  def repositoryArchived(repoName: String): Future[Unit] =
+  def archiveRepository(repoName: String): Future[Unit] =
     repositoriesPersistence.archiveRepo(repoName)
 
-  def repositoryDeleted(repoName: String): Future[Unit] =
-    repositoriesPersistence.deleteRepo(repoName)
+  def deleteRepository(repoName: String)(implicit ec: ExecutionContext): Future[Unit] =
+    repositoriesPersistence
+      .findRepo(repoName)
+      .flatMap {
+        case Some(repo) => for {
+                             _ <- deletedRepositoriesPersistence.putRepo(DeletedGitRepository.fromGitRepository(repo, Instant.now()))
+                             _ <- repositoriesPersistence.deleteRepo(repoName)
+                           } yield ()
+        case None       => deletedRepositoriesPersistence.putRepo(DeletedGitRepository(repoName, Instant.now()))
+      }.recover {
+        case DuplicateKey(_) => logger.info(s"repo: $repoName - already stored in deleted-repositories collection")
+      }
 
   private def updateTestRepoRelationships(repo: GitRepository)(implicit ec: ExecutionContext): Future[Unit] = {
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap

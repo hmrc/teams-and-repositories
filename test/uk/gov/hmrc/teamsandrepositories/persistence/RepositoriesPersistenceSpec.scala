@@ -206,24 +206,25 @@ class RepositoriesPersistenceSpec
     }
   }
 
-  "update" must {
+  "putRepos" must {
     "insert new repositories" in {
-      repository.updateRepos(Seq(repo1,repo2)).futureValue
+      repository.putRepos(Seq(repo1,repo2)).futureValue
       findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "update existing repositories" in {
       insert(repo1.copy(description = "the old description")).futureValue
-      repository.updateRepos(Seq(repo1,repo2)).futureValue
+      repository.putRepos(Seq(repo1,repo2)).futureValue
       findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
     }
+  }
 
+  "deletedRepos" must {
     "delete repos not in the update list" in {
       insert(repo1).futureValue
-      insert(repo2).futureValue
-      repository.updateRepos(Seq(repo1)).futureValue
       findAll().futureValue must contain (repo1)
-      findAll().futureValue must not contain repo2
+      repository.deleteRepo(repo1.name).futureValue
+      findAll().futureValue must not contain repo1
     }
   }
 
