@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import com.codahale.metrics.MetricRegistry
 
 import java.time.Instant
-
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
@@ -29,7 +28,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, ManifestDetails, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -62,18 +61,18 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-    def getTeams(repoName: String): Future[List[String]] = {
-      implicit val reads =
-        (__ \ "name").read[String]
+  def getTeams(repoName: String): Future[List[String]] = {
+    implicit val reads =
+      (__ \ "name").read[String]
 
-      httpClientV2
-        .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
-        .setHeader(authHeader)
-        .withProxy
-        .execute[List[String]]
-    }
+    httpClientV2
+      .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
+      .setHeader(authHeader)
+      .withProxy
+      .execute[List[String]]
+  }
 
-  def getReposForTeam(team: GhTeam): Future[List[GhRepositoryWithPermission]] =
+  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
     withCounter("github.open.repos") {
       val root =
         __ \ "data" \ "organization" \ "team" \ "repositories"
@@ -84,7 +83,7 @@ class GithubConnector @Inject()(
       executePagedGqlQuery[List[GhRepositoryWithPermission]](
         query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
-      ).map(_.flatten)
+      ).map(_.flatten.filter(_.permission == "WRITE").map(_.ghRepository))
     }
 
   def getRepos(): Future[List[GhRepository]] =
@@ -163,6 +162,18 @@ class GithubConnector @Inject()(
       case Failure(_) =>
         metricRegistry.counter(s"$name.failure").inc()
     }
+
+  private case class GhRepositoryWithPermission (
+    permission  : String,
+    ghRepository: GhRepository
+  )
+
+  private object GhRepositoryWithPermission {
+    val reads: Reads[GhRepositoryWithPermission] =
+      ( (__ \ "permission").read[String]
+        ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
+        )(apply _)
+  }
 }
 
 object GithubConnector {
@@ -404,18 +415,6 @@ object GhRepository {
     prototypeName       : Option[String],
     prototypeAutoPublish: Option[Boolean]
   )
-
-  case class GhRepositoryWithPermission (
-    permission  : String,
-    ghRepository: GhRepository
-  )
-
-  object GhRepositoryWithPermission {
-    val reads: Reads[GhRepositoryWithPermission] =
-      ( (__ \ "permission").read[String]
-      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
-        )(apply _)
-  }
 
   object ManifestDetails {
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap

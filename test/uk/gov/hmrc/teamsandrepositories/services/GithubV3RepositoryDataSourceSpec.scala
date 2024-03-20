@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,12 +33,12 @@ import ExecutionContext.Implicits.global
 
 class GithubV3RepositoryDataSourceSpec
   extends AnyWordSpec
-     with ScalaFutures
-     with Matchers
-     with IntegrationPatience
-     with MockitoSugar
-     with SpanSugar
-     with BeforeAndAfterEach {
+    with ScalaFutures
+    with Matchers
+    with IntegrationPatience
+    with MockitoSugar
+    with SpanSugar
+    with BeforeAndAfterEach {
 
   private val nowMillis = System.currentTimeMillis()
   private val now = Instant.ofEpochMilli(nowMillis)
@@ -184,11 +184,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasApplicationConf = true))
-                )
+                ghRepo
+                  .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasApplicationConf = true))
               )
             )
         )
@@ -226,11 +223,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasProcfile = true))
-                )
+                ghRepo
+                  .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasProcfile = true))
               )
             )
         )
@@ -269,11 +263,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasDeployProperties = true))
-                )
+                ghRepo
+                  .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasDeployProperties = true))
               )
             )
         )
@@ -311,11 +302,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repositoryYamlText = Some("type: service"))
-                )
+                ghRepo
+                  .copy(repositoryYamlText = Some("type: service"))
               )
             )
         )
@@ -354,11 +342,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repositoryYamlText = Some("digital-service: service-abcd"))
-                )
+                ghRepo
+                  .copy(repositoryYamlText = Some("digital-service: service-abcd"))
               )
             )
         )
@@ -403,12 +388,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(
           Future
             .successful(
-              List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo.copy(repositoryYamlText = Some(manifestYaml))
-                )
-              )
+              List(ghRepo.copy(repositoryYamlText = Some(manifestYaml)))
             )
         )
 
@@ -445,12 +425,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(
           Future
             .successful(
-              List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo.copy(repositoryYamlText = Some("type: library"))
-                )
-              )
+              List(ghRepo.copy(repositoryYamlText = Some("type: library")))
             )
         )
 
@@ -487,12 +462,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(
           Future
             .successful(
-              List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo.copy(repositoryYamlText = Some("type: somethingelse"))
-                )
-              )
+              List(ghRepo.copy(repositoryYamlText = Some("type: somethingelse")))
             )
         )
 
@@ -530,16 +500,13 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repoTypeHeuristics =
-                      ghRepo.repoTypeHeuristics.copy(
-                        hasSrcMainScala = true,
-                        hasTags = true
-                      )
+                ghRepo
+                  .copy(repoTypeHeuristics =
+                    ghRepo.repoTypeHeuristics.copy(
+                      hasSrcMainScala = true,
+                      hasTags = true
                     )
-                )
+                  )
               )
             )
         )
@@ -579,16 +546,13 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repoTypeHeuristics =
-                      ghRepo.repoTypeHeuristics.copy(
-                        hasSrcMainJava = true,
-                        hasTags = true
-                      )
+                ghRepo
+                  .copy(repoTypeHeuristics =
+                    ghRepo.repoTypeHeuristics.copy(
+                      hasSrcMainJava = true,
+                      hasTags = true
                     )
-                )
+                  )
               )
             )
         )
@@ -629,7 +593,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(teamA)))
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", catoRepo))))
+        .thenReturn(Future.successful(List(catoRepo)))
 
       val repositories = dataSource
         .getTeamRepositories(teamA)
@@ -668,7 +632,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(teamA)))
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", catoRepo))))
+        .thenReturn(Future.successful(List(catoRepo)))
 
       val repositories = dataSource
         .getTeamRepositories(teamA)
@@ -699,7 +663,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(teamA)))
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", ghRepo))))
+        .thenReturn(Future.successful(List(ghRepo)))
 
       val repositories = dataSource
         .getTeamRepositories(teamA)
@@ -743,11 +707,8 @@ class GithubV3RepositoryDataSourceSpec
           Future
             .successful(
               List(
-                GhRepositoryWithPermission(
-                  "WRITE",
-                  ghRepo
-                    .copy(repositoryYamlText = Some(repositoryYamlContents))
-                )
+                ghRepo
+                  .copy(repositoryYamlText = Some(repositoryYamlContents))
               )
             )
         )
@@ -784,7 +745,7 @@ class GithubV3RepositoryDataSourceSpec
         .thenReturn(Future.successful(List(teamA)))
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", privateRepo))))
+        .thenReturn(Future.successful(List(privateRepo)))
 
       val repositories: TeamRepositories = dataSource
         .getTeamRepositories(teamA)
@@ -821,7 +782,7 @@ class GithubV3RepositoryDataSourceSpec
         )
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", githubRepository))))
+        .thenReturn(Future.successful(List(githubRepository)))
 
       val repository = GitRepository(
         name               = "A_r",
@@ -881,11 +842,7 @@ class GithubV3RepositoryDataSourceSpec
         repo1.copy(name = "a")
 
       when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(
-          GhRepositoryWithPermission("WRITE", repo1),
-          GhRepositoryWithPermission("WRITE", repo2),
-          GhRepositoryWithPermission("WRITE", repo3)
-        )))
+        .thenReturn(Future.successful(List(repo1, repo2, repo3)))
 
       val result =
         dataSource
@@ -895,49 +852,6 @@ class GithubV3RepositoryDataSourceSpec
           .map(_.name)
 
       result shouldBe List("a", "b", "c")
-
-      verify(mockGithubConnector).getReposForTeam(teamA)
-    }
-
-    "ensure repositories are only included if the team has write permission for it" in new Setup {
-
-      val repo1 =
-        GhRepository(
-          name               = "b",
-          htmlUrl            = "http://github.com/repo1",
-          fork               = false,
-          createdDate        = now,
-          pushedAt           = now,
-          isPrivate          = false,
-          language           = Some("Scala"),
-          isArchived         = false,
-          defaultBranch      = "main",
-          branchProtection   = None,
-          repositoryYamlText = None,
-          repoTypeHeuristics = dummyRepoTypeHeuristics
-        )
-
-      val repo2 =
-        repo1.copy(name = "c")
-
-      val repo3 =
-        repo1.copy(name = "a")
-
-      when(mockGithubConnector.getReposForTeam(teamA))
-        .thenReturn(Future.successful(List(
-          GhRepositoryWithPermission("WRITE", repo1),
-          GhRepositoryWithPermission("READ", repo2),
-          GhRepositoryWithPermission("WRITE", repo3)
-        )))
-
-      val result =
-        dataSource
-          .getTeamRepositories(teamA)
-          .futureValue
-          .repositories
-          .map(_.name)
-
-      result shouldBe List("a", "b")
 
       verify(mockGithubConnector).getReposForTeam(teamA)
     }

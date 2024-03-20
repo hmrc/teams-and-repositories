@@ -28,7 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
 
 import java.time.Instant
@@ -172,7 +172,7 @@ class GithubConnectorSpec
          }
        },
        {
-         "permission": "WRITE",
+         "permission": "READ",
          "node": {
            "databaseId": 2,
            "name": "n2",
@@ -473,7 +473,7 @@ class GithubConnectorSpec
     )
 
   "GithubConnector.getReposForTeam" should {
-    "return repos" in {
+    "return only repos with Write permission" in {
       val team =
         GhTeam(name = "A Team", createdAt = createdAt)
 
@@ -497,7 +497,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(reposForTeamJson2))
       )
 
-      connector.getReposForTeam(team).futureValue shouldBe repos.map(GhRepositoryWithPermission("WRITE", _))
+      connector.getReposForTeam(team).futureValue shouldBe repos.filterNot(_.name == "n2")
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))

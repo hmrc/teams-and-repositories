@@ -21,7 +21,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class PersistingServiceSpec
-    extends AnyWordSpec
+  extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with ArgumentMatchersSugar
@@ -47,9 +47,8 @@ class PersistingServiceSpec
         val repo2 = aRepo.copy(name = "repo-2")
         val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
@@ -73,10 +72,8 @@ class PersistingServiceSpec
         val repo2 = aRepo.copy(name = "repo-2")
         val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo2), GhRepositoryWithPermission("WRITE", repo3))))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo2, repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
@@ -103,9 +100,8 @@ class PersistingServiceSpec
         val repo3 = aRepo.copy(name = "repo-3")
         val repo4 = aRepo.copy(name = "repo-4")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
@@ -141,7 +137,7 @@ class PersistingServiceSpec
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType))
           .toSet shouldBe Set(
-            ("other"       , RepoType.Other  , None                             )
+            ("other"        , RepoType.Other  , None                      )
           , ("front-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("admin-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("some-frontend", RepoType.Service, Some(ServiceType.Frontend))
@@ -170,7 +166,7 @@ class PersistingServiceSpec
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType, r.tags))
           .toSet shouldBe Set(
-            ("other-repo"         , RepoType.Other  , None                             , None)
+            ("other-repo"         , RepoType.Other  , None                      , None)
           , ("admin-frontend"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
           , ("repo-stub"          , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
           , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))
@@ -214,9 +210,8 @@ class PersistingServiceSpec
         val repo2 = aRepo.copy(name = "repo-2")
         val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
@@ -239,8 +234,8 @@ class PersistingServiceSpec
         val repo2 = aRepo.copy(name = "repo-2")
         val repo3 = aRepo.copy(name = "repo-3")
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB)))
-        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List.empty[GhRepositoryWithPermission]))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List.empty[GhRepositoryWithPermission]))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List.empty[GhRepository]))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List.empty[GhRepository]))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
@@ -265,15 +260,9 @@ class PersistingServiceSpec
         val repo3 = aRepo.copy(name = "repo-3")
 
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB, teamC)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
-        when(githubConnector.getReposForTeam(teamC))
-          .thenReturn(Future.successful(List(
-            GhRepositoryWithPermission("WRITE", repo1),
-            GhRepositoryWithPermission("WRITE", repo2),
-            GhRepositoryWithPermission("WRITE", repo3)
-          )))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getReposForTeam(teamC)).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
@@ -298,15 +287,9 @@ class PersistingServiceSpec
         val repo3 = aRepo.copy(name = "repo-3")
 
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB, teamC)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
-        when(githubConnector.getReposForTeam(teamC))
-          .thenReturn(Future.successful(List(
-            GhRepositoryWithPermission("WRITE", repo1),
-            GhRepositoryWithPermission("WRITE", repo2),
-            GhRepositoryWithPermission("WRITE", repo3)
-        )))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getReposForTeam(teamC)).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
@@ -332,15 +315,9 @@ class PersistingServiceSpec
         val repo3 = aRepo.copy(name = "repo-3")
 
         when(githubConnector.getTeams()).thenReturn(Future.successful(List(teamA, teamB, teamC)))
-        when(githubConnector.getReposForTeam(teamA))
-          .thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo1), GhRepositoryWithPermission("WRITE", repo2))))
-        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(GhRepositoryWithPermission("WRITE", repo3))))
-        when(githubConnector.getReposForTeam(teamC))
-          .thenReturn(Future.successful(List(
-            GhRepositoryWithPermission("WRITE", repo1),
-            GhRepositoryWithPermission("WRITE", repo2),
-            GhRepositoryWithPermission("WRITE", repo3)
-          )))
+        when(githubConnector.getReposForTeam(teamA)).thenReturn(Future.successful(List(repo1, repo2)))
+        when(githubConnector.getReposForTeam(teamB)).thenReturn(Future.successful(List(repo3)))
+        when(githubConnector.getReposForTeam(teamC)).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
