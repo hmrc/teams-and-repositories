@@ -28,7 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.RepoTypeHeuristics
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.connectors.GithubConnector.{getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
 
 import java.time.Instant
@@ -144,6 +144,80 @@ class GithubConnectorSpec
     }
   }
 
+  val reposForTeamEdgesJson1 =
+    """[
+       {
+         "permission": "WRITE",
+         "node": {
+           "databaseId": 1,
+           "name": "n1",
+           "description": "d1",
+           "url": "url1",
+           "isFork": false,
+           "createdAt": "2019-04-01T11:41:33Z",
+           "pushedAt": "2019-04-02T11:41:33Z",
+           "isPrivate": true,
+           "primaryLanguage": {
+             "name": "l1"
+           },
+           "isArchived": false,
+           "defaultBranchRef": {
+             "name": "b1",
+             "branchProtectionRule": {
+               "requiresApprovingReviews": true,
+               "dismissesStaleReviews": true,
+               "requiresCommitSignatures": true
+             }
+           }
+         }
+       },
+       {
+         "permission": "WRITE",
+         "node": {
+           "databaseId": 2,
+           "name": "n2",
+           "description": "d2",
+           "url": "url2",
+           "isFork": false,
+           "createdAt": "2019-04-03T11:41:33Z",
+           "pushedAt": "2019-04-04T11:41:33Z",
+           "isPrivate": false,
+           "primaryLanguage": {
+             "name": "l2"
+           },
+           "isArchived": true,
+           "defaultBranchRef": {
+             "name": "b2",
+             "branchProtectionRule": {
+               "requiresApprovingReviews": true,
+               "dismissesStaleReviews": true,
+               "requiresCommitSignatures": true
+             }
+           }
+         }
+       }
+    ]"""
+
+  val reposForTeamEdgesJson2 =
+    """[
+         {
+           "permission": "WRITE",
+           "node": {
+             "databaseId": 3,
+             "name": "n3",
+             "url": "url3",
+             "isFork": true,
+             "createdAt": "2019-04-05T11:41:33Z",
+             "pushedAt": "2019-04-06T11:41:33Z",
+             "isPrivate": true,
+             "isArchived": false,
+             "defaultBranchRef": {
+               "name": "b3"
+             }
+           }
+         }
+      ]"""
+
   val reposJson1 =
     """[
        {
@@ -219,7 +293,7 @@ class GithubConnectorSpec
                 "pageInfo": {
                   "endCursor": "cursor-1"
                 },
-                "nodes": $reposJson1
+                "edges": $reposForTeamEdgesJson1
               }
             }
           }
@@ -235,7 +309,7 @@ class GithubConnectorSpec
             "team": {
               "repositories": {
                 "pageInfo": {},
-                "nodes": $reposJson2
+                "edges": $reposForTeamEdgesJson2
               }
             }
           }
@@ -423,7 +497,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(reposForTeamJson2))
       )
 
-      connector.getReposForTeam(team).futureValue shouldBe repos
+      connector.getReposForTeam(team).futureValue shouldBe repos.map(GhRepositoryWithPermission("WRITE", _))
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))

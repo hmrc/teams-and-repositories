@@ -406,7 +406,7 @@ object GhRepository {
   )
 
   case class GhRepositoryWithPermission (
-    permission        : String,
+    permission  : String,
     ghRepository: GhRepository
   )
 
