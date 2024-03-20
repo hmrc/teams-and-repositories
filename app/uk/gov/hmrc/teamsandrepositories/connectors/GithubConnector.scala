@@ -29,7 +29,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{GhRepositoryWithPermission, ManifestDetails, RepoTypeHeuristics}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -73,15 +73,15 @@ class GithubConnector @Inject()(
         .execute[List[String]]
     }
 
-  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
+  def getReposForTeam(team: GhTeam): Future[List[GhRepositoryWithPermission]] =
     withCounter("github.open.repos") {
       val root =
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
       implicit val reads =
-        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads))
+        (root \ "edges").readWithDefault(List.empty[GhRepositoryWithPermission])(Reads.list(GhRepositoryWithPermission.reads))
 
-      executePagedGqlQuery[List[GhRepository]](
+      executePagedGqlQuery[List[GhRepositoryWithPermission]](
         query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
@@ -242,8 +242,11 @@ object GithubConnector {
                 pageInfo {
                   endCursor
                 }
-                nodes {
-                  $repositoryFields
+                edges {
+                  permission
+                  node {
+                    $repositoryFields
+                  }
                 }
               }
             }
@@ -401,6 +404,18 @@ object GhRepository {
     prototypeName       : Option[String],
     prototypeAutoPublish: Option[Boolean]
   )
+
+  case class GhRepositoryWithPermission (
+    permission        : String,
+    ghRepository: GhRepository
+  )
+
+  object GhRepositoryWithPermission {
+    val reads: Reads[GhRepositoryWithPermission] =
+      ( (__ \ "permission").read[String]
+      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
+        )(apply _)
+  }
 
   object ManifestDetails {
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap
