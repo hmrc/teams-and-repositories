@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class PersistingServiceSpec
-    extends AnyWordSpec
+  extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with ArgumentMatchersSugar
@@ -137,7 +137,7 @@ class PersistingServiceSpec
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType))
           .toSet shouldBe Set(
-            ("other"       , RepoType.Other  , None                             )
+            ("other"        , RepoType.Other  , None                      )
           , ("front-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("admin-route"  , RepoType.Service, Some(ServiceType.Frontend))
           , ("some-frontend", RepoType.Service, Some(ServiceType.Frontend))
@@ -166,7 +166,7 @@ class PersistingServiceSpec
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType, r.tags))
           .toSet shouldBe Set(
-            ("other-repo"         , RepoType.Other  , None                             , None)
+            ("other-repo"         , RepoType.Other  , None                      , None)
           , ("admin-frontend"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
           , ("repo-stub"          , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
           , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))

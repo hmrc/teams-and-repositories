@@ -67,7 +67,7 @@ class GithubV3RepositoryDataSource @Inject()(
 
     for {
       ghRepos <- githubConnector.getReposForTeam(team)
-      repos   =  ghRepos.map(repo => cache.getOrElse(repo.name, repo.toGitRepository))
+      repos    = ghRepos.map(repo => cache.getOrElse(repo.name, repo.toGitRepository))
     } yield
         TeamRepositories(
           teamName     = team.name,

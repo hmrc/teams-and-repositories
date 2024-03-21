@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import com.codahale.metrics.MetricRegistry
 
 import java.time.Instant
-
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
@@ -62,16 +61,16 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-    def getTeams(repoName: String): Future[List[String]] = {
-      implicit val reads =
-        (__ \ "name").read[String]
+  def getTeams(repoName: String): Future[List[String]] = {
+    implicit val reads =
+      (__ \ "name").read[String]
 
-      httpClientV2
-        .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
-        .setHeader(authHeader)
-        .withProxy
-        .execute[List[String]]
-    }
+    httpClientV2
+      .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
+      .setHeader(authHeader)
+      .withProxy
+      .execute[List[String]]
+  }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
     withCounter("github.open.repos") {
@@ -79,12 +78,12 @@ class GithubConnector @Inject()(
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
       implicit val reads =
-        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads))
+        (root \ "edges").readWithDefault(List.empty[GhRepositoryWithPermission])(Reads.list(GhRepositoryWithPermission.reads))
 
-      executePagedGqlQuery[List[GhRepository]](
+      executePagedGqlQuery[List[GhRepositoryWithPermission]](
         query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
-      ).map(_.flatten)
+      ).map(_.flatten.filter(_.permission == "WRITE").map(_.ghRepository))
     }
 
   def getRepos(): Future[List[GhRepository]] =
@@ -163,6 +162,18 @@ class GithubConnector @Inject()(
       case Failure(_) =>
         metricRegistry.counter(s"$name.failure").inc()
     }
+
+  private case class GhRepositoryWithPermission (
+    permission  : String,
+    ghRepository: GhRepository
+  )
+
+  private object GhRepositoryWithPermission {
+    val reads: Reads[GhRepositoryWithPermission] =
+      ( (__ \ "permission").read[String]
+        ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
+        )(apply _)
+  }
 }
 
 object GithubConnector {
@@ -242,8 +253,11 @@ object GithubConnector {
                 pageInfo {
                   endCursor
                 }
-                nodes {
-                  $repositoryFields
+                edges {
+                  permission
+                  node {
+                    $repositoryFields
+                  }
                 }
               }
             }

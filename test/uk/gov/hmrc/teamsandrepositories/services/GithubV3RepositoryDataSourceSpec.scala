@@ -33,12 +33,12 @@ import ExecutionContext.Implicits.global
 
 class GithubV3RepositoryDataSourceSpec
   extends AnyWordSpec
-     with ScalaFutures
-     with Matchers
-     with IntegrationPatience
-     with MockitoSugar
-     with SpanSugar
-     with BeforeAndAfterEach {
+    with ScalaFutures
+    with Matchers
+    with IntegrationPatience
+    with MockitoSugar
+    with SpanSugar
+    with BeforeAndAfterEach {
 
   private val nowMillis = System.currentTimeMillis()
   private val now = Instant.ofEpochMilli(nowMillis)
@@ -186,9 +186,9 @@ class GithubV3RepositoryDataSourceSpec
               List(
                 ghRepo
                   .copy(repoTypeHeuristics = ghRepo.repoTypeHeuristics.copy(hasApplicationConf = true))
+              )
             )
-         )
-      )
+        )
 
       dataSource
         .getTeamRepositories(teamA)
@@ -505,10 +505,10 @@ class GithubV3RepositoryDataSourceSpec
                     ghRepo.repoTypeHeuristics.copy(
                       hasSrcMainScala = true,
                       hasTags = true
+                    )
                   )
               )
             )
-          )
         )
 
       val repositories = dataSource
