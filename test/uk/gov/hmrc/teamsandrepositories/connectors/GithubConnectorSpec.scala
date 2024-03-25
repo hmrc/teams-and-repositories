@@ -144,6 +144,38 @@ class GithubConnectorSpec
     }
   }
 
+  "GithubConnector.getTeams when given a repository name" should {
+    "return teams with push access for that repository" in {
+      stubFor(
+        get(urlPathEqualTo("/repos/hmrc/test-repository/teams"))
+          .willReturn(aResponse().withBody(
+            """
+             [
+               {
+                 "name": "A",
+                 "permission": "pull"
+               },
+               {
+                 "name": "B",
+                 "permission": "push"
+               },
+               {
+                 "name": "C",
+                 "permission": "admin"
+               },
+               {
+                 "name": "D",
+                 "permission": "push"
+               }
+             ]
+            """
+          ))
+      )
+
+      connector.getTeams("test-repository").futureValue shouldBe List("B", "D")
+    }
+  }
+
   val reposForTeamEdgesJson1 =
     """[
        {

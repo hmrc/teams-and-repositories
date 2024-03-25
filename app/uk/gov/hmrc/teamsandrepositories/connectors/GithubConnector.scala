@@ -62,14 +62,12 @@ class GithubConnector @Inject()(
     }
 
   def getTeams(repoName: String): Future[List[String]] = {
-    implicit val reads =
-      (__ \ "name").read[String]
-
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
       .setHeader(authHeader)
       .withProxy
-      .execute[List[String]]
+      .execute[List[TeamWithPermission]]
+      .map(_.filter(_.permission == "push").map(_.name))
   }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
@@ -162,6 +160,15 @@ class GithubConnector @Inject()(
       case Failure(_) =>
         metricRegistry.counter(s"$name.failure").inc()
     }
+
+  private case class TeamWithPermission(name: String, permission: String)
+
+  private object TeamWithPermission {
+    implicit val reads: Reads[TeamWithPermission] =
+      ((__ \ "name").read[String]
+        ~ (__ \ "permission").read[String]
+        )(apply _)
+  }
 
   private case class GhRepositoryWithPermission (
     permission  : String,
