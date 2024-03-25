@@ -103,7 +103,7 @@ case class PersistingService @Inject()(
                                dataSource.getRepo(repoName)
                              , s"not found on github"
                              )
-      teams               <- EitherT.liftF(dataSource.getTeams(repoName))
+      teams               <- EitherT.liftF(dataSource.getTeams(repoName).map(_.filterNot(team => hiddenTeams.contains(team))))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(repoName))
                                .map(x => if (x) Set(repoName) else Set.empty[String])
