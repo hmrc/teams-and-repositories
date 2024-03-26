@@ -145,7 +145,7 @@ class GithubConnectorSpec
   }
 
   "GithubConnector.getTeams when given a repository name" should {
-    "return teams with push access for that repository" in {
+    "return teams with push or higher access for that repository" in {
       stubFor(
         get(urlPathEqualTo("/repos/hmrc/test-repository/teams"))
           .willReturn(aResponse().withBody(
@@ -165,14 +165,18 @@ class GithubConnectorSpec
                },
                {
                  "name": "D",
-                 "permission": "push"
+                 "permission": "triage"
+               },
+               {
+                 "name": "E",
+                 "permission": "maintain"
                }
              ]
             """
           ))
       )
 
-      connector.getTeams("test-repository").futureValue shouldBe List("B", "D")
+      connector.getTeams("test-repository").futureValue shouldBe List("B", "C", "E")
     }
   }
 

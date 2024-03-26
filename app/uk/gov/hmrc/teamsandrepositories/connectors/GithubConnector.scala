@@ -67,7 +67,7 @@ class GithubConnector @Inject()(
       .setHeader(authHeader)
       .withProxy
       .execute[List[TeamWithPermission]]
-      .map(_.filter(_.permission == "push").map(_.name))
+      .map(_.filterNot(team => Seq("pull", "triage").contains(team.permission)).map(_.name))
   }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
