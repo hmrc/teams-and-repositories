@@ -17,8 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import cats.data.EitherT
-import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
-import org.bson.BsonDocument
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper

@@ -165,9 +165,9 @@ class GithubConnector @Inject()(
 
   private object TeamWithPermission {
     implicit val reads: Reads[TeamWithPermission] =
-      ((__ \ "name").read[String]
-        ~ (__ \ "permission").read[String]
-        )(apply _)
+      ( (__ \ "name"      ).read[String]
+      ~ (__ \ "permission").read[String]
+      )(apply _)
   }
 
   private case class GhRepositoryWithPermission (
@@ -178,8 +178,8 @@ class GithubConnector @Inject()(
   private object GhRepositoryWithPermission {
     val reads: Reads[GhRepositoryWithPermission] =
       ( (__ \ "permission").read[String]
-        ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
-        )(apply _)
+      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
+      )(apply _)
   }
 }
 
