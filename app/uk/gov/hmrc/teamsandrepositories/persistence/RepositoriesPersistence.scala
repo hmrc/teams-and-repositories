@@ -45,7 +45,8 @@ class RepositoriesPersistence @Inject()(
                        IndexModel(Indexes.ascending("name"), IndexOptions().background(true).collation(caseInsensitive).unique(true)),
                        IndexModel(Indexes.ascending("repoType"), IndexOptions().background(true)),
                        IndexModel(Indexes.ascending("serviceType"), IndexOptions().background(true)),
-                       IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true))
+                       IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true)),
+                       IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true))
                       ),
   replaceIndexes = true
 ) {
