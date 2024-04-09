@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.bson.{BsonArray, BsonDocument}
+import org.mongodb.scala.bson.BsonArray
 import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
@@ -42,10 +42,12 @@ class RepositoriesPersistence @Inject()(
   collectionName = "repositories",
   domainFormat   = GitRepository.mongoFormat,
   indexes        = Seq(
-                       IndexModel(Indexes.ascending("name", "isArchived"), IndexOptions().name("nameAndArchivedIdx").collation(caseInsensitive).unique(true)),
-                       IndexModel(Indexes.ascending("repoType"), IndexOptions().name("repoTypeIdx").background(true)),
-                       IndexModel(Indexes.ascending("serviceType"), IndexOptions().name("serviceTypeIdx").background(true))
-                      )
+                       IndexModel(Indexes.ascending("name"), IndexOptions().background(true).collation(caseInsensitive).unique(true)),
+                       IndexModel(Indexes.ascending("repoType"), IndexOptions().background(true)),
+                       IndexModel(Indexes.ascending("serviceType"), IndexOptions().background(true)),
+                       IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true))
+                      ),
+  replaceIndexes = true
 ) {
   // updateRepos cleans up unreferenced teams
   override lazy val requiresTtlIndex = false
@@ -78,7 +80,7 @@ class RepositoriesPersistence @Inject()(
     ).flatten
 
     collection
-      .find(if (filters.isEmpty) BsonDocument() else Filters.and(filters: _*))
+      .find(if (filters.isEmpty) Filters.empty() else Filters.and(filters: _*))
       .toFuture()
   }
 
@@ -88,7 +90,13 @@ class RepositoriesPersistence @Inject()(
 
   def putRepos(repos: Seq[GitRepository]): Future[Int] =
     collection
-      .bulkWrite(repos.map(repo => ReplaceOneModel(Filters.eq("name", repo.name), repo, ReplaceOptions().collation(caseInsensitive).upsert(true))))
+      .bulkWrite(repos.map(repo =>
+        ReplaceOneModel(
+          Filters.eq("name", repo.name),
+          repo,
+          ReplaceOptions().collation(caseInsensitive).upsert(true)
+        )
+      ))
       .toFuture()
       .map(_.getModifiedCount)
 
@@ -117,9 +125,9 @@ class RepositoriesPersistence @Inject()(
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     legacyCollection
       .aggregate(Seq(
-        `match`(archived.fold[Bson](BsonDocument())(a => Filters.eq("isArchived", a))),
+        `match`(archived.fold[Bson](Filters.empty())(a => Filters.eq("isArchived", a))),
         unwind("$teamNames"),
-        addFields( Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
+        addFields(Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
         group(
           id = "$teamid",
           first("teamName", "$teamid"),
