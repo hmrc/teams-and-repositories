@@ -51,6 +51,7 @@ class GithubConnectorSpec
         "github.open.api.key"      -> token,
         "github.open.api.url"      -> wireMockUrl,
         "github.open.api.rawurl"   -> s"$wireMockUrl/raw",
+        "github.excluded.users"    -> List("excluded@email.com"),
         "ratemetrics.githubtokens" -> List(),
         "metrics.jvm"              -> false,
         "jenkins.username" -> "",
@@ -190,8 +191,45 @@ class GithubConnectorSpec
            "description": "d1",
            "url": "url1",
            "isFork": false,
-           "createdAt": "2019-04-01T11:41:33Z",
-           "pushedAt": "2019-04-02T11:41:33Z",
+           "createdAt": "2019-01-01T11:41:33Z",
+           "lastFiveCommits": {
+             "target": {
+               "history": {
+                 "nodes": [
+                   {
+                     "author": {
+                       "email": "excluded@email.com"
+                     },
+                     "committedDate": "2019-05-02T11:41:33Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-04-02T11:41:33Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-09T07:23:21Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T21:25:38Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T16:50:46Z"
+                   }
+                 ]
+               }
+             }
+           },
            "isPrivate": true,
            "primaryLanguage": {
              "name": "l1"
@@ -215,8 +253,45 @@ class GithubConnectorSpec
            "description": "d2",
            "url": "url2",
            "isFork": false,
-           "createdAt": "2019-04-03T11:41:33Z",
-           "pushedAt": "2019-04-04T11:41:33Z",
+           "createdAt": "2019-01-03T11:41:33Z",
+           "lastFiveCommits": {
+             "target": {
+               "history": {
+                 "nodes": [
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-04-04T11:41:33Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-09T07:23:57Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-09T07:23:21Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T21:25:38Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T16:50:46Z"
+                   }
+                 ]
+               }
+             }
+           },
            "isPrivate": false,
            "primaryLanguage": {
              "name": "l2"
@@ -243,8 +318,45 @@ class GithubConnectorSpec
              "name": "n3",
              "url": "url3",
              "isFork": true,
-             "createdAt": "2019-04-05T11:41:33Z",
-             "pushedAt": "2019-04-06T11:41:33Z",
+             "createdAt": "2019-01-05T11:41:33Z",
+             "lastFiveCommits": {
+               "target": {
+                 "history": {
+                   "nodes": [
+                     {
+                       "author": {
+                         "email": "excluded@email.com"
+                       },
+                       "committedDate": "2019-05-02T11:41:33Z"
+                     },
+                     {
+                       "author": {
+                         "email": "user@email.com"
+                       },
+                       "committedDate": "2019-04-06T11:41:33Z"
+                     },
+                     {
+                       "author": {
+                         "email": "user@email.com"
+                       },
+                       "committedDate": "2019-02-09T07:23:21Z"
+                     },
+                     {
+                       "author": {
+                         "email": "user@email.com"
+                       },
+                       "committedDate": "2019-02-08T21:25:38Z"
+                     },
+                     {
+                       "author": {
+                         "email": "user@email.com"
+                       },
+                       "committedDate": "2019-02-08T16:50:46Z"
+                     }
+                   ]
+                 }
+               }
+             },
              "isPrivate": true,
              "isArchived": false,
              "defaultBranchRef": {
@@ -262,8 +374,45 @@ class GithubConnectorSpec
          "description": "d1",
          "url": "url1",
          "isFork": false,
-         "createdAt": "2019-04-01T11:41:33Z",
-         "pushedAt": "2019-04-02T11:41:33Z",
+         "createdAt": "2019-01-01T11:41:33Z",
+         "lastFiveCommits": {
+           "target": {
+             "history": {
+               "nodes": [
+                 {
+                   "author": {
+                     "email": "excluded@email.com"
+                   },
+                   "committedDate": "2019-05-02T11:41:33Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-04-02T11:41:33Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-09T07:23:21Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-08T21:25:38Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-08T16:50:46Z"
+                 }
+               ]
+             }
+           }
+         },
          "isPrivate": true,
          "primaryLanguage": {
            "name": "l1"
@@ -284,8 +433,45 @@ class GithubConnectorSpec
          "description": "d2",
          "url": "url2",
          "isFork": false,
-         "createdAt": "2019-04-03T11:41:33Z",
-         "pushedAt": "2019-04-04T11:41:33Z",
+         "createdAt": "2019-01-03T11:41:33Z",
+         "lastFiveCommits": {
+           "target": {
+             "history": {
+               "nodes": [
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-04-04T11:41:33Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-09T07:23:57Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-09T07:23:21Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-08T21:25:38Z"
+                 },
+                 {
+                   "author": {
+                     "email": "user@email.com"
+                   },
+                   "committedDate": "2019-02-08T16:50:46Z"
+                 }
+               ]
+             }
+           }
+         },
          "isPrivate": false,
          "primaryLanguage": {
            "name": "l2"
@@ -309,8 +495,45 @@ class GithubConnectorSpec
            "name": "n3",
            "url": "url3",
            "isFork": true,
-           "createdAt": "2019-04-05T11:41:33Z",
-           "pushedAt": "2019-04-06T11:41:33Z",
+           "createdAt": "2019-01-05T11:41:33Z",
+           "lastFiveCommits": {
+             "target": {
+               "history": {
+                 "nodes": [
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-04-06T11:41:33Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-09T07:23:57Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-09T07:23:21Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T21:25:38Z"
+                   },
+                   {
+                     "author": {
+                       "email": "user@email.com"
+                     },
+                     "committedDate": "2019-02-08T16:50:46Z"
+                   }
+                 ]
+               }
+             }
+           },
            "isPrivate": true,
            "isArchived": false,
            "defaultBranchRef": {
@@ -394,8 +617,45 @@ class GithubConnectorSpec
               "description": "d1",
               "url": "url1",
               "isFork": false,
-              "createdAt": "2019-04-01T11:41:33Z",
-              "pushedAt": "2019-04-02T11:41:33Z",
+              "createdAt": "2019-01-01T11:41:33Z",
+              "lastFiveCommits": {
+                "target": {
+                  "history": {
+                    "nodes": [
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-04-02T11:41:33Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-09T07:23:57Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-09T07:23:21Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-08T21:25:38Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-08T16:50:46Z"
+                      }
+                    ]
+                  }
+                }
+              },
               "isPrivate": true,
               "primaryLanguage": {
                 "name": "l1"
@@ -426,8 +686,45 @@ class GithubConnectorSpec
               "description": "d1",
               "url": "url1",
               "isFork": false,
-              "createdAt": "2019-04-01T11:41:33Z",
-              "pushedAt": "2019-04-02T11:41:33Z",
+              "createdAt": "2019-01-01T11:41:33Z",
+              "lastFiveCommits": {
+                "target": {
+                  "history": {
+                    "nodes": [
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-04-02T11:41:33Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-09T07:23:57Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-09T07:23:21Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-08T21:25:38Z"
+                      },
+                      {
+                        "author": {
+                          "email": "user@email.com"
+                        },
+                        "committedDate": "2019-02-08T16:50:46Z"
+                      }
+                    ]
+                  }
+                }
+              },
               "isPrivate": true,
               "primaryLanguage": {
                 "name": "l1"
@@ -464,7 +761,7 @@ class GithubConnectorSpec
       name               = "n1",
       htmlUrl            = "url1",
       fork               = false,
-      createdDate        = Instant.parse("2019-04-01T11:41:33Z"),
+      createdDate        = Instant.parse("2019-01-01T11:41:33Z"),
       pushedAt           = Instant.parse("2019-04-02T11:41:33Z"),
       isPrivate          = true,
       language           = Some("l1"),
@@ -482,7 +779,7 @@ class GithubConnectorSpec
         name               = "n2",
         htmlUrl            = "url2",
         fork               = false,
-        createdDate        = Instant.parse("2019-04-03T11:41:33Z"),
+        createdDate        = Instant.parse("2019-01-03T11:41:33Z"),
         pushedAt           = Instant.parse("2019-04-04T11:41:33Z"),
         isPrivate          = false,
         language           = Some("l2"),
@@ -496,7 +793,7 @@ class GithubConnectorSpec
         name               = "n3",
         htmlUrl            = "url3",
         fork               = true,
-        createdDate        = Instant.parse("2019-04-05T11:41:33Z"),
+        createdDate        = Instant.parse("2019-01-05T11:41:33Z"),
         pushedAt           = Instant.parse("2019-04-06T11:41:33Z"),
         isPrivate          = true,
         language           = None,
