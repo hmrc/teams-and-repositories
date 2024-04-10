@@ -90,7 +90,7 @@ class GithubConnector @Inject()(
         __ \ "data" \ "organization" \ "repositories"
 
       implicit val reads =
-        (root \ "nodes").read(Reads.list(GhRepository.reads))
+        (root \ "nodes").read(Reads.list(GhRepository.reads(githubConfig)))
 
       executePagedGqlQuery[List[GhRepository]](
         query = getReposQuery,
@@ -101,7 +101,7 @@ class GithubConnector @Inject()(
   def getRepo(repoName: String): Future[Option[GhRepository]] = {
     implicit val reads =
       (__ \ "data" \ "organization" \ "repository")
-        .readNullable(GhRepository.reads)
+        .readNullable(GhRepository.reads(githubConfig))
 
     executeGqlQuery[Option[GhRepository]](getRepoQuery.withVariable("repo", JsString(repoName)))
   }
@@ -178,7 +178,7 @@ class GithubConnector @Inject()(
   private object GhRepositoryWithPermission {
     val reads: Reads[GhRepositoryWithPermission] =
       ( (__ \ "permission").read[String]
-      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads)
+      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads(githubConfig))
       )(apply _)
   }
 }
@@ -211,7 +211,6 @@ object GithubConnector {
       url
       isFork
       createdAt
-      pushedAt
       isPrivate
       primaryLanguage {
         name
@@ -223,6 +222,20 @@ object GithubConnector {
           requiresApprovingReviews
           dismissesStaleReviews
           requiresCommitSignatures
+        }
+      }
+      lastFiveCommits: defaultBranchRef {
+        target {
+          ... on Commit {
+            history(first: 5) {
+              nodes {
+                author {
+                  email
+                }
+                committedDate
+              }
+            }
+          }
         }
       }
       repositoryYaml: object(expression: "HEAD:repository.yaml") {
@@ -488,18 +501,26 @@ object GhRepository {
       )(apply _)
   }
 
-  val reads: Reads[GhRepository] =
-    ( (__ \ "name"                                     ).read[String]
-    ~ (__ \ "url"                                      ).read[String]
-    ~ (__ \ "isFork"                                   ).read[Boolean]
-    ~ (__ \ "createdAt"                                ).read[Instant]
-    ~ (__ \ "pushedAt"                                 ).readWithDefault(Instant.MIN)
-    ~ (__ \ "isPrivate"                                ).read[Boolean]
-    ~ (__ \ "primaryLanguage" \ "name"                 ).readNullable[String]
-    ~ (__ \ "isArchived"                               ).read[Boolean]
-    ~ (__ \ "defaultBranchRef" \ "name"                ).readWithDefault("main")
-    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule").readNullable(BranchProtection.format)
-    ~ (__ \ "repositoryYaml" \ "text"                  ).readNullable[String]
+  def reads(gitHubConfig: GithubConfig): Reads[GhRepository] =
+    ( (__ \ "name"                                            ).read[String]
+    ~ (__ \ "url"                                             ).read[String]
+    ~ (__ \ "isFork"                                          ).read[Boolean]
+    ~ (__ \ "createdAt"                                       ).read[Instant]
+    ~ (__ \ "lastFiveCommits" \ "target" \ "history" \ "nodes").read[List[JsObject]].map { commits =>
+      commits
+        .filterNot { commit =>
+          val authorEmail = (commit \ "author" \ "email").asOpt[String]
+          authorEmail.exists(gitHubConfig.excludedUsers.contains)
+        }
+        .map(commit => (commit \ "committedDate").as[Instant])
+        .headOption.getOrElse(Instant.MIN)
+      }.orElse(Reads.pure(Instant.MIN))
+    ~ (__ \ "isPrivate"                                       ).read[Boolean]
+    ~ (__ \ "primaryLanguage" \ "name"                        ).readNullable[String]
+    ~ (__ \ "isArchived"                                      ).read[Boolean]
+    ~ (__ \ "defaultBranchRef" \ "name"                       ).readWithDefault("main")
+    ~ (__ \ "defaultBranchRef" \ "branchProtectionRule"       ).readNullable(BranchProtection.format)
+    ~ (__ \ "repositoryYaml" \ "text"                         ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
 }

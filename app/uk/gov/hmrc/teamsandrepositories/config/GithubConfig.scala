@@ -25,9 +25,10 @@ import scala.jdk.CollectionConverters._
 
 @Singleton
 class GithubConfig @Inject()(configuration: Configuration) {
-  val key    = configuration.get[String]("github.open.api.key")
-  val apiUrl = configuration.get[String]("github.open.api.url")
-  val rawUrl = configuration.get[String]("github.open.api.rawurl")
+  val key           = configuration.get[String]("github.open.api.key")
+  val apiUrl        = configuration.get[String]("github.open.api.url")
+  val rawUrl        = configuration.get[String]("github.open.api.rawurl")
+  val excludedUsers = configuration.get[Seq[String]]("github.excluded.users")
 
   val tokens: List[(String, String)] =
     configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
