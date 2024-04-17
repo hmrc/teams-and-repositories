@@ -258,6 +258,9 @@ object GithubConnector {
       hasSrcMainJava: object(expression: "HEAD:src/main/java") {
         id
       }
+      hasPomXml: object(expression: "HEAD:pom.xml") {
+        id
+      }
       tags: refs(refPrefix: "refs/tags/") {
         totalCount
       }
@@ -471,6 +474,7 @@ object GhRepository {
     hasProcfile        : Boolean,
     hasSrcMainScala    : Boolean,
     hasSrcMainJava     : Boolean,
+    hasPomXml          : Boolean,
     hasTags            : Boolean
   ) {
 
@@ -497,6 +501,7 @@ object GhRepository {
       ~ (__ \ "hasProcfile" \ "id"        ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasSrcMainScala" \ "id"    ).readNullable[String].map(_.isDefined)
       ~ (__ \ "hasSrcMainJava" \ "id"     ).readNullable[String].map(_.isDefined)
+      ~ (__ \ "hasPomXml" \ "id"          ).readNullable[String].map(_.isDefined)
       ~ (__ \ "tags" \ "totalCount"       ).readNullable[Int].map(_.exists(_ > 0))
       )(apply _)
   }

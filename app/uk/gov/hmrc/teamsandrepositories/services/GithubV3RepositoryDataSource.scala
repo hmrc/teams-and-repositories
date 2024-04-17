@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 
 import java.time.Instant
@@ -94,6 +94,20 @@ class GithubV3RepositoryDataSource @Inject()(
       .recoverWith {
         case NonFatal(ex) =>
           logger.error("Could not retrieve repo list for organisation.", ex)
+          Future.failed(ex)
+      }
+  }
+
+  def getAllJavaServices()(implicit ec: ExecutionContext): Future[List[GitRepository]] = {
+
+    logger.info("Fetching all Java Services")
+
+    githubConnector.getRepos()
+      .map(_.filter(_.repoTypeHeuristics.hasPomXml))
+      .map(_.map(_.toGitRepository))
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error("Could not retrieve Java services for organisation.", ex)
           Future.failed(ex)
       }
   }
