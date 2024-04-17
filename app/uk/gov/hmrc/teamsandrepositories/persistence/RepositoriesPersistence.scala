@@ -81,12 +81,15 @@ class RepositoriesPersistence @Inject()(
 
     collection
       .find(if (filters.isEmpty) Filters.empty() else Filters.and(filters: _*))
+      .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
       .toFuture()
   }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection
-      .find(filter = Filters.equal("name", repoName)).headOption()
+      .find(Filters.equal("name", repoName))
+      .collation(caseInsensitive)
+      .headOption()
 
   def putRepos(repos: Seq[GitRepository]): Future[Int] =
     collection
@@ -107,16 +110,18 @@ class RepositoriesPersistence @Inject()(
   def archiveRepo(repoName: String): Future[Unit] =
     collection
       .updateOne(
-        filter = Filters.equal("name", repoName),
-        update = Updates.set("isArchived", true)
+        filter  = Filters.equal("name", repoName),
+        update  = Updates.set("isArchived", true),
+        options = UpdateOptions().collation(caseInsensitive)
       )
       .toFuture()
       .map(_ => ())
 
   def deleteRepo(repoName: String): Future[Unit] =
     collection
-      .deleteOne(
-        filter = Filters.equal("name", repoName)
+      .deleteMany(
+        filter  = Filters.equal("name", repoName),
+        options = DeleteOptions().collation(caseInsensitive)
       )
       .toFuture()
       .map(_ => ())
@@ -143,8 +148,9 @@ class RepositoriesPersistence @Inject()(
     implicit val bpf = BranchProtection.format
     collection
       .updateOne(
-        filter = Filters.equal("name", repoName),
-        update = Updates.set("branchProtection", Codecs.toBson(branchProtection))
+        filter  = Filters.equal("name", repoName),
+        update  = Updates.set("branchProtection", Codecs.toBson(branchProtection)),
+        options = UpdateOptions().collation(caseInsensitive)
       )
       .toFuture()
       .map(_ => ())

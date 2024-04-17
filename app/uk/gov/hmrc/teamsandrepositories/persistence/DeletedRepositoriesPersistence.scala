@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.{Collation, DeleteOptions, Filters, Indexes, IndexModel, IndexOptions}
+import org.mongodb.scala.model.{DeleteOptions, Filters, Indexes, IndexModel, IndexOptions}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
@@ -64,7 +64,7 @@ class DeletedRepositoriesPersistence @Inject()(
         ).flatten
          .foldLeft(Filters.empty())(Filters.and(_, _))
       )
-      .collation(name.fold(Collation.builder().build())(_ => Collations.caseInsensitive))
+      .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
       .toFuture()
 
   def putRepo(repo: DeletedGitRepository): Future[Unit] =

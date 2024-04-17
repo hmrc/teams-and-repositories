@@ -34,10 +34,6 @@ class TeamSummaryPersistenceSpec
 
   override protected val repository = new TeamSummaryPersistence(mongoComponent)
 
-  override protected val checkIndexedQueries: Boolean =
-  // we run unindexed queries
-    false
-
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   private val teamSummary1 =
@@ -80,6 +76,9 @@ class TeamSummaryPersistenceSpec
       repository.updateTeamSummaries(Seq(teamSummary1Upper)).futureValue
       findAll().futureValue should contain (teamSummary1Upper)
       findAll().futureValue should not contain teamSummary1
+
+      repository.updateTeamSummaries(Seq.empty).futureValue
+      findAll().futureValue shouldBe Seq.empty
     }
   }
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.model.{Collation, DeleteOneModel, Filters, ReplaceOneModel, ReplaceOptions, WriteModel}
+import org.mongodb.scala.model.{Collation, DeleteManyModel, DeleteOptions, Filters, ReplaceOneModel, ReplaceOptions, WriteModel}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -51,7 +51,7 @@ object MongoUtils {
     oldValsFilter: Bson              = Filters.empty(),
     compareById  : (A, A) => Boolean,
     filterById   : A => Bson,
-    collation    : Collation         = defaultCollation
+    collation    : Collation         = Collations.default
   )(implicit ec: ExecutionContext): Future[(Int, Int)] = {
     def bulkWrite(updates: Seq[WriteModel[_ <: A]]): Future[Int] =
       if (updates.isEmpty)
@@ -78,11 +78,12 @@ object MongoUtils {
                     old
                       .filterNot(oldC => newVals.exists(newC => compareById(oldC, newC)))
                       .map(entry =>
-                        DeleteOneModel(filterById(entry))
+                        DeleteManyModel(
+                          filterById(entry),
+                          DeleteOptions().collation(collation)
+                        )
                       )
                   )
     } yield (upserted, deleted)
   }
-
-  private val defaultCollation: Collation = Collation.builder().build()
 }
