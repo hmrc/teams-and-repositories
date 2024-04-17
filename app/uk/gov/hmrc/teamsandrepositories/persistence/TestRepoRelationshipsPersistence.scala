@@ -42,18 +42,18 @@ class TestRepoRelationshipsPersistence @Inject()(
 
   def putRelationships(serviceRepo: String, relationships: Seq[TestRepoRelationship]): Future[Unit] =
     MongoUtils.replace[TestRepoRelationship](
-      collection  = collection,
-      newVals     = relationships,
-      compareById = (a, b) =>
-                      a.serviceRepo == b.serviceRepo &&
-                      a.testRepo    == b.testRepo,
-      filterById  = entry =>
-                      Filters.and(
-                        Filters.equal("serviceRepo", entry.serviceRepo),
-                        Filters.equal("testRepo"   , entry.testRepo)
-                      )
+      collection    = collection,
+      newVals       = relationships,
+      oldValsFilter = Filters.equal("serviceRepo", serviceRepo),
+      compareById   = (a, b) =>
+                        a.serviceRepo == b.serviceRepo &&
+                        a.testRepo    == b.testRepo,
+      filterById    = entry =>
+                        Filters.and(
+                          Filters.equal("serviceRepo", entry.serviceRepo),
+                          Filters.equal("testRepo"   , entry.testRepo)
+                        )
     ).map(_ => ())
-
 
   def findTestReposByService(serviceRepo: String): Future[Seq[String]] =
     collection

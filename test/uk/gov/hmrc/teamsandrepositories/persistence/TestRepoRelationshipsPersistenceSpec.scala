@@ -32,20 +32,23 @@ class TestRepoRelationshipsPersistenceSpec
 
   "putRelationships" should {
     "replace all relationships for a given service" in {
-      insert(TestRepoRelationship("test-repo-one", "service-repo")).futureValue
+      insert(TestRepoRelationship("test-repo-1", "service-repo-1")).futureValue
+      insert(TestRepoRelationship("test-repo-2", "service-repo-2")).futureValue
 
-      repository.findTestReposByService("service-repo").futureValue shouldBe Seq("test-repo-one")
+      repository.findTestReposByService("service-repo-1").futureValue shouldBe Seq("test-repo-1")
+      repository.findTestReposByService("service-repo-2").futureValue shouldBe Seq("test-repo-2")
 
       repository
         .putRelationships(
-          "service-repo",
+          "service-repo-1",
           Seq(
-            TestRepoRelationship("service-performance-tests", "service-repo"),
-            TestRepoRelationship("service-acceptance-tests", "service-repo")
+            TestRepoRelationship("service-performance-tests", "service-repo-1"),
+            TestRepoRelationship("service-acceptance-tests", "service-repo-1")
           )
         ).futureValue
 
-      repository.findTestReposByService("service-repo").futureValue should contain theSameElementsAs Seq("service-performance-tests", "service-acceptance-tests")
+      repository.findTestReposByService("service-repo-1").futureValue should contain theSameElementsAs Seq("service-performance-tests", "service-acceptance-tests")
+      repository.findTestReposByService("service-repo-2").futureValue should contain theSameElementsAs Seq("test-repo-2")
     }
   }
 
