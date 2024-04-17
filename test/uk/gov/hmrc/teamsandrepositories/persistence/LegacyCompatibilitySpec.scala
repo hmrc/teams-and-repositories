@@ -34,10 +34,6 @@ class LegacyCompatibilitySpec
 
   override protected val repository = new RepositoriesPersistence(mongoComponent)
 
-  override protected val checkIndexedQueries: Boolean =
-    // we run unindexed queries
-    false
-
   val legacyPersistence = new RepositoriesPersistence(mongoComponent)
 
   private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, isArchived = false, "main", branchProtection = None, isDeprecated = false, List("team1"))

@@ -230,16 +230,16 @@ class RepositoriesPersistenceSpec
 
   "updateRepoBranchProtection" should {
     "update the branch protection policy of the given repository" in {
-      (for {
-         _               <- insert(repo1)
-         bpBefore        <- repository.findRepo(repo1.name).map(_.value.branchProtection)
-         expectedBpAfter =  BranchProtection(false, false, false)
-         _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
-         bpAfter         <- repository.findRepo(repo1.name).map(_.value.branchProtection)
-         _               =  bpAfter shouldNot be(bpBefore)
-         _               =  bpAfter shouldBe Some(expectedBpAfter)
-       } yield ()
-      ).futureValue
+      insert(repo1).futureValue
+
+      val bpBefore        = repository.findRepo(repo1.name).map(_.value.branchProtection).futureValue
+      val expectedBpAfter = BranchProtection(false, false, false)
+
+      repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter)).futureValue
+
+      val bpAfter = repository.findRepo(repo1.name).map(_.value.branchProtection).futureValue
+      bpAfter shouldNot be(bpBefore)
+      bpAfter shouldBe Some(expectedBpAfter)
     }
   }
 
@@ -251,16 +251,14 @@ class RepositoriesPersistenceSpec
     }
 
     "update an existing repository" in {
-      (for {
-         _                        <- repository.putRepo(repo1)
-         serviceTypeBefore        <- repository.findRepo(repo1.name).map(_.value.serviceType)
-         expectedServiceTypeAfter =  ServiceType.Backend
-         _                        <- repository.putRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter)))
-         serviceTypeAfter         <- repository.findRepo(repo1.name).map(_.value.serviceType)
-         _                        =  serviceTypeAfter shouldNot be(serviceTypeBefore)
-         _                        =  serviceTypeAfter shouldBe Some(expectedServiceTypeAfter)
-       } yield ()
-      ).futureValue
+      repository.putRepo(repo1).futureValue
+      val serviceTypeBefore        = repository.findRepo(repo1.name).map(_.value.serviceType).futureValue
+      val expectedServiceTypeAfter = ServiceType.Backend
+      repository.putRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter))).futureValue
+
+      val serviceTypeAfter         = repository.findRepo(repo1.name).map(_.value.serviceType).futureValue
+      serviceTypeAfter shouldNot be(serviceTypeBefore)
+      serviceTypeAfter shouldBe Some(expectedServiceTypeAfter)
     }
   }
 

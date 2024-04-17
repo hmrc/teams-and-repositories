@@ -48,7 +48,7 @@ class TeamSummaryPersistence @Inject()(
     MongoUtils.replace[TeamSummary](
       collection    = collection,
       newVals       = teams,
-      compareById   = (a, b) => a.name == b.name,
+      compareById   = (a, b) => a.name.toLowerCase == b.name.toLowerCase,
       filterById    = entry => Filters.equal("name", entry.name),
       collation     = Collations.caseInsensitive
     ).map { case (upserted, deleted) =>

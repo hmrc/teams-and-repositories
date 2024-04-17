@@ -26,4 +26,7 @@ object Collations {
       .locale("en")
       .collationStrength(CollationStrength.SECONDARY)
       .build()
+
+  val default: Collation =
+    Collation.builder().build()
 }
