@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import org.mockito.MockitoSugar
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
@@ -53,7 +53,7 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
       val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("job-foo").apply(FakeRequest())
       val bodyText = contentAsString(result)
-      bodyText mustBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
+      bodyText shouldBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
     }
 
     "return a not found when no matches found" in {
@@ -62,7 +62,7 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
 
       val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("bar").apply(FakeRequest())
-      status(result) mustBe 404
+      status(result) shouldBe 404
     }
   }
 }

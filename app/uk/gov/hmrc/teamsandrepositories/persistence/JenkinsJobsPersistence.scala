@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.models.RepoType
 
@@ -29,31 +27,33 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsJobsPersistence @Inject()(
-  override val mongoComponent: MongoComponent
+  mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext
-) extends PlayMongoRepository(
+) extends PlayMongoRepository[JenkinsJobsPersistence.Job](
   mongoComponent = mongoComponent
 , collectionName = "jenkinsJobs"
 , domainFormat   = JenkinsJobsPersistence.Job.mongoFormat
-, indexes        = IndexModel(Indexes.hashed("jobName"), IndexOptions().name("jobNameIdx")) ::
-                   IndexModel(Indexes.hashed("jobType"))                                    ::
-                   IndexModel(Indexes.hashed("repoType"))                                   ::
-                   IndexModel(Indexes.hashed("repoName"))                                   ::
-                   Nil
+, indexes        = Seq(
+                     IndexModel(Indexes.hashed("jobName"))
+                   , IndexModel(Indexes.hashed("jobType"))
+                   , IndexModel(Indexes.hashed("repoType"))
+                   , IndexModel(Indexes.hashed("repoName"))
+                   , IndexModel(Indexes.ascending("jenkinsURL"), IndexOptions().unique(true))
+                   )
+, replaceIndexes = true
 , extraCodecs    = Codecs.playFormatSumCodecs(JenkinsJobsPersistence.JobType.format) ++
                    Codecs.playFormatSumCodecs(RepoType.format)
-) with Transactions {
+){
+  import JenkinsJobsPersistence._
 
   // we replace all the data for each call to putAll
   override lazy val requiresTtlIndex = false
 
-  private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
-
-  def oldestServiceJob(): Future[Option[JenkinsJobsPersistence.Job]] =
+  def oldestServiceJob(): Future[Option[Job]] =
     collection
       .find(Filters.and(
-        Filters.equal("jobType"     , JenkinsJobsPersistence.JobType.Job)
+        Filters.equal("jobType"     , JobType.Job)
       , Filters.equal("repoType"    , RepoType.Service)
       , Filters.exists("latestBuild", true)
       ))
@@ -61,29 +61,29 @@ class JenkinsJobsPersistence @Inject()(
       .first()
       .toFutureOption()
 
-  def findByJobName(name: String): Future[Option[JenkinsJobsPersistence.Job]] =
+  def findByJobName(name: String): Future[Option[Job]] =
     collection
       .find(Filters.equal("jobName", name))
       .first()
       .toFutureOption()
 
-  def findAllByRepo(service: String): Future[Seq[JenkinsJobsPersistence.Job]] =
+  def findAllByRepo(service: String): Future[Seq[Job]] =
     collection
       .find(Filters.equal("repoName", service))
       .toFuture()
 
-  def findAllByJobType(jobType: JenkinsJobsPersistence.JobType): Future[Seq[JenkinsJobsPersistence.Job]] =
+  def findAllByJobType(jobType: JobType): Future[Seq[Job]] =
     collection
       .find(Filters.equal("jobType", jobType))
       .toFuture()
 
-  def putAll(buildJobs: Seq[JenkinsJobsPersistence.Job])(implicit ec: ExecutionContext): Future[Unit] =
-     withSessionAndTransaction { session =>
-      for {
-        _ <- collection.deleteMany(session, BsonDocument()).toFuture()
-        r <- collection.insertMany(session, buildJobs).toFuture()
-      } yield ()
-    }
+  def putAll(buildJobs: Seq[Job])(implicit ec: ExecutionContext): Future[Unit] =
+    MongoUtils.replace[Job](
+      collection  = collection,
+      newVals     = buildJobs,
+      compareById = (a, b) => a.jenkinsUrl == b.jenkinsUrl,
+      filterById  = entry => Filters.equal("jenkinsURL", entry.jenkinsUrl)
+    ).map(_ => ())
 }
 
 object JenkinsJobsPersistence {

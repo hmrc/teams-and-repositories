@@ -19,7 +19,6 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, OptionValues, Status => _}
@@ -83,7 +82,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe ACCEPTED
+      status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(any())
     }
@@ -105,7 +104,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe OK
+      status(result) shouldBe OK
 
       verifyZeroInteractions(mockPersistingService)
     }
@@ -134,7 +133,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe ACCEPTED
+      status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(any())
     }
@@ -163,7 +162,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe ACCEPTED
+      status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(any())
     }
@@ -192,7 +191,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe OK
+      status(result) shouldBe OK
 
       verifyZeroInteractions(mockPersistingService)
     }
@@ -218,7 +217,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe ACCEPTED
+      status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).archiveRepository(any())
     }
@@ -243,10 +242,9 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       val result = route(app, request).value
 
-      status(result) mustBe ACCEPTED
+      status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).deleteRepository(any())(any())
     }
   }
-
 }

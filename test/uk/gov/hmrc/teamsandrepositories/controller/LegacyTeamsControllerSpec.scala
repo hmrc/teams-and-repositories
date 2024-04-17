@@ -20,7 +20,7 @@ import java.time.Instant
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.{Application, Configuration}
@@ -200,13 +200,13 @@ class LegacyTeamsControllerSpec
 
   "Teams controller" should {
     "have the correct url set up for the teams list" in {
-      uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController.teams(includeRepos = true).url mustBe "/api/teams?includeRepos=true"
+      uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController.teams(includeRepos = true).url shouldBe "/api/teams?includeRepos=true"
     }
 
     "have the correct url set up for a team's services" in {
       uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController
         .team("test-team", includeRepos = true)
-        .url mustBe "/api/teams/test-team?includeRepos=true"
+        .url shouldBe "/api/teams/test-team?includeRepos=true"
     }
   }
 
@@ -215,8 +215,8 @@ class LegacyTeamsControllerSpec
       val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
       val team = contentAsJson(result).as[Team]
-      team.name mustBe "another-team"
-      team.repos mustBe Some(Map(
+      team.name shouldBe "another-team"
+      team.repos shouldBe Some(Map(
         RepoType.Service   -> Seq("another-repo", "middle-repo"),
         RepoType.Library   -> Seq("alibrary-repo"),
         RepoType.Prototype -> Seq("CATO-prototype"),
@@ -271,7 +271,7 @@ class LegacyTeamsControllerSpec
 
       val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      contentAsJson(result).as[Team].repos mustBe Some(Map(
+      contentAsJson(result).as[Team].repos shouldBe Some(Map(
         RepoType.Service   -> List("repo-name"),
         RepoType.Library   -> List(),
         RepoType.Prototype -> List(),
@@ -287,7 +287,7 @@ class LegacyTeamsControllerSpec
 
       val team = contentAsJson(result).as[Team]
 
-      team.repos.value mustBe Map(
+      team.repos.value shouldBe Map(
         RepoType.Service   -> List("another-repo", "middle-repo"),
         RepoType.Library   -> List("alibrary-repo"),
         RepoType.Prototype -> List("CATO-prototype"),
@@ -345,7 +345,7 @@ class LegacyTeamsControllerSpec
       contentAsJson(result)
         .as[Team]
         .repos
-        .value mustBe Map(
+        .value shouldBe Map(
           RepoType.Service   -> List("repo-name"),
           RepoType.Library   -> List(),
           RepoType.Prototype -> List(),
@@ -385,16 +385,16 @@ class LegacyTeamsControllerSpec
       val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
       val team = contentAsJson(result).as[Team]
-      team.repos.map(_.get(RepoType.Service)) mustBe Some(Some(List()))
+      team.repos.map(_.get(RepoType.Service)) shouldBe Some(Some(List()))
     }
 
     "return an empty list if a team has no repositories" in new Setup {
       val sourceData = Seq(
         TeamRepositories(
-          teamName = "test-team",
+          teamName     = "test-team",
           repositories = List(),
-          createdDate = Some(now),
-          updateDate  = now
+          createdDate  = Some(now),
+          updateDate   = now
         )
       )
 
@@ -404,7 +404,7 @@ class LegacyTeamsControllerSpec
       val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
       val team = contentAsJson(result).as[Team]
-      team.repos mustBe Some(Map(
+      team.repos shouldBe Some(Map(
         RepoType.Service   -> List(),
         RepoType.Library   -> List(),
         RepoType.Prototype -> List(),
@@ -421,7 +421,7 @@ class LegacyTeamsControllerSpec
 
       val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
-      status(result) mustBe 404
+      status(result) shouldBe 404
     }
   }
 

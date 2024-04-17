@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
@@ -54,32 +54,40 @@ class TeamSummaryPersistenceSpec
       repos          = Seq("repo-one")
     )
 
-  "update" must {
+  "update" should {
     "insert new team summaries" in {
       repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
-      findAll().futureValue must contain theSameElementsAs List(teamSummary1, teamSummary2)
+      findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
     }
 
     "update existing teams summaries" in {
       insert(teamSummary1.copy(lastActiveDate = Some(now.minus(5, ChronoUnit.DAYS)))).futureValue
       repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
-      findAll().futureValue must contain theSameElementsAs List(teamSummary1, teamSummary2)
+      findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
     }
 
     "delete team summaries not in the update list" in {
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
       repository.updateTeamSummaries(List(teamSummary1)).futureValue
-      findAll().futureValue must contain (teamSummary1)
-      findAll().futureValue must not contain teamSummary2
+      findAll().futureValue should contain (teamSummary1)
+      findAll().futureValue should not contain teamSummary2
+    }
+
+    "support case-insensitive collation" in {
+      insert(teamSummary1).futureValue
+      val teamSummary1Upper = teamSummary1.copy(name = teamSummary1.name.toUpperCase)
+      repository.updateTeamSummaries(Seq(teamSummary1Upper)).futureValue
+      findAll().futureValue should contain (teamSummary1Upper)
+      findAll().futureValue should not contain teamSummary1
     }
   }
 
-  "findTeamSummaries" must {
+  "findTeamSummaries" should {
     "return all summaries for all teams" in {
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
-      repository.findTeamSummaries().futureValue must contain theSameElementsAs Seq(teamSummary1, teamSummary2)
+      repository.findTeamSummaries().futureValue should contain theSameElementsAs Seq(teamSummary1, teamSummary2)
     }
   }
 }

@@ -76,7 +76,7 @@ class JenkinsJobsPersistenceSpec
       jobName     = jobName,
       jobType     = jobType,
       repoType    = Some(RepoType.Service),
-      jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$repositoryName-job/",
+      jenkinsUrl  = jenkinsUrl,
       latestBuild = Some(JenkinsConnector.LatestBuild(
                       number      = buildNumber,
                       url         = s"$jenkinsUrl$buildNumber",

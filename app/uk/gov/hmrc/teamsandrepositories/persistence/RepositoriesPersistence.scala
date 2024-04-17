@@ -26,7 +26,6 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoReposito
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
-import org.mongodb.scala.model.Filters.equal
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 
 import javax.inject.{Inject, Singleton}
@@ -42,12 +41,12 @@ class RepositoriesPersistence @Inject()(
   collectionName = "repositories",
   domainFormat   = GitRepository.mongoFormat,
   indexes        = Seq(
-                       IndexModel(Indexes.ascending("name"), IndexOptions().background(true).collation(caseInsensitive).unique(true)),
-                       IndexModel(Indexes.ascending("repoType"), IndexOptions().background(true)),
-                       IndexModel(Indexes.ascending("serviceType"), IndexOptions().background(true)),
-                       IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true)),
-                       IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true))
-                      ),
+                     IndexModel(Indexes.ascending("name"), IndexOptions().background(true).collation(caseInsensitive).unique(true)),
+                     IndexModel(Indexes.ascending("repoType"), IndexOptions().background(true)),
+                     IndexModel(Indexes.ascending("serviceType"), IndexOptions().background(true)),
+                     IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true)),
+                     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true))
+                   ),
   replaceIndexes = true
 ) {
   // updateRepos cleans up unreferenced teams
@@ -93,7 +92,7 @@ class RepositoriesPersistence @Inject()(
     collection
       .bulkWrite(repos.map(repo =>
         ReplaceOneModel(
-          Filters.eq("name", repo.name),
+          Filters.equal("name", repo.name),
           repo,
           ReplaceOptions().collation(caseInsensitive).upsert(true)
         )
@@ -108,7 +107,7 @@ class RepositoriesPersistence @Inject()(
   def archiveRepo(repoName: String): Future[Unit] =
     collection
       .updateOne(
-        filter = equal("name", repoName),
+        filter = Filters.equal("name", repoName),
         update = Updates.set("isArchived", true)
       )
       .toFuture()
@@ -117,7 +116,7 @@ class RepositoriesPersistence @Inject()(
   def deleteRepo(repoName: String): Future[Unit] =
     collection
       .deleteOne(
-        filter = equal("name", repoName)
+        filter = Filters.equal("name", repoName)
       )
       .toFuture()
       .map(_ => ())
@@ -126,7 +125,7 @@ class RepositoriesPersistence @Inject()(
   def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
     legacyCollection
       .aggregate(Seq(
-        `match`(archived.fold[Bson](Filters.empty())(a => Filters.eq("isArchived", a))),
+        `match`(archived.fold[Bson](Filters.empty())(a => Filters.equal("isArchived", a))),
         unwind("$teamNames"),
         addFields(Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
         group(

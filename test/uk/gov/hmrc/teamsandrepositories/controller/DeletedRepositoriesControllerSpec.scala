@@ -18,7 +18,6 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.MockitoSugar
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, OptionValues}
@@ -73,8 +72,8 @@ class DeletedRepositoriesControllerSpec
 
       val result = route(app, FakeRequest(GET, getRoute())).value
 
-      status(result)        mustBe OK
-      contentAsJson(result) mustBe Json.parse(s"""
+      status(result)        shouldBe OK
+      contentAsJson(result) shouldBe Json.parse(s"""
         [
           {"name":"Foo","deletedDate":"$now"}
         , {"name":"Bar","deletedDate":"$now"}
@@ -92,8 +91,8 @@ class DeletedRepositoriesControllerSpec
 
       val result = route(app, FakeRequest(GET, getRoute(name = Some("Foo")))).value
 
-      status(result)        mustBe OK
-      contentAsJson(result) mustBe Json.parse(s"""
+      status(result)        shouldBe OK
+      contentAsJson(result) shouldBe Json.parse(s"""
         [
           {"name":"Foo","deletedDate":"$now"}
         ]
@@ -110,8 +109,8 @@ class DeletedRepositoriesControllerSpec
 
       val result = route(app, FakeRequest(GET, getRoute(repoType = Some(RepoType.Service)))).value
 
-      status(result)        mustBe OK
-      contentAsJson(result) mustBe Json.parse(s"""
+      status(result)        shouldBe OK
+      contentAsJson(result) shouldBe Json.parse(s"""
         [
           {"name":"Foo","deletedDate":"$now"}
         ]
