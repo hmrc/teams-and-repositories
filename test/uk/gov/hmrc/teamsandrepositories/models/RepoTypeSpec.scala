@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random.nextInt
@@ -39,11 +39,11 @@ class RepoTypeSpec extends AnyWordSpec with Matchers {
   val valid_inputs: List[String] = Helper.generateValidStrings(repoTypeStrings) //Generate 50 capitalization variations of each RepoType
 
   "repoType.parse" when {
-    "parsing service with various capitalization styles" must {
+    "parsing service with various capitalization styles" should {
       "returns a RepoType object" in {
         valid_inputs
           .foreach(i => RepoType.parse(i) match {
-            case Right(value) => RepoType.values must contain (value)
+            case Right(value) => RepoType.values should contain (value)
             case _            => fail(s" The input $i has no right value!")
           })
       }
@@ -53,14 +53,11 @@ class RepoTypeSpec extends AnyWordSpec with Matchers {
   val invalid_inputs = Seq("services", "foo", "42", "HELLO", "WORLD", "", ";.]'")
 
   "repoType.parse" when {
-    "parsing invalid query parameter inputs" must {
+    "parsing invalid query parameter inputs" should {
       "return an error message" in {
         invalid_inputs
-          .foreach(i => RepoType.parse(i).isLeft mustBe true)
+          .foreach(i => RepoType.parse(i).isLeft shouldBe true)
       }
     }
   }
-
 }
-
-

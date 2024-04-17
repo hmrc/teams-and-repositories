@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
 import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, Tag}
 
 class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
 
-  "ManifestDetails.Parse" must {
+  "ManifestDetails.Parse" should {
 
     "parse deprecated flag and reason" in {
       val manifest =
@@ -34,10 +34,9 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Library)
-      details.get.isDeprecated      mustBe true
-
+      details.isDefined        shouldBe true
+      details.get.repoType     shouldBe Some(RepoType.Library)
+      details.get.isDeprecated shouldBe true
     }
 
     "parse default to not deprecated" in {
@@ -48,9 +47,9 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Library)
-      details.get.isDeprecated      mustBe false
+      details.isDefined        shouldBe true
+      details.get.repoType     shouldBe Some(RepoType.Library)
+      details.get.isDeprecated shouldBe false
     }
 
     "parse service-type" in {
@@ -61,9 +60,9 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.Frontend)
+      details.isDefined       shouldBe true
+      details.get.repoType    shouldBe Some(RepoType.Service)
+      details.get.serviceType shouldBe Some(ServiceType.Frontend)
     }
 
     "parse invalid service-type" in {
@@ -74,9 +73,9 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe None
+      details.isDefined       shouldBe true
+      details.get.repoType    shouldBe Some(RepoType.Service)
+      details.get.serviceType shouldBe None
     }
 
     "parse tags" in {
@@ -88,10 +87,10 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.Frontend)
-      details.get.tags              mustBe Some(Set(Tag.Api, Tag.Stub, Tag.AdminFrontend))
+      details.isDefined       shouldBe true
+      details.get.repoType    shouldBe Some(RepoType.Service)
+      details.get.serviceType shouldBe Some(ServiceType.Frontend)
+      details.get.tags        shouldBe Some(Set(Tag.Api, Tag.Stub, Tag.AdminFrontend))
     }
 
     "parse invalid tag" in {
@@ -103,10 +102,10 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("repo1", manifest)
-      details.isDefined             mustBe true
-      details.get.repoType          mustBe Some(RepoType.Service)
-      details.get.serviceType       mustBe Some(ServiceType.Frontend)
-      details.get.tags              mustBe Some(Set.empty)
+      details.isDefined       shouldBe true
+      details.get.repoType    shouldBe Some(RepoType.Service)
+      details.get.serviceType shouldBe Some(ServiceType.Frontend)
+      details.get.tags        shouldBe Some(Set.empty)
     }
 
     "parse prototype-auto-publish" in {
@@ -117,9 +116,9 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
           |""".stripMargin
 
       val details = ManifestDetails.parse("my-prototype", manifest)
-      details.isDefined                mustBe true
-      details.get.prototypeName        mustBe Some("my-prototype")
-      details.get.prototypeAutoPublish mustBe Some(true)
+      details.isDefined                shouldBe true
+      details.get.prototypeName        shouldBe Some("my-prototype")
+      details.get.prototypeAutoPublish shouldBe Some(true)
     }
   }
 }

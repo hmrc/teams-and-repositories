@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
 import org.scalatest.OptionValues
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
@@ -153,31 +153,31 @@ class RepositoriesPersistenceSpec
       prototypeName       = None
     )
 
-  "find" must  {
+  "find" should  {
     "find all repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.find().futureValue
-      results must contain (repo1)
-      results must contain (repo2)
+      results should contain (repo1)
+      results should contain (repo2)
     }
 
     "exclude archived repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.find(isArchived = Some(false)).futureValue
-      results must contain (repo1)
-      results must not contain (repo2)
+      results should contain (repo1)
+      results should not contain (repo2)
     }
 
     "find repos with team write-access" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.find(team = Some("team3")).futureValue
-      results must contain only (repo2)
+      results should contain only (repo2)
     }
 
     "find repos owned by team" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = repository.find(owningTeam = Some("team4")).futureValue
-      results must contain only (repo2)
+      results should contain only (repo2)
     }
 
     "find repos containing name" in {
@@ -185,46 +185,46 @@ class RepositoriesPersistenceSpec
       val bar = repo1.copy(name = "bar")
       repository.collection.insertMany(Seq(repo1, repo2, foo, bar)).toFuture().futureValue
       val results = repository.find(name = Some("repo")).futureValue
-      results must contain theSameElementsAs Seq(repo1, repo2)
+      results should contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "find repos by repo type" in {
       repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
       val results = repository.find(repoType = Some(RepoType.Prototype)).futureValue
-      results must contain only (repo3)
+      results should contain only (repo3)
       val results2 = repository.find(repoType = Some(RepoType.Service)).futureValue
-      results2 must contain theSameElementsAs Seq(repo1, repo2)
+      results2 should contain theSameElementsAs Seq(repo1, repo2)
 
     }
 
     "find repos by service type" in {
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
       val results = repository.find(serviceType = Some(ServiceType.Frontend)).futureValue
-      results must contain only repo4
+      results should contain only repo4
       val results2 = repository.find(serviceType = Some(ServiceType.Backend)).futureValue
-      results2 must contain only repo5
+      results2 should contain only repo5
     }
   }
 
-  "putRepos" must {
+  "putRepos" should {
     "insert new repositories" in {
       repository.putRepos(Seq(repo1,repo2)).futureValue
-      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
+      findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "update existing repositories" in {
       insert(repo1.copy(description = "the old description")).futureValue
       repository.putRepos(Seq(repo1,repo2)).futureValue
-      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
+      findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
     }
   }
 
-  "deletedRepos" must {
+  "deletedRepos" should {
     "delete repos not in the update list" in {
       insert(repo1).futureValue
-      findAll().futureValue must contain (repo1)
+      findAll().futureValue should contain (repo1)
       repository.deleteRepo(repo1.name).futureValue
-      findAll().futureValue must not contain repo1
+      findAll().futureValue should not contain repo1
     }
   }
 
@@ -236,8 +236,8 @@ class RepositoriesPersistenceSpec
          expectedBpAfter =  BranchProtection(false, false, false)
          _               <- repository.updateRepoBranchProtection(repo1.name, Some(expectedBpAfter))
          bpAfter         <- repository.findRepo(repo1.name).map(_.value.branchProtection)
-         _               =  bpAfter mustNot be(bpBefore)
-         _               =  bpAfter mustBe Some(expectedBpAfter)
+         _               =  bpAfter shouldNot be(bpBefore)
+         _               =  bpAfter shouldBe Some(expectedBpAfter)
        } yield ()
       ).futureValue
     }
@@ -247,7 +247,7 @@ class RepositoriesPersistenceSpec
     "insert a new repository" in {
       repository.putRepo(repo1).futureValue
       repository.putRepo(repo2).futureValue
-      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
+      findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
     }
 
     "update an existing repository" in {
@@ -257,8 +257,8 @@ class RepositoriesPersistenceSpec
          expectedServiceTypeAfter =  ServiceType.Backend
          _                        <- repository.putRepo(repo1.copy(serviceType = Some(expectedServiceTypeAfter)))
          serviceTypeAfter         <- repository.findRepo(repo1.name).map(_.value.serviceType)
-         _                        =  serviceTypeAfter mustNot be(serviceTypeBefore)
-         _                        =  serviceTypeAfter mustBe Some(expectedServiceTypeAfter)
+         _                        =  serviceTypeAfter shouldNot be(serviceTypeBefore)
+         _                        =  serviceTypeAfter shouldBe Some(expectedServiceTypeAfter)
        } yield ()
       ).futureValue
     }
@@ -268,11 +268,11 @@ class RepositoriesPersistenceSpec
     "set the isArchived flag to true" in {
       repository.putRepo(repo1).futureValue
 
-      findAll().futureValue must contain theSameElementsAs Seq(repo1)
+      findAll().futureValue should contain theSameElementsAs Seq(repo1)
 
       repository.archiveRepo(repo1.name).futureValue
 
-      findAll().futureValue must contain theSameElementsAs Seq(repo1.copy(isArchived = true))
+      findAll().futureValue should contain theSameElementsAs Seq(repo1.copy(isArchived = true))
     }
   }
 
@@ -281,11 +281,11 @@ class RepositoriesPersistenceSpec
       repository.putRepo(repo1).futureValue
       repository.putRepo(repo2).futureValue
 
-      findAll().futureValue must contain theSameElementsAs Seq(repo1, repo2)
+      findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
 
       repository.deleteRepo(repo1.name).futureValue
 
-      findAll().futureValue must contain theSameElementsAs Seq(repo2)
+      findAll().futureValue should contain theSameElementsAs Seq(repo2)
     }
   }
 }

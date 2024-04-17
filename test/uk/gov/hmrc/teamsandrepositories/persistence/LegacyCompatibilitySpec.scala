@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mockito.MockitoSugar
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
@@ -43,27 +43,26 @@ class LegacyCompatibilitySpec
   private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, isArchived = false, "main", branchProtection = None, isDeprecated = false, List("team1"))
   private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), isPrivate = false, Service, serviceType = None, tags = None, None, Nil, None, isArchived = true, "main", branchProtection = None, isDeprecated = false, List("team1"))
 
-  "search" must {
-
+  "search" should {
     "find all repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(None).futureValue
-      results.length must be(1)
-      results.head.repositories.map(_.name) must contain theSameElementsAs Seq("repo1", "repo2")
+      results.length shouldBe 1
+      results.head.repositories.map(_.name) should contain theSameElementsAs Seq("repo1", "repo2")
     }
 
     "show non-archived repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(Some(false)).futureValue
-      results.length must be(1)
-      results.head.repositories.map(_.name) must contain only ("repo1")
+      results.length shouldBe 1
+      results.head.repositories.map(_.name) should contain only ("repo1")
     }
 
     "show only archived repos" in {
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(Some(true)).futureValue
-      results.length must be(1)
-      results.head.repositories.map(_.name) must contain only ("repo2")
+      results.length shouldBe 1
+      results.head.repositories.map(_.name) should contain only ("repo2")
     }
   }
 }
