@@ -73,6 +73,14 @@ class TeamSummaryPersistenceSpec
       findAll().futureValue must contain (teamSummary1)
       findAll().futureValue must not contain teamSummary2
     }
+
+    "support case-insensitive collation" in {
+      insert(teamSummary1).futureValue
+      val teamSummary1Upper = teamSummary1.copy(name = teamSummary1.name.toUpperCase)
+      repository.updateTeamSummaries(Seq(teamSummary1Upper)).futureValue
+      findAll().futureValue must contain (teamSummary1Upper)
+      findAll().futureValue must not contain teamSummary1
+    }
   }
 
   "findTeamSummaries" must {

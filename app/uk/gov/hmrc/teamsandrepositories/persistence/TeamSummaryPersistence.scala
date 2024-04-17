@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.Indexes.ascending
-import org.mongodb.scala.model.{DeleteOneModel, Filters, IndexModel, IndexOptions, Indexes, ReplaceOneModel, ReplaceOptions}
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
 import play.api.Logger
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
-import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
+import uk.gov.hmrc.teamsandrepositories.persistence.Collations
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,36 +34,30 @@ class TeamSummaryPersistence @Inject()(
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "teamSummaries",
-  domainFormat = TeamSummary.mongoFormat,
-  indexes = Seq(
-    IndexModel(Indexes.ascending("name"), IndexOptions().collation(caseInsensitive).unique(true))
-  )
+  domainFormat   = TeamSummary.mongoFormat,
+  indexes        = Seq(
+                     IndexModel(Indexes.ascending("name"), IndexOptions().collation(Collations.caseInsensitive).unique(true))
+                   )
 ){
-
   private val logger = Logger(this.getClass)
 
   // we don't need a ttl since the data is managed by updateTeamSummaries
   override lazy val requiresTtlIndex = false
 
-  def updateTeamSummaries(teams: Seq[TeamSummary]): Future[Int] =
-    for {
-      oldTeams <- collection.find().map(_.name).toFuture().map(_.toSet)
-      update   <- collection
-                    .bulkWrite(teams.map(teamSummary => ReplaceOneModel(Filters.eq("name", teamSummary.name), teamSummary, ReplaceOptions().collation(caseInsensitive).upsert(true))))
-                    .toFuture()
-                    .map(_.getModifiedCount)
-      toDelete =  (oldTeams -- teams.map(_.name)).toSeq
-      _        <- if (toDelete.nonEmpty) {
-                    logger.info(s"about to remove ${toDelete.length} deleted teams: ${toDelete.mkString(", ")}")
-                    collection.bulkWrite(toDelete.map(team => DeleteOneModel(Filters.eq("name", team)))).toFuture()
-                      .map(res => logger.info(s"removed ${res.getModifiedCount} deleted teams"))
-                  } else Future.unit
-    } yield update
+  def updateTeamSummaries(teams: Seq[TeamSummary]): Future[Unit] =
+    MongoUtils.replace[TeamSummary](
+      collection    = collection,
+      newVals       = teams,
+      compareById   = (a, b) => a.name == b.name,
+      filterById    = entry => Filters.equal("name", entry.name),
+      collation     = Collations.caseInsensitive
+    ).map { case (upserted, deleted) =>
+      logger.info(s"Upserted $upserted and deleted $deleted teams")
+    }
 
   def findTeamSummaries(): Future[Seq[TeamSummary]] =
     collection
       .find()
-      .sort(ascending("name"))
+      .sort(Sorts.ascending("name"))
       .toFuture()
-
 }

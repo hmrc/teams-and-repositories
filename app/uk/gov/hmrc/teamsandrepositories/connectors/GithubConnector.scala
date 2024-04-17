@@ -458,7 +458,6 @@ object GhRepository {
           , prototypeName        = config.get[String]("prototype-name")
           , prototypeAutoPublish = config.get[Boolean]("prototype-auto-publish")
           )
-          logger.info(s"ManifestDetails for repo: $repoName is $manifestDetails, parsed from repository.yaml: $repositoryYaml")
           Some(manifestDetails)
       }
   }
