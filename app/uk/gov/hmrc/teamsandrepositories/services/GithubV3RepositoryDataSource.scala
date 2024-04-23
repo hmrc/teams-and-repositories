@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.services
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
-import uk.gov.hmrc.teamsandrepositories.connectors.{GhTeam, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GhTeam, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 
 import java.time.Instant
@@ -28,6 +28,7 @@ import scala.util.control.NonFatal
 class TimeStamper {
   def timestampF(): Instant = Instant.now()
 }
+
 @Singleton
 class GithubV3RepositoryDataSource @Inject()(
   githubConnector: GithubConnector,
@@ -35,8 +36,7 @@ class GithubV3RepositoryDataSource @Inject()(
 ) {
   private val logger = Logger(this.getClass)
 
-  def getTeams()(implicit ec: ExecutionContext): Future[List[GhTeam]] = {
-
+  def getTeams()(implicit ec: ExecutionContext): Future[List[GhTeam]] =
     githubConnector
       .getTeams()
       .recoverWith {
@@ -44,9 +44,8 @@ class GithubV3RepositoryDataSource @Inject()(
           logger.error("Could not retrieve teams for organisation list.", ex)
           Future.failed(ex)
       }
-  }
 
-  def getTeams(repoName: String)(implicit ec: ExecutionContext): Future[List[String]] = {
+  def getTeams(repoName: String)(implicit ec: ExecutionContext): Future[List[String]] =
     githubConnector
       .getTeams(repoName)
       .recoverWith {
@@ -54,7 +53,6 @@ class GithubV3RepositoryDataSource @Inject()(
           logger.error(s"Could not retrieve teams for repo: $repoName.", ex)
           Future.failed(ex)
       }
-  }
 
 
   def getTeamRepositories(
@@ -81,12 +79,10 @@ class GithubV3RepositoryDataSource @Inject()(
       throw e
   }
 
-  def getAllRepositories()(implicit ec: ExecutionContext): Future[List[GitRepository]] = {
-
+  def getAllRepositories()(implicit ec: ExecutionContext): Future[List[GhRepository]] = {
     logger.info("Fetching all repositories from GitHub")
 
     githubConnector.getRepos()
-      .map(_.map(_.toGitRepository))
       .map { repos =>
         logger.info(s"Finished fetching all repositories from GitHub (total fetched: ${repos.size})")
         repos
@@ -98,19 +94,13 @@ class GithubV3RepositoryDataSource @Inject()(
       }
   }
 
-  def getRepo(repoName: String)(implicit ec: ExecutionContext): Future[Option[GitRepository]] = {
+  def getRepo(repoName: String)(implicit ec: ExecutionContext): Future[Option[GhRepository]] = {
     logger.info(s"Fetching repo: $repoName from GitHub")
-
     githubConnector.getRepo(repoName)
-      .map(_.map(_.toGitRepository))
       .recoverWith {
         case NonFatal(ex) =>
           logger.error(s"Could not retrieve repo: $repoName.", ex)
           Future.failed(ex)
       }
   }
-
-  def getAllRepositoriesByName()(implicit ec: ExecutionContext): Future[Map[String, GitRepository]] =
-    getAllRepositories()
-      .map(_.map(r => r.name -> r).toMap)
 }
