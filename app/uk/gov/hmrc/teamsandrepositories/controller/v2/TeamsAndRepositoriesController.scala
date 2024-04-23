@@ -17,13 +17,12 @@
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence}
-import uk.gov.hmrc.teamsandrepositories.services.{BranchProtectionService, GithubV3RepositoryDataSource}
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,19 +33,13 @@ class TeamsAndRepositoriesController @Inject()(
   teamSummaryPersistence : TeamSummaryPersistence,
   branchProtectionService: BranchProtectionService,
   auth                   : BackendAuthComponents,
-  cc                     : ControllerComponents,
-  v3                     : GithubV3RepositoryDataSource
+  cc                     : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
 
   implicit val grf: Format[GitRepository] = GitRepository.apiFormat
   implicit val tnf: Format[TeamSummary]   = TeamSummary.apiFormat
-
-  def allJavaServices(): Action[AnyContent] = Action.async {
-    v3.getAllJavaServices()
-      .map(result => Ok(Json.toJson(result)))
-  }
 
   def repositories(
     name       : Option[String],
