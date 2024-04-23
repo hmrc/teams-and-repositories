@@ -20,7 +20,7 @@ import cats.implicits._
 import cats.data.{EitherT, OptionT}
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
@@ -28,7 +28,6 @@ import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository
 
 @Singleton
 case class PersistingService @Inject()(
@@ -36,9 +35,9 @@ case class PersistingService @Inject()(
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
   teamSummaryPersistence        : TeamSummaryPersistence,
   relationshipsPersistence      : TestRepoRelationshipsPersistence,
-  dataSource                    : GithubV3RepositoryDataSource,
   configuration                 : Configuration,
   serviceConfigsConnector       : ServiceConfigsConnector,
+  githubConnector               : GithubConnector
 ) {
   private val logger = Logger(this.getClass)
 
@@ -48,7 +47,7 @@ case class PersistingService @Inject()(
     for {
       frontendRoutes             <- serviceConfigsConnector.getFrontendServices()
       adminFrontendRoutes        <- serviceConfigsConnector.getAdminFrontendServices()
-      ghRepos                    <- dataSource.getAllRepositories()
+      ghRepos                    <- githubConnector.getRepos()
       allRepos                   =  ghRepos.map(r => r.name -> r.toGitRepository).toMap
 
       orphanRepos                =  (allRepos -- reposWithTeams.map(_.name).toSet).values
@@ -78,9 +77,16 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      gitHubTeams    <- dataSource.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
+      gitHubTeams    <- githubConnector.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
       teamRepos      <- gitHubTeams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-                          dataSource.getTeamRepositories(team).map(_ :: acc)
+                          githubConnector.getReposForTeam(team).map(ghRepos =>
+                            TeamRepositories(
+                              teamName     = team.name,
+                              repositories = ghRepos.map(_.toGitRepository).sortBy(_.name),
+                              createdDate  = Some(team.createdAt),
+                              updateDate   = Instant.now()
+                            ) :: acc
+                          )
                         }
       repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
       teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
@@ -103,11 +109,11 @@ case class PersistingService @Inject()(
   def updateRepository(repoName: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
       ghRepo              <- EitherT.fromOptionF(
-                               dataSource.getRepo(repoName)
+                               githubConnector.getRepo(repoName)
                              , s"not found on github"
                              )
       rawRepo             =  ghRepo.toGitRepository
-      teams               <- EitherT.liftF(dataSource.getTeams(repoName).map(_.filterNot(team => hiddenTeams.contains(team))))
+      teams               <- EitherT.liftF(githubConnector.getTeams(repoName).map(_.filterNot(team => hiddenTeams.contains(team))))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(repoName))
                                .map(x => if (x) Set(repoName) else Set.empty[String])

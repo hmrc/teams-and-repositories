@@ -345,7 +345,6 @@ class PersistingServiceSpec
     val relationshipsPersistence: TestRepoRelationshipsPersistence = mock[TestRepoRelationshipsPersistence]
     val githubConnector         : GithubConnector                  = mock[GithubConnector]
     val serviceConfigsConnector : ServiceConfigsConnector          = mock[ServiceConfigsConnector]
-    val timestamper             : TimeStamper                      = new TimeStamper
     val configuration           : Configuration                    = mock[Configuration]
 
     val hiddenTeamName          : String                           = "hidden-team"
@@ -358,10 +357,8 @@ class PersistingServiceSpec
     when(deletedRepoPersistence.deleteRepos(any)).thenReturn(Future.successful(0))
     when(relationshipsPersistence.putRelationships(any[String], anySeq[TestRepoRelationship])).thenReturn(Future.unit)
 
-    val datasource = new GithubV3RepositoryDataSource(githubConnector, timestamper)
-
     val onTest: PersistingService =
-      PersistingService(reposPersistence, deletedRepoPersistence, teamsPersistence, relationshipsPersistence, datasource, configuration, serviceConfigsConnector)
+      PersistingService(reposPersistence, deletedRepoPersistence, teamsPersistence, relationshipsPersistence, configuration, serviceConfigsConnector, githubConnector)
 
     val now: Instant = Instant.now()
 
@@ -377,6 +374,7 @@ class PersistingServiceSpec
       hasProcfile         = false,
       hasSrcMainScala     = false,
       hasSrcMainJava      = false,
+      hasPomXml           = false,
       hasTags             = false
     )
 
