@@ -152,8 +152,12 @@ class PersistingServiceSpec
         val repo4 = aRepo.copy(name = "admin-frontend-stub", repositoryYamlText = Some("type: service\nservice-type: frontend")) // 2 tags defined by name
         val repo5 = aRepo.copy(name = "not-a-stub",          repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: []")) // YAML says not a tag
         val repo6 = aRepo.copy(name = "all-tags-defined",    repositoryYamlText = Some("type: service\nservice-type: frontend\ntags: ['admin', 'api', 'stub']")) // Defined by YAML
+
+        val repo7 = aRepo.copy(name = "repo-built-off-platform", repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true))
+        val repo8 = aRepo.copy(name = "repo-uses-maven",         repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true, hasPomXml = true))
+
         when(githubConnector.getTeams()).thenReturn(Future.successful(Nil))
-        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5, repo6)))
+        when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3, repo4, repo5, repo6, repo7, repo8)))
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set.empty))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set.empty))
         onTest.updateTeamsAndRepositories().futureValue
@@ -166,12 +170,14 @@ class PersistingServiceSpec
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType, r.tags))
           .toSet shouldBe Set(
-            ("other-repo"         , RepoType.Other  , None                      , None)
-          , ("admin-frontend"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
-          , ("repo-stub"          , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
-          , ("admin-frontend-stub", RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))
-          , ("not-a-stub"         , RepoType.Service, Some(ServiceType.Frontend), Some(Set.empty))
-          , ("all-tags-defined"   , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Api, Tag.Stub)))
+            ("other-repo"              , RepoType.Other  , None                      , None)
+          , ("admin-frontend"          , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend)))
+          , ("repo-stub"               , RepoType.Service, Some(ServiceType.Backend) , Some(Set(Tag.Stub)))
+          , ("admin-frontend-stub"     , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Stub)))
+          , ("not-a-stub"              , RepoType.Service, Some(ServiceType.Frontend), Some(Set.empty))
+          , ("all-tags-defined"        , RepoType.Service, Some(ServiceType.Frontend), Some(Set(Tag.AdminFrontend, Tag.Api, Tag.Stub)))
+          , ("repo-built-off-platform" , RepoType.Service, Some(ServiceType.Backend),  Some(Set(Tag.BuiltOffPlatform)))
+          , ("repo-uses-maven"         , RepoType.Service, Some(ServiceType.Backend),  Some(Set(Tag.Maven)))
           )
       }
 
@@ -350,6 +356,7 @@ class PersistingServiceSpec
     val hiddenTeamName          : String                           = "hidden-team"
 
     when(configuration.get[Seq[String]]("hidden.teams")).thenReturn(Seq(hiddenTeamName))
+    when(configuration.get[Seq[String]]("built-off-platform")).thenReturn(Seq("repo-built-off-platform"))
     when(teamsPersistence.updateTeamSummaries(any)).thenReturn(Future.successful(0))
     when(reposPersistence.find()).thenReturn(Future.successful(Nil))
     when(reposPersistence.putRepos(any)).thenReturn(Future.successful(0))

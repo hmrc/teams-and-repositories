@@ -22,12 +22,14 @@ import play.api.mvc.QueryStringBindable
 sealed trait Tag {def asString: String}
 
 object Tag {
-  case object AdminFrontend extends Tag { def asString = "admin" }
-  case object Api           extends Tag { def asString = "api"   }
-  case object Stub          extends Tag { def asString = "stub"  }
+  case object AdminFrontend    extends Tag { def asString = "admin"              }
+  case object Api              extends Tag { def asString = "api"                }
+  case object BuiltOffPlatform extends Tag { def asString = "built-off-platform" }
+  case object Maven            extends Tag { def asString = "maven"              }
+  case object Stub             extends Tag { def asString = "stub"               }
 
   val values =
-    Set(AdminFrontend, Api, Stub)
+    Set(AdminFrontend, Api, BuiltOffPlatform, Maven, Stub)
 
   def parse(s: String): Either[String, Tag] =
     values
