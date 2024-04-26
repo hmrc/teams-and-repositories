@@ -20,7 +20,7 @@ import cats.implicits._
 import cats.data.{EitherT, OptionT}
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.teamsandrepositories.connectors.ServiceConfigsConnector
+import uk.gov.hmrc.teamsandrepositories.connectors.{GhRepository, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
@@ -35,23 +35,25 @@ case class PersistingService @Inject()(
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
   teamSummaryPersistence        : TeamSummaryPersistence,
   relationshipsPersistence      : TestRepoRelationshipsPersistence,
-  dataSource                    : GithubV3RepositoryDataSource,
   configuration                 : Configuration,
   serviceConfigsConnector       : ServiceConfigsConnector,
+  githubConnector               : GithubConnector
 ) {
   private val logger = Logger(this.getClass)
 
-  private val hiddenTeams = configuration.get[Seq[String]]("hidden.teams").toSet
+  private val hiddenTeams              = configuration.get[Seq[String]]("hidden.teams").toSet
+  private val servicesBuiltOffPlatform = configuration.get[Seq[String]]("built-off-platform").toSet
 
   private def updateRepositories(reposWithTeams: Seq[GitRepository])(implicit ec: ExecutionContext): Future[Unit] =
     for {
       frontendRoutes             <- serviceConfigsConnector.getFrontendServices()
       adminFrontendRoutes        <- serviceConfigsConnector.getAdminFrontendServices()
-      allRepos                   <- dataSource.getAllRepositoriesByName()
+      ghRepos                    <- githubConnector.getRepos()
+      allRepos                   =  ghRepos.map(r => r.name -> r.toGitRepository).toMap
       orphanRepos                =  (allRepos -- reposWithTeams.map(_.name).toSet).values
       toPersistRepos             =  (reposWithTeams ++ orphanRepos)
                                       .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
-                                      .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+                                      .map(r => defineTag(r, adminFrontendRoutes = adminFrontendRoutes, servicesBuiltOffPlatform, ghRepos.find(_.name == r.name)))
       toPersistReposNames        =  toPersistRepos.map(_.name).toSet
 
       _                          =  logger.info(s"found ${toPersistRepos.length} repos")
@@ -75,9 +77,16 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      gitHubTeams    <- dataSource.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
+      gitHubTeams    <- githubConnector.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
       teamRepos      <- gitHubTeams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-                          dataSource.getTeamRepositories(team).map(_ :: acc)
+                          githubConnector.getReposForTeam(team).map(ghRepos =>
+                            TeamRepositories(
+                              teamName     = team.name,
+                              repositories = ghRepos.map(_.toGitRepository).sortBy(_.name),
+                              createdDate  = Some(team.createdAt),
+                              updateDate   = Instant.now()
+                            ) :: acc
+                          )
                         }
       repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
       teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
@@ -99,11 +108,12 @@ case class PersistingService @Inject()(
 
   def updateRepository(repoName: String)(implicit ec: ExecutionContext): EitherT[Future, String, Unit] =
     for {
-      rawRepo             <- EitherT.fromOptionF(
-                               dataSource.getRepo(repoName)
+      ghRepo              <- EitherT.fromOptionF(
+                               githubConnector.getRepo(repoName)
                              , s"not found on github"
                              )
-      teams               <- EitherT.liftF(dataSource.getTeams(repoName).map(_.filterNot(team => hiddenTeams.contains(team))))
+      rawRepo             =  ghRepo.toGitRepository
+      teams               <- EitherT.liftF(githubConnector.getTeams(repoName).map(_.filterNot(team => hiddenTeams.contains(team))))
       frontendRoutes      <- EitherT
                                .liftF(serviceConfigsConnector.hasFrontendRoutes(repoName))
                                .map(x => if (x) Set(repoName) else Set.empty[String])
@@ -119,7 +129,7 @@ case class PersistingService @Inject()(
                                   )
                                 )
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
-                               .map(defineTag(_, adminFrontendRoutes = adminFrontendRoutes))
+                               .map(r => defineTag(r, adminFrontendRoutes = adminFrontendRoutes, servicesBuiltOffPlatform, Some(ghRepo)))
       _                   <- EitherT
                                .liftF(deletedRepositoriesPersistence.deleteRepos(Seq(repo.name)))
       _                   <- EitherT
@@ -171,14 +181,21 @@ case class PersistingService @Inject()(
       case _                              => repo
     }
 
-  private def defineTag(repo: GitRepository, adminFrontendRoutes: Set[String]): GitRepository =
+  private def defineTag(
+    repo                    : GitRepository,
+    adminFrontendRoutes     : Set[String],
+    servicesBuiltOffPlatform: Set[String],
+    ghRepo                  : Option[GhRepository]
+  ): GitRepository =
     repo.repoType match {
       case RepoType.Service
         if repo.tags.nonEmpty => repo // tags already defined in repository.yaml
       case RepoType.Service   => val newTags =
                                    Option.when(repo.name.contains("stub"))(Tag.Stub)                       ++
                                    Option.when(adminFrontendRoutes.contains(repo.name))(Tag.AdminFrontend) ++
-                                   Option.when(repo.name.contains("admin-frontend"))(Tag.AdminFrontend)
+                                   Option.when(repo.name.contains("admin-frontend"))(Tag.AdminFrontend)    ++
+                                   Option.when(ghRepo.exists(_.repoTypeHeuristics.hasPomXml))(Tag.Maven)   ++
+                                   Option.when(servicesBuiltOffPlatform.contains(repo.name))(Tag.BuiltOffPlatform)
                                  repo.copy(tags = Some(newTags.toSet))
       case _                  => repo
     }

@@ -68,10 +68,9 @@ class LegacyRepositoriesControllerSpec
         Map(
           "github.open.api.host" -> "http://bla.bla",
           "github.open.api.key"  -> "",
-          "metrics.jvm"          -> false,
-          "jenkins.username" -> "",
-          "jenkins.token" -> "",
-          "jenkins.url" -> ""
+          "jenkins.username"     -> "",
+          "jenkins.token"        -> "",
+          "jenkins.url"          -> ""
         )
       )
       .build()

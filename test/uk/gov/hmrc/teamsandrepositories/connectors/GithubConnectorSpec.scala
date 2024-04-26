@@ -753,6 +753,7 @@ class GithubConnectorSpec
       hasProcfile         = false,
       hasSrcMainScala     = false,
       hasSrcMainJava      = false,
+      hasPomXml           = false,
       hasTags             = false
     )
 
