@@ -34,5 +34,6 @@ GET         /api/v2/repositories/:repoName/test-repositories         uk.gov.hmrc
 GET         /api/v2/repositories/:repoName/services-under-test       uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.servicesUnderTest(repoName)
 POST        /api/v2/repositories/:repoName/branch-protection/enabled uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
 GET         /api/v2/teams                                            uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.allTeams()
+GET         /api/v2/decommissioned-services                          uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.decommissionedServices()
 
 POST        /teams-and-repositories/webhook                          uk.gov.hmrc.teamsandrepositories.controller.WebhookController.processGithubWebhook()

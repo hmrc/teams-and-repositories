@@ -21,7 +21,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
@@ -29,11 +29,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
-  repositoriesPersistence: RepositoriesPersistence,
-  teamSummaryPersistence : TeamSummaryPersistence,
-  branchProtectionService: BranchProtectionService,
-  auth                   : BackendAuthComponents,
-  cc                     : ControllerComponents
+  repositoriesPersistence       : RepositoriesPersistence,
+  teamSummaryPersistence        : TeamSummaryPersistence,
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  branchProtectionService       : BranchProtectionService,
+  auth                          : BackendAuthComponents,
+  cc                            : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
@@ -86,4 +87,14 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
+
+  def decommissionedServices() = Action.async { request =>
+    for {
+      archivedNames  <- repositoriesPersistence.find(isArchived = Some(true), repoType = Some(RepoType.Service))
+                          .map(_.map(_.name))
+      deletedNames   <- deletedRepositoriesPersistence.find(repoType = Some(RepoType.Service))
+                          .map(_.map(_.name))
+      decommissioned =  (archivedNames ++ deletedNames).sorted.distinct
+    } yield Ok(Json.toJson(decommissioned))
+  }
 }
