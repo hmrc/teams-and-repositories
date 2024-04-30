@@ -92,10 +92,11 @@ class TeamsAndRepositoriesController @Inject()(
   def decommissionedServices() = Action.async { request =>
     for {
       archivedNames  <- repositoriesPersistence.find(isArchived = Some(true), repoType = Some(RepoType.Service))
-                          .map(_.map(r => DecommissionedService(r.name)))
+                          .map(_.map(_.name))
       deletedNames   <- deletedRepositoriesPersistence.find(repoType = Some(RepoType.Service))
-                          .map(_.map(r => DecommissionedService(r.name)))
-      decommissioned =  (archivedNames ++ deletedNames).sortBy(_.repoName).distinct
+                          .map(_.map(_.name))
+      decommissioned =  (archivedNames ++ deletedNames)
+                          .sorted.distinct.map(name => DecommissionedService(repoName = name))
     } yield Ok(Json.toJson(decommissioned))
   }
 }
