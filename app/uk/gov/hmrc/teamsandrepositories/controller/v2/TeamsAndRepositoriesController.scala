@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
+import play.api.libs.functional.syntax.unlift
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
@@ -91,10 +92,17 @@ class TeamsAndRepositoriesController @Inject()(
   def decommissionedServices() = Action.async { request =>
     for {
       archivedNames  <- repositoriesPersistence.find(isArchived = Some(true), repoType = Some(RepoType.Service))
-                          .map(_.map(_.name))
+                          .map(_.map(r => DecommissionedService(r.name)))
       deletedNames   <- deletedRepositoriesPersistence.find(repoType = Some(RepoType.Service))
-                          .map(_.map(_.name))
-      decommissioned =  (archivedNames ++ deletedNames).sorted.distinct
+                          .map(_.map(r => DecommissionedService(r.name)))
+      decommissioned =  (archivedNames ++ deletedNames).sortBy(_.repoName).distinct
     } yield Ok(Json.toJson(decommissioned))
   }
+}
+
+case class DecommissionedService(repoName: String)
+
+object DecommissionedService {
+  implicit val apiWrites: Writes[DecommissionedService] =
+    (__ \ "repoName").write[String].contramap(unlift(DecommissionedService.unapply))
 }
