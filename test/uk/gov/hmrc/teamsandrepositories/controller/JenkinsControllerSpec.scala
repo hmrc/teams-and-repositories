@@ -28,12 +28,14 @@ import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with MockitoSugar {
-
-  val mockJenkinsJobsPersistence = mock[JenkinsJobsPersistence]
+class JenkinsControllerSpec
+  extends AnyWordSpec
+    with Matchers
+    with Results
+    with MockitoSugar {
 
   "JenkinsController" should {
-    "return a single match as Json" in {
+    "return a single match as Json" in new Setup {
       when(mockJenkinsJobsPersistence.findByJobName("job-foo"))
         .thenReturn(
           Future.successful(
@@ -50,19 +52,27 @@ class JenkinsControllerSpec extends AnyWordSpec with Matchers with Results with 
           )
         )
 
-      val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("job-foo").apply(FakeRequest())
       val bodyText = contentAsString(result)
       bodyText shouldBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
     }
 
-    "return a not found when no matches found" in {
+    "return a not found when no matches found" in new Setup {
       when(mockJenkinsJobsPersistence.findByJobName("bar"))
         .thenReturn(Future.successful(None))
 
-      val controller = new JenkinsController(mockJenkinsJobsPersistence, stubControllerComponents())
       val result = controller.lookup("bar").apply(FakeRequest())
       status(result) shouldBe 404
     }
+  }
+
+  trait Setup {
+    val mockJenkinsJobsPersistence = mock[JenkinsJobsPersistence]
+
+    val controller =
+      new JenkinsController(
+        mockJenkinsJobsPersistence,
+        stubControllerComponents()
+      )
   }
 }

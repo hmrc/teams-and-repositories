@@ -39,26 +39,10 @@ class TeamsAndRepositoriesControllerSpec
     with MockitoSugar
     with OptionValues {
 
-  val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
-  val mockRepositoriesPersistence       : RepositoriesPersistence        = mock[RepositoriesPersistence]
-  val mockBranchProtectionService       : BranchProtectionService        = mock[BranchProtectionService]
-  val mockTeamSummaryPersistence        : TeamSummaryPersistence         = mock[TeamSummaryPersistence]
-  val mockAuthComponents                : BackendAuthComponents          = mock[BackendAuthComponents]
-
-
-
   "TeamsAndRepositoriesController" should {
-    "return all decommissioned services" in {
+    "return all decommissioned services" in new Setup {
 
       val repoTypeService = Some(RepoType.Service)
-      val controller      = new TeamsAndRepositoriesController(
-        mockRepositoriesPersistence,
-        mockTeamSummaryPersistence,
-        mockDeletedRepositoriesPersistence,
-        mockBranchProtectionService,
-        mockAuthComponents,
-        stubControllerComponents()
-      )
 
       when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = repoTypeService))
         .thenReturn(Future.successful(Seq(
@@ -96,32 +80,49 @@ class TeamsAndRepositoriesControllerSpec
     }
   }
 
-  private lazy val now = Instant.now()
+  trait Setup {
+    val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
+    val mockRepositoriesPersistence       : RepositoriesPersistence        = mock[RepositoriesPersistence]
+    val mockBranchProtectionService       : BranchProtectionService        = mock[BranchProtectionService]
+    val mockTeamSummaryPersistence        : TeamSummaryPersistence         = mock[TeamSummaryPersistence]
+    val mockAuthComponents                : BackendAuthComponents          = mock[BackendAuthComponents]
 
-  private val aRepo =
-    GitRepository(
-      name                 = "",
-      description          = "a-repo",
-      url                  = "repo-url",
-      createdDate          = now,
-      lastActiveDate       = now,
-      repoType             = RepoType.Service,
-      serviceType          = Some(ServiceType.Backend),
-      tags                 = None,
-      digitalServiceName   = None,
-      owningTeams          = Seq.empty,
-      language             = Some("scala"),
-      isArchived           = true,
-      defaultBranch        = "branch",
-      branchProtection     = None,
-      isDeprecated         = true,
-      teams                = List.empty,
-      prototypeName        = None,
-      prototypeAutoPublish = None,
-      repositoryYamlText   = None
-  )
+    val controller =
+      new TeamsAndRepositoriesController(
+        mockRepositoriesPersistence,
+        mockTeamSummaryPersistence,
+        mockDeletedRepositoriesPersistence,
+        mockBranchProtectionService,
+        mockAuthComponents,
+        stubControllerComponents()
+      )
 
-  private val aDeletedRepo =
+    private lazy val now = Instant.now()
+
+    val aRepo =
+      GitRepository(
+        name                 = "",
+        description          = "a-repo",
+        url                  = "repo-url",
+        createdDate          = now,
+        lastActiveDate       = now,
+        repoType             = RepoType.Service,
+        serviceType          = Some(ServiceType.Backend),
+        tags                 = None,
+        digitalServiceName   = None,
+        owningTeams          = Seq.empty,
+        language             = Some("scala"),
+        isArchived           = true,
+        defaultBranch        = "branch",
+        branchProtection     = None,
+        isDeprecated         = true,
+        teams                = List.empty,
+        prototypeName        = None,
+        prototypeAutoPublish = None,
+        repositoryYamlText   = None
+    )
+
+  val aDeletedRepo =
     DeletedGitRepository(
       name               = "",
       deletedDate        = now,
@@ -133,4 +134,6 @@ class TeamsAndRepositoriesControllerSpec
       teams              = None,
       prototypeName      = None
     )
+  }
 }
+
