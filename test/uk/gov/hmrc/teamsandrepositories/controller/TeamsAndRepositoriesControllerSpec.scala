@@ -19,65 +19,61 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterEach, OptionValues}
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
+import org.scalatest.OptionValues
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.internalauth.client.BackendAuthComponents
+import uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
-import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
+import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import java.time.Instant
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TeamsAndRepositoriesControllerSpec
   extends AnyWordSpec
     with Matchers
-    with GuiceOneAppPerSuite
     with MockitoSugar
-    with OptionValues
-    with BeforeAndAfterEach {
+    with OptionValues {
 
   val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
   val mockRepositoriesPersistence       : RepositoriesPersistence        = mock[RepositoriesPersistence]
+  val mockBranchProtectionService       : BranchProtectionService        = mock[BranchProtectionService]
+  val mockTeamSummaryPersistence        : TeamSummaryPersistence         = mock[TeamSummaryPersistence]
+  val mockAuthComponents                : BackendAuthComponents          = mock[BackendAuthComponents]
 
-  implicit override lazy val app: Application = {
-    new GuiceApplicationBuilder()
-      .overrides(
-        bind[DeletedRepositoriesPersistence].toInstance(mockDeletedRepositoriesPersistence),
-        bind[RepositoriesPersistence].toInstance(mockRepositoriesPersistence)
-      )
-      .build()
-  }
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(mockDeletedRepositoriesPersistence)
-    reset(mockRepositoriesPersistence)
-  }
-
-  private def getRoute: String = v2.routes.TeamsAndRepositoriesController.decommissionedServices().url
 
   "TeamsAndRepositoriesController" should {
     "return all decommissioned services" in {
 
       val repoTypeService = Some(RepoType.Service)
+      val controller      = new TeamsAndRepositoriesController(
+        mockRepositoriesPersistence,
+        mockTeamSummaryPersistence,
+        mockDeletedRepositoriesPersistence,
+        mockBranchProtectionService,
+        mockAuthComponents,
+        stubControllerComponents()
+      )
 
       when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = repoTypeService))
         .thenReturn(Future.successful(Seq(
           aRepo.copy(name = "service-1"),
           aRepo.copy(name = "service-2")
         )))
+
       when(mockDeletedRepositoriesPersistence.find(repoType = repoTypeService))
         .thenReturn(Future.successful(Seq(
           aDeletedRepo.copy(name = "service-3"),
           aDeletedRepo.copy(name = "service-4")
         )))
 
-      val result = route(app, FakeRequest(GET, getRoute)).value
+
+      val result = controller.decommissionedServices().apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
