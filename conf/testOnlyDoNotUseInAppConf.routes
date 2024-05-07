@@ -14,6 +14,8 @@
 POST       /test-only/repos                  @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addRepositories()
 DELETE     /test-only/repos                  @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearAll
 
+POST       /test-only/deleted-repos          @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.addDeletedRepositories()
+
 POST       /test-only/jenkins                @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.putJenkinsJobs
 DELETE     /test-only/jenkins                @uk.gov.hmrc.teamsandrepositories.testonly.IntegrationTestSupportController.clearJenkins
 
