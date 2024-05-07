@@ -21,6 +21,8 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
 import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, Tag}
 
+import java.time.Instant
+
 class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
 
   "ManifestDetails.Parse" should {
@@ -37,6 +39,50 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined        shouldBe true
       details.get.repoType     shouldBe Some(RepoType.Library)
       details.get.isDeprecated shouldBe true
+    }
+
+    "parse description" in {
+      val manifest =
+        """
+          |description: test description
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.isDefined shouldBe true
+      details.get.description shouldBe Some("test description")
+    }
+
+    "parse end-of-life-date" in {
+      val manifest =
+        """
+          |end-of-life-date: 2024-05-09
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.isDefined shouldBe true
+      details.get.endOfLifeDate shouldBe Some(Instant.parse("2024-05-09T00:00:00Z"))
+    }
+
+    "parse end-of-life-date as None if invalid format" in {
+      val manifest =
+        """
+          |end-of-life-date: 20000-05-09
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.isDefined shouldBe true
+      details.get.endOfLifeDate shouldBe None
+    }
+
+    "parse end-of-life-date as None if key is missing" in {
+      val manifest =
+        """
+          |repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.isDefined shouldBe true
+      details.get.endOfLifeDate shouldBe None
     }
 
     "parse default to not deprecated" in {
