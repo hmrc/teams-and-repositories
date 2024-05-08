@@ -20,6 +20,7 @@ import org.yaml.snakeyaml.Yaml
 import play.api.Logger
 
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -28,6 +29,12 @@ case class YamlMap(asMap: Map[String, Object]) {
 
   def get[A](key: String): Option[A] =
     asMap.get(key).map(_.asInstanceOf[A])
+    
+  def getAsOpt[A <: Object : ClassTag](key: String): Option[A] =
+    asMap.get(key).flatMap {
+      case t: A => Some(t)
+      case _    => None
+    }
 
   def getArray(key: String): Option[List[String]] =
     try {

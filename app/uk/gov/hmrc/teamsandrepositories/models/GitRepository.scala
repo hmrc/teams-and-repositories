@@ -29,13 +29,14 @@ case class GitRepository(
   url                 : String,
   createdDate         : Instant,
   lastActiveDate      : Instant,
+  endOfLifeDate       : Option[Instant]          = None,
   isPrivate           : Boolean                  = false,
   repoType            : RepoType                 = RepoType.Other,
   serviceType         : Option[ServiceType]      = None,
   tags                : Option[Set[Tag]]         = None,
   digitalServiceName  : Option[String]           = None,
   owningTeams         : Seq[String]              = Nil,
-  language            : Option[String],
+  language            : Option[String]           = None,
   isArchived          : Boolean,
   defaultBranch       : String,
   branchProtection    : Option[BranchProtection] = None,
@@ -57,6 +58,7 @@ object GitRepository {
     ~ (__ \ "url"                 ).format[String]
     ~ (__ \ "createdDate"         ).format[Instant]
     ~ (__ \ "lastActiveDate"      ).format[Instant]
+    ~ (__ \ "endOfLifeDate"       ).formatNullable[Instant]
     ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"            ).format[RepoType]
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
@@ -85,6 +87,7 @@ object GitRepository {
     ~ (__ \ "url"                 ).format[String]
     ~ (__ \ "createdDate"         ).format[Instant]
     ~ (__ \ "lastActiveDate"      ).format[Instant]
+    ~ (__ \ "endOfLifeDate"       ).formatNullable[Instant]
     ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"            ).format[RepoType]
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]

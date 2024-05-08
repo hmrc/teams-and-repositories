@@ -17,19 +17,19 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.codahale.metrics.MetricRegistry
-
-import java.time.Instant
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
-import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
 
+import java.time.Instant
+import java.util.Date
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -382,8 +382,8 @@ case class GhRepository(
             tags                 = None,
             digitalServiceName   = None,
             description          = None,
+            endOfLifeDate        = None,
             owningTeams          = Seq.empty,
-            isDeprecated         = false,
             prototypeName        = None,
             prototypeAutoPublish = None
           )
@@ -407,6 +407,7 @@ case class GhRepository(
       url                  = htmlUrl,
       createdDate          = createdDate,
       lastActiveDate       = pushedAt,
+      endOfLifeDate        = manifestDetails.endOfLifeDate,
       isPrivate            = isPrivate,
       repoType             = repoType,
       serviceType          = manifestDetails.serviceType,
@@ -433,6 +434,7 @@ object GhRepository {
     tags                : Option[Set[Tag]],
     digitalServiceName  : Option[String],
     description         : Option[String],
+    endOfLifeDate       : Option[Instant],
     owningTeams         : Seq[String],
     isDeprecated        : Boolean = false,
     prototypeName       : Option[String],
@@ -456,6 +458,7 @@ object GhRepository {
           , tags                 = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service")
           , description          = config.get[String]("description")
+          , endOfLifeDate        = config.getAsOpt[Date]("end-of-life-date").map(_.toInstant)
           , owningTeams          = config.getArray("owning-teams").getOrElse(Nil)
           , isDeprecated         = config.get[Boolean]("deprecated").getOrElse(false)
           , prototypeName        = config.get[String]("prototype-name")
