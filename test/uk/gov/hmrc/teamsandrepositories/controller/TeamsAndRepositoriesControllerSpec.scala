@@ -40,40 +40,84 @@ class TeamsAndRepositoriesControllerSpec
     with OptionValues {
 
   "TeamsAndRepositoriesController" should {
-    "return all decommissioned services" in new Setup {
+    "return all decommissioned repos" in new Setup {
 
-      val repoTypeService = Some(RepoType.Service)
-
-      when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = repoTypeService))
+      when(mockRepositoriesPersistence.find(isArchived = Some(true)))
         .thenReturn(Future.successful(Seq(
-          aRepo.copy(name = "service-1"),
-          aRepo.copy(name = "service-2")
+          aRepo.copy(name = "repo-1", repoType=RepoType.Service),
+          aRepo.copy(name = "repo-2", repoType=RepoType.Library)
         )))
 
-      when(mockDeletedRepositoriesPersistence.find(repoType = repoTypeService))
+      when(mockDeletedRepositoriesPersistence.find())
         .thenReturn(Future.successful(Seq(
-          aDeletedRepo.copy(name = "service-3"),
-          aDeletedRepo.copy(name = "service-4")
+          aDeletedRepo.copy(name = "repo-3", repoType = Some(RepoType.Other)),
+          aDeletedRepo.copy(name = "repo-4", repoType = None)
         )))
 
 
-      val result = controller.decommissionedServices().apply(FakeRequest())
+      val result = controller.decommissionedRepos().apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
         s"""
            |[
            |  {
-           |    "repoName": "service-1"
+           |    "repoName": "repo-1",
+           |    "repoType": "Service"
            |  },
            |  {
-           |    "repoName": "service-2"
+           |    "repoName": "repo-2",
+           |    "repoType": "Library"
            |   },
            |  {
-           |    "repoName": "service-3"
+           |    "repoName": "repo-3",
+           |    "repoType": "Other"
            |  },
            |  {
-           |    "repoName": "service-4"
+           |    "repoName": "repo-4"
+           |  }
+           |]
+           |""".stripMargin)
+    }
+
+    "return all decommissioned services" in new Setup {
+
+      val service: RepoType = RepoType.Service
+
+      when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = Some(service)))
+        .thenReturn(Future.successful(Seq(
+          aRepo.copy(name = "repo-1", repoType=service),
+          aRepo.copy(name = "repo-2", repoType=service)
+        )))
+
+      when(mockDeletedRepositoriesPersistence.find(repoType = Some(service)))
+        .thenReturn(Future.successful(Seq(
+          aDeletedRepo.copy(name = "repo-3", repoType = Some(service)),
+          aDeletedRepo.copy(name = "repo-4", repoType = Some(service))
+        )))
+
+
+      val result = controller.decommissionedRepos(repoType = Some(service)).apply(FakeRequest())
+
+      status(result)        shouldBe OK
+      contentAsJson(result) shouldBe Json.parse(
+        s"""
+           |[
+           |  {
+           |    "repoName": "repo-1",
+           |    "repoType": "Service"
+           |  },
+           |  {
+           |    "repoName": "repo-2",
+           |    "repoType": "Service"
+           |   },
+           |  {
+           |    "repoName": "repo-3",
+           |    "repoType": "Service"
+           |  },
+           |  {
+           |    "repoName": "repo-4",
+           |    "repoType": "Service"
            |  }
            |]
            |""".stripMargin)

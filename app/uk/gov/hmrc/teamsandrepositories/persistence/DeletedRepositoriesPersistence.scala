@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.{DeleteOptions, Filters, Indexes, IndexModel, IndexOptions}
+import org.mongodb.scala.bson.collection.immutable.Document
+import org.mongodb.scala.model.{DeleteOptions, Filters, IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
 
 import javax.inject.{Inject, Singleton}
@@ -26,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DeletedRepositoriesPersistence @Inject()(
-  mongoComponent: MongoComponent
+  val mongoComponent: MongoComponent
 )(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository(
@@ -38,10 +40,12 @@ class DeletedRepositoriesPersistence @Inject()(
                      IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
                      IndexModel(Indexes.ascending("repoType"),    IndexOptions().name("repoTypeIdx"))
                    )
-) {
+) with Transactions {
 
   // need to keep permanent record of deleted repositories
   override lazy val requiresTtlIndex = false
+
+  private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
 
   private val Quoted = """^\"(.*)\"$""".r
 
@@ -72,6 +76,16 @@ class DeletedRepositoriesPersistence @Inject()(
       .insertOne(repo)
       .toFuture()
       .map(_ => ())
+
+  def putAll(repos: Seq[DeletedGitRepository]): Future[Unit] =
+    withSessionAndTransaction(session =>
+      for {
+        _ <- collection.deleteMany(session, Document()).toFuture()
+        _ <- if (repos.nonEmpty) collection.insertMany(session, repos).toFuture()
+             else Future.successful(())
+      } yield ()
+    )
+
 
   // Remove when repo has been recreated - added to repositories collection
   def deleteRepos(repoNames: Seq[String]): Future[Long] =

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
-import play.api.libs.functional.syntax.unlift
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
@@ -89,21 +89,27 @@ class TeamsAndRepositoriesController @Inject()(
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
 
-  def decommissionedServices() = Action.async { request =>
+  def decommissionedRepos(repoType: Option[RepoType] = None) = Action.async { request =>
     for {
-      archivedNames  <- repositoriesPersistence.find(isArchived = Some(true), repoType = Some(RepoType.Service))
-                          .map(_.map(_.name))
-      deletedNames   <- deletedRepositoriesPersistence.find(repoType = Some(RepoType.Service))
-                          .map(_.map(_.name))
-      decommissioned =  (archivedNames ++ deletedNames)
-                          .sorted.distinct.map(name => DecommissionedService(repoName = name))
+      archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
+                          .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
+      deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
+                          .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
+      decommissioned =  (archivedRepos ++ deletedRepos)
+                          .distinct
+                          .sortBy(_.repoName)
     } yield Ok(Json.toJson(decommissioned))
   }
 }
 
-case class DecommissionedService(repoName: String)
+case class DecommissionedRepo(
+  repoName: String,
+  repoType: Option[RepoType]
+)
 
-object DecommissionedService {
-  implicit val apiWrites: Writes[DecommissionedService] =
-    (__ \ "repoName").write[String].contramap(unlift(DecommissionedService.unapply))
+object DecommissionedRepo {
+  implicit val apiWrites: Writes[DecommissionedRepo] =
+    ( (__ \ "repoName").write[String]
+    ~ (__ \ "repoType").writeNullable[RepoType](RepoType.format)
+    )(unlift(DecommissionedRepo.unapply))
 }

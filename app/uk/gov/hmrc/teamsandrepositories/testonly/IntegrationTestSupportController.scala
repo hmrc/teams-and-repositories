@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.testonly
 
-import cats.implicits.toTraverseOps
 import org.mongodb.scala.bson.{BsonDocument, Document}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
@@ -28,11 +27,11 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
-  repositoriesPersistence: RepositoriesPersistence,
+  repositoriesPersistence       : RepositoriesPersistence,
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
-  teamSummaryPersistence: TeamSummaryPersistence,
-  jenkinsJobsPersistence : JenkinsJobsPersistence,
-  cc                     : ControllerComponents
+  teamSummaryPersistence        : TeamSummaryPersistence,
+  jenkinsJobsPersistence        : JenkinsJobsPersistence,
+  cc                            : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
@@ -51,8 +50,8 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def addDeletedRepositories(): Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
-    request.body.traverse(deletedRepositoriesPersistence.putRepo).map(_ => Ok("Ok"))
+  def putDeletedRepositories(): Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
+    deletedRepositoriesPersistence.putAll(request.body).map(_ => Ok("Ok"))
   }
 
   def putJenkinsJobs(): Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
