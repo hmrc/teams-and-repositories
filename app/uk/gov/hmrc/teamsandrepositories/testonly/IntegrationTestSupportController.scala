@@ -20,22 +20,24 @@ import org.mongodb.scala.bson.{BsonDocument, Document}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
+import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class IntegrationTestSupportController @Inject()(
-  repositoriesPersistence: RepositoriesPersistence,
-  teamSummaryPersistence: TeamSummaryPersistence,
-  jenkinsJobsPersistence : JenkinsJobsPersistence,
-  cc                     : ControllerComponents
+  repositoriesPersistence       : RepositoriesPersistence,
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  teamSummaryPersistence        : TeamSummaryPersistence,
+  jenkinsJobsPersistence        : JenkinsJobsPersistence,
+  cc                            : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
   private implicit val bjf: Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
   private implicit val ghf: OFormat[GitRepository]            = GitRepository.apiFormat
+  private implicit val dgf: OFormat[DeletedGitRepository]     = DeletedGitRepository.apiFormat
 
   private def validateJson[A: Reads]: BodyParser[A] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
@@ -46,6 +48,10 @@ class IntegrationTestSupportController @Inject()(
 
   def clearAll(): Action[AnyContent] = Action.async {
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
+  }
+
+  def putDeletedRepositories(): Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
+    deletedRepositoriesPersistence.putAll(request.body).map(_ => Ok("Ok"))
   }
 
   def putJenkinsJobs(): Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>

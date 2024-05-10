@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, TeamSummaryPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
@@ -29,11 +30,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TeamsAndRepositoriesController @Inject()(
-  repositoriesPersistence: RepositoriesPersistence,
-  teamSummaryPersistence : TeamSummaryPersistence,
-  branchProtectionService: BranchProtectionService,
-  auth                   : BackendAuthComponents,
-  cc                     : ControllerComponents
+  repositoriesPersistence       : RepositoriesPersistence,
+  teamSummaryPersistence        : TeamSummaryPersistence,
+  deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
+  branchProtectionService       : BranchProtectionService,
+  auth                          : BackendAuthComponents,
+  cc                            : ControllerComponents
 )(implicit
   ec: ExecutionContext
 ) extends BackendController(cc) {
@@ -86,4 +88,28 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
+
+  def decommissionedRepos(repoType: Option[RepoType] = None) = Action.async { request =>
+    for {
+      archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
+                          .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
+      deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
+                          .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
+      decommissioned =  (archivedRepos ++ deletedRepos)
+                          .distinct
+                          .sortBy(_.repoName)
+    } yield Ok(Json.toJson(decommissioned))
+  }
+}
+
+case class DecommissionedRepo(
+  repoName: String,
+  repoType: Option[RepoType]
+)
+
+object DecommissionedRepo {
+  implicit val apiWrites: Writes[DecommissionedRepo] =
+    ( (__ \ "repoName").write[String]
+    ~ (__ \ "repoType").writeNullable[RepoType](RepoType.format)
+    )(unlift(DecommissionedRepo.unapply))
 }
