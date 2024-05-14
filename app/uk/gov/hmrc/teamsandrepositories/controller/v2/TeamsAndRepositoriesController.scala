@@ -97,7 +97,7 @@ class TeamsAndRepositoriesController @Inject()(
                           .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
       decommissioned =  (archivedRepos ++ deletedRepos)
                           .distinct
-                          .sortBy(_.repoName)
+                          .sortBy(_.repoName.toLowerCase)
     } yield Ok(Json.toJson(decommissioned))
   }
 }
