@@ -62,12 +62,14 @@ class GithubConnector @Inject()(
     }
 
   def getTeams(repoName: String): Future[List[String]] = {
+    implicit val reads =
+      (__ \ "name").read[String]
+
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
       .setHeader(authHeader)
       .withProxy
-      .execute[List[TeamWithPermission]]
-      .map(_.filterNot(team => Seq("pull", "triage").contains(team.permission)).map(_.name))
+      .execute[List[String]]
   }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
@@ -76,12 +78,12 @@ class GithubConnector @Inject()(
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
       implicit val reads =
-        (root \ "edges").readWithDefault(List.empty[GhRepositoryWithPermission])(Reads.list(GhRepositoryWithPermission.reads))
+        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads(githubConfig)))
 
-      executePagedGqlQuery[List[GhRepositoryWithPermission]](
+      executePagedGqlQuery[List[GhRepository]](
         query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
-      ).map(_.flatten.filter(_.permission == "WRITE").map(_.ghRepository))
+      ).map(_.flatten)
     }
 
   def getRepos(): Future[List[GhRepository]] =
@@ -160,27 +162,6 @@ class GithubConnector @Inject()(
       case Failure(_) =>
         metricRegistry.counter(s"$name.failure").inc()
     }
-
-  private case class TeamWithPermission(name: String, permission: String)
-
-  private object TeamWithPermission {
-    implicit val reads: Reads[TeamWithPermission] =
-      ( (__ \ "name"      ).read[String]
-      ~ (__ \ "permission").read[String]
-      )(apply _)
-  }
-
-  private case class GhRepositoryWithPermission (
-    permission  : String,
-    ghRepository: GhRepository
-  )
-
-  private object GhRepositoryWithPermission {
-    val reads: Reads[GhRepositoryWithPermission] =
-      ( (__ \ "permission").read[String]
-      ~ (__ \ "node"      ).read[GhRepository](GhRepository.reads(githubConfig))
-      )(apply _)
-  }
 }
 
 object GithubConnector {
@@ -276,11 +257,8 @@ object GithubConnector {
                 pageInfo {
                   endCursor
                 }
-                edges {
-                  permission
-                  node {
-                    $repositoryFields
-                  }
+                nodes {
+                  $repositoryFields
                 }
               }
             }
