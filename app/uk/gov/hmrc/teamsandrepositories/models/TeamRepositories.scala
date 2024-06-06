@@ -60,7 +60,7 @@ case class TeamRepositories(
       createdDate    = createdDate,
       lastActiveDate = lastActiveDate,
       repos          = repos,
-      ownedRepos     = ownedRepos
+      ownedRepos     = ownedRepos.sortBy(_.toUpperCase)
     )
   }
 }
