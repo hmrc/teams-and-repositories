@@ -17,7 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.time.Instant
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers

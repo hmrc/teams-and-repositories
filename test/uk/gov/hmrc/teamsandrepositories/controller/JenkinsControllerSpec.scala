@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
@@ -67,9 +68,9 @@ class JenkinsControllerSpec
   }
 
   trait Setup {
-    val mockJenkinsJobsPersistence = mock[JenkinsJobsPersistence]
+    val mockJenkinsJobsPersistence: JenkinsJobsPersistence = mock[JenkinsJobsPersistence]
 
-    val controller =
+    val controller: JenkinsController =
       new JenkinsController(
         mockJenkinsJobsPersistence,
         stubControllerComponents()

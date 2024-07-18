@@ -62,7 +62,7 @@ object DeletedGitRepository {
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
     ~ (__ \ "teamNames"           ).formatNullable[List[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
-    )(apply, unlift(unapply))
+    )(apply, d => Tuple.fromProductTyped(d))
   }
 
   val mongoFormat: OFormat[DeletedGitRepository] = {
@@ -78,6 +78,6 @@ object DeletedGitRepository {
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
     ~ (__ \ "teamNames"           ).formatNullable[List[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
-    )(apply, unlift(unapply))
+    )(apply, d => Tuple.fromProductTyped(d))
   }
 }

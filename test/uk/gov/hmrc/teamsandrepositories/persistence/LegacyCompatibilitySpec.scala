@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.Service
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
+import org.mongodb.scala.ObservableFuture
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global

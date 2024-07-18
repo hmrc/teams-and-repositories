@@ -36,7 +36,7 @@ object Environment {
     implicit val lf = Link.format
     ( (__ \ "name"    ).format[String]
     ~ (__ \ "services").format[Seq[Link]]
-    )(apply, unlift(unapply))
+    )(apply, e => Tuple.fromProductTyped(e))
   }
 }
 
@@ -51,7 +51,7 @@ object Link {
     ( (__ \ "name"       ).format[String]
     ~ (__ \ "displayName").format[String]
     ~ (__ \ "url"        ).format[String]
-    )(apply, unlift(unapply))
+    )(apply, l => Tuple.fromProductTyped(l))
 }
 
 case class RepositoryDetails(
@@ -75,7 +75,7 @@ case class RepositoryDetails(
 object RepositoryDetails {
   private val logger = Logger(this.getClass)
 
-  val format = {
+  val format: OFormat[RepositoryDetails] = {
     implicit val rtf = RepoType.format
     implicit val lf  = Link.format
     implicit val ef  = Environment.format
@@ -94,7 +94,7 @@ object RepositoryDetails {
     ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
     ~ (__ \ "isDeprecated"   ).format[Boolean]
-    )(apply, unlift(unapply))
+    )(apply, r => Tuple.fromProductTyped(r))
   }
 
   def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {

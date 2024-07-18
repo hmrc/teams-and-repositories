@@ -276,7 +276,7 @@ object JenkinsConnector {
       ~ (__ \ "timestamp"  ).write[Instant]
       ~ (__ \ "result"     ).writeNullable[BuildResult]
       ~ (__ \ "description").writeNullable[String]
-      )(unlift(unapply))
+      )(a => Tuple.fromProductTyped(a))
 
     val jenkinsReads: Reads[LatestBuild] =
       ( (__ \ "number"     ).read[Int]

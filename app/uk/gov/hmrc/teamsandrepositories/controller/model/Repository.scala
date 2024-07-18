@@ -60,7 +60,7 @@ object Repository {
     ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
     ~ (__ \ "isDeprecated" ).format[Boolean]
-    )(apply, unlift(unapply))
+    )(apply, r => Tuple.fromProductTyped(r))
   }
 }
 
@@ -97,6 +97,6 @@ object Team {
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).formatNullable[Map[RepoType, List[String]]]
     ~ (__ \ "ownedRepos"    ).format[Seq[String]]
-    )(Team.apply, unlift(Team.unapply))
+    )(Team.apply, t => Tuple.fromProductTyped(t))
   }
 }

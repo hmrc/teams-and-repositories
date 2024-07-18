@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.{Collation, DeleteManyModel, DeleteOptions, Filters, ReplaceOneModel, ReplaceOptions, WriteModel}
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag

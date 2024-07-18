@@ -18,7 +18,8 @@ package uk.gov.hmrc.teamsandrepositories.controller
 
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, OptionValues, Status => _}
@@ -106,7 +107,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       status(result) shouldBe OK
 
-      verifyZeroInteractions(mockPersistingService)
+      verifyNoInteractions(mockPersistingService)
     }
 
     "return 202 given 'team' webhook with action 'added_to_repository'" in {
@@ -193,7 +194,7 @@ class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
 
       status(result) shouldBe OK
 
-      verifyZeroInteractions(mockPersistingService)
+      verifyNoInteractions(mockPersistingService)
     }
 
     "return 202 given 'repository' webhook with 'archived' action" in {

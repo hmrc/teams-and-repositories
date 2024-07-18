@@ -28,7 +28,7 @@ class TestRepoRelationshipsPersistenceSpec
      with Matchers
      with DefaultPlayMongoRepositorySupport[TestRepoRelationship] {
 
-  override protected val repository = new TestRepoRelationshipsPersistence(mongoComponent)
+  override protected val repository: TestRepoRelationshipsPersistence = TestRepoRelationshipsPersistence(mongoComponent)
 
   "putRelationships" should {
     "replace all relationships for a given service" in {

@@ -48,7 +48,7 @@ case class PersistingService @Inject()(
     for {
       frontendRoutes             <- serviceConfigsConnector.getFrontendServices()
       adminFrontendRoutes        <- serviceConfigsConnector.getAdminFrontendServices()
-      ghRepos                    <- githubConnector.getRepos()
+      ghRepos                    <- githubConnector.getRepos
       allRepos                   =  ghRepos.map(r => r.name -> r.toGitRepository).toMap
       orphanRepos                =  (allRepos -- reposWithTeams.map(_.name).toSet).values
       toPersistRepos             =  (reposWithTeams ++ orphanRepos)
@@ -77,7 +77,7 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(implicit ec: ExecutionContext): Future[Unit] =
     for {
-      gitHubTeams    <- githubConnector.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
+      gitHubTeams    <- githubConnector.getTeams.map(_.filterNot(team => hiddenTeams.contains(team.name)))
       teamRepos      <- gitHubTeams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
                           githubConnector.getReposForTeam(team).map(ghRepos =>
                             TeamRepositories(

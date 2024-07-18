@@ -129,7 +129,7 @@ object TeamRepositories {
     ~ (__ \ "repositories").format[List[GitRepository]]
     ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
-    )(apply, unlift(unapply))
+    )(apply, t => Tuple.fromProductTyped(t))
   }
 
   val mongoFormat: OFormat[TeamRepositories] = {
@@ -139,7 +139,7 @@ object TeamRepositories {
     ~ (__ \ "repositories").format[List[GitRepository]]
     ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
-    )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
+    )(TeamRepositories.apply, t => Tuple.fromProductTyped(t))
   }
 
   def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] = {
@@ -237,7 +237,7 @@ object DigitalServiceRepository {
     ~ (__ \ "repoType"     ).format[RepoType]
     ~ (__ \ "teamNames"    ).format[Seq[String]]
     ~ (__ \ "archived"     ).format[Boolean]
-    )(apply, unlift(unapply))
+    )(apply, d => Tuple.fromProductTyped(d))
   }
 }
 
@@ -253,6 +253,6 @@ object DigitalService {
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repositories" ).format[Seq[DigitalServiceRepository]]
-    )(apply, unlift(unapply))
+    )(apply, d => Tuple.fromProductTyped(d))
   }
 }

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import play.api.Logging
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
@@ -132,7 +133,7 @@ object BuildDeployApiConnector {
     ~ (__ \ "set_branch_protection_rule").write[Boolean]
     ~ (__ \ "require_branch_up_to_date" ).write[Boolean]
     ~ (__ \ "status_checks"             ).write[List[String]]
-    )(unlift(BranchProtection.unapply))
+    )(b => Tuple.fromProductTyped(b))
   }
 
   final case class ChangesBranchProtectionResult(

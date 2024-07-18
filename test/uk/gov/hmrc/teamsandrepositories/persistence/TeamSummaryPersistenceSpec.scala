@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -32,7 +32,7 @@ class TeamSummaryPersistenceSpec
     with MockitoSugar
     with DefaultPlayMongoRepositorySupport[TeamSummary] {
 
-  override protected val repository = new TeamSummaryPersistence(mongoComponent)
+  override protected val repository: TeamSummaryPersistence = TeamSummaryPersistence(mongoComponent)
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 

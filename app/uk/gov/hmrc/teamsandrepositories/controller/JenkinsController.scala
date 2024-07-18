@@ -61,7 +61,7 @@ object JenkinsController {
       ~ (__ \ "timestamp"  ).write[Instant]
       ~ (__ \ "result"     ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
       ~ (__ \ "description").writeNullable[String]
-      )(unlift(JenkinsConnector.LatestBuild.unapply))
+      )(l => Tuple.fromProductTyped(l))
 
     ( (__ \ "repoName"   ).write[String]
     ~ (__ \ "jobName"    ).write[String]
@@ -69,6 +69,6 @@ object JenkinsController {
     ~ (__ \ "jobType"    ).write[JenkinsJobsPersistence.JobType](JenkinsJobsPersistence.JobType.format)
     ~ (__ \ "repoType"   ).writeNullable[RepoType](RepoType.format)
     ~ (__ \ "latestBuild").writeNullable[JenkinsConnector.LatestBuild]
-    )(unlift(JenkinsJobsPersistence.Job.unapply))
+    )(j => Tuple.fromProductTyped(j))
   }
 }

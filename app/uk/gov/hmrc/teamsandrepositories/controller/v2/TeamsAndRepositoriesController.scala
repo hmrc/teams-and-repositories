@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
@@ -90,7 +90,7 @@ class TeamsAndRepositoriesController @Inject()(
     }
 
   def decommissionedRepos(repoType: Option[RepoType] = None) = Action.async { request =>
-    for {
+    for
       archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
                           .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
       deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
@@ -98,7 +98,7 @@ class TeamsAndRepositoriesController @Inject()(
       decommissioned =  (archivedRepos ++ deletedRepos)
                           .distinct
                           .sortBy(_.repoName.toLowerCase)
-    } yield Ok(Json.toJson(decommissioned))
+    yield Ok(Json.toJson(decommissioned))
   }
 }
 
@@ -111,5 +111,5 @@ object DecommissionedRepo {
   implicit val apiWrites: Writes[DecommissionedRepo] =
     ( (__ \ "repoName").write[String]
     ~ (__ \ "repoType").writeNullable[RepoType](RepoType.format)
-    )(unlift(DecommissionedRepo.unapply))
+    )(d => Tuple.fromProductTyped(d))
 }

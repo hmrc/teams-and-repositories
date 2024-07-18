@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import uk.gov.hmrc.http.client.HttpClientV2

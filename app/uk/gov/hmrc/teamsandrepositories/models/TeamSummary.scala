@@ -40,11 +40,11 @@ object TeamSummary {
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).format[Seq[String]]
-    )(TeamSummary.apply, unlift(TeamSummary.unapply))
+    )(TeamSummary.apply, t => Tuple.fromProductTyped(t))
 
   val mongoFormat: OFormat[TeamSummary] =
     ( (__ \ "name"           ).format[String]
     ~ (__ \ "lastActiveDate" ).formatNullable[Instant](MongoJavatimeFormats.instantFormat)
     ~ (__ \ "repos"          ).format[Seq[String]]
-    )(TeamSummary.apply, unlift(TeamSummary.unapply))
+    )(TeamSummary.apply, t => Tuple.fromProductTyped(t))
 }

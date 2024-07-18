@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, GitRepository}
+import org.mongodb.scala.ObservableFuture
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -35,7 +36,7 @@ class RepositoriesPersistenceSpec
      with DefaultPlayMongoRepositorySupport[GitRepository]
      with OptionValues {
 
-  override protected val repository = new RepositoriesPersistence(mongoComponent)
+  override protected val repository: RepositoriesPersistence = RepositoriesPersistence(mongoComponent)
 
   override protected val checkIndexedQueries: Boolean =
     // we run unindexed queries

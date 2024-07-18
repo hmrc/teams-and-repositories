@@ -17,7 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, OptionValues}
@@ -45,7 +46,7 @@ class DeletedRepositoriesControllerSpec
   val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
 
   implicit override lazy val app: Application = {
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .overrides(
         bind[DeletedRepositoriesPersistence].toInstance(mockDeletedRepositoriesPersistence)
       )

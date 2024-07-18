@@ -27,6 +27,7 @@ import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, Service
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

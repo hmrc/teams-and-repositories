@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.OptionValues
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.internalauth.client.BackendAuthComponents
 import uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
@@ -42,20 +44,20 @@ class TeamsAndRepositoriesControllerSpec
   "TeamsAndRepositoriesController" should {
     "return all decommissioned repos" in new Setup {
 
-      when(mockRepositoriesPersistence.find(isArchived = Some(true)))
+      when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = None))
         .thenReturn(Future.successful(Seq(
           aRepo.copy(name = "repo-1", repoType=RepoType.Service),
           aRepo.copy(name = "repo-2", repoType=RepoType.Library)
         )))
 
-      when(mockDeletedRepositoriesPersistence.find())
+      when(mockDeletedRepositoriesPersistence.find(repoType = None))
         .thenReturn(Future.successful(Seq(
           aDeletedRepo.copy(name = "repo-3", repoType = Some(RepoType.Other)),
           aDeletedRepo.copy(name = "repo-4", repoType = None)
         )))
 
 
-      val result = controller.decommissionedRepos().apply(FakeRequest())
+      val result: Future[Result] = controller.decommissionedRepos().apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -97,7 +99,8 @@ class TeamsAndRepositoriesControllerSpec
         )))
 
 
-      val result = controller.decommissionedRepos(repoType = Some(service)).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.decommissionedRepos(repoType = Some(service)).apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -131,8 +134,8 @@ class TeamsAndRepositoriesControllerSpec
     val mockTeamSummaryPersistence        : TeamSummaryPersistence         = mock[TeamSummaryPersistence]
     val mockAuthComponents                : BackendAuthComponents          = mock[BackendAuthComponents]
 
-    val controller =
-      new TeamsAndRepositoriesController(
+    val controller: TeamsAndRepositoriesController =
+      TeamsAndRepositoriesController(
         mockRepositoriesPersistence,
         mockTeamSummaryPersistence,
         mockDeletedRepositoriesPersistence,
@@ -143,7 +146,7 @@ class TeamsAndRepositoriesControllerSpec
 
     private lazy val now = Instant.now()
 
-    val aRepo =
+    val aRepo: GitRepository =
       GitRepository(
         name                 = "",
         description          = "a-repo",
@@ -166,18 +169,18 @@ class TeamsAndRepositoriesControllerSpec
         repositoryYamlText   = None
     )
 
-  val aDeletedRepo =
-    DeletedGitRepository(
-      name               = "",
-      deletedDate        = now,
-      isPrivate          = None,
-      repoType           = Some(RepoType.Service),
-      serviceType        = Some(ServiceType.Frontend),
-      digitalServiceName = None,
-      owningTeams        = None,
-      teams              = None,
-      prototypeName      = None
-    )
+    val aDeletedRepo: DeletedGitRepository =
+      DeletedGitRepository(
+        name               = "",
+        deletedDate        = now,
+        isPrivate          = None,
+        repoType           = Some(RepoType.Service),
+        serviceType        = Some(ServiceType.Frontend),
+        digitalServiceName = None,
+        owningTeams        = None,
+        teams              = None,
+        prototypeName      = None
+      )
   }
 }
 

@@ -74,7 +74,7 @@ object GitRepository {
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, unlift(unapply))
+    )(apply, g => Tuple.fromProductTyped(g))
   }
 
   val mongoFormat: OFormat[GitRepository] = {
@@ -103,6 +103,6 @@ object GitRepository {
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, unlift(unapply))
+    )(apply, g => Tuple.fromProductTyped(g))
   }
 }

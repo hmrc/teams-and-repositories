@@ -31,7 +31,7 @@ class AdminController @Inject()(
   cc                      : ControllerComponents
 )(implicit ec: ExecutionContext) extends BackendController(cc) {
 
-  def reloadCache(): Action[AnyContent] = Action {
+  def reloadCache: Action[AnyContent] = Action {
     dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }

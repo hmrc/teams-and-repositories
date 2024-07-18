@@ -208,12 +208,12 @@ class BuildDeployApiConnectorSpec
       |}
       |""".stripMargin
 
-  private lazy val connector =
-    new BuildDeployApiConnector(httpClientV2, config)
+  private lazy val connector: BuildDeployApiConnector =
+    BuildDeployApiConnector(httpClientV2, config)
 
-  private lazy val config =
-    new BuildDeployApiConfig(
-      new ServicesConfig(
+  private lazy val config: BuildDeployApiConfig =
+    BuildDeployApiConfig(
+      ServicesConfig(
         Configuration(
           "microservice.services.platops-bnd-api.port" -> wireMockPort,
           "microservice.services.platops-bnd-api.host" -> wireMockHost

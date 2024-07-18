@@ -47,8 +47,8 @@ class IntegrationTestSupportControllerTest extends AnyWordSpec {
       implicit val trf: OFormat[TeamRepositories] = TeamRepositories.apiFormat
 
       Json.parse(json).validate[Seq[TeamRepositories]] match {
-        case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
-        case JsError(_)                             => println("not found")
+        case JsSuccess(v, _) => v.foreach(println)
+        case JsError(_)      => println("not found")
       }
     }
   }

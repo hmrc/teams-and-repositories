@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.teamsandrepositories.services
 
-import org.mockito.scalatest.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -88,7 +89,7 @@ class BranchProtectionServiceSpec
         .failed
         .futureValue
 
-      verifyNoMoreInteractions()
+      verifyNoMoreInteractions(repositoriesPersistence)
     }
 
     "Short-circuit and fail if the repository cannot be found on GitHub" in new Setup {
@@ -107,7 +108,7 @@ class BranchProtectionServiceSpec
         .failed
         .futureValue
 
-      verifyNoMoreInteractions()
+      verifyNoMoreInteractions(repositoriesPersistence)
     }
   }
 

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -33,7 +33,7 @@ class JenkinsJobsPersistenceSpec
      with MockitoSugar
      with DefaultPlayMongoRepositorySupport[JenkinsJobsPersistence.Job] {
 
-  override protected val repository = new JenkinsJobsPersistence(mongoComponent)
+  override protected val repository: JenkinsJobsPersistence = JenkinsJobsPersistence(mongoComponent)
 
   "BuildJobRepository" should {
     "putAll correctly" in {

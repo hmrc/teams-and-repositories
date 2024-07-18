@@ -22,6 +22,7 @@ import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
+import org.mongodb.scala.ObservableFuture
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,19 +47,19 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.putRepos(request.body).map( _ => Ok("Ok"))
   }
 
-  def clearAll(): Action[AnyContent] = Action.async {
+  def clearAll: Action[AnyContent] = Action.async {
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putDeletedRepositories(): Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
+  def putDeletedRepositories: Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
     deletedRepositoriesPersistence.putAll(request.body).map(_ => Ok("Ok"))
   }
 
-  def putJenkinsJobs(): Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
+  def putJenkinsJobs: Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
     jenkinsJobsPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 
-  def clearJenkins(): Action[AnyContent] = Action.async {
+  def clearJenkins: Action[AnyContent] = Action.async {
     jenkinsJobsPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 

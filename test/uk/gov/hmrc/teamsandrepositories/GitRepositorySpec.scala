@@ -32,8 +32,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
   val urlTemplates = UrlTemplates(
     environments = ListMap(
-      "env1" -> Seq(new UrlTemplate("log1", "log 1", "$name"), new UrlTemplate("mon1", "mon 1", "$name")),
-      "env2" -> Seq(new UrlTemplate("log1", "log 1", "$name"))
+      "env1" -> Seq(UrlTemplate("log1", "log 1", "$name"), UrlTemplate("mon1", "mon 1", "$name")),
+      "env2" -> Seq(UrlTemplate("log1", "log 1", "$name"))
     )
   )
 

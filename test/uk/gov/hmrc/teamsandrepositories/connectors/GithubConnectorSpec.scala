@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
@@ -60,11 +60,11 @@ class GithubConnectorSpec
       )
       .build()
 
-  private val connector = app.injector.instanceOf[GithubConnector]
+  private val connector: GithubConnector = app.injector.instanceOf[GithubConnector]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val createdAt =
+  val createdAt: Instant =
     Instant.parse("2019-03-01T12:00:00Z")
 
   "GithubConnector.getTeams" should {
@@ -127,7 +127,7 @@ class GithubConnectorSpec
           ))
       )
 
-      connector.getTeams().futureValue shouldBe List(
+      connector.getTeams.futureValue shouldBe List(
         GhTeam("A", createdAt),
         GhTeam("B", createdAt),
         GhTeam("C", createdAt)
@@ -677,7 +677,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(allReposJson2))
       )
 
-      connector.getRepos().futureValue shouldBe repos
+      connector.getRepos.futureValue shouldBe repos
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
