@@ -28,7 +28,7 @@ case class SchedulerConfig(
   , initialDelay: FiniteDuration
   )
 
-object SchedulerConfig {
+object SchedulerConfig:
   def apply(
         configuration: Configuration
       , enabledKey   : String
@@ -54,36 +54,38 @@ object SchedulerConfig {
       , interval     = configuration.get[FiniteDuration](intervalKey)
       , initialDelay = configuration.get[FiniteDuration](initialDelayKey)
       )
-}
 
 @Singleton
-class SchedulerConfigs @Inject()(configuration: Configuration){
+class SchedulerConfigs @Inject()(configuration: Configuration):
 
-  val jenkinsScheduler = SchedulerConfig(
+  val jenkinsScheduler: SchedulerConfig =
+    SchedulerConfig(
       configuration
     , enabledKey      = "cache.jenkins.reloadEnabled"
     , intervalKey     = "cache.jenkins.duration"
     , initialDelayKey = "cache.jenkins.initialDelay"
     )
 
-  val dataReloadScheduler = SchedulerConfig(
+  val dataReloadScheduler: SchedulerConfig =
+    SchedulerConfig(
       configuration
     , enabledKey      = "cache.teams.reloadEnabled"
     , intervalKey     = "cache.teams.duration"
     , initialDelayKey = "cache.teams.initialDelay"
     )
 
-  val metrixScheduler = SchedulerConfig(
+  val metrixScheduler: SchedulerConfig =
+    SchedulerConfig(
       configuration
     , enabledKey      = "scheduler.metrix.enabled"
     , intervalKey     = "scheduler.metrix.interval"
     , initialDelayKey = "scheduler.metrix.initialDelay"
     )
 
-  val rebuildScheduler = SchedulerConfig(
+  val rebuildScheduler: SchedulerConfig =
+    SchedulerConfig(
       configuration
     , enabledKey      = "scheduler.rebuild.enabled"
     , intervalKey     = "scheduler.rebuild.interval"
     , initialDelayKey = "scheduler.rebuild.initialDelay"
   )
-}

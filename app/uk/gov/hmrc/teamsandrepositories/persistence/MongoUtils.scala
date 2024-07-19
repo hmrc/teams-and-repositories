@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 
-object MongoUtils {
+object MongoUtils:
   /**
     * Equivalent to ```
     *   withSessionAndTransacion { s =>
@@ -53,38 +53,34 @@ object MongoUtils {
     compareById  : (A, A) => Boolean,
     filterById   : A => Bson,
     collation    : Collation         = Collations.default
-  )(implicit ec: ExecutionContext): Future[(Int, Int)] = {
+  )(using ExecutionContext): Future[(Int, Int)] =
     def bulkWrite(updates: Seq[WriteModel[_ <: A]]): Future[Int] =
-      if (updates.isEmpty)
+      if updates.isEmpty then
         Future.successful(0)
       else
         collection.bulkWrite(updates).toFuture().map(res => res.getModifiedCount)
 
-    for {
+    for
       old      <- collection.find(oldValsFilter).toFuture()
       upserted <- //upsert any that were not present already
                   bulkWrite(
                     newVals
                       .filterNot(old.contains)
-                      .map(entry =>
+                      .map: entry =>
                         ReplaceOneModel(
                           filterById(entry),
                           entry,
                           ReplaceOptions().collation(collation).upsert(true)
                         )
-                      )
                   )
       deleted  <- // delete any that are no longer present
                   bulkWrite(
                     old
                       .filterNot(oldC => newVals.exists(newC => compareById(oldC, newC)))
-                      .map(entry =>
+                      .map: entry =>
                         DeleteManyModel(
                           filterById(entry),
                           DeleteOptions().collation(collation)
                         )
-                      )
                   )
-    } yield (upserted, deleted)
-  }
-}
+    yield (upserted, deleted)

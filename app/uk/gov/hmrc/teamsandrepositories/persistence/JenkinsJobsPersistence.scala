@@ -29,8 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsJobsPersistence @Inject()(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository[JenkinsJobsPersistence.Job](
   mongoComponent = mongoComponent
 , collectionName = "jenkinsJobs"
@@ -78,7 +77,7 @@ class JenkinsJobsPersistence @Inject()(
       .find(Filters.equal("jobType", jobType))
       .toFuture()
 
-  def putAll(buildJobs: Seq[Job])(implicit ec: ExecutionContext): Future[Unit] =
+  def putAll(buildJobs: Seq[Job])(using ExecutionContext): Future[Unit] =
     MongoUtils.replace[Job](
       collection  = collection,
       newVals     = buildJobs,

@@ -33,12 +33,11 @@ class IntegrationTestSupportController @Inject()(
   teamSummaryPersistence        : TeamSummaryPersistence,
   jenkinsJobsPersistence        : JenkinsJobsPersistence,
   cc                            : ControllerComponents
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) {
-  private implicit val bjf: Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
-  private implicit val ghf: OFormat[GitRepository]            = GitRepository.apiFormat
-  private implicit val dgf: OFormat[DeletedGitRepository]     = DeletedGitRepository.apiFormat
+)(using ExecutionContext
+) extends BackendController(cc):
+  private given Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
+  private given OFormat[GitRepository]            = GitRepository.apiFormat
+  private given OFormat[DeletedGitRepository]     = DeletedGitRepository.apiFormat
 
   private def validateJson[A: Reads]: BodyParser[A] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
@@ -65,14 +64,12 @@ class IntegrationTestSupportController @Inject()(
 
   def addTeamSummary(): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
-      implicit val tsFormat: OFormat[TeamSummary] =  TeamSummary.apiFormat
-      request.body.validate[Seq[TeamSummary]] match {
+      given OFormat[TeamSummary] =  TeamSummary.apiFormat
+      request.body.validate[Seq[TeamSummary]] match
         case JsSuccess(teams, _) => teamSummaryPersistence.collection.insertMany(teams).toFuture().map(_ => Ok("Ok"))
-        case e: JsError => Future.successful(BadRequest(e.errors.mkString))
-      }
+        case e: JsError          => Future.successful(BadRequest(e.errors.mkString))
   }
 
   def deleteAllTeamSummaries(): Action[AnyContent] = Action.async {
     teamSummaryPersistence.collection.deleteMany(BsonDocument()).toFuture().map(_ => Ok("Ok"))
   }
-}

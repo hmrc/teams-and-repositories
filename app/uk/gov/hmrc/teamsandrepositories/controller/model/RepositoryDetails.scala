@@ -18,9 +18,9 @@ package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.net.URI
 import java.time.Instant
-import play.api.Logger
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.Logging
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
 
@@ -31,14 +31,12 @@ case class Environment(
   services: Seq[Link]
 )
 
-object Environment {
-  val format: Format[Environment] = {
-    implicit val lf = Link.format
+object Environment:
+  val format: Format[Environment] =
+    given Format[Link] = Link.format
     ( (__ \ "name"    ).format[String]
     ~ (__ \ "services").format[Seq[Link]]
     )(apply, e => Tuple.fromProductTyped(e))
-  }
-}
 
 case class Link(
   name       : String,
@@ -46,13 +44,12 @@ case class Link(
   url        : String
 )
 
-object Link {
+object Link:
   val format: Format[Link] =
     ( (__ \ "name"       ).format[String]
     ~ (__ \ "displayName").format[String]
     ~ (__ \ "url"        ).format[String]
     )(apply, l => Tuple.fromProductTyped(l))
-}
 
 case class RepositoryDetails(
   name             : String,
@@ -72,13 +69,12 @@ case class RepositoryDetails(
   isDeprecated     : Boolean          = false
 )
 
-object RepositoryDetails {
-  private val logger = Logger(this.getClass)
+object RepositoryDetails extends Logging:
 
-  val format: OFormat[RepositoryDetails] = {
-    implicit val rtf = RepoType.format
-    implicit val lf  = Link.format
-    implicit val ef  = Environment.format
+  val format: OFormat[RepositoryDetails] =
+    given Format[RepoType] = RepoType.format
+    given Format[Link] = Link.format
+    given Format[Environment] = Environment.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "description"  ).format[String]
     ~ (__ \ "isPrivate"    ).format[Boolean]
@@ -95,9 +91,8 @@ object RepositoryDetails {
     ~ (__ \ "defaultBranch").format[String]
     ~ (__ \ "isDeprecated"   ).format[Boolean]
     )(apply, r => Tuple.fromProductTyped(r))
-  }
 
-  def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails = {
+  def create(repo: GitRepository, teamNames: Seq[String], urlTemplates: UrlTemplates): RepositoryDetails =
     val repoDetails =
       RepositoryDetails(
         name          = repo.name,
@@ -115,34 +110,30 @@ object RepositoryDetails {
         isDeprecated  = repo.isDeprecated
       )
 
-    repo.repoType match {
+    repo.repoType match
       case RepoType.Service => repoDetails.copy(
                                  ci           = buildCiUrls(repoDetails),
                                  environments = buildEnvironmentUrls(repo, urlTemplates)
                                )
       case RepoType.Library => repoDetails.copy(ci = buildCiUrls(repoDetails))
       case _                => repoDetails
-    }
-  }
 
   private def buildEnvironmentUrls(repository: GitRepository, urlTemplates: UrlTemplates): Seq[Environment] =
-    urlTemplates.environments.map {
+    urlTemplates.environments.map:
       case (name, tps) =>
         Environment(
           name,
           services = tps.map(tp => Link(tp.name, tp.displayName, tp.url(repository.name)))
         )
-    }.toSeq
+    .toSeq
 
   private def buildCiUrls(repo: RepositoryDetails): Seq[Link] =
-    repo.teamNames match {
+    repo.teamNames match
       case Seq(teamName) => buildCiUrl("Build", "Build", teamName, repo.name).toSeq
       case teamNames =>
-        teamNames.flatMap { teamName =>
+        teamNames.flatMap: teamName =>
           val name = s"$teamName Build"
           buildCiUrl(name, name, teamName, repo.name)
-        }
-    }
 
   private def buildCiUrl(
     linkName       : String,
@@ -150,12 +141,10 @@ object RepositoryDetails {
     jobTeamName    : String,
     repoName       : String
   ): Option[Link] =
-    Try {
-      new URI("https", "build.tax.service.gov.uk", s"/job/$jobTeamName/job/$repoName", null).toASCIIString
-    } match {
+    Try:
+      URI("https", "build.tax.service.gov.uk", s"/job/$jobTeamName/job/$repoName", null).toASCIIString
+    match
       case Success(url) => Some(Link(linkName, linkDisplayName, url))
       case Failure(throwable) =>
         logger.warn(s"Unable to create build ci url for teamName: $jobTeamName and repoName: $repoName", throwable)
         None
-    }
-}

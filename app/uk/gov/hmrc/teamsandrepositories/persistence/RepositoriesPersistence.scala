@@ -20,7 +20,7 @@ import org.bson.conversions.Bson
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.BsonArray
 import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories}
@@ -28,6 +28,7 @@ import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
+import play.api.libs.json.Format
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,8 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RepositoriesPersistence @Inject()(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "repositories",
@@ -49,7 +49,7 @@ class RepositoriesPersistence @Inject()(
                      IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true))
                    ),
   replaceIndexes = true
-) {
+):
   // updateRepos cleans up unreferenced teams
   override lazy val requiresTtlIndex = false
 
@@ -66,12 +66,11 @@ class RepositoriesPersistence @Inject()(
     repoType   : Option[RepoType]    = None,
     serviceType: Option[ServiceType] = None,
     tags       : Option[List[Tag]]   = None,
-  ): Future[Seq[GitRepository]] = {
+  ): Future[Seq[GitRepository]] =
     val filters = Seq(
-      name       .map {
+      name       .map:
                    case Quoted(n) => Filters.equal("name", n)
-                   case n         => Filters.regex("name", n)
-                 },
+                   case n         => Filters.regex("name", n),
       team       .map(t  => Filters.equal("teamNames"  , t)),
       owningTeam .map(t  => Filters.equal("owningTeams", t)),
       isArchived .map(b  => Filters.equal("isArchived" , b)),
@@ -81,10 +80,9 @@ class RepositoriesPersistence @Inject()(
     ).flatten
 
     collection
-      .find(if (filters.isEmpty) Filters.empty() else Filters.and(filters: _*))
+      .find(if filters.isEmpty then Filters.empty() else Filters.and(filters: _*))
       .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
       .toFuture()
-  }
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
     collection
@@ -145,8 +143,8 @@ class RepositoriesPersistence @Inject()(
       ))
       .toFuture()
 
-  def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] = {
-    implicit val bpf = BranchProtection.format
+  def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] =
+    given Format[BranchProtection] = BranchProtection.format
     collection
       .updateOne(
         filter  = Filters.equal("name", repoName),
@@ -155,5 +153,3 @@ class RepositoriesPersistence @Inject()(
       )
       .toFuture()
       .map(_ => ())
-  }
-}

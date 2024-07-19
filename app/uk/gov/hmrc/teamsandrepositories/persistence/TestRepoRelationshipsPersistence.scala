@@ -28,8 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class TestRepoRelationshipsPersistence @Inject()(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository[TestRepoRelationship](
   mongoComponent = mongoComponent
 , collectionName = "testRepoRelationships"
@@ -37,7 +36,7 @@ class TestRepoRelationshipsPersistence @Inject()(
 , indexes        = IndexModel(Indexes.hashed("testRepo"))    ::
                    IndexModel(Indexes.hashed("serviceRepo")) ::
                    Nil
-){
+):
 
   override lazy val requiresTtlIndex = false //data is refreshed by webhook events
 
@@ -67,9 +66,8 @@ class TestRepoRelationshipsPersistence @Inject()(
       .find(Filters.equal("testRepo", testRepo))
       .toFuture()
       .map(_.map(_.serviceRepo))
-}
 
-object TestRepoRelationshipsPersistence {
+object TestRepoRelationshipsPersistence:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
@@ -78,10 +76,8 @@ object TestRepoRelationshipsPersistence {
     serviceRepo: String
   )
 
-  object TestRepoRelationship {
+  object TestRepoRelationship:
     val mongoFormat: Format[TestRepoRelationship] =
       ( (__ \ "testRepo"   ).format[String]
       ~ (__ \ "serviceRepo").format[String]
       )(TestRepoRelationship.apply, t => Tuple.fromProductTyped(t))
-  }
-}

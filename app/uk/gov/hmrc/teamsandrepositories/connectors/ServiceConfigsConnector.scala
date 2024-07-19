@@ -28,32 +28,31 @@ import scala.concurrent.{ExecutionContext, Future}
 class ServiceConfigsConnector @Inject()(
   servicesConfig: ServicesConfig,
   httpClientV2  : HttpClientV2
-) {
+):
   import uk.gov.hmrc.http.HttpReads.Implicits._
 
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private given HeaderCarrier = HeaderCarrier()
 
   private val baseUrl = servicesConfig.baseUrl("service-configs")
 
-  def getFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
+  def getFrontendServices()(using ExecutionContext): Future[Set[String]] =
     httpClientV2
       .get(url"$baseUrl/service-configs/frontend-services")
       .execute[Set[String]]
 
-  def getAdminFrontendServices()(implicit ec: ExecutionContext): Future[Set[String]] =
+  def getAdminFrontendServices()(using ExecutionContext): Future[Set[String]] =
     httpClientV2
       .get(url"$baseUrl/service-configs/admin-frontend-services")
       .execute[Set[String]]
 
-  def hasFrontendRoutes(service: String)(implicit ec: ExecutionContext): Future[Boolean] =
+  def hasFrontendRoutes(service: String)(using ExecutionContext): Future[Boolean] =
     httpClientV2
       .get(url"$baseUrl/service-configs/frontend-route/$service")
       .execute[List[JsValue]]
       .map(_.nonEmpty)
 
-  def hasAdminFrontendRoutes(service: String)(implicit ec: ExecutionContext): Future[Boolean] =
+  def hasAdminFrontendRoutes(service: String)(using ExecutionContext): Future[Boolean] =
     httpClientV2
       .get(url"$baseUrl/service-configs/admin-frontend-route/$service")
       .execute[List[JsValue]]
       .map(_.nonEmpty)
-}

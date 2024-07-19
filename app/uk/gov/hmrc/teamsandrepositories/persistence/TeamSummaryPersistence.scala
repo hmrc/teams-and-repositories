@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
-import play.api.Logger
+import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
@@ -29,8 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class TeamSummaryPersistence @Inject()(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "teamSummaries",
@@ -38,8 +37,7 @@ class TeamSummaryPersistence @Inject()(
   indexes        = Seq(
                      IndexModel(Indexes.ascending("name"), IndexOptions().collation(Collations.caseInsensitive).unique(true))
                    )
-){
-  private val logger = Logger(this.getClass)
+) with Logging:
 
   // we don't need a ttl since the data is managed by updateTeamSummaries
   override lazy val requiresTtlIndex = false
@@ -51,13 +49,12 @@ class TeamSummaryPersistence @Inject()(
       compareById   = (a, b) => a.name.toLowerCase == b.name.toLowerCase,
       filterById    = entry => Filters.equal("name", entry.name),
       collation     = Collations.caseInsensitive
-    ).map { case (upserted, deleted) =>
-      logger.info(s"Upserted $upserted and deleted $deleted teams")
-    }
+    ).map:
+       case (upserted, deleted) =>
+         logger.info(s"Upserted $upserted and deleted $deleted teams")
 
   def findTeamSummaries(): Future[Seq[TeamSummary]] =
     collection
       .find()
       .sort(Sorts.ascending("name"))
       .toFuture()
-}

@@ -40,34 +40,34 @@ class GithubRatelimitMetricsScheduler @Inject()(
   metricRegistry     : MetricRegistry,
   mongoComponent     : MongoComponent,
   mongoLockRepository: MongoLockRepository
-)(implicit
+)(using
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
-) extends SchedulerUtils {
+) extends SchedulerUtils:
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
-  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
+  given ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
-  private val metricsDefinitions: Map[String, () => Future[Int]] = {
+  private val metricsDefinitions: Map[String, () => Future[Int]] =
     import RateLimitMetrics.Resource._
 
     githubConfig.tokens
-      .flatMap { case (username, token) =>
-        List(
-          s"github.token.$username.rate.remaining" -> { () =>
-            githubConnector.getRateLimitMetrics(token, Core).map(_.remaining)
-          },
-          s"github.token.$username.graphql.rate.remaining" -> { () =>
-            githubConnector.getRateLimitMetrics(token, GraphQl).map(_.remaining)
-          },
-        )
-      }.toMap
-  }
+      .flatMap:
+        case (username, token) =>
+          List(
+            s"github.token.$username.rate.remaining" -> { () =>
+              githubConnector.getRateLimitMetrics(token, Core).map(_.remaining)
+            },
+            s"github.token.$username.graphql.rate.remaining" -> { () =>
+              githubConnector.getRateLimitMetrics(token, GraphQl).map(_.remaining)
+            },
+          )
+      .toMap
 
   private val source: MetricSource =
     new MetricSource {
-      def metrics(implicit ec: ExecutionContext): Future[Map[String, Int]] =
+      def metrics(using ExecutionContext): Future[Map[String, Int]] =
         metricsDefinitions.toList.traverse { case (k, f) => f().map(i => (k, i)) }.map(_.toMap)
     }
 
@@ -78,16 +78,16 @@ class GithubRatelimitMetricsScheduler @Inject()(
       ttl            = 20.minutes
     )
 
-  private val metricOrchestrator = new MetricOrchestrator(
-    metricSources    = List(source),
-    lockService      = lockService,
-    metricRepository = new MongoMetricRepository(mongoComponent),
-    metricRegistry   = metricRegistry
-  )
+  private val metricOrchestrator: MetricOrchestrator =
+    new MetricOrchestrator(
+      metricSources    = List(source),
+      lockService      = lockService,
+      metricRepository = MongoMetricRepository(mongoComponent),
+      metricRegistry   = metricRegistry
+    )
 
   schedule("Github Ratelimit metrics", schedulerConfig.metrixScheduler) {
     metricOrchestrator
       .attemptMetricRefresh()
       .map(_ => ())
   }
-}

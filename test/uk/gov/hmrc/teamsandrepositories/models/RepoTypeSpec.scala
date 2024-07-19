@@ -24,7 +24,7 @@ import scala.util.Random.nextInt
 object Helper {
 
   def randomlyCapitalize(str: String): String  = {
-    str.map(char => if (nextInt() % 2 == 0) char.toUpper else char.toLower)
+    str.map(char => if nextInt() % 2 == 0 then char.toUpper else char.toLower)
   }
 
   def generateValidStrings(strs: Seq[String]): List[String] = {
@@ -35,7 +35,7 @@ object Helper {
 }
 
 class RepoTypeSpec extends AnyWordSpec with Matchers {
-  val repoTypeStrings:Seq[String] = RepoType.values.map(rType => rType.asString)
+  val repoTypeStrings: Seq[String] = RepoType.values.toIndexedSeq.map(rType => rType.asString)
   val valid_inputs: List[String] = Helper.generateValidStrings(repoTypeStrings) //Generate 50 capitalization variations of each RepoType
 
   "repoType.parse" when {

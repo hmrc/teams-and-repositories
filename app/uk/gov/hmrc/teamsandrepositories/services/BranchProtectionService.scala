@@ -32,13 +32,12 @@ class BranchProtectionService @Inject()(
 , githubConnector        : GithubConnector
 , repositoriesPersistence: RepositoriesPersistence
 , jenkinsJobsPersistence : JenkinsJobsPersistence
-) extends Logging {
+) extends Logging:
 
-  def enableBranchProtection(repoName: String)(implicit ec: ExecutionContext): Future[Unit] =
-    for {
+  def enableBranchProtection(repoName: String)(using ExecutionContext): Future[Unit] =
+    for
       jobs <- jenkinsJobsPersistence.findAllByRepo(repoName)
       _    <- buildDeployApiConnector.enableBranchProtection(repoName, jobs.filter(_.jobType == JenkinsJobsPersistence.JobType.PullRequest).toList)
       repo <- OptionT(githubConnector.getRepo(repoName)).getOrElseF(Future.failed[GhRepository](NoSuchRepository(repoName)))
       _    <- repositoriesPersistence.updateRepoBranchProtection(repoName, repo.branchProtection)
-    } yield ()
-}
+    yield ()

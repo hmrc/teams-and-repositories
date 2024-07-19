@@ -30,11 +30,11 @@ class JenkinsReloadService @Inject()(
 , buildDeployApiConnector: BuildDeployApiConnector
 , jenkinsJobsPersistence : JenkinsJobsPersistence
 , repositoriesPersistence: RepositoriesPersistence
-) {
+):
 
   private val RepoNameRegex = """.*hmrc/([^/]+)\.git""".r
-  def updateBuildAndPerformanceJobs()(implicit ec: ExecutionContext): Future[Unit] =
-    for {
+  def updateBuildAndPerformanceJobs()(using ExecutionContext): Future[Unit] =
+    for
       buildJobs       <- jenkinsConnector.findBuildJobs()
       performanceJobs <- jenkinsConnector.findPerformanceJobs()
       jobs            <- (buildJobs ++ performanceJobs)
@@ -45,8 +45,8 @@ class JenkinsReloadService @Inject()(
                                 JenkinsJobsPersistence.Job(
                                   repoName    = repo.name
                                 , jobName     = job.name
-                                , jobType     = if (job.name.endsWith("-pr-builder")) JenkinsJobsPersistence.JobType.PullRequest
-                                                else                                  JenkinsJobsPersistence.JobType.Job
+                                , jobType     = if job.name.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
+                                                else                                     JenkinsJobsPersistence.JobType.Job
                                 , jenkinsUrl  = job.jenkinsUrl
                                 , repoType    = Some(repo.repoType)
                                 , latestBuild = job.latestBuild
@@ -71,5 +71,4 @@ class JenkinsReloadService @Inject()(
                             ) :: acc)
                          }
       _               <- jenkinsJobsPersistence.putAll(jobs ++ pipelineJobs)
-    } yield ()
-}
+    yield ()

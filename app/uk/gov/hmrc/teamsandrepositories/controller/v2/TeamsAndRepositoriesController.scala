@@ -17,8 +17,8 @@
 package uk.gov.hmrc.teamsandrepositories.controller.v2
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.libs.json.*
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
@@ -36,12 +36,11 @@ class TeamsAndRepositoriesController @Inject()(
   branchProtectionService       : BranchProtectionService,
   auth                          : BackendAuthComponents,
   cc                            : ControllerComponents
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
-  implicit val grf: Format[GitRepository] = GitRepository.apiFormat
-  implicit val tnf: Format[TeamSummary]   = TeamSummary.apiFormat
+  given Format[GitRepository] = GitRepository.apiFormat
+  given Format[TeamSummary]   = TeamSummary.apiFormat
 
   def repositories(
     name       : Option[String],
@@ -62,10 +61,9 @@ class TeamsAndRepositoriesController @Inject()(
   }
 
   def findRepo(repoName:String) = Action.async { request =>
-    repositoriesPersistence.findRepo(repoName).map {
+    repositoriesPersistence.findRepo(repoName).map:
       case None       => NotFound
       case Some(repo) => Ok(Json.toJson(repo))
-    }
   }
 
   def enableBranchProtection(repoName: String): Action[JsValue] =
@@ -81,7 +79,7 @@ class TeamsAndRepositoriesController @Inject()(
         payload.fold(
           errors  => Future.successful(BadRequest(Json.stringify(JsError.toJson(errors)))),
           enabled =>
-            if (enabled)
+            if enabled then
               branchProtectionService
                 .enableBranchProtection(repoName)
                 .map(_ => Ok)
@@ -89,7 +87,7 @@ class TeamsAndRepositoriesController @Inject()(
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
     }
 
-  def decommissionedRepos(repoType: Option[RepoType] = None) = Action.async { request =>
+  def decommissionedRepos(repoType: Option[RepoType] = None): Action[AnyContent] = Action.async { request =>
     for
       archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
                           .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
@@ -100,16 +98,14 @@ class TeamsAndRepositoriesController @Inject()(
                           .sortBy(_.repoName.toLowerCase)
     yield Ok(Json.toJson(decommissioned))
   }
-}
 
 case class DecommissionedRepo(
   repoName: String,
   repoType: Option[RepoType]
 )
 
-object DecommissionedRepo {
-  implicit val apiWrites: Writes[DecommissionedRepo] =
+object DecommissionedRepo:
+  given Writes[DecommissionedRepo] =
     ( (__ \ "repoName").write[String]
     ~ (__ \ "repoType").writeNullable[RepoType](RepoType.format)
     )(d => Tuple.fromProductTyped(d))
-}

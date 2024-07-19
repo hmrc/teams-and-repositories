@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 import org.mongodb.scala.model.{Collation, CollationStrength}
 
 
-object Collations {
+object Collations:
 
   val caseInsensitive: Collation =
     Collation.builder()
@@ -29,4 +29,3 @@ object Collations {
 
   val default: Collation =
     Collation.builder().build()
-}

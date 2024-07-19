@@ -20,8 +20,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.Inject
 
-class BuildDeployApiConfig @Inject()(config: ServicesConfig) {
+class BuildDeployApiConfig @Inject()(config: ServicesConfig):
 
   val baseUrl: String =
     config.baseUrl("platops-bnd-api")
-}

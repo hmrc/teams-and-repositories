@@ -36,62 +36,55 @@ class LegacyRepositoriesController @Inject()(
   repositoriesPersistence : RepositoriesPersistence,
   urlTemplatesProvider    : UrlTemplatesProvider,
   cc                      : ControllerComponents
-)(implicit
-  ec                      : ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
-  private implicit val rdf: Format[RepositoryDetails] = RepositoryDetails.format
-  private implicit val dsf: Format[DigitalService]    = DigitalService.format
+  private given Format[RepositoryDetails] = RepositoryDetails.format
+  private given Format[DigitalService]    = DigitalService.format
 
-  def repositoryTeams = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None).map { allTeamsAndRepos =>
+  def repositoryTeams: Action[AnyContent] = Action.async {
+    repositoriesPersistence.getAllTeamsAndRepos(archived = None).map: allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getRepositoryToTeamNames(allTeamsAndRepos)))
-    }
   }
 
-  def repositories(archived: Option[Boolean]) = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived).map { allTeamsAndRepos =>
+  def repositories(archived: Option[Boolean]): Action[AnyContent] = Action.async {
+    repositoriesPersistence.getAllTeamsAndRepos(archived).map: allTeamsAndRepos =>
       Ok(toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos)))
-    }
   }
 
-  def repositoryDetails(name: String) = Action.async {
+  def repositoryDetails(name: String): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
-        TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match {
+      .map: allTeamsAndRepos =>
+        TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match
           case None                    => NotFound
           case Some(repositoryDetails) => Ok(toJson(repositoryDetails))
-        }
-      }
   }
 
-  def services(details: Boolean) = Action.async {
+  def services(details: Boolean): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
+      .map: allTeamsAndRepos =>
         val json =
-          if (details)
+          if details then
             toJson(TeamRepositories.getRepositoryDetailsList(allTeamsAndRepos, RepoType.Service, urlTemplatesProvider.ciUrlTemplates))
           else
             toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos).filter(_.repoType == RepoType.Service))
         Ok(json)
-      }
   }
 
-  def libraries(details: Boolean) = Action.async {
+  def libraries(details: Boolean): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
+      .map: allTeamsAndRepos =>
         val json =
-          if (details)
+          if details then
             toJson(TeamRepositories.getRepositoryDetailsList(allTeamsAndRepos, RepoType.Library, urlTemplatesProvider.ciUrlTemplates))
           else
             toJson(TeamRepositories.getAllRepositories(allTeamsAndRepos).filter(_.repoType == RepoType.Library))
         Ok(json)
-      }
   }
 
-  def digitalServices = Action.async {
+  def digitalServices: Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
+      .map: allTeamsAndRepos =>
         val digitalServices: Seq[String] =
           allTeamsAndRepos
             .flatMap(_.repositories)
@@ -100,17 +93,12 @@ class LegacyRepositoriesController @Inject()(
             .sorted
 
         Ok(toJson(digitalServices))
-      }
   }
 
-  def digitalServiceDetails(name: String) = Action.async {
+  def digitalServiceDetails(name: String): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
-        TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match {
+      .map: allTeamsAndRepos =>
+        TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match
           case None                 => NotFound
           case Some(digitalService) => Ok(toJson(digitalService))
-        }
-      }
   }
-
-}

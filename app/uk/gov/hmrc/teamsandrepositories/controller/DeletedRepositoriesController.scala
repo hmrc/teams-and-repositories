@@ -30,16 +30,13 @@ import scala.concurrent.ExecutionContext
 class DeletedRepositoriesController @Inject()(
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
   cc: ControllerComponents
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
-  private implicit val rds: OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
+  private given OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
 
   def getDeletedRepos(name: Option[String], owningTeam: Option[String], repoType: Option[RepoType], serviceType: Option[ServiceType]): Action[AnyContent] = Action.async {
     deletedRepositoriesPersistence
       .find(name, owningTeam, repoType, serviceType)
       .map(result => Ok(Json.toJson(result)))
   }
-
-}
