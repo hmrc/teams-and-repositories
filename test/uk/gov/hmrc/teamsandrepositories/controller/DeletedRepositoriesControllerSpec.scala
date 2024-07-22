@@ -41,30 +41,29 @@ class DeletedRepositoriesControllerSpec
     with GuiceOneAppPerSuite
     with MockitoSugar
     with OptionValues
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach:
 
   val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
 
-  implicit override lazy val app: Application = {
+  implicit override lazy val app: Application =
     GuiceApplicationBuilder()
       .overrides(
         bind[DeletedRepositoriesPersistence].toInstance(mockDeletedRepositoriesPersistence)
       )
       .build()
-  }
 
-  override def beforeEach(): Unit = {
+  override def beforeEach(): Unit =
     super.beforeEach()
     reset(mockDeletedRepositoriesPersistence)
-  }
+
   private def getRoute(name: Option[String] = None, repoType: Option[RepoType] = None, serviceType: Option[ServiceType] = None) =
     routes.DeletedRepositoriesController.getDeletedRepos(name = name, team = None, repoType = repoType, serviceType = serviceType).url
 
   private lazy val now = Instant.now()
 
-  "DeletedRepositoriesController" should {
+  "DeletedRepositoriesController" should:
 
-    "get all deleted repositories" in {
+    "get all deleted repositories" in:
       when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
         .thenReturn(Future.successful(Seq(
           DeletedGitRepository("Foo", now)
@@ -82,9 +81,8 @@ class DeletedRepositoriesControllerSpec
       """)
 
       verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None), eqTo(None), eqTo(None))
-    }
 
-    "get deleted repository by name" in {
+    "get deleted repository by name" in:
       when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
         .thenReturn(Future.successful(Seq(
           DeletedGitRepository("Foo", now)
@@ -100,9 +98,8 @@ class DeletedRepositoriesControllerSpec
       """)
 
       verify(mockDeletedRepositoriesPersistence).find(eqTo(Some("Foo")), eqTo(None), eqTo(None), eqTo(None))
-    }
 
-    "get all deleted services" in {
+    "get all deleted services" in:
       when(mockDeletedRepositoriesPersistence.find(any(), any(), any(), any()))
         .thenReturn(Future.successful(Seq(
           DeletedGitRepository("Foo", now)
@@ -118,6 +115,3 @@ class DeletedRepositoriesControllerSpec
       """)
 
       verify(mockDeletedRepositoriesPersistence).find(eqTo(None), eqTo(None), eqTo(Some(RepoType.Service)), eqTo(None))
-    }
-  }
-}

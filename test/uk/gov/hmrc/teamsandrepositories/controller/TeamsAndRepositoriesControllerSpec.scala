@@ -39,10 +39,10 @@ class TeamsAndRepositoriesControllerSpec
   extends AnyWordSpec
     with Matchers
     with MockitoSugar
-    with OptionValues {
+    with OptionValues:
 
-  "TeamsAndRepositoriesController" should {
-    "return all decommissioned repos" in new Setup {
+  "TeamsAndRepositoriesController" should:
+    "return all decommissioned repos" in new Setup:
 
       when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = None))
         .thenReturn(Future.successful(Seq(
@@ -57,7 +57,8 @@ class TeamsAndRepositoriesControllerSpec
         )))
 
 
-      val result: Future[Result] = controller.decommissionedRepos().apply(FakeRequest())
+      val result: Future[Result] =
+        controller.decommissionedRepos().apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -80,9 +81,8 @@ class TeamsAndRepositoriesControllerSpec
            |  }
            |]
            |""".stripMargin)
-    }
 
-    "return all decommissioned services" in new Setup {
+    "return all decommissioned services" in new Setup:
 
       val service: RepoType = RepoType.Service
 
@@ -124,10 +124,8 @@ class TeamsAndRepositoriesControllerSpec
            |  }
            |]
            |""".stripMargin)
-    }
-  }
 
-  trait Setup {
+  trait Setup:
     val mockDeletedRepositoriesPersistence: DeletedRepositoriesPersistence = mock[DeletedRepositoriesPersistence]
     val mockRepositoriesPersistence       : RepositoriesPersistence        = mock[RepositoriesPersistence]
     val mockBranchProtectionService       : BranchProtectionService        = mock[BranchProtectionService]
@@ -181,6 +179,4 @@ class TeamsAndRepositoriesControllerSpec
         teams              = None,
         prototypeName      = None
       )
-  }
-}
 

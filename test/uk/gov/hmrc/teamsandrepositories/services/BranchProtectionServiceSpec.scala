@@ -33,28 +33,30 @@ class BranchProtectionServiceSpec
   extends AnyWordSpec
      with Matchers
      with MockitoSugar
-     with ScalaFutures {
+     with ScalaFutures:
 
-  "enableBranchProtection" should {
+  "enableBranchProtection" should:
 
-    "Invoke the branch protection API and invalidate the cache with the latest view from GitHub" in new Setup {
-      val buildJob = JenkinsJobsPersistence.Job(
-        repoName    = "some-repo"
-      , jobName     = "some-repo-job"
-      , jenkinsUrl  = "http://path/to/jenkins"
-      , jobType     = JenkinsJobsPersistence.JobType.Job
-      , repoType    = Some(RepoType.Service)
-      , latestBuild = None
-      )
+    "Invoke the branch protection API and invalidate the cache with the latest view from GitHub" in new Setup:
+      val buildJob: JenkinsJobsPersistence.Job =
+        JenkinsJobsPersistence.Job(
+          repoName    = "some-repo"
+        , jobName     = "some-repo-job"
+        , jenkinsUrl  = "http://path/to/jenkins"
+        , jobType     = JenkinsJobsPersistence.JobType.Job
+        , repoType    = Some(RepoType.Service)
+        , latestBuild = None
+        )
 
-      val prJob = JenkinsJobsPersistence.Job(
-        repoName    = "some-repo"
-      , jobName     = "some-repo-pr-builder"
-      , jenkinsUrl  = "http://path/to/jenkins"
-      , jobType     = JenkinsJobsPersistence.JobType.PullRequest
-      , repoType    = Some(RepoType.Service)
-      , latestBuild = None
-      )
+      val prJob: JenkinsJobsPersistence.Job =
+        JenkinsJobsPersistence.Job(
+          repoName    = "some-repo"
+        , jobName     = "some-repo-pr-builder"
+        , jenkinsUrl  = "http://path/to/jenkins"
+        , jobType     = JenkinsJobsPersistence.JobType.PullRequest
+        , repoType    = Some(RepoType.Service)
+        , latestBuild = None
+        )
 
       when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
         .thenReturn(Future.successful(Seq(buildJob, prJob)))
@@ -74,9 +76,8 @@ class BranchProtectionServiceSpec
 
       verify(repositoriesPersistence)
         .updateRepoBranchProtection("some-repo", someRepository.branchProtection)
-    }
 
-    "Short-circuit and fail if the branch protection API invocation fails" in new Setup {
+    "Short-circuit and fail if the branch protection API invocation fails" in new Setup:
 
       when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
         .thenReturn(Future.successful(Nil))
@@ -90,9 +91,8 @@ class BranchProtectionServiceSpec
         .futureValue
 
       verifyNoMoreInteractions(repositoriesPersistence)
-    }
 
-    "Short-circuit and fail if the repository cannot be found on GitHub" in new Setup {
+    "Short-circuit and fail if the repository cannot be found on GitHub" in new Setup:
 
       when(jenkinsJobsPersistence.findAllByRepo("some-repo"))
         .thenReturn(Future.successful(Nil))
@@ -109,18 +109,15 @@ class BranchProtectionServiceSpec
         .futureValue
 
       verifyNoMoreInteractions(repositoriesPersistence)
-    }
-  }
 
-  trait Setup {
+  trait Setup:
     val buildDeployApiConnector: BuildDeployApiConnector = mock[BuildDeployApiConnector]
     val githubConnector        : GithubConnector         = mock[GithubConnector]
     val repositoriesPersistence: RepositoriesPersistence = mock[RepositoriesPersistence]
     val jenkinsJobsPersistence : JenkinsJobsPersistence  = mock[JenkinsJobsPersistence]
 
     val service: BranchProtectionService =
-      new BranchProtectionService(buildDeployApiConnector, githubConnector, repositoriesPersistence, jenkinsJobsPersistence)
-  }
+      BranchProtectionService(buildDeployApiConnector, githubConnector, repositoriesPersistence, jenkinsJobsPersistence)
 
   private lazy val someRepository =
     GhRepository(
@@ -137,4 +134,3 @@ class BranchProtectionServiceSpec
       repositoryYamlText = None,
       repoTypeHeuristics = GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false, false, false)
     )
-}

@@ -31,35 +31,32 @@ class LegacyCompatibilitySpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with DefaultPlayMongoRepositorySupport[GitRepository] {
+     with DefaultPlayMongoRepositorySupport[GitRepository]:
 
-  override protected val repository = new RepositoriesPersistence(mongoComponent)
+  override protected val repository: RepositoriesPersistence =
+    RepositoriesPersistence(mongoComponent)
 
-  val legacyPersistence = new RepositoriesPersistence(mongoComponent)
+  val legacyPersistence: RepositoriesPersistence =
+    RepositoriesPersistence(mongoComponent)
 
   private val repo1 = GitRepository("repo1", "desc 1", "git/repo1", Instant.now(), Instant.now(), repoType = Service, isArchived = false, defaultBranch = "main", branchProtection = None, teams = List("team1"))
   private val repo2 = GitRepository("repo2", "desc 2", "git/repo2", Instant.now(), Instant.now(), repoType = Service, isArchived = true, defaultBranch = "main", branchProtection = None, teams = List("team1"))
 
-  "search" should {
-    "find all repos" in {
+  "search" should:
+    "find all repos" in:
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(None).futureValue
       results.length shouldBe 1
       results.head.repositories.map(_.name) should contain theSameElementsAs Seq("repo1", "repo2")
-    }
 
-    "show non-archived repos" in {
+    "show non-archived repos" in:
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(Some(false)).futureValue
       results.length shouldBe 1
       results.head.repositories.map(_.name) should contain only ("repo1")
-    }
 
-    "show only archived repos" in {
+    "show only archived repos" in:
       repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
       val results = legacyPersistence.getAllTeamsAndRepos(Some(true)).futureValue
       results.length shouldBe 1
       results.head.repositories.map(_.name) should contain only ("repo2")
-    }
-  }
-}

@@ -37,27 +37,29 @@ class BuildDeployApiConnectorSpec
      with ScalaFutures
      with WireMockSupport
      with HttpClientV2Support
-     with IntegrationPatience {
+     with IntegrationPatience:
 
-  "getBuildJobs" should {
+  "getBuildJobs" should:
 
-    "Invoke the API and return build jobs if successful" in {
+    "Invoke the API and return build jobs if successful" in:
       stubFor(
         post("/get-build-jobs")
           .willReturn(aResponse().withBody(buildJobResponseJson))
       )
 
-      def buildJob1(repoName: String) = BuildDeployApiConnector.BuildJob(
-        jobName    = repoName,
-        jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
-        jobType    = BuildDeployApiConnector.JobType.Job
-      )
+      def buildJob1(repoName: String) =
+        BuildDeployApiConnector.BuildJob(
+          jobName    = repoName,
+          jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName/",
+          jobType    = BuildDeployApiConnector.JobType.Job
+        )
 
-      def buildJob2(repoName: String) = BuildDeployApiConnector.BuildJob(
-        jobName    = s"$repoName-pipeline",
-        jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
-        jobType    = BuildDeployApiConnector.JobType.Pipeline
-      )
+      def buildJob2(repoName: String) =
+        BuildDeployApiConnector.BuildJob(
+          jobName    = s"$repoName-pipeline",
+          jenkinsUrl = s"https://build.tax.service.gov.uk/job/Centre%20Technical%20Leads/job/$repoName-pipeline/",
+          jobType    = BuildDeployApiConnector.JobType.Pipeline
+        )
 
       connector.getBuildJobsDetails().futureValue shouldBe List(
         BuildDeployApiConnector.Detail("test-repo-1", List(buildJob1("test-repo-1"), buildJob2("test-repo-1")))
@@ -67,12 +69,10 @@ class BuildDeployApiConnectorSpec
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/get-build-jobs"))
       )
-    }
-  }
 
-  "enableBranchProtection" should {
+  "enableBranchProtection" should:
 
-    "Invoke the API and return unit if successful" in {
+    "Invoke the API and return unit if successful" in:
       stubFor(
         post("/set-branch-protection")
           .withRequestBody(equalToJson("""
@@ -108,14 +108,15 @@ class BuildDeployApiConnectorSpec
           """))
       )
 
-      val prJob = JenkinsJobsPersistence.Job(
-        repoName    = "some-repo"
-      , jobName     = "some-repo-pr-builder"
-      , jenkinsUrl  = "http://path/to/jenkins"
-      , jobType     = JenkinsJobsPersistence.JobType.PullRequest
-      , repoType    = Some(RepoType.Service)
-      , latestBuild = None
-      )
+      val prJob: JenkinsJobsPersistence.Job =
+        JenkinsJobsPersistence.Job(
+          repoName    = "some-repo"
+        , jobName     = "some-repo-pr-builder"
+        , jenkinsUrl  = "http://path/to/jenkins"
+        , jobType     = JenkinsJobsPersistence.JobType.PullRequest
+        , repoType    = Some(RepoType.Service)
+        , latestBuild = None
+        )
 
       connector.enableBranchProtection("some-repo", List(prJob)).futureValue
 
@@ -129,9 +130,8 @@ class BuildDeployApiConnectorSpec
             }"""
           ))
       )
-    }
 
-    "Invoke the API and raise an error if unsuccessful" in {
+    "Invoke the API and raise an error if unsuccessful" in:
       stubFor(
         post("/set-branch-protection")
           .withRequestBody(equalToJson("""
@@ -148,7 +148,7 @@ class BuildDeployApiConnectorSpec
           """))
       )
 
-      val error =
+      val error: Throwable =
         connector
           .enableBranchProtection("some-repo", Nil)
           .failed
@@ -166,8 +166,6 @@ class BuildDeployApiConnectorSpec
             }"""
           ))
       )
-    }
-  }
 
   private lazy val buildJobResponseJson: String =
     """{
@@ -220,4 +218,3 @@ class BuildDeployApiConnectorSpec
         )
       )
     )
-}

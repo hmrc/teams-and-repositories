@@ -21,43 +21,34 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random.nextInt
 
-object Helper {
+object Helper:
 
-  def randomlyCapitalize(str: String): String  = {
+  def randomlyCapitalize(str: String): String  =
     str.map(char => if nextInt() % 2 == 0 then char.toUpper else char.toLower)
-  }
 
-  def generateValidStrings(strs: Seq[String]): List[String] = {
+  def generateValidStrings(strs: Seq[String]): List[String] =
     Range(0, 50).flatMap(_ => strs
       .map(rType => randomlyCapitalize(rType)))
       .toList
-  }
-}
 
-class RepoTypeSpec extends AnyWordSpec with Matchers {
+class RepoTypeSpec extends AnyWordSpec with Matchers:
   val repoTypeStrings: Seq[String] = RepoType.values.toIndexedSeq.map(rType => rType.asString)
   val valid_inputs: List[String] = Helper.generateValidStrings(repoTypeStrings) //Generate 50 capitalization variations of each RepoType
 
-  "repoType.parse" when {
-    "parsing service with various capitalization styles" should {
-      "returns a RepoType object" in {
+  "repoType.parse" when:
+    "parsing service with various capitalization styles" should:
+      "returns a RepoType object" in:
         valid_inputs
-          .foreach(i => RepoType.parse(i) match {
+          .foreach(i => RepoType.parse(i) match
             case Right(value) => RepoType.values should contain (value)
             case _            => fail(s" The input $i has no right value!")
-          })
-      }
-    }
-  }
+          )
 
-  val invalid_inputs = Seq("services", "foo", "42", "HELLO", "WORLD", "", ";.]'")
+  val invalid_inputs: Seq[String] =
+    Seq("services", "foo", "42", "HELLO", "WORLD", "", ";.]'")
 
-  "repoType.parse" when {
-    "parsing invalid query parameter inputs" should {
-      "return an error message" in {
+  "repoType.parse" when:
+    "parsing invalid query parameter inputs" should:
+      "return an error message" in:
         invalid_inputs
           .foreach(i => RepoType.parse(i).isLeft shouldBe true)
-      }
-    }
-  }
-}

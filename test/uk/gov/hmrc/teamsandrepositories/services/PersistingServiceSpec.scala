@@ -40,11 +40,11 @@ class PersistingServiceSpec
     with Matchers
     with MockitoSugar
     with ScalaFutures
-    with IntegrationPatience {
+    with IntegrationPatience:
 
-  "PersistingService" when {
-    "updating teams and repositories" should {
-      "assign teams to repositories" in new Setup {
+  "PersistingService" when:
+    "updating teams and repositories" should:
+      "assign teams to repositories" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -56,20 +56,19 @@ class PersistingServiceSpec
         when(githubConnector.getRepos).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRepos: Seq[GitRepository] = {
+        val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
-        }
+
         persistedRepos.length                                         shouldBe 3
         persistedRepos.map(_.name)                                    should contain theSameElementsAs Seq("repo-1", "repo-2", "repo-3")
         persistedRepos.filter(_.teams.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
           "repo-1",
           "repo-2")
         persistedRepos.filter(_.teams.contains("team-b")).map(_.name) should contain theSameElementsAs Seq("repo-3")
-      }
 
-      "assign multiple teams to same repository" in new Setup {
+      "assign multiple teams to same repository" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -81,11 +80,11 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRepos: Seq[GitRepository] = {
+        val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
-        }
+
         persistedRepos.length                                         shouldBe 3
         persistedRepos.map(_.name)                                    should contain theSameElementsAs List("repo-1", "repo-2", "repo-3")
         persistedRepos.filter(_.teams.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
@@ -94,9 +93,8 @@ class PersistingServiceSpec
         persistedRepos.filter(_.teams.contains("team-b")).map(_.name) should contain theSameElementsAs Seq(
           "repo-2",
           "repo-3")
-      }
 
-      "include repositories without any associated teams" in new Setup {
+      "include repositories without any associated teams" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -109,17 +107,16 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRepos: Seq[GitRepository] = {
+        val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
-        }
+        
         persistedRepos.length      shouldBe 4
         persistedRepos.map(_.name) should contain theSameElementsAs List("repo-1", "repo-2", "repo-3", "repo-4")
         persistedRepos.map(r => r.name -> r).toMap.get("repo-4").map(_.teams) shouldBe Some(Seq.empty)
-      }
 
-      "assign service type" in new Setup {
+      "assign service type" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "other")                                                                           // Other repo type
         val repo2: GhRepository = aRepo.copy(name = "front-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by frontend routes (not name)
         val repo3: GhRepository = aRepo.copy(name = "admin-route",   repoTypeHeuristics = aHeuristics.copy(hasApplicationConf = true)) // Defined by admin frontend routes
@@ -131,11 +128,11 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set(repo3.name)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRepos: Seq[GitRepository] = {
+        val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
-        }
+
         persistedRepos
           .map(r => (r.name, r.repoType, r.serviceType))
           .toSet shouldBe Set(
@@ -145,9 +142,8 @@ class PersistingServiceSpec
           , ("some-frontend", RepoType.Service, Some(ServiceType.Frontend))
           , ("no-rules"     , RepoType.Service, Some(ServiceType.Backend) )
           )
-      }
 
-      "assign tags (for services)" in new Setup {
+      "assign tags (for services)" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "other-repo") // Other repo type
         val repo2: GhRepository = aRepo.copy(name = "admin-frontend",      repositoryYamlText = Some("type: service\nservice-type: frontend")) // Defined by name
         val repo3: GhRepository = aRepo.copy(name = "repo-stub",           repositoryYamlText = Some("type: service\nservice-type: backend" )) // Defined by name
@@ -181,9 +177,8 @@ class PersistingServiceSpec
           , ("repo-built-off-platform" , RepoType.Service, Some(ServiceType.Backend),  Some(Set(Tag.BuiltOffPlatform)))
           , ("repo-uses-maven"         , RepoType.Service, Some(ServiceType.Backend),  Some(Set(Tag.Maven)))
           )
-      }
 
-      "update test repo relationships" in new Setup {
+      "update test repo relationships" in new Setup:
         val yaml: String =
           """
             |test-repositories:
@@ -200,20 +195,18 @@ class PersistingServiceSpec
 
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRelationships: Seq[TestRepoRelationship] = {
+        val persistedRelationships: Seq[TestRepoRelationship] =
           val argCaptor: ArgumentCaptor[Seq[TestRepoRelationship]] = ArgumentCaptor.forClass(classOf[Seq[TestRepoRelationship]])
           verify(relationshipsPersistence).putRelationships(any, argCaptor.capture())
           argCaptor.getValue
-        }
 
         persistedRelationships.length shouldBe 2
         persistedRelationships should contain theSameElementsAs Seq(
           TestRepoRelationship("repo-1-acceptance-tests", "repo-1"),
           TestRepoRelationship("repo-1-performance-tests", "repo-1")
         )
-      }
 
-      "create team summaries from repos that have teams" in new Setup {
+      "create team summaries from repos that have teams" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1", pushedAt = now.minus(5, ChronoUnit.DAYS))
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -235,9 +228,8 @@ class PersistingServiceSpec
           TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2")),
           TeamSummary("team-b", Some(now), Seq("repo-3"))
         )
-      }
 
-      "create team summaries from teams that have no repos" in new Setup {
+      "create team summaries from teams that have no repos" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -249,20 +241,18 @@ class PersistingServiceSpec
         when(githubConnector.getRepos).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedTeams: List[TeamSummary] = {
+        val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
           verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
           argCaptor.getValue
-        }
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs List(
           TeamSummary("team-a", None, Seq.empty),
           TeamSummary("team-b", None, Seq.empty)
         )
-      }
 
-      "create git repositories and exclude hidden teams from owning teams list" in new Setup {
+      "create git repositories and exclude hidden teams from owning teams list" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -276,20 +266,17 @@ class PersistingServiceSpec
         when(githubConnector.getRepos).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedRepos: Seq[GitRepository] = {
+        val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
           verify(reposPersistence).putRepos(argCaptor.capture())
           argCaptor.getValue
-        }
 
         persistedRepos.length                                                       shouldBe 3
         persistedRepos.map(r => r.name -> r).toMap.get("repo-1").map(_.owningTeams) shouldBe Some(List("team-a"))
         persistedRepos.map(r => r.name -> r).toMap.get("repo-2").map(_.owningTeams) shouldBe Some(List("team-a"))
         persistedRepos.map(r => r.name -> r).toMap.get("repo-3").map(_.owningTeams) shouldBe Some(List("team-b"))
 
-      }
-
-      "create team summaries and exclude hidden teams" in new Setup {
+      "create team summaries and exclude hidden teams" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -303,11 +290,10 @@ class PersistingServiceSpec
         when(githubConnector.getRepos).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedTeams: List[TeamSummary] = {
+        val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
           verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
           argCaptor.getValue
-        }
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs
@@ -315,9 +301,8 @@ class PersistingServiceSpec
             TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2")),
             TeamSummary("team-b", Some(now), Seq("repo-3")),
           )
-      }
 
-      "create team summaries and exclude archived repos" in new Setup {
+      "create team summaries and exclude archived repos" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1", isArchived = true)
         val repo2: GhRepository = aRepo.copy(name = "repo-2")
         val repo3: GhRepository = aRepo.copy(name = "repo-3")
@@ -331,22 +316,18 @@ class PersistingServiceSpec
         when(githubConnector.getRepos).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         onTest.updateTeamsAndRepositories().futureValue
 
-        val persistedTeams: List[TeamSummary] = {
+        val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
           verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
           argCaptor.getValue
-        }
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs List(
           TeamSummary("team-a", Some(now), Seq("repo-2")),
           TeamSummary("team-b", Some(now), Seq("repo-3")),
         )
-      }
-    }
-  }
 
-  trait Setup {
+  trait Setup:
     val reposPersistence        : RepositoriesPersistence          = mock[RepositoriesPersistence]
     val deletedRepoPersistence  : DeletedRepositoriesPersistence   = mock[DeletedRepositoriesPersistence]
     val teamsPersistence        : TeamSummaryPersistence           = mock[TeamSummaryPersistence]
@@ -401,5 +382,3 @@ class PersistingServiceSpec
       repositoryYamlText = None,
       repoTypeHeuristics = aHeuristics
     )
-  }
-}

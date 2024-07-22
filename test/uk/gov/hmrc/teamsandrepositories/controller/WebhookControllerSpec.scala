@@ -38,214 +38,216 @@ import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class WebhookControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with OptionValues with BeforeAndAfterEach {
+class WebhookControllerSpec
+  extends AnyWordSpec
+    with Matchers
+    with GuiceOneAppPerSuite
+    with MockitoSugar
+    with OptionValues
+    with BeforeAndAfterEach:
 
   val mockPersistingService  : PersistingService       = mock[PersistingService]
   val mockRepositoriesService: RepositoriesPersistence = mock[RepositoriesPersistence]
 
-  implicit override lazy val app: Application = {
-    new GuiceApplicationBuilder()
+  implicit override lazy val app: Application =
+    GuiceApplicationBuilder()
       .overrides(
         bind[PersistingService].toInstance(mockPersistingService),
         bind[RepositoriesPersistence].toInstance(mockRepositoriesService),
       )
       .build()
-  }
 
-  override def beforeEach(): Unit = {
+  override def beforeEach(): Unit =
     super.beforeEach()
     reset(mockPersistingService)
     reset(mockRepositoriesService)
-  }
 
   private lazy val whroute  = routes.WebhookController.processGithubWebhook().url
 
-  "WebhookController" should {
+  "WebhookController" should:
 
-    "return 202 given 'push' webhook with a branch ref of 'main'" in {
+    "return 202 given 'push' webhook with a branch ref of 'main'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))
         .thenReturn(EitherT[Future, String, Unit](Future.successful(Right(()))))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "repository": {
-              |   "name": "foo"
-              | },
-              | "ref": "main"
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "repository": {
+                |   "name": "foo"
+                | },
+                | "ref": "main"
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(using any[ExecutionContext])
-    }
 
-    "return 200 given 'push' webhook" in {
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "repository": {
-              |   "name": "foo"
-              | },
-              | "ref": "ab123"
-              |}
-              |""".stripMargin
+    "return 200 given 'push' webhook" in:
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "repository": {
+                |   "name": "foo"
+                | },
+                | "ref": "ab123"
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe OK
 
       verifyNoInteractions(mockPersistingService)
-    }
 
-    "return 202 given 'team' webhook with action 'added_to_repository'" in {
+    "return 202 given 'team' webhook with action 'added_to_repository'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))
         .thenReturn(EitherT[Future, String, Unit](Future.successful(Right(()))))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "action": "added_to_repository",
-              | "team": {
-              |   "name": "foo"
-              | },
-              | "repository": {
-              |   "name": "bar"
-              | }
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "added_to_repository",
+                | "team": {
+                |   "name": "foo"
+                | },
+                | "repository": {
+                |   "name": "bar"
+                | }
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(using any[ExecutionContext])
-    }
 
-    "return 202 given 'team' webhook with action 'removed_from_repository'" in {
+    "return 202 given 'team' webhook with action 'removed_from_repository'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))
         .thenReturn(EitherT[Future, String, Unit](Future.successful(Right(()))))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "action": "removed_from_repository",
-              | "team": {
-              |   "name": "foo"
-              | },
-              | "repository": {
-              |   "name": "bar"
-              | }
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "removed_from_repository",
+                | "team": {
+                |   "name": "foo"
+                | },
+                | "repository": {
+                |   "name": "bar"
+                | }
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).updateRepository(any())(using any[ExecutionContext])
-    }
 
-    "return 200 given 'team' webhook" in {
+    "return 200 given 'team' webhook" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))
         .thenReturn(EitherT[Future, String, Unit](Future.successful(Right(()))))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "action": "baz",
-              | "team": {
-              |   "name": "foo"
-              | },
-              | "repository": {
-              |   "name": "bar"
-              | }
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "baz",
+                | "team": {
+                |   "name": "foo"
+                | },
+                | "repository": {
+                |   "name": "bar"
+                | }
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe OK
 
       verifyNoInteractions(mockPersistingService)
-    }
 
-    "return 202 given 'repository' webhook with 'archived' action" in {
+    "return 202 given 'repository' webhook with 'archived' action" in:
 
       when(mockPersistingService.archiveRepository(any()))
         .thenReturn(Future.successful(()))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "action": "archived",
-              | "repository": {
-              |   "name": "bar"
-              | }
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "archived",
+                | "repository": {
+                |   "name": "bar"
+                | }
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).archiveRepository(any())
-    }
 
-    "return 202 given 'repository' webhook with 'deleted' action and existing repo is found" in {
+    "return 202 given 'repository' webhook with 'deleted' action and existing repo is found" in:
       when(mockPersistingService.deleteRepository(eqTo("foo"))(using any[ExecutionContext]))
         .thenReturn(Future.successful(()))
 
-      val request: FakeRequest[AnyContentAsJson] = FakeRequest(POST, whroute)
-        .withJsonBody(
-          Json.parse(
-            """
-              |{
-              | "action": "deleted",
-              | "repository": {
-              |   "name": "foo"
-              | }
-              |}
-              |""".stripMargin
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "deleted",
+                | "repository": {
+                |   "name": "foo"
+                | }
+                |}
+                |""".stripMargin
+            )
           )
-        )
 
       val result = route(app, request).value
 
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).deleteRepository(any())(using any[ExecutionContext])
-    }
-  }
-}

@@ -30,7 +30,7 @@ class TeamSummaryPersistenceSpec
   extends AnyWordSpecLike
     with Matchers
     with MockitoSugar
-    with DefaultPlayMongoRepositorySupport[TeamSummary] {
+    with DefaultPlayMongoRepositorySupport[TeamSummary]:
 
   override protected val repository: TeamSummaryPersistence = TeamSummaryPersistence(mongoComponent)
 
@@ -50,27 +50,24 @@ class TeamSummaryPersistenceSpec
       repos          = Seq("repo-one")
     )
 
-  "update" should {
-    "insert new team summaries" in {
+  "update" should:
+    "insert new team summaries" in:
       repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
       findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
-    }
 
-    "update existing teams summaries" in {
+    "update existing teams summaries" in:
       insert(teamSummary1.copy(lastActiveDate = Some(now.minus(5, ChronoUnit.DAYS)))).futureValue
       repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
       findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
-    }
 
-    "delete team summaries not in the update list" in {
+    "delete team summaries not in the update list" in:
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
       repository.updateTeamSummaries(List(teamSummary1)).futureValue
       findAll().futureValue should contain (teamSummary1)
       findAll().futureValue should not contain teamSummary2
-    }
 
-    "support case-insensitive collation" in {
+    "support case-insensitive collation" in:
       insert(teamSummary1).futureValue
       val teamSummary1Upper = teamSummary1.copy(name = teamSummary1.name.toUpperCase)
       repository.updateTeamSummaries(Seq(teamSummary1Upper)).futureValue
@@ -79,14 +76,9 @@ class TeamSummaryPersistenceSpec
 
       repository.updateTeamSummaries(Seq.empty).futureValue
       findAll().futureValue shouldBe Seq.empty
-    }
-  }
 
-  "findTeamSummaries" should {
-    "return all summaries for all teams" in {
+  "findTeamSummaries" should:
+    "return all summaries for all teams" in:
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
       repository.findTeamSummaries().futureValue should contain theSameElementsAs Seq(teamSummary1, teamSummary2)
-    }
-  }
-}

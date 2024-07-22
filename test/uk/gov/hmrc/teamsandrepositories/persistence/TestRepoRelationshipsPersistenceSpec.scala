@@ -26,12 +26,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class TestRepoRelationshipsPersistenceSpec
   extends AnyWordSpec
      with Matchers
-     with DefaultPlayMongoRepositorySupport[TestRepoRelationship] {
+     with DefaultPlayMongoRepositorySupport[TestRepoRelationship]:
 
   override protected val repository: TestRepoRelationshipsPersistence = TestRepoRelationshipsPersistence(mongoComponent)
 
-  "putRelationships" should {
-    "replace all relationships for a given service" in {
+  "putRelationships" should:
+    "replace all relationships for a given service" in:
       insert(TestRepoRelationship("test-repo-1", "service-repo-1")).futureValue
       insert(TestRepoRelationship("test-repo-2", "service-repo-2")).futureValue
 
@@ -49,25 +49,17 @@ class TestRepoRelationshipsPersistenceSpec
 
       repository.findTestReposByService("service-repo-1").futureValue should contain theSameElementsAs Seq("service-performance-tests", "service-acceptance-tests")
       repository.findTestReposByService("service-repo-2").futureValue should contain theSameElementsAs Seq("test-repo-2")
-    }
-  }
 
-  "findTestReposByService" should {
-    "return all test repos associated with a given service" in {
+  "findTestReposByService" should:
+    "return all test repos associated with a given service" in:
       insert(TestRepoRelationship("test-repo-one", "service-repo")).futureValue
       insert(TestRepoRelationship("test-repo-two", "service-repo")).futureValue
 
       repository.findTestReposByService("service-repo").futureValue should contain theSameElementsAs Seq("test-repo-one", "test-repo-two")
-    }
-  }
 
-  "findServicesByTestRepo" should {
-    "return all services that are associated with a given test repo" in {
+  "findServicesByTestRepo" should:
+    "return all services that are associated with a given test repo" in:
       insert(TestRepoRelationship("test-repo", "service-one")).futureValue
       insert(TestRepoRelationship("test-repo", "service-two")).futureValue
 
       repository.findServicesByTestRepo("test-repo").futureValue should contain theSameElementsAs Seq("service-one", "service-two")
-    }
-  }
-
-}

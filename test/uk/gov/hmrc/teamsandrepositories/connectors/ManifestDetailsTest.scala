@@ -23,11 +23,11 @@ import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, Tag}
 
 import java.time.Instant
 
-class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
+class ManifestDetailsTest extends AnyWordSpecLike with Matchers:
 
-  "ManifestDetails.Parse" should {
+  "ManifestDetails.Parse" should:
 
-    "parse deprecated flag and reason" in {
+    "parse deprecated flag and reason" in:
       val manifest =
         """
           |repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
@@ -39,9 +39,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined        shouldBe true
       details.get.repoType     shouldBe Some(RepoType.Library)
       details.get.isDeprecated shouldBe true
-    }
 
-    "parse description" in {
+    "parse description" in:
       val manifest =
         """
           |description: test description
@@ -50,9 +49,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined shouldBe true
       details.get.description shouldBe Some("test description")
-    }
 
-    "parse end-of-life-date" in {
+    "parse end-of-life-date" in:
       val manifest =
         """
           |end-of-life-date: 2024-05-09
@@ -61,9 +59,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined shouldBe true
       details.get.endOfLifeDate shouldBe Some(Instant.parse("2024-05-09T00:00:00Z"))
-    }
 
-    "parse end-of-life-date as None if invalid format" in {
+    "parse end-of-life-date as None if invalid format" in:
       val manifest =
         """
           |end-of-life-date: 20000-05-09
@@ -72,9 +69,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined shouldBe true
       details.get.endOfLifeDate shouldBe None
-    }
 
-    "parse end-of-life-date as None if key is missing" in {
+    "parse end-of-life-date as None if key is missing" in:
       val manifest =
         """
           |repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
@@ -83,9 +79,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       val details = ManifestDetails.parse("repo1", manifest)
       details.isDefined shouldBe true
       details.get.endOfLifeDate shouldBe None
-    }
 
-    "parse default to not deprecated" in {
+    "parse default to not deprecated" in:
       val manifest =
         """
           |repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
@@ -96,9 +91,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined        shouldBe true
       details.get.repoType     shouldBe Some(RepoType.Library)
       details.get.isDeprecated shouldBe false
-    }
 
-    "parse service-type" in {
+    "parse service-type" in:
       val manifest =
         """
           |type: service
@@ -109,9 +103,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined       shouldBe true
       details.get.repoType    shouldBe Some(RepoType.Service)
       details.get.serviceType shouldBe Some(ServiceType.Frontend)
-    }
 
-    "parse invalid service-type" in {
+    "parse invalid service-type" in:
       val manifest =
         """
           |type: service
@@ -122,9 +115,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined       shouldBe true
       details.get.repoType    shouldBe Some(RepoType.Service)
       details.get.serviceType shouldBe None
-    }
 
-    "parse tags" in {
+    "parse tags" in:
       val manifest =
         """
           |type: service
@@ -137,9 +129,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.get.repoType    shouldBe Some(RepoType.Service)
       details.get.serviceType shouldBe Some(ServiceType.Frontend)
       details.get.tags        shouldBe Some(Set(Tag.Api, Tag.Stub, Tag.AdminFrontend))
-    }
 
-    "parse invalid tag" in {
+    "parse invalid tag" in:
       val manifest =
         """
           |type: service
@@ -152,9 +143,8 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.get.repoType    shouldBe Some(RepoType.Service)
       details.get.serviceType shouldBe Some(ServiceType.Frontend)
       details.get.tags        shouldBe Some(Set.empty)
-    }
 
-    "parse prototype-auto-publish" in {
+    "parse prototype-auto-publish" in:
       val manifest =
         """
           |prototype-name: my-prototype
@@ -165,6 +155,3 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers {
       details.isDefined                shouldBe true
       details.get.prototypeName        shouldBe Some("my-prototype")
       details.get.prototypeAutoPublish shouldBe Some(true)
-    }
-  }
-}

@@ -27,10 +27,10 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Format
-import play.api.mvc.Results
+import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.teamsandrepositories.models.*
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
 import uk.gov.hmrc.teamsandrepositories.models.GitRepository
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
@@ -45,9 +45,9 @@ class LegacyTeamsControllerSpec
      with Results
      with OptionValues
      with GuiceOneServerPerSuite
-     with Eventually {
+     with Eventually:
 
-  implicit val tf: Format[Team] = Team.format
+  given Format[Team] = Team.format
 
   private val now = Instant.now()
 
@@ -63,8 +63,8 @@ class LegacyTeamsControllerSpec
   private val lastActiveDateForLib1     = now.plusSeconds(40)
   private val lastActiveDateForLib2     = now.plusSeconds(50)
 
-  implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+  override lazy val app: Application =
+    GuiceApplicationBuilder()
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
@@ -77,7 +77,7 @@ class LegacyTeamsControllerSpec
       )
       .build()
 
-  val defaultData =
+  val defaultData: Seq[TeamRepositories] =
     Seq(
       TeamRepositories(
         teamName      = "test-team",
@@ -199,23 +199,23 @@ class LegacyTeamsControllerSpec
       )
     )
 
-  "Teams controller" should {
-    "have the correct url set up for the teams list" in {
+  "Teams controller" should:
+    "have the correct url set up for the teams list" in:
       uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController.teams(includeRepos = true).url shouldBe "/api/teams?includeRepos=true"
-    }
 
-    "have the correct url set up for a team's services" in {
+    "have the correct url set up for a team's services" in:
       uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyTeamsController
         .team("test-team", includeRepos = true)
         .url shouldBe "/api/teams/test-team?includeRepos=true"
-    }
-  }
 
-  "Retrieving a list of repositories for a team" should {
-    "Return all repo types belonging to a team" in new Setup {
-      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
+  "Retrieving a list of repositories for a team" should:
+    "Return all repo types belonging to a team" in new Setup:
+      val result: Future[Result] =
+        controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      val team = contentAsJson(result).as[Team]
+      val team: Team =
+        contentAsJson(result).as[Team]
+        
       team.name shouldBe "another-team"
       team.repos shouldBe Some(Map(
         RepoType.Service   -> Seq("another-repo", "middle-repo"),
@@ -224,10 +224,9 @@ class LegacyTeamsControllerSpec
         RepoType.Test      -> List(),
         RepoType.Other     -> Seq("other-repo")
       ))
-    }
 
-    "Return information about all the teams that have access to a repo" in new Setup {
-      val sourceData =
+    "Return information about all the teams that have access to a repo" in new Setup:
+      val sourceData: Seq[TeamRepositories] =
         Seq(
           TeamRepositories(
             teamName     = "test-team",
@@ -270,7 +269,8 @@ class LegacyTeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
       contentAsJson(result).as[Team].repos shouldBe Some(Map(
         RepoType.Service   -> List("repo-name"),
@@ -279,14 +279,14 @@ class LegacyTeamsControllerSpec
         RepoType.Test      -> List(),
         RepoType.Other     -> List()
       ))
-    }
-  }
 
-  "Retrieving a list of repository details for a team" should {
-    "Return all repo types belonging to a team" in new Setup {
-      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
+  "Retrieving a list of repository details for a team" should:
+    "Return all repo types belonging to a team" in new Setup:
+      val result: Future[Result] =
+        controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
-      val team = contentAsJson(result).as[Team]
+      val team: Team =
+        contentAsJson(result).as[Team]
 
       team.repos.value shouldBe Map(
         RepoType.Service   -> List("another-repo", "middle-repo"),
@@ -295,10 +295,9 @@ class LegacyTeamsControllerSpec
         RepoType.Test      -> List(),
         RepoType.Other     -> List("other-repo")
       )
-    }
 
-    "Return the repository information for the specified team" in new Setup {
-      val sourceData =
+    "Return the repository information for the specified team" in new Setup:
+      val sourceData: Seq[TeamRepositories] =
         Seq(
           TeamRepositories(
             teamName     = "test-team",
@@ -341,7 +340,8 @@ class LegacyTeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.team("another-team", includeRepos = true).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.team("another-team", includeRepos = true).apply(FakeRequest())
 
       contentAsJson(result)
         .as[Team]
@@ -353,12 +353,10 @@ class LegacyTeamsControllerSpec
           RepoType.Test      -> List(),
           RepoType.Other     -> List()
         )
-    }
-  }
 
-  "Returning a list of repositories by team" should {
-    "return the empty list for repository type if a team does not have it" in new Setup {
-      val sourceData =
+  "Returning a list of repositories by team" should:
+    "return the empty list for repository type if a team does not have it" in new Setup:
+      val sourceData: Seq[TeamRepositories] =
         Seq(
           TeamRepositories(
             teamName     = "test-team",
@@ -383,28 +381,34 @@ class LegacyTeamsControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
-      val team = contentAsJson(result).as[Team]
+      val team: Team =
+        contentAsJson(result).as[Team]
+        
       team.repos.map(_.get(RepoType.Service)) shouldBe Some(Some(List()))
-    }
 
-    "return an empty list if a team has no repositories" in new Setup {
-      val sourceData = Seq(
-        TeamRepositories(
-          teamName     = "test-team",
-          repositories = List(),
-          createdDate  = Some(now),
-          updateDate   = now
+    "return an empty list if a team has no repositories" in new Setup:
+      val sourceData: Seq[TeamRepositories] =
+        Seq(
+          TeamRepositories(
+            teamName     = "test-team",
+            repositories = List(),
+            createdDate  = Some(now),
+            updateDate   = now
+          )
         )
-      )
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
-      val team = contentAsJson(result).as[Team]
+      val team: Team =
+        contentAsJson(result).as[Team]
+        
       team.repos shouldBe Some(Map(
         RepoType.Service   -> List(),
         RepoType.Library   -> List(),
@@ -412,23 +416,21 @@ class LegacyTeamsControllerSpec
         RepoType.Test      -> List(),
         RepoType.Other     -> List()
       ))
-    }
 
-    "return a 404 if a team does not exist at all" in new Setup {
+    "return a 404 if a team does not exist at all" in new Setup:
       val sourceData = Seq.empty[TeamRepositories]
 
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.team("test-team", includeRepos = true).apply(FakeRequest())
+      val result: Future[Result] =
+        controller.team("test-team", includeRepos = true).apply(FakeRequest())
 
       status(result) shouldBe 404
-    }
-  }
 
-  private trait Setup {
-    val mockTeamsAndReposPersister = mock[RepositoriesPersistence]
-    val mockConfiguration          = mock[Configuration]
+  private trait Setup:
+    val mockTeamsAndReposPersister: RepositoriesPersistence = mock[RepositoriesPersistence]
+    val mockConfiguration: Configuration = mock[Configuration]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
       .thenReturn(Future.successful(defaultData))
@@ -436,10 +438,9 @@ class LegacyTeamsControllerSpec
     when(mockConfiguration.get[Seq[String]]("shared.repositories"))
       .thenReturn(List.empty)
 
-    val controller = new LegacyTeamsController(
-      mockTeamsAndReposPersister,
-      mockConfiguration,
-      stubControllerComponents()
-    )
-  }
-}
+    val controller: LegacyTeamsController =
+      LegacyTeamsController(
+        mockTeamsAndReposPersister,
+        mockConfiguration,
+        stubControllerComponents()
+      )

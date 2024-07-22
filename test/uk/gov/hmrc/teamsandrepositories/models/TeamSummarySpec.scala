@@ -22,18 +22,22 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class TeamSummarySpec extends AnyWordSpec with Matchers {
+class TeamSummarySpec extends AnyWordSpec with Matchers:
 
-  "TeamSummary.apply" in new Setup {
-    val gitRepo1 = gitRepository.copy(name = "repo-one",   owningTeams = Seq("A"),      teams = List("A", "B", "C"))
-    val gitRepo2 = gitRepository.copy(name = "repo-two",   owningTeams = Seq("B"),      teams = List("A", "B", "C"), lastActiveDate = now.minus(5, ChronoUnit.DAYS))
-    val gitRepo3 = gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), lastActiveDate = now)
+  "TeamSummary.apply" in new Setup:
+    val gitRepo1: GitRepository =
+      gitRepository.copy(name = "repo-one",   owningTeams = Seq("A"),      teams = List("A", "B", "C"))
+    
+    val gitRepo2: GitRepository =
+      gitRepository.copy(name = "repo-two",   owningTeams = Seq("B"),      teams = List("A", "B", "C"), lastActiveDate = now.minus(5, ChronoUnit.DAYS))
+    
+    val gitRepo3: GitRepository =
+      gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), lastActiveDate = now)
 
     TeamSummary.apply("A", List(gitRepo1, gitRepo3)) shouldBe TeamSummary("A", Some(now), Seq("repo-one", "repo-three"))
     TeamSummary.apply("B", List(gitRepo2, gitRepo3)) shouldBe TeamSummary("B", Some(now), Seq("repo-two", "repo-three"))
-  }
 
-  trait Setup {
+  trait Setup:
     val now: Instant = Instant.now()
 
     val gitRepository: GitRepository =
@@ -50,5 +54,3 @@ class TeamSummarySpec extends AnyWordSpec with Matchers {
         isArchived    = false,
         defaultBranch = "main"
     )
-  }
-}

@@ -31,7 +31,7 @@ class DeletedRepositoriesPersistenceSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with DefaultPlayMongoRepositorySupport[DeletedGitRepository] {
+     with DefaultPlayMongoRepositorySupport[DeletedGitRepository]:
 
     override protected val repository: DeletedRepositoriesPersistence = DeletedRepositoriesPersistence(mongoComponent)
 
@@ -63,70 +63,56 @@ class DeletedRepositoriesPersistenceSpec
         prototypeName       = None
       )
 
-    "find" should  {
-      "get all repos" in {
+    "find" should :
+      "get all repos" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         val results = repository.find().futureValue
         results shouldBe Seq(repo1, repo2)
-      }
 
-      "get repo by name" in {
+      "get repo by name" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         val results = repository.find(name = Some(repo1.name)).futureValue
         results shouldBe Seq(repo1)
-      }
 
-      "get repo by team" in {
+      "get repo by team" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         val results = repository.find(team = repo2.owningTeams.flatMap(_.headOption)).futureValue
         results shouldBe Seq(repo2)
-      }
 
-      "get all services" in {
+      "get all services" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         val results = repository.find(repoType = Some(RepoType.Service)).futureValue
         results shouldBe Seq(repo1)
-      }
-    }
 
-    "putRepo" should {
-      "insert repo" in {
+    "putRepo" should:
+      "insert repo" in:
         repository.putRepo(repo1).futureValue
         val results = repository.find().futureValue
         results shouldBe Seq(repo1)
-      }
 
-      "fail when inserting a duplicate" in {
+      "fail when inserting a duplicate" in:
         repository.putRepo(repo2).futureValue
 
         val result = repository.putRepo(repo2).failed.futureValue
 
         result shouldBe a[com.mongodb.MongoWriteException]
         result.getMessage should include("duplicate key error")
-      }
-    }
 
-    "deleteRepos" should {
-      "delete repo1" in {
+    "deleteRepos" should:
+      "delete repo1" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         repository.deleteRepos(Seq(repo1.name)).futureValue shouldBe 1
         repository.find().futureValue                       shouldBe Seq(repo2)
-      }
 
-      "delete repo1 & repo2" in {
+      "delete repo1 & repo2" in:
         repository.collection.insertMany(Seq(repo1, repo2)).toFuture().futureValue
         repository.deleteRepos(Seq(repo1.name, repo2.name)).futureValue shouldBe 2
         repository.find().futureValue                                   shouldBe Seq.empty
-      }
 
-      "handle repo not found" in {
+      "handle repo not found" in:
         repository.deleteRepos(Seq(repo1.name)).futureValue shouldBe 0
         repository.find().futureValue                       shouldBe Seq.empty
-      }
 
-      "handle Nil" in {
+      "handle Nil" in:
         repository.deleteRepos(Seq.empty).futureValue shouldBe 0
         repository.find().futureValue                 shouldBe Seq.empty
-      }
-    }
-}
