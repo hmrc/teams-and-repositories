@@ -23,74 +23,72 @@ import java.time.Instant
 
 
 class JenkinsConnectorSpec extends AnyWordSpec
-  with Matchers {
+  with Matchers:
 
-  "JenkinsConnector.generateJobQuery" should {
-    "get only top level of jobs when depth is 1" in {
+  "JenkinsConnector.generateJobQuery" should:
+    "get only top level of jobs when depth is 1" in:
       val res = JenkinsConnector.generateJobQuery(1)
       res shouldBe "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]"
-    }
 
-    "get sub-jobs if depth = 2" in {
+    "get sub-jobs if depth = 2" in:
       val res = JenkinsConnector.generateJobQuery(2)
       res shouldBe "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]]"
-    }
 
-    "get deep tree of jobs if depth = 10" in {
+    "get deep tree of jobs if depth = 10" in:
       val res = JenkinsConnector.generateJobQuery(10)
       res shouldBe "jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]],jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]]]]]]]]]]]"
-    }
-  }
 
-  "JenkinsObject Json reads" should {
-    "simple pipeline" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-        "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
-        "description": "Some Pipeline",
-        "fullName": "A Pipeline",
-        "name": "Pipeline",
-        "url": "https://...",
-        "lastBuild": {
-            "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
-            "number": 42,
-            "result": "SUCCESS",
-            "timestamp": 1658927101317,
-            "url": "https://..."
-        }}"""
-      )
+
+  "JenkinsObject Json reads" should:
+    "simple pipeline" in:
+      val jsonString: JsValue =
+          Json.parse(
+          """{
+          "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
+          "description": "Some Pipeline",
+          "fullName": "A Pipeline",
+          "name": "Pipeline",
+          "url": "https://...",
+          "lastBuild": {
+              "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
+              "number": 42,
+              "result": "SUCCESS",
+              "timestamp": 1658927101317,
+              "url": "https://..."
+          }}"""
+        )
 
       Json.fromJson[JenkinsConnector.JenkinsObject](jsonString) shouldBe JsSuccess(
         JenkinsConnector.JenkinsObject.WorkflowJob(
           name       = "Pipeline",
           jenkinsUrl = "https://...")
       )
-    }
 
-    "simple job" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-          "_class": "hudson.model.FreeStyleProject",
-          "description": "Job",
-          "fullName": "Job",
-          "name": "job",
-          "url": "https://.../",
-          "lastBuild": {
-              "_class": "hudson.model.FreeStyleBuild",
-              "number": 3,
-              "result": "SUCCESS",
-              "timestamp": 1658499777096,
-              "url": "https://.../3/"
-          },
-          "scm": {
-            "_class": "hudson.plugins.git.GitSCM",
-            "userRemoteConfigs": [
-              {
-                "url": "https://github.com/hmrc/project.git"
-              }
-            ]
-          }}"""
-      )
+    "simple job" in:
+      val jsonString: JsValue =
+        Json.parse(
+          """{
+            "_class": "hudson.model.FreeStyleProject",
+            "description": "Job",
+            "fullName": "Job",
+            "name": "job",
+            "url": "https://.../",
+            "lastBuild": {
+                "_class": "hudson.model.FreeStyleBuild",
+                "number": 3,
+                "result": "SUCCESS",
+                "timestamp": 1658499777096,
+                "url": "https://.../3/"
+            },
+            "scm": {
+              "_class": "hudson.plugins.git.GitSCM",
+              "userRemoteConfigs": [
+                {
+                  "url": "https://github.com/hmrc/project.git"
+                }
+              ]
+            }}"""
+        )
 
       Json.fromJson[JenkinsConnector.JenkinsObject](jsonString) shouldBe JsSuccess(
         JenkinsConnector.JenkinsObject.FreeStyleProject(
@@ -108,18 +106,18 @@ class JenkinsConnectorSpec extends AnyWordSpec
           gitHubUrl = Some("https://github.com/hmrc/project.git")
         )
       )
-    }
 
-    "simple folder" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-        "_class": "com.cloudbees.hudson.plugins.folder.Folder",
-        "description": "This folder contains stuff",
-        "fullName": "Folder",
-        "name": "Folder",
-        "url": "https://...",
-       "jobs" : []}"""
-      )
+    "simple folder" in:
+      val jsonString: JsValue =
+          Json.parse(
+          """{
+          "_class": "com.cloudbees.hudson.plugins.folder.Folder",
+          "description": "This folder contains stuff",
+          "fullName": "Folder",
+          "name": "Folder",
+          "url": "https://...",
+         "jobs" : []}"""
+        )
 
       Json.fromJson[JenkinsConnector.JenkinsObject](jsonString) shouldBe JsSuccess(
         JenkinsConnector.JenkinsObject.Folder(
@@ -129,31 +127,30 @@ class JenkinsConnectorSpec extends AnyWordSpec
         )
       )
 
-    }
-
-    "Folder with a job" in {
-      val jsonString: JsValue = Json.parse(
-        """{
-        "_class": "com.cloudbees.hudson.plugins.folder.Folder",
-        "description": "This folder contains stuff",
-        "fullName": "Folder",
-        "name": "Folder",
-        "url": "https://...",
-       "jobs" : [{
-                  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
-                  "description": "Some Job",
-                  "fullName": "Job",
-                  "name": "Job",
-                  "url": "https://...",
-                  "lastBuild": {
-                      "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
-                      "number": 42,
-                      "result": "SUCCESS",
-                      "timestamp": 1658927101317,
-                      "url": "https://..."
-                  }
-            }]}"""
-      )
+    "Folder with a job" in:
+      val jsonString: JsValue =
+        Json.parse(
+          """{
+          "_class": "com.cloudbees.hudson.plugins.folder.Folder",
+          "description": "This folder contains stuff",
+          "fullName": "Folder",
+          "name": "Folder",
+          "url": "https://...",
+         "jobs" : [{
+                    "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
+                    "description": "Some Job",
+                    "fullName": "Job",
+                    "name": "Job",
+                    "url": "https://...",
+                    "lastBuild": {
+                        "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
+                        "number": 42,
+                        "result": "SUCCESS",
+                        "timestamp": 1658927101317,
+                        "url": "https://..."
+                    }
+              }]}"""
+        )
 
       Json.fromJson[JenkinsConnector.JenkinsObject](jsonString) shouldBe JsSuccess(
         JenkinsConnector.JenkinsObject.Folder(
@@ -162,7 +159,3 @@ class JenkinsConnectorSpec extends AnyWordSpec
           jobs       = Seq(JenkinsConnector.JenkinsObject.WorkflowJob("Job", "https://..."))
         )
       )
-
-    }
-  }
-}

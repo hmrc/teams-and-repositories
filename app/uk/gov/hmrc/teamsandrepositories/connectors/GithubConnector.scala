@@ -16,21 +16,25 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
+
 import com.codahale.metrics.MetricRegistry
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.Logger
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 import java.time.Instant
 import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 @Singleton
@@ -38,21 +42,21 @@ class GithubConnector @Inject()(
   githubConfig  : GithubConfig,
   httpClientV2  : HttpClientV2,
   metricRegistry: MetricRegistry,
-)(implicit ec: ExecutionContext) {
+)(using ExecutionContext):
 
   import GithubConnector._
 
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private given HeaderCarrier = HeaderCarrier()
 
-  def getTeams(): Future[List[GhTeam]] =
+  def getTeams: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
-      val root =
+      val root: JsPath =
         __ \ "data" \ "organization" \ "teams"
 
-      implicit val reads =
+      given Reads[List[GhTeam]] =
         (root \ "nodes").read(Reads.list(GhTeam.reads))
 
       executePagedGqlQuery(
@@ -61,23 +65,22 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-  def getTeams(repoName: String): Future[List[String]] = {
-    implicit val reads =
-      (__ \ "name").read[String]
+  def getTeams(repoName: String): Future[List[String]] =
+    val stringReads: Reads[String] = (__ \ "name").read[String]
+    given Reads[List[String]] = Reads.list(stringReads)
 
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
       .setHeader(authHeader)
       .withProxy
       .execute[List[String]]
-  }
 
   def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
     withCounter("github.open.repos") {
       val root =
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
-      implicit val reads =
+      given Reads[List[GhRepository]] =
         (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads(githubConfig)))
 
       executePagedGqlQuery[List[GhRepository]](
@@ -86,12 +89,12 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-  def getRepos(): Future[List[GhRepository]] =
+  def getRepos: Future[List[GhRepository]] =
     withCounter("github.open.repos") {
       val root =
         __ \ "data" \ "organization" \ "repositories"
 
-      implicit val reads =
+      given Reads[List[GhRepository]] =
         (root \ "nodes").read(Reads.list(GhRepository.reads(githubConfig)))
 
       executePagedGqlQuery[List[GhRepository]](
@@ -100,28 +103,22 @@ class GithubConnector @Inject()(
       ).map(_.flatten)
     }
 
-  def getRepo(repoName: String): Future[Option[GhRepository]] = {
-    implicit val reads =
-      (__ \ "data" \ "organization" \ "repository")
-        .readNullable(GhRepository.reads(githubConfig))
+  def getRepo(repoName: String): Future[Option[GhRepository]] =
+    given Reads[Option[GhRepository]] =
+      (__ \ "data" \ "organization" \ "repository").readNullable(GhRepository.reads(githubConfig))
 
     executeGqlQuery[Option[GhRepository]](getRepoQuery.withVariable("repo", JsString(repoName)))
-  }
 
-  def getRateLimitMetrics(token: String, resource: RateLimitMetrics.Resource): Future[RateLimitMetrics] = {
-    implicit val rlmr = RateLimitMetrics.reads(resource)
+  def getRateLimitMetrics(token: String, resource: RateLimitMetrics.Resource): Future[RateLimitMetrics] =
+    given Reads[RateLimitMetrics] = RateLimitMetrics.reads(resource)
     httpClientV2
       .get(url"${githubConfig.apiUrl}/rate_limit")
       .setHeader("Authorization" -> s"token $token")
       .withProxy
       .execute[RateLimitMetrics]
-  }
 
-  private def executeGqlQuery[A](
+  private def executeGqlQuery[A : Reads : ClassTag](
     query: GraphqlQuery
-  )(implicit
-    reads: Reads[A],
-    mf   : Manifest[A]
   ): Future[A] =
     httpClientV2
       .post(url"${githubConfig.apiUrl}/graphql")
@@ -134,42 +131,39 @@ class GithubConnector @Inject()(
   private def executePagedGqlQuery[A](
     query     : GraphqlQuery,
     cursorPath: JsPath
-  )(implicit
+  )(using
     reads: Reads[A],
-    mf   : Manifest[A]
-  ): Future[List[A]] = {
-    implicit val readsWithCursor: Reads[WithCursor[A]] =
+    ct: ClassTag[A]
+  ): Future[List[A]] =
+    given Reads[WithCursor[A]] =
       (cursorPath.readNullable[String] ~ reads)(WithCursor(_, _))
 
-    for {
+    for
       response <- executeGqlQuery[WithCursor[A]](query)
       recurse  <- response.cursor.fold(Future.successful(List(response.value))) { cursor =>
                     executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
                       .map(response.value :: _)
                   }
-    } yield recurse
-  }
+    yield recurse
 
   private case class WithCursor[A](
     cursor: Option[String],
     value: A
   )
 
-  def withCounter[T](name: String)(f: Future[T]) =
-    f.andThen {
+  private def withCounter[T](name: String)(f: Future[T]) =
+    f.andThen:
       case Success(_) =>
         metricRegistry.counter(s"$name.success").inc()
       case Failure(_) =>
         metricRegistry.counter(s"$name.failure").inc()
-    }
-}
 
-object GithubConnector {
+object GithubConnector:
 
   final case class GraphqlQuery(
     query    : String,
     variables: Map[String, JsValue] = Map.empty
-  ) {
+  ):
 
     def withVariable(name: String, value: JsValue): GraphqlQuery =
       copy(variables = variables + (name -> value))
@@ -184,7 +178,6 @@ object GithubConnector {
 
     def asJsonString: String =
       Json.stringify(asJson)
-  }
 
   private val repositoryFields =
     """
@@ -316,23 +309,20 @@ object GithubConnector {
         }
       """
     )
-}
 
 case class GhTeam(
   name     : String,
   createdAt: Instant
-) {
+):
   def githubSlug: String =
     name.replaceAll(" - | |\\.", "-").toLowerCase
-}
 
-object GhTeam {
+object GhTeam:
 
   val reads: Reads[GhTeam] =
     ( (__ \ "name"     ).read[String]
     ~ (__ \ "createdAt").read[Instant]
     )(apply _)
-}
 
 case class GhRepository(
   name              : String,
@@ -347,9 +337,9 @@ case class GhRepository(
   branchProtection  : Option[BranchProtection],
   repositoryYamlText: Option[String],
   repoTypeHeuristics: RepoTypeHeuristics
-) {
+):
 
-  def toGitRepository: GitRepository = {
+  def toGitRepository: GitRepository =
     val manifestDetails: ManifestDetails =
       repositoryYamlText
         .flatMap(ManifestDetails.parse(name, _))
@@ -401,10 +391,8 @@ case class GhRepository(
       prototypeAutoPublish = manifestDetails.prototypeAutoPublish,
       repositoryYamlText   = repositoryYamlText
     )
-  }
-}
 
-object GhRepository {
+object GhRepository:
 
   final case class ManifestDetails(
     repoType            : Option[RepoType],
@@ -419,21 +407,21 @@ object GhRepository {
     prototypeAutoPublish: Option[Boolean]
   )
 
-  object ManifestDetails {
+  object ManifestDetails:
     import uk.gov.hmrc.teamsandrepositories.util.YamlMap
 
     private val logger = Logger(this.getClass)
 
     def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
-      YamlMap.parse(repositoryYaml) match {
+      YamlMap.parse(repositoryYaml) match
         case Failure(exception) =>
           logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType             = RepoType.parse(config.get[String]("type").getOrElse("")).toOption
-          , serviceType          = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
-          , tags                 = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
+            repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
+          , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+          , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service")
           , description          = config.get[String]("description")
           , endOfLifeDate        = config.getAsOpt[Date]("end-of-life-date").map(_.toInstant)
@@ -443,8 +431,6 @@ object GhRepository {
           , prototypeAutoPublish = config.get[Boolean]("prototype-auto-publish")
           )
           Some(manifestDetails)
-      }
-  }
 
   final case class RepoTypeHeuristics(
     prototypeInName    : Boolean,
@@ -456,23 +442,21 @@ object GhRepository {
     hasSrcMainJava     : Boolean,
     hasPomXml          : Boolean,
     hasTags            : Boolean
-  ) {
+  ):
 
-    def inferredRepoType: RepoType = {
-      if (prototypeInName)
+    def inferredRepoType: RepoType =
+      if prototypeInName then
         RepoType.Prototype
-      else if (testsInName)
+      else if testsInName then
         RepoType.Test
-      else if (hasApplicationConf || hasDeployProperties || hasProcfile)
+      else if hasApplicationConf || hasDeployProperties || hasProcfile then
         RepoType.Service
-      else if ((hasSrcMainScala || hasSrcMainJava) && hasTags)
+      else if (hasSrcMainScala || hasSrcMainJava) && hasTags then
         RepoType.Library
       else
         RepoType.Other
-    }
-  }
 
-  object RepoTypeHeuristics {
+  object RepoTypeHeuristics:
     val reads: Reads[RepoTypeHeuristics] =
       ( (__ \ "name"                      ).read[String].map(_.endsWith("-prototype"))
       ~ (__ \ "name"                      ).read[String].map(name => name.endsWith("-tests") || name.endsWith("-test"))
@@ -484,7 +468,6 @@ object GhRepository {
       ~ (__ \ "hasPomXml" \ "id"          ).readNullable[String].map(_.isDefined)
       ~ (__ \ "tags" \ "totalCount"       ).readNullable[Int].map(_.exists(_ > 0))
       )(apply _)
-  }
 
   def reads(gitHubConfig: GithubConfig): Reads[GhRepository] =
     ( (__ \ "name"                                            ).read[String]
@@ -493,10 +476,9 @@ object GhRepository {
     ~ (__ \ "createdAt"                                       ).read[Instant]
     ~ (__ \ "lastFiveCommits" \ "target" \ "history" \ "nodes").read[List[JsObject]].map { commits =>
       commits
-        .filterNot { commit =>
+        .filterNot: commit =>
           val authorEmail = (commit \ "author" \ "email").asOpt[String]
           authorEmail.exists(gitHubConfig.excludedUsers.contains)
-        }
         .map(commit => (commit \ "committedDate").as[Instant])
         .headOption.getOrElse(Instant.MIN)
       }.orElse(Reads.pure(Instant.MIN))
@@ -508,7 +490,6 @@ object GhRepository {
     ~ (__ \ "repositoryYaml" \ "text"                         ).readNullable[String]
     ~ RepoTypeHeuristics.reads
     )(apply _)
-}
 
 case class RateLimitMetrics(
   limit    : Int,
@@ -516,16 +497,11 @@ case class RateLimitMetrics(
   reset    : Int
 )
 
-object RateLimitMetrics {
+object RateLimitMetrics:
 
-  sealed trait Resource {
-    def asString: String
-  }
-
-  object Resource {
-    final case object Core extends Resource { val asString = "core" }
-    final case object GraphQl extends Resource { val asString = "graphql" }
-  }
+  enum Resource(val asString: String):
+    case Core    extends Resource("core"   )
+    case GraphQl extends Resource("graphql")
 
   def reads(resource: Resource): Reads[RateLimitMetrics] =
     Reads.at(__ \ "resources" \ resource.asString)(
@@ -534,7 +510,6 @@ object RateLimitMetrics {
       ~ (__ \ "reset"    ).read[Int]
       )(RateLimitMetrics.apply _)
     )
-}
 
 case class ApiRateLimitExceededException(
   exception: Throwable
@@ -544,10 +519,10 @@ case class ApiAbuseDetectedException(
   exception: Throwable
 ) extends RuntimeException(exception)
 
-object RateLimit {
+object RateLimit:
   val logger: Logger = Logger(getClass)
 
-  def convertRateLimitErrors[A]: PartialFunction[Throwable, Future[A]] = {
+  def convertRateLimitErrors[A]: PartialFunction[Throwable, Future[A]] =
     case e if e.getMessage.toLowerCase.contains("api rate limit exceeded")
            || e.getMessage.toLowerCase.contains("have exceeded a secondary rate limit") =>
       logger.error("=== Api rate limit has been reached ===", e)
@@ -556,8 +531,6 @@ object RateLimit {
     case e if e.getMessage.toLowerCase.contains("triggered an abuse detection mechanism") =>
       logger.error("=== Api abuse detected ===", e)
       Future.failed(ApiAbuseDetectedException(e))
-  }
-}
 
 final case class BranchProtection(
   requiresApprovingReviews: Boolean,
@@ -565,11 +538,10 @@ final case class BranchProtection(
   requiresCommitSignatures: Boolean
 )
 
-object BranchProtection {
+object BranchProtection:
 
   val format: Format[BranchProtection] =
     ( (__ \ "requiresApprovingReviews").format[Boolean]
     ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
     ~ (__ \ "requiresCommitSignatures").format[Boolean]
-    )(apply, unlift(unapply))
-}
+    )(apply, b => Tuple.fromProductTyped(b))

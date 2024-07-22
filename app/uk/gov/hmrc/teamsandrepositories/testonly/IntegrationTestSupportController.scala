@@ -22,6 +22,7 @@ import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
+import org.mongodb.scala.ObservableFuture
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,12 +33,11 @@ class IntegrationTestSupportController @Inject()(
   teamSummaryPersistence        : TeamSummaryPersistence,
   jenkinsJobsPersistence        : JenkinsJobsPersistence,
   cc                            : ControllerComponents
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) {
-  private implicit val bjf: Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
-  private implicit val ghf: OFormat[GitRepository]            = GitRepository.apiFormat
-  private implicit val dgf: OFormat[DeletedGitRepository]     = DeletedGitRepository.apiFormat
+)(using ExecutionContext
+) extends BackendController(cc):
+  private given Reads[JenkinsJobsPersistence.Job] = JenkinsJobsPersistence.Job.mongoFormat
+  private given OFormat[GitRepository]            = GitRepository.apiFormat
+  private given OFormat[DeletedGitRepository]     = DeletedGitRepository.apiFormat
 
   private def validateJson[A: Reads]: BodyParser[A] =
     parse.json.validate(_.validate[A].asEither.left.map(e => BadRequest(JsError.toJson(e))))
@@ -46,32 +46,30 @@ class IntegrationTestSupportController @Inject()(
     repositoriesPersistence.putRepos(request.body).map( _ => Ok("Ok"))
   }
 
-  def clearAll(): Action[AnyContent] = Action.async {
+  def clearAll: Action[AnyContent] = Action.async {
     repositoriesPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
-  def putDeletedRepositories(): Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
+  def putDeletedRepositories: Action[Seq[DeletedGitRepository]] = Action.async(validateJson[Seq[DeletedGitRepository]]){ implicit request =>
     deletedRepositoriesPersistence.putAll(request.body).map(_ => Ok("Ok"))
   }
 
-  def putJenkinsJobs(): Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
+  def putJenkinsJobs: Action[Seq[JenkinsJobsPersistence.Job]] = Action.async(validateJson[Seq[JenkinsJobsPersistence.Job]]) { implicit request =>
     jenkinsJobsPersistence.putAll(request.body).map(_ => Ok("Done"))
   }
 
-  def clearJenkins(): Action[AnyContent] = Action.async {
+  def clearJenkins: Action[AnyContent] = Action.async {
     jenkinsJobsPersistence.collection.deleteMany(Document()).toFuture().map(_ => Ok("Ok"))
   }
 
   def addTeamSummary(): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
-      implicit val tsFormat: OFormat[TeamSummary] =  TeamSummary.apiFormat
-      request.body.validate[Seq[TeamSummary]] match {
+      given OFormat[TeamSummary] =  TeamSummary.apiFormat
+      request.body.validate[Seq[TeamSummary]] match
         case JsSuccess(teams, _) => teamSummaryPersistence.collection.insertMany(teams).toFuture().map(_ => Ok("Ok"))
-        case e: JsError => Future.successful(BadRequest(e.errors.mkString))
-      }
+        case e: JsError          => Future.successful(BadRequest(e.errors.mkString))
   }
 
   def deleteAllTeamSummaries(): Action[AnyContent] = Action.async {
     teamSummaryPersistence.collection.deleteMany(BsonDocument()).toFuture().map(_ => Ok("Ok"))
   }
-}

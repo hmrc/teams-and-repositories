@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import play.api.Logging
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
@@ -33,16 +34,15 @@ import scala.util.control.NonFatal
 class BuildDeployApiConnector @Inject()(
   httpClientV2          : HttpClientV2,
   config                : BuildDeployApiConfig
-)(implicit
-  ec: ExecutionContext
-) extends Logging {
+)(using ExecutionContext
+) extends Logging:
 
   import BuildDeployApiConnector._
 
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private given HeaderCarrier = HeaderCarrier()
 
-  def getBuildJobsDetails(): Future[Seq[BuildDeployApiConnector.Detail]] = {
-    implicit val dr: Reads[Seq[Detail]] =
+  def getBuildJobsDetails(): Future[Seq[BuildDeployApiConnector.Detail]] =
+    given Reads[Seq[Detail]] =
       Reads.at(__ \ "details")(Reads.seq(Detail.reads))
 
     val url =
@@ -50,15 +50,13 @@ class BuildDeployApiConnector @Inject()(
 
     httpClientV2.post(url)
       .execute[Seq[Detail]]
-      .recoverWith {
+      .recoverWith:
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
           Future.failed(ex)
-      }
-  }
 
   def enableBranchProtection(repoName: String, statusChecks: List[JenkinsJobsPersistence.Job]): Future[Unit] =
-    for {
+    for
       res <- httpClientV2
               .post(url"${config.baseUrl}/set-branch-protection")
               .withBody(
@@ -69,12 +67,11 @@ class BuildDeployApiConnector @Inject()(
                 , statusChecks          = statusChecks.map(_.jobName)
                 ))
               ).execute[BuildDeployApiConnector.ChangesBranchProtectionResult]
-      _   <- if (res.success) Future.unit
-             else             Future.failed(new Throwable(s"Failed to set branch protection for $repoName: ${res.message}"))
-    } yield ()
-}
+      _   <- if res.success then Future.unit
+             else Future.failed(Throwable(s"Failed to set branch protection for $repoName: ${res.message}"))
+    yield ()
 
-object BuildDeployApiConnector {
+object BuildDeployApiConnector:
 
   case class Detail(
    repoName : String,
@@ -87,9 +84,9 @@ object BuildDeployApiConnector {
     jobType    : JobType,
   )
 
-  object Detail {
-    val reads: Reads[Detail] = {
-      implicit val readsBuildJob: Reads[BuildJob] =
+  object Detail:
+    val reads: Reads[Detail] =
+      given Reads[BuildJob] =
         ( (__ \ "name").read[String].map(_.split("/").last)
         ~ (__ \ "url" ).read[String]
         ~ (__ \ "type").read[JobType]
@@ -98,26 +95,20 @@ object BuildDeployApiConnector {
       ( (__ \ "repository_name").read[String]
       ~ (__ \ "build_jobs"     ).read[List[BuildJob]]
       )(Detail.apply _)
-    }
-  }
 
-  sealed trait JobType { def asString: String }
+  enum JobType(val asString: String ):
+    case Job      extends JobType("job"     )
+    case Pipeline extends JobType("pipeline")
 
-  object JobType {
-    case object Job         extends JobType { override val asString = "job"         }
-    case object Pipeline    extends JobType { override val asString = "pipeline"    }
-
-    val values: List[JobType] = List(Job, Pipeline)
+  object JobType:
 
     def parse(s: String): JobType =
       values
-        .find(_.asString.equalsIgnoreCase(s)).getOrElse {
-          Job
-      }
+        .find(_.asString.equalsIgnoreCase(s))
+        .getOrElse(Job)
 
-    implicit val format: Format[JobType] =
+    given Format[JobType] =
       Format.of[String].inmap(parse, _.asString)
-  }
 
   final case class BranchProtection(
     repoName             : String
@@ -126,24 +117,21 @@ object BuildDeployApiConnector {
   , statusChecks         : List[String]
   )
 
-  object BranchProtection {
-    implicit val writes: Writes[BranchProtection] =
+  object BranchProtection:
+    given Writes[BranchProtection] =
     ( (__ \ "repository_name"           ).write[String]
     ~ (__ \ "set_branch_protection_rule").write[Boolean]
     ~ (__ \ "require_branch_up_to_date" ).write[Boolean]
     ~ (__ \ "status_checks"             ).write[List[String]]
-    )(unlift(BranchProtection.unapply))
-  }
+    )(b => Tuple.fromProductTyped(b))
 
   final case class ChangesBranchProtectionResult(
     success: Boolean
   , message: String
   )
 
-  object ChangesBranchProtectionResult {
-    implicit val reads: Reads[ChangesBranchProtectionResult] =
+  object ChangesBranchProtectionResult:
+    given Reads[ChangesBranchProtectionResult] =
       ( (__ \ "success").read[Boolean]
       ~ (__ \ "message").read[String]
       ) (ChangesBranchProtectionResult.apply _)
-  }
-}

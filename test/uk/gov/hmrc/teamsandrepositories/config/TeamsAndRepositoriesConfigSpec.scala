@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.config
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -25,10 +25,10 @@ import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.collection.immutable.ListMap
 
-class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
+class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar:
 
-  implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+  override lazy val app: Application =
+    GuiceApplicationBuilder()
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
@@ -40,9 +40,9 @@ class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with Guic
       )
       .build()
 
-  "ciUrlTemplates" should {
-    "return all the url templates" in {
-      val conf                    = new UrlTemplatesProvider(app.configuration)
+  "ciUrlTemplates" should:
+    "return all the url templates" in:
+      val conf: UrlTemplatesProvider = UrlTemplatesProvider(app.configuration)
       val templates: UrlTemplates = conf.ciUrlTemplates
       templates.environments.toList should contain theSameElementsInOrderAs ListMap(
         "Development" -> Seq(
@@ -52,6 +52,3 @@ class TeamsAndRepositoriesConfigSpec extends AnyWordSpec with Matchers with Guic
           UrlTemplate("ser1", "ser 1", "http://ser1/$name"),
           UrlTemplate("ser2", "ser 2", "http://ser2/$name"))
       ).toList
-    }
-  }
-}

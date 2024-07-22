@@ -28,16 +28,15 @@ import scala.concurrent.ExecutionContext
 class JenkinsController @Inject()(
   jenkinsJobsPersistence: JenkinsJobsPersistence,
   cc                    : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
-  private implicit val jjw: Writes[JenkinsJobsPersistence.Job] = JenkinsController.apiJobWrites
+  private given Writes[JenkinsJobsPersistence.Job] = JenkinsController.apiJobWrites
 
   def lookup(name: String): Action[AnyContent] = Action.async {
-    jenkinsJobsPersistence.findByJobName(name).map {
+    jenkinsJobsPersistence.findByJobName(name).map:
       case Some(jobs) => Ok(Json.toJson(jobs))
       case None       => NotFound
-    }
   }
 
   def findAllJobsByRepo(name: String): Action[AnyContent] = Action.async {
@@ -45,23 +44,22 @@ class JenkinsController @Inject()(
       .findAllByRepo(name)
       .map(jobs => Ok(Json.obj("jobs" -> Json.toJson(jobs))))
   }
-}
 
-object JenkinsController {
+object JenkinsController:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
   import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
   import uk.gov.hmrc.teamsandrepositories.models.RepoType
   import java.time.Instant
 
-  val apiJobWrites: Writes[JenkinsJobsPersistence.Job] = {
-    implicit val latestBuildWrites: Writes[JenkinsConnector.LatestBuild] =
+  val apiJobWrites: Writes[JenkinsJobsPersistence.Job] =
+    given Writes[JenkinsConnector.LatestBuild] =
       ( (__ \ "number"     ).write[Int]
       ~ (__ \ "url"        ).write[String]
       ~ (__ \ "timestamp"  ).write[Instant]
       ~ (__ \ "result"     ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
       ~ (__ \ "description").writeNullable[String]
-      )(unlift(JenkinsConnector.LatestBuild.unapply))
+      )(l => Tuple.fromProductTyped(l))
 
     ( (__ \ "repoName"   ).write[String]
     ~ (__ \ "jobName"    ).write[String]
@@ -69,6 +67,4 @@ object JenkinsController {
     ~ (__ \ "jobType"    ).write[JenkinsJobsPersistence.JobType](JenkinsJobsPersistence.JobType.format)
     ~ (__ \ "repoType"   ).writeNullable[RepoType](RepoType.format)
     ~ (__ \ "latestBuild").writeNullable[JenkinsConnector.LatestBuild]
-    )(unlift(JenkinsJobsPersistence.Job.unapply))
-  }
-}
+    )(j => Tuple.fromProductTyped(j))

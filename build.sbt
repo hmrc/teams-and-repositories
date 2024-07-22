@@ -7,8 +7,9 @@ lazy val microservice = Project("teams-and-repositories", file("."))
   .settings(PlayKeys.playDefaultPort := 9015)
   .settings(libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test)
   .settings(resolvers += Resolver.jcenterRepo)
-  .settings(scalaVersion := "2.13.12")
-  .settings(scalacOptions += "-Wconf:src=routes/.*:s")
+  .settings(scalaVersion := "3.3.3")
+  // Disabled until implemented in a later Scala version
+//  .settings(scalacOptions += "-Wconf:src=routes/.*:s")
   .settings(
     RoutesKeys.routesImport ++= Seq(
       "uk.gov.hmrc.teamsandrepositories.models.RepoType",

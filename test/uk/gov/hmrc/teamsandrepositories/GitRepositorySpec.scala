@@ -26,21 +26,24 @@ import uk.gov.hmrc.teamsandrepositories.models._
 
 import scala.collection.immutable.ListMap
 
-class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
+class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues:
 
-  val now = Instant.now()
+  val now: Instant =
+    Instant.now()
 
-  val urlTemplates = UrlTemplates(
-    environments = ListMap(
-      "env1" -> Seq(new UrlTemplate("log1", "log 1", "$name"), new UrlTemplate("mon1", "mon 1", "$name")),
-      "env2" -> Seq(new UrlTemplate("log1", "log 1", "$name"))
+  val urlTemplates: UrlTemplates =
+    UrlTemplates(
+      environments = ListMap(
+        "env1" -> Seq(UrlTemplate("log1", "log 1", "$name"), UrlTemplate("mon1", "mon 1", "$name")),
+        "env2" -> Seq(UrlTemplate("log1", "log 1", "$name"))
+      )
     )
-  )
 
-  def githubLink(url: String) = Link("github-com", "GitHub.com", url)
+  def githubLink(url: String): Link =
+    Link("github-com", "GitHub.com", url)
 
-  "repoGroupToRepositoryDetails" should {
-    "create links for libraries" in {
+  "repoGroupToRepositoryDetails" should:
+    "create links for libraries" in:
       val repo =
         GitRepository(
           name           = "a-library",
@@ -59,9 +62,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
       repoDetails.ci        shouldBe List(Link("Build", "Build", "https://build.tax.service.gov.uk/job/a-team/job/a-library"))
-    }
 
-    "create ci links for libraries belonging to multiple teams" in {
+    "create ci links for libraries belonging to multiple teams" in:
       val repo =
         GitRepository(
           name           = "a-library",
@@ -86,9 +88,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "another-team Build",
           "https://build.tax.service.gov.uk/job/another-team/job/a-library")
       )
-    }
 
-    "not create ci links for libraries without a team" in {
+    "not create ci links for libraries without a team" in:
       val repo =
         GitRepository(
           name           = "a-library",
@@ -107,9 +108,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
       repoDetails.ci        shouldBe List()
-    }
 
-    "url encode ci links with spaces correctly" in {
+    "url encode ci links with spaces correctly" in:
       val repo =
         GitRepository(
           name           = "a-library",
@@ -129,9 +129,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-library")
       repoDetails.ci shouldBe List(
         Link("Build", "Build", "https://build.tax.service.gov.uk/job/a%20team/job/a-library"))
-    }
 
-    "create links for services" in {
+    "create links for services" in:
       val repo =
         GitRepository(
           name           = "a-service",
@@ -150,9 +149,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-service")
       repoDetails.ci        shouldBe List(Link("Build", "Build", "https://build.tax.service.gov.uk/job/a-team/job/a-service"))
-    }
 
-    "create ci links for services belonging to multiple teams" in {
+    "create ci links for services belonging to multiple teams" in:
       val repo =
         GitRepository(
           name           = "a-service",
@@ -177,9 +175,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
           "another-team Build",
           "https://build.tax.service.gov.uk/job/another-team/job/a-service")
       )
-    }
 
-    "not create ci links for services without a team" in {
+    "not create ci links for services without a team" in:
       val repo =
         GitRepository(
           name           = "a-service",
@@ -198,9 +195,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
 
       repoDetails.githubUrl shouldBe githubLink("https://github.com/org/a-service")
       repoDetails.ci        shouldBe List()
-    }
 
-    "not create ci links for prototype repositories" in {
+    "not create ci links for prototype repositories" in:
       val aLibrary =
         GitRepository(
           name           = "a-prototype",
@@ -217,9 +213,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
 
       repoDetails.ci shouldBe Seq.empty
-    }
 
-    "not create ci links for other type of repositories" in {
+    "not create ci links for other type of repositories" in:
       val aLibrary =
         GitRepository(
           name           = "a-other",
@@ -236,9 +231,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
 
       repoDetails.ci shouldBe Seq.empty
-    }
 
-    "create links for each environment" in {
+    "create links for each environment" in:
       val aFrontend =
         GitRepository(
           name           = "a-frontend",
@@ -262,9 +256,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       repoDetails.environments.find(_.name == "env2").value shouldBe Environment(
         "env2",
         List(Link("log1", "log 1", "a-frontend")))
-    }
 
-    "not create environment links for libraries" in {
+    "not create environment links for libraries" in:
       val aLibrary =
         GitRepository(
           name           = "a-library",
@@ -281,9 +274,8 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       val repoDetails = RepositoryDetails.create(aLibrary, Seq("teamName"), urlTemplates)
 
       repoDetails.environments shouldBe Seq.empty
-    }
 
-    "just create github links if not Deployable or Library" in {
+    "just create github links if not Deployable or Library" in:
       val repo = GitRepository(
         name           = "a-repo",
         description    = "Some Description",
@@ -301,6 +293,3 @@ class GitRepositorySpec extends AnyWordSpec with Matchers with OptionValues {
       repoDetails.githubUrl    shouldBe githubLink("https://github.com/org/a-repo")
       repoDetails.ci           shouldBe Seq.empty
       repoDetails.environments shouldBe Seq.empty
-    }
-  }
-}

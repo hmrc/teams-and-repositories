@@ -47,12 +47,12 @@ case class GitRepository(
   repositoryYamlText  : Option[String]           = None
 )
 
-object GitRepository {
+object GitRepository:
 
-  val apiFormat: OFormat[GitRepository] = {
-    implicit val rtf = RepoType.format
-    implicit val stf = ServiceType.format
-    implicit val tf  = Tag.format
+  val apiFormat: OFormat[GitRepository] =
+    given Format[RepoType] = RepoType.format
+    given Format[ServiceType] = ServiceType.format
+    given Format[Tag] = Tag.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "description"         ).format[String]
     ~ (__ \ "url"                 ).format[String]
@@ -74,14 +74,13 @@ object GitRepository {
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, unlift(unapply))
-  }
+    )(apply, g => Tuple.fromProductTyped(g))
 
-  val mongoFormat: OFormat[GitRepository] = {
-    implicit val ldtf = MongoJavatimeFormats.instantFormat
-    implicit val rtf  = RepoType.format
-    implicit val stf  = ServiceType.format
-    implicit val tf   = Tag.format
+  val mongoFormat: OFormat[GitRepository] =
+    given Format[Instant] = MongoJavatimeFormats.instantFormat
+    given Format[RepoType] = RepoType.format
+    given Format[ServiceType] = ServiceType.format
+    given Format[Tag] = Tag.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "description"         ).format[String]
     ~ (__ \ "url"                 ).format[String]
@@ -103,6 +102,4 @@ object GitRepository {
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, unlift(unapply))
-  }
-}
+    )(apply, g => Tuple.fromProductTyped(g))

@@ -18,6 +18,5 @@ package uk.gov.hmrc.teamsandrepositories.util
 
 import java.time.Instant
 
-object DateTimeUtils {
+object DateTimeUtils:
   val instantOrdering: Ordering[Instant] = Ordering.fromLessThan(_ isBefore _)
-}

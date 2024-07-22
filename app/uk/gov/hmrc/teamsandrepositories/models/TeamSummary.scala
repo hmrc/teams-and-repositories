@@ -28,11 +28,11 @@ case class TeamSummary(
   repos         : Seq[String]
 )
 
-object TeamSummary {
+object TeamSummary:
   def apply(teamName: String, gitRepos: Seq[GitRepository]): TeamSummary =
     TeamSummary(
       name           = teamName,
-      lastActiveDate = if (gitRepos.nonEmpty) Some(gitRepos.map(_.lastActiveDate).max) else None,
+      lastActiveDate = if gitRepos.nonEmpty then Some(gitRepos.map(_.lastActiveDate).max) else None,
       repos          = gitRepos.map(_.name)
     )
 
@@ -40,11 +40,10 @@ object TeamSummary {
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).format[Seq[String]]
-    )(TeamSummary.apply, unlift(TeamSummary.unapply))
+    )(TeamSummary.apply, t => Tuple.fromProductTyped(t))
 
   val mongoFormat: OFormat[TeamSummary] =
     ( (__ \ "name"           ).format[String]
     ~ (__ \ "lastActiveDate" ).formatNullable[Instant](MongoJavatimeFormats.instantFormat)
     ~ (__ \ "repos"          ).format[Seq[String]]
-    )(TeamSummary.apply, unlift(TeamSummary.unapply))
-}
+    )(TeamSummary.apply, t => Tuple.fromProductTyped(t))

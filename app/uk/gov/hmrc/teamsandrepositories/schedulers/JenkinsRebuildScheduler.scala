@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import org.apache.pekko.actor.ActorSystem
-import play.api.Logger
+import play.api.Logging
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.TimestampSupport
@@ -25,7 +25,6 @@ import uk.gov.hmrc.mongo.lock.{MongoLockRepository, ScheduledLockService}
 import uk.gov.hmrc.teamsandrepositories.config.SchedulerConfigs
 import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 import uk.gov.hmrc.teamsandrepositories.services.JenkinsRebuildService
-
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -36,16 +35,15 @@ class JenkinsRebuildScheduler @Inject()(
   config             : SchedulerConfigs,
   mongoLockRepository: MongoLockRepository,
   timestampSupport   : TimestampSupport
-)(implicit
+)(using
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
-) extends SchedulerUtils {
+) extends SchedulerUtils
+  with Logging:
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
-  private val logger = Logger(this.getClass)
-
-  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
+  given ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   private val lockService =
     ScheduledLockService(
@@ -57,9 +55,8 @@ class JenkinsRebuildScheduler @Inject()(
 
   scheduleWithLock("Jenkins Rebuilder", config.rebuildScheduler, lockService) {
     logger.info("Starting Jenkins Rebuilder")
-    for {
+    for
       _ <- rebuildService.rebuildJobWithNoRecentBuild()
       _ =  logger.info("Finished Jenkins Rebuilder")
-    } yield ()
+    yield ()
   }
-}

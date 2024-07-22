@@ -18,16 +18,16 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.teamsandrepositories.config.{JenkinsConfig, SlackConfig}
 import uk.gov.hmrc.teamsandrepositories.connectors.{ChannelLookup, JenkinsConnector, SlackNotificationRequest, SlackNotificationsConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
-
 import cats.data.EitherT
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
 import com.google.inject.{Inject, Singleton}
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -38,56 +38,52 @@ case class JenkinsRebuildService @Inject()(
 , jenkinsConnector            : JenkinsConnector
 , jenkinsJobsPersistence      : JenkinsJobsPersistence
 , slackNotificationsConnector : SlackNotificationsConnector
-) {
-  private val logger = Logger(this.getClass)
+) extends Logging:
 
   private val minDaysUnbuilt: Instant =
      Instant.now().minus(configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt"), DAYS)
 
-  def rebuildJobWithNoRecentBuild()(implicit ec: ExecutionContext): Future[Unit] =
-    (for {
-      job      <- EitherT.fromOptionF(
-                    jenkinsJobsPersistence
-                      .oldestServiceJob()
-                      .map(_.filter(_.latestBuild.exists(_.timestamp.isBefore(minDaysUnbuilt))))
-                  , logger.info("No old builds to trigger")
-                  )
-      _        <- EitherT.fromOptionF(
-                    jenkinsConnector.getLatestBuildData(job.jenkinsUrl).map(_.filter(x => job.latestBuild.map(_.timestamp).contains(x.timestamp)))
-                  , logger.info("Build already triggered")
-                  )
-      _        =  logger.info(s"Triggering job ${job.jobName} for repo: ${job.repoName}")
-      queueUrl <- EitherT.right[Unit](jenkinsConnector.triggerBuildJob(job.jenkinsUrl))
-      queue    <- EitherT.right[Unit](getQueue(queueUrl))
-      queueExe <- EitherT.fromOption[Future](
-                    queue.executable
-                  , logger.warn(s"job ${job.jobName} for repo: ${job.repoName} - could not find queue executable")
-                  )
-      build    <- EitherT.right[Unit](getBuild(queueExe.url))
-      _        <- build.result match {
-                    case Some(JenkinsConnector.LatestBuild.BuildResult.Failure) => EitherT.right[Unit](sendBuildFailureAlert(job.repoName, build))
-                    case _                                                      => EitherT.left[Unit](Future.unit)
-                  }
-    } yield
-      ()
+  def rebuildJobWithNoRecentBuild()(using ExecutionContext): Future[Unit] =
+    (for
+       job      <- EitherT.fromOptionF(
+                     jenkinsJobsPersistence
+                       .oldestServiceJob()
+                       .map(_.filter(_.latestBuild.exists(_.timestamp.isBefore(minDaysUnbuilt))))
+                   , logger.info("No old builds to trigger")
+                   )
+       _        <- EitherT.fromOptionF(
+                     jenkinsConnector.getLatestBuildData(job.jenkinsUrl).map(_.filter(x => job.latestBuild.map(_.timestamp).contains(x.timestamp)))
+                   , logger.info("Build already triggered")
+                   )
+       _        =  logger.info(s"Triggering job ${job.jobName} for repo: ${job.repoName}")
+       queueUrl <- EitherT.right[Unit](jenkinsConnector.triggerBuildJob(job.jenkinsUrl))
+       queue    <- EitherT.right[Unit](getQueue(queueUrl))
+       queueExe <- EitherT.fromOption[Future](
+                     queue.executable
+                   , logger.warn(s"job ${job.jobName} for repo: ${job.repoName} - could not find queue executable")
+                   )
+       build    <- EitherT.right[Unit](getBuild(queueExe.url))
+       _        <- build.result match
+                     case Some(JenkinsConnector.LatestBuild.BuildResult.Failure) => EitherT.right[Unit](sendBuildFailureAlert(job.repoName, build))
+                     case _                                                      => EitherT.left[Unit](Future.unit)
+     yield ()
     ).merge
 
-  private implicit val actorSystem: ActorSystem = ActorSystem()
+  private given ActorSystem = ActorSystem()
 
-  private def getQueue(queueUrl: String)(implicit ec: ExecutionContext): Future[JenkinsConnector.JenkinsQueueData] =
+  private def getQueue(queueUrl: String)(using ExecutionContext): Future[JenkinsConnector.JenkinsQueueData] =
     Source.repeat(())
       .throttle(1, jenkinsConfig.queueThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getQueueDetails(queueUrl))
       .filter(queue => queue.cancelled.nonEmpty || queue.executable.nonEmpty)
-      .map { queue =>
-        if (queue.cancelled.nonEmpty && queue.cancelled.get)
-          throw new Exception("Queued Job cancelled")
+      .map: queue =>
+        if queue.cancelled.nonEmpty && queue.cancelled.get then
+          throw Exception("Queued Job cancelled")
         queue
-      }
       .filter(_.executable.nonEmpty)
       .runWith(Sink.head)
 
-  private def getBuild(buildUrl: String)(implicit ec: ExecutionContext): Future[JenkinsConnector.LatestBuild] =
+  private def getBuild(buildUrl: String)(using ExecutionContext): Future[JenkinsConnector.LatestBuild] =
     Source.repeat(())
       .throttle(1, jenkinsConfig.buildThrottleDuration)
       .mapAsync(parallelism = 1)(_ => jenkinsConnector.getBuild(buildUrl))
@@ -95,11 +91,11 @@ case class JenkinsRebuildService @Inject()(
       .runWith(Sink.head)
 
   import play.api.libs.json.Json
-  private def sendBuildFailureAlert(serviceName: String, build: JenkinsConnector.LatestBuild)(implicit ec: ExecutionContext): Future[Unit] =
-    if (slackConfig.enabled) {
+  private def sendBuildFailureAlert(serviceName: String, build: JenkinsConnector.LatestBuild)(using ExecutionContext): Future[Unit] =
+    if slackConfig.enabled then
       logger.info(s"Rebuild failed for $serviceName")
       val message = slackConfig.messageText.replace("{serviceName}", serviceName)
-      for {
+      for
         rsp <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
                  channelLookup = ChannelLookup.RepositoryChannel(serviceName)
                , displayName   = "Automatic Rebuilder"
@@ -126,11 +122,9 @@ case class JenkinsRebuildService @Inject()(
                ))
         if err.errors.nonEmpty
         _          =  logger.error(s"Errors sending rebuild alert FAILED notification: ${err.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
-      } yield ()
-    }
+      yield ()
     else
       Future.unit
 
-  private def jsSection(mrkdwn: String) = Json.parse(s"""{"type": "section", "text": {"type": "mrkdwn", "text": "$mrkdwn"}}""")
-
-}
+  private def jsSection(mrkdwn: String) =
+    Json.parse(s"""{"type": "section", "text": {"type": "mrkdwn", "text": "$mrkdwn"}}""")

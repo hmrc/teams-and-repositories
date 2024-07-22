@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import org.apache.pekko.actor.ActorSystem
-import play.api.Logger
+import play.api.Logging
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.TimestampSupport
@@ -35,16 +35,15 @@ class JenkinsReloadScheduler @Inject()(
 , config              : SchedulerConfigs
 , mongoLockRepository : MongoLockRepository
 , timestampSupport    : TimestampSupport
-)(implicit
+)(using
   actorSystem         : ActorSystem
 , applicationLifecycle: ApplicationLifecycle
-) extends SchedulerUtils {
+) extends SchedulerUtils
+  with Logging:
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
-  private val logger = Logger(this.getClass)
-
-  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
+  given ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   private val lockService =
     ScheduledLockService(
@@ -55,9 +54,8 @@ class JenkinsReloadScheduler @Inject()(
     )
 
   scheduleWithLock("Jenkins Reloader", config.jenkinsScheduler, lockService) {
-    for {
+    for
       _ <- jenkinsReloadService.updateBuildAndPerformanceJobs()
       _ =  logger.info("Finished Jenkins Reloader")
-    } yield ()
+    yield ()
   }
-}

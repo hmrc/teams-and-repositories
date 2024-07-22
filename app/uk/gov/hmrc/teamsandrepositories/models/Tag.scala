@@ -16,42 +16,31 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+import play.api.libs.json.*
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.teamsandrepositories.util.{FromString, Parser}
+import uk.gov.hmrc.teamsandrepositories.util.FromStringEnum.*
 
-sealed trait Tag {def asString: String}
+enum Tag(val asString: String) extends FromString derives Reads, Writes:
+  case AdminFrontend    extends Tag("admin"             )
+  case Api              extends Tag("api"               )
+  case BuiltOffPlatform extends Tag("built-off-platform")
+  case Maven            extends Tag("maven"             )
+  case Stub             extends Tag("stub"              )
 
-object Tag {
-  case object AdminFrontend    extends Tag { def asString = "admin"              }
-  case object Api              extends Tag { def asString = "api"                }
-  case object BuiltOffPlatform extends Tag { def asString = "built-off-platform" }
-  case object Maven            extends Tag { def asString = "maven"              }
-  case object Stub             extends Tag { def asString = "stub"               }
+object Tag:
+  given Parser[Tag] = Parser.parser(Tag.values)
 
-  val values =
-    Set(AdminFrontend, Api, BuiltOffPlatform, Maven, Stub)
-
-  def parse(s: String): Either[String, Tag] =
-    values
-      .find(_.asString.equalsIgnoreCase(s))
-      .toRight(s"Invalid tag - should be one of: ${values.map(_.asString).mkString(", ")}")
-
-  val format: Format[Tag] = new Format[Tag] {
-    override def reads(json: JsValue): JsResult[Tag] =
-      json.validate[String].flatMap(s => parse(s).fold(msg => JsError(msg), t => JsSuccess(t)))
-
-    override def writes(o: Tag): JsValue = JsString(o.asString)
-  }
+  val format: Format[Tag] = Format(derived$Reads, derived$Writes)
 
   import cats.implicits._
-  implicit val queryStringBindable: QueryStringBindable[List[Tag]] = new QueryStringBindable[List[Tag]] {
-    override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, List[Tag]]] =
-      params.get(key).map {
-        case Nil  => Left("missing tag value")
-        case tags => tags.toList.traverse(Tag.parse)
-      }
+  given QueryStringBindable[List[Tag]] =
+      new QueryStringBindable[List[Tag]] {
+      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, List[Tag]]] =
+        params.get(key).map:
+          case Nil  => Left("missing tag value")
+          case tags => tags.toList.traverse(Parser[Tag].parse)
 
-    override def unbind(key: String, value: List[Tag]): String =
-      value.map(t => s"$key=${t.asString}").mkString("&")
-  }
-}
+      override def unbind(key: String, value: List[Tag]): String =
+        value.map(t => s"$key=${t.asString}").mkString("&")
+    }

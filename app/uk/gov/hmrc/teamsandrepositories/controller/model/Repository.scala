@@ -17,10 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.time.Instant
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.Json.JsValueWrapper
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 case class Repository(
   name         : String,
@@ -34,7 +35,7 @@ case class Repository(
   isDeprecated : Boolean
 )
 
-object Repository {
+object Repository:
 
   def create(gr: GitRepository, teamNames: Seq[String]): Repository =
     Repository(
@@ -49,8 +50,8 @@ object Repository {
       isDeprecated  = gr.isDeprecated
     )
 
-  implicit val format: OFormat[Repository] = {
-    implicit val rtf: Format[RepoType] = RepoType.format
+  given OFormat[Repository] =
+    given Format[RepoType] = RepoType.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "teamNames"    ).format[Seq[String]]
     ~ (__ \ "createdAt"    ).format[Instant]
@@ -60,9 +61,7 @@ object Repository {
     ~ (__ \ "isArchived"   ).format[Boolean]
     ~ (__ \ "defaultBranch").format[String]
     ~ (__ \ "isDeprecated" ).format[Boolean]
-    )(apply, unlift(unapply))
-  }
-}
+    )(apply, r => Tuple.fromProductTyped(r))
 
 case class Team(
   name           : String,
@@ -72,14 +71,13 @@ case class Team(
   ownedRepos     : Seq[String]                        = Nil
 )
 
-object Team {
+object Team:
 
-  val mapFormat: Format[Map[RepoType, List[String]]] = {
+  val mapFormat: Format[Map[RepoType, List[String]]] =
     val mapReads: Reads[Map[RepoType, List[String]]] = jv => JsSuccess(
-      jv.as[Map[String, List[String]]].map {
+      jv.as[Map[String, List[String]]].map:
         case (k, v) =>
-          RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v
-      }
+          Parser[RepoType].parse(k).getOrElse(throw new NoSuchElementException()) -> v
     )
 
     val mapWrites: Writes[Map[RepoType, List[String]]] = (map: Map[RepoType, List[String]]) => Json.obj(map.map {
@@ -88,15 +86,12 @@ object Team {
           ret
       }.toSeq: _*)
     Format(mapReads, mapWrites)
-  }
 
-  val format: Format[Team] = {
-    implicit val mf: Format[Map[RepoType, List[String]]] = mapFormat
+  val format: Format[Team] =
+    given Format[Map[RepoType, List[String]]] = mapFormat
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "createdDate"   ).formatNullable[Instant]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).formatNullable[Map[RepoType, List[String]]]
     ~ (__ \ "ownedRepos"    ).format[Seq[String]]
-    )(Team.apply, unlift(Team.unapply))
-  }
-}
+    )(Team.apply, t => Tuple.fromProductTyped(t))

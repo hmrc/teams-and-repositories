@@ -17,18 +17,19 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 import java.time.Instant
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.libs.json._
-import play.api.mvc.Results
+import play.api.libs.json.*
+import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.teamsandrepositories.models.*
 import uk.gov.hmrc.teamsandrepositories.config.{UrlTemplate, UrlTemplates, UrlTemplatesProvider}
 import uk.gov.hmrc.teamsandrepositories.controller.model.Repository
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
@@ -44,7 +45,7 @@ class LegacyRepositoriesControllerSpec
      with Results
      with OptionValues
      with GuiceOneServerPerSuite
-     with Eventually {
+     with Eventually:
 
   private val now = Instant.now()
 
@@ -63,7 +64,7 @@ class LegacyRepositoriesControllerSpec
   import play.api.inject.guice.GuiceApplicationBuilder
 
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .configure(
         Map(
           "github.open.api.host" -> "http://bla.bla",
@@ -75,9 +76,9 @@ class LegacyRepositoriesControllerSpec
       )
       .build()
 
-  val defaultData =
+  val defaultData: Seq[TeamRepositories] =
     Seq(
-      new TeamRepositories(
+      TeamRepositories(
         teamName     = "test-team",
         repositories = List(
           GitRepository(
@@ -108,7 +109,7 @@ class LegacyRepositoriesControllerSpec
         createdDate = Some(now),
         updateDate  = now
       ),
-      new TeamRepositories(
+      TeamRepositories(
         teamName     = "another-team",
         repositories = List(
           GitRepository(
@@ -201,40 +202,35 @@ class LegacyRepositoriesControllerSpec
       )
     )
 
-  "Teams controller" should {
-    "have the correct url set up for the list of all services" in {
+  "Teams controller" should:
+    "have the correct url set up for the list of all services" in:
       uk.gov.hmrc.teamsandrepositories.controller.routes.LegacyRepositoriesController.services(details = false).url shouldBe "/api/services"
-    }
-  }
 
-  "Retrieving a list of digital services" should {
-    "Return a json representation of the data" in new Setup {
-      val result = controller.digitalServices.apply(FakeRequest())
+  "Retrieving a list of digital services" should:
+    "Return a json representation of the data" in new Setup:
+      val result: Future[Result] = controller.digitalServices.apply(FakeRequest())
 
-      val digitalServices = contentAsJson(result).as[JsArray].value
+      val digitalServices: collection.IndexedSeq[JsValue] = contentAsJson(result).as[JsArray].value
       digitalServices.map(_.as[String]) shouldBe Seq("digital-service-1", "digital-service-2", "digital-service-3")
-    }
-  }
 
-  "Retrieving a list of all libraries" should {
-    "return a name and dates list of all the libraries" in new Setup {
-      val result       = controller.libraries(details = false)(FakeRequest())
-      val resultJson   = contentAsJson(result)
-      val libraryNames = resultJson.as[Seq[Repository]]
+  "Retrieving a list of all libraries" should:
+    "return a name and dates list of all the libraries" in new Setup:
+      val result: Future[Result] = controller.libraries(details = false)(FakeRequest())
+      val resultJson: JsValue = contentAsJson(result)
+      val libraryNames: Seq[Repository] = resultJson.as[Seq[Repository]]
       libraryNames.map(_.name)          shouldBe List("alibrary-repo", "library-repo")
       libraryNames.map(_.createdAt)     should contain theSameElementsAs List(createdDateForLib1, createdDateForLib2)
       libraryNames.map(_.lastUpdatedAt) should contain theSameElementsAs List(lastActiveDateForLib1, lastActiveDateForLib2 )
-    }
 
-    "Return a json representation of the data when request has a details query parameter" in new Setup {
-      val result = controller.libraries(details = true).apply(FakeRequest())
+    "Return a json representation of the data when request has a details query parameter" in new Setup:
+      val result: Future[Result] = controller.libraries(details = true).apply(FakeRequest())
 
-      val resultJson = contentAsJson(result)
+      val resultJson: JsValue = contentAsJson(result)
 
-      val libraryNames = resultJson.as[Seq[JsObject]].map(_.value("name").as[String])
+      val libraryNames: Seq[String] = resultJson.as[Seq[JsObject]].map(_.value("name").as[String])
       libraryNames shouldBe List("alibrary-repo", "library-repo")
 
-      val last = resultJson.as[Seq[JsObject]].last
+      val last: JsObject = resultJson.as[Seq[JsObject]].last
 
       (last \ "githubUrl").as[JsObject].as[Map[String, String]] shouldBe Map(
         "name"        -> "github-com",
@@ -248,18 +244,16 @@ class LegacyRepositoriesControllerSpec
       val ciDetails: Seq[JsValue] = (last \ "ci").as[JsArray].value.toSeq
       ciDetails.size shouldBe 1
 
-      ciDetails(0).as[JsObject].as[Map[String, String]] shouldBe Map(
+      ciDetails.head.as[JsObject].as[Map[String, String]] shouldBe Map(
         "name"        -> "Build",
         "displayName" -> "Build",
         "url"         -> "https://build.tax.service.gov.uk/job/test-team/job/library-repo")
-    }
-  }
 
-  "GET /api/repository_teams" should {
-    "return service -> team mappings" in new Setup {
-      val result = controller.repositoryTeams(FakeRequest())
+  "GET /api/repository_teams" should:
+    "return service -> team mappings" in new Setup:
+      val result: Future[Result] = controller.repositoryTeams(FakeRequest())
 
-      val data = contentAsJson(result).as[Map[String, Seq[String]]]
+      val data: Map[String, Seq[String]] = contentAsJson(result).as[Map[String, Seq[String]]]
 
       data shouldBe Map(
         "repo-name"      -> Seq("test-team"),
@@ -270,14 +264,12 @@ class LegacyRepositoriesControllerSpec
         "CATO-prototype" -> Seq("another-team"),
         "other-repo"     -> List("another-team")
       )
-    }
-  }
 
-  "GET /api/services" should {
-    "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup {
-      val result = controller.services(details = true)(FakeRequest())
+  "GET /api/services" should:
+    "return a json representation of all the services sorted alphabetically when the request has a details query parameter" in new Setup:
+      val result: Future[Result] = controller.services(details = true)(FakeRequest())
 
-      val resultJson = contentAsJson(result)
+      val resultJson: JsValue = contentAsJson(result)
 
       resultJson.as[Seq[JsObject]].map(_.value("name").as[String]) shouldBe List(
         "another-repo",
@@ -285,7 +277,7 @@ class LegacyRepositoriesControllerSpec
         "repo-name"
       )
 
-      val last = resultJson.as[Seq[JsObject]].last
+      val last: JsObject = resultJson.as[Seq[JsObject]].last
 
       (last \ "githubUrl").as[JsObject].as[Map[String, String]] shouldBe Map(
         "name"        -> "github-com",
@@ -296,27 +288,26 @@ class LegacyRepositoriesControllerSpec
       nameField(last)      shouldBe "repo-name"
       teamNamesField(last) shouldBe Seq("test-team")
 
-      val environments = (last \ "environments").as[JsArray].value
+      val environments: collection.IndexedSeq[JsValue] = (last \ "environments").as[JsArray].value
 
       val find: Option[JsValue] = environments.find(x => nameField(x) == "env1")
-      val env1Services          = find.value.as[JsObject] \ "services"
-      val env1Links             = env1Services.as[List[Map[String, String]]].toSet
+      val env1Services: JsLookupResult = find.value.as[JsObject] \ "services"
+      val env1Links: Set[Map[String, String]] = env1Services.as[List[Map[String, String]]].toSet
       env1Links shouldBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"),
         Map("name" -> "mon1", "displayName" -> "mon 1", "url" -> "repo-name"))
 
-      val env2Services = environments.find(x => nameField(x) == "env2").value.as[JsObject] \ "services"
-      val env2Links    = env2Services.as[List[Map[String, String]]].toSet
+      val env2Services: JsLookupResult = environments.find(x => nameField(x) == "env2").value.as[JsObject] \ "services"
+      val env2Links: Set[Map[String, String]] = env2Services.as[List[Map[String, String]]].toSet
       env2Links shouldBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
-    }
 
-    "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup {
+    "return a json representation of the data sorted alphabetically when the request doesn't have a details query parameter" in new Setup:
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(defaultData))
 
-      val result = controller.services(details = false)(FakeRequest())
+      val result: Future[Result] = controller.services(details = false)(FakeRequest())
 
-      val serviceList = contentAsJson(result).as[Seq[Repository]]
+      val serviceList: Seq[Repository] = contentAsJson(result).as[Seq[Repository]]
       serviceList.map(_.name) shouldBe Seq("another-repo", "middle-repo", "repo-name")
       serviceList.map(_.createdAt) should contain theSameElementsAs List(
         createdDateForService1,
@@ -328,10 +319,9 @@ class LegacyRepositoriesControllerSpec
         lastActiveDateForService2,
         lastActiveDateForService3
       )
-    }
 
-    "ignore case when sorting alphabetically" in new Setup {
-      val sourceData =
+    "ignore case when sorting alphabetically" in new Setup:
+      val sourceData: Seq[TeamRepositories] =
         Seq(
           TeamRepositories(
             teamName     = "test-team",
@@ -378,14 +368,13 @@ class LegacyRepositoriesControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(sourceData))
 
-      val result = controller.services(details = false)(FakeRequest())
+      val result: Future[Result] = controller.services(details = false)(FakeRequest())
 
       contentAsJson(result).as[List[Repository]].map(_.name) shouldBe List("aadvark-repo", "Another-repo", "repo-name")
-    }
 
     //TODO this should not be a controller test
-    "flatten team info if a service belongs to multiple teams" in new Setup {
-      val data =
+    "flatten team info if a service belongs to multiple teams" in new Setup:
+      val data: Seq[TeamRepositories] =
         Seq(
           TeamRepositories(
             teamName     = "test-team",
@@ -428,47 +417,42 @@ class LegacyRepositoriesControllerSpec
       when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
         .thenReturn(Future.successful(data))
 
-      val result = controller.services(details = false)(FakeRequest())
+      val result: Future[Result] = controller.services(details = false)(FakeRequest())
 
       contentAsJson(result).as[JsArray].value.size shouldBe 1
-    }
-  }
 
-  "Retrieving a service" should {
-    "Return a json representation of the service" in new Setup {
-      val result = controller.repositoryDetails("repo-name").apply(FakeRequest())
+  "Retrieving a service" should:
+    "Return a json representation of the service" in new Setup:
+      val result: Future[Result] = controller.repositoryDetails("repo-name").apply(FakeRequest())
 
       status(result) shouldBe 200
-      val json = contentAsJson(result)
+      val json: JsValue = contentAsJson(result)
 
       nameField(json) shouldBe "repo-name"
       teamNamesField(json) shouldBe Seq("test-team")
 
-      val environments = (json \ "environments").as[JsArray].value
+      val environments: collection.IndexedSeq[JsValue] = (json \ "environments").as[JsArray].value
 
-      val env1Services = environments.find(x => (x \ "name").get == JsString("env1")).value.as[JsObject] \ "services"
-      val env1Links    = env1Services.as[List[Map[String, String]]].toSet
+      val env1Services: JsLookupResult = environments.find(x => (x \ "name").get == JsString("env1")).value.as[JsObject] \ "services"
+      val env1Links: Set[Map[String, String]] = env1Services.as[List[Map[String, String]]].toSet
       env1Links shouldBe Set(
         Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"),
         Map("name" -> "mon1", "displayName" -> "mon 1", "url" -> "repo-name"))
 
-      val env2Services = environments.find(x => (x \ "name").get == JsString("env2")).value.as[JsObject] \ "services"
-      val env2Links    = env2Services.as[List[Map[String, String]]].toSet
+      val env2Services: JsLookupResult = environments.find(x => (x \ "name").get == JsString("env2")).value.as[JsObject] \ "services"
+      val env2Links: Set[Map[String, String]] = env2Services.as[List[Map[String, String]]].toSet
       env2Links shouldBe Set(Map("name" -> "log1", "displayName" -> "log 1", "url" -> "repo-name"))
-    }
 
-    "Return a 404 when the serivce is not found" in new Setup {
-      val result = controller.repositoryDetails("not-Found").apply(FakeRequest())
+    "Return a 404 when the serivce is not found" in new Setup:
+      val result: Future[Result] = controller.repositoryDetails("not-Found").apply(FakeRequest())
 
       status(result) shouldBe 404
-    }
-  }
 
-  "Retrieving a list of all repositories" should {
-    "return all the repositories" in new Setup {
-      val result       = controller.repositories(None)(FakeRequest())
-      val resultJson   = contentAsJson(result)
-      val repositories = resultJson.as[Seq[Repository]]
+  "Retrieving a list of all repositories" should:
+    "return all the repositories" in new Setup:
+      val result: Future[Result] = controller.repositories(None)(FakeRequest())
+      val resultJson: JsValue = contentAsJson(result)
+      val repositories: Seq[Repository] = resultJson.as[Seq[Repository]]
       repositories.map(_.name) shouldBe List(
         "alibrary-repo",
         "another-repo",
@@ -478,31 +462,28 @@ class LegacyRepositoriesControllerSpec
         "other-repo",
         "repo-name"
       )
-    }
 
-    "return all the default branches of repositories" in new Setup {
-      val result       = controller.repositories(None)(FakeRequest())
-      val resultJson   = contentAsJson(result)
-      val repositories = resultJson.as[Seq[Repository]]
+    "return all the default branches of repositories" in new Setup:
+      val result: Future[Result] = controller.repositories(None)(FakeRequest())
+      val resultJson: JsValue = contentAsJson(result)
+      val repositories: Seq[Repository] = resultJson.as[Seq[Repository]]
       repositories.map(_.defaultBranch).distinct shouldBe List("main")
-    }
-  }
 
-  "return all the default branches of repositories" in new Setup {
-    val result       = controller.repositories(None)(FakeRequest())
-    val resultJson   = contentAsJson(result)
-    val repositories = resultJson.as[Seq[Repository]]
+  "return all the default branches of repositories" in new Setup:
+    val result: Future[Result] = controller.repositories(None)(FakeRequest())
+    val resultJson: JsValue = contentAsJson(result)
+    val repositories: Seq[Repository] = resultJson.as[Seq[Repository]]
     repositories.map(_.defaultBranch).distinct shouldBe List("main")
-  }
+
   private def nameField(obj: JsValue): String =
     (obj \ "name").as[String]
 
   private def teamNamesField(obj: JsValue): Seq[String] =
     (obj \ "teamNames").as[Seq[String]]
 
-  private trait Setup {
-    val mockTeamsAndReposPersister = mock[RepositoriesPersistence]
-    val mockUrlTemplateProvider    = mock[UrlTemplatesProvider]
+  private trait Setup:
+    val mockTeamsAndReposPersister: RepositoriesPersistence = mock[RepositoriesPersistence]
+    val mockUrlTemplateProvider: UrlTemplatesProvider = mock[UrlTemplatesProvider]
 
     when(mockTeamsAndReposPersister.getAllTeamsAndRepos(None))
       .thenReturn(Future.successful(defaultData))
@@ -517,10 +498,9 @@ class LegacyRepositoriesControllerSpec
         )
       )
 
-    val controller = new LegacyRepositoriesController(
-      mockTeamsAndReposPersister,
-      mockUrlTemplateProvider,
-      stubControllerComponents()
-    )
-  }
-}
+    val controller: LegacyRepositoriesController =
+      LegacyRepositoriesController(
+        mockTeamsAndReposPersister,
+        mockUrlTemplateProvider,
+        stubControllerComponents()
+      )

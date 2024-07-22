@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import org.apache.pekko.actor.ActorSystem
 import com.google.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.TimestampSupport
@@ -35,16 +35,15 @@ class DataReloadScheduler @Inject()(
   config             : SchedulerConfigs,
   mongoLockRepository: MongoLockRepository,
   timestampSupport   : TimestampSupport
-)(implicit
+)(using
   actorSystem         : ActorSystem,
   applicationLifecycle: ApplicationLifecycle
-) extends SchedulerUtils {
+) extends SchedulerUtils
+  with Logging:
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
-  private val logger = Logger(this.getClass)
-
-  implicit val ec: ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
+  given ExecutionContext = actorSystem.dispatchers.lookup("scheduler-dispatcher")
 
   private val lockService =
     ScheduledLockService(
@@ -55,10 +54,10 @@ class DataReloadScheduler @Inject()(
     )
 
   scheduleWithLock("Teams and Repos Reloader", config.dataReloadScheduler, lockService) {
-    for {
+    for
       count <- persistingService.updateTeamsAndRepositories()
       _     =  logger.info(s"Finished updating Teams and Repos - $count records updated")
-    } yield ()
+    yield ()
   }
 
   def reload: Future[Unit] =
@@ -67,8 +66,7 @@ class DataReloadScheduler @Inject()(
         logger.info(s"Starting mongo update")
         persistingService.updateTeamsAndRepositories()
       }
-      .map(_.getOrElse(sys.error(s"Mongo is locked for ${lockService.lockId}")))
-      .map { _ =>
+      .map:
+        _.getOrElse(sys.error(s"Mongo is locked for ${lockService.lockId}"))
+      .map: _ =>
         logger.info(s"mongo update completed")
-      }
-}

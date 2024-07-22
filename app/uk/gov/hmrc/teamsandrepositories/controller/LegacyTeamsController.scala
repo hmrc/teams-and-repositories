@@ -35,38 +35,34 @@ class LegacyTeamsController @Inject()(
   repositoriesPersistence: RepositoriesPersistence,
   configuration          : Configuration,
   cc                     : ControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(cc) {
+)(using ExecutionContext) extends BackendController(cc):
 
   lazy val sharedRepos: List[String] =
     configuration.get[Seq[String]]("shared.repositories").toList
 
-  private implicit val tf: Format[Team] = Team.format
+  private given Format[Team] = Team.format
 
-  def teams(includeRepos: Boolean) = Action.async {
+  def teams(includeRepos: Boolean): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
+      .map: allTeamsAndRepos =>
         val teams =
           allTeamsAndRepos
             .map(_.toTeam(sharedRepos, includeRepos))
         Ok(toJson(teams))
-      }
   }
 
-  def team(teamName: String, includeRepos: Boolean) = Action.async {
+  def team(teamName: String, includeRepos: Boolean): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map { allTeamsAndRepos =>
+      .map: allTeamsAndRepos =>
         val optTeam: Option[Team] =
           allTeamsAndRepos
             .find(_.teamName.equalsIgnoreCase(teamName))
             .map(_.toTeam(sharedRepos, includeRepos))
-        optTeam match {
+        optTeam match
           case None       => NotFound
           case Some(team) => Ok(toJson(team))
-        }
-      }
   }
 
   // deprecated
-  def allTeamsAndRepositories =
+  def allTeamsAndRepositories: Action[AnyContent] =
     teams(includeRepos = true)
-}

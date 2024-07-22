@@ -34,9 +34,9 @@ case class DeletedGitRepository(
   prototypeName       : Option[String]        = None,
 )
 
-object DeletedGitRepository {
+object DeletedGitRepository:
 
-  def fromGitRepository(gitRepository: GitRepository, deletedDate: Instant): DeletedGitRepository = {
+  def fromGitRepository(gitRepository: GitRepository, deletedDate: Instant): DeletedGitRepository =
     DeletedGitRepository(
       name               = gitRepository.name,
       deletedDate        = deletedDate,
@@ -48,11 +48,10 @@ object DeletedGitRepository {
       teams              = Some(gitRepository.teams),
       prototypeName      = gitRepository.prototypeName
     )
-  }
 
-  val apiFormat: OFormat[DeletedGitRepository] = {
-    implicit val rtf: Format[RepoType]    = RepoType.format
-    implicit val stf: Format[ServiceType] = ServiceType.format
+  val apiFormat: OFormat[DeletedGitRepository] =
+    given Format[RepoType]    = RepoType.format
+    given Format[ServiceType] = ServiceType.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "deletedDate"         ).format[Instant]
     ~ (__ \ "isPrivate"           ).formatNullable[Boolean]
@@ -62,13 +61,12 @@ object DeletedGitRepository {
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
     ~ (__ \ "teamNames"           ).formatNullable[List[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
-    )(apply, unlift(unapply))
-  }
+    )(apply, d => Tuple.fromProductTyped(d))
 
-  val mongoFormat: OFormat[DeletedGitRepository] = {
-    implicit val ldtf: Format[Instant]    = MongoJavatimeFormats.instantFormat
-    implicit val rtf: Format[RepoType]    = RepoType.format
-    implicit val stf: Format[ServiceType] = ServiceType.format
+  val mongoFormat: OFormat[DeletedGitRepository] =
+    given Format[Instant]    = MongoJavatimeFormats.instantFormat
+    given Format[RepoType]    = RepoType.format
+    given Format[ServiceType] = ServiceType.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "deletedDate"         ).format[Instant]
     ~ (__ \ "isPrivate"           ).formatNullable[Boolean]
@@ -78,6 +76,4 @@ object DeletedGitRepository {
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
     ~ (__ \ "teamNames"           ).formatNullable[List[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
-    )(apply, unlift(unapply))
-  }
-}
+    )(apply, d => Tuple.fromProductTyped(d))

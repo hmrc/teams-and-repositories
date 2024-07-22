@@ -30,16 +30,15 @@ case class TeamRepositories(
   repositories: List[GitRepository],
   createdDate : Option[Instant],
   updateDate  : Instant
-) {
-  def toTeam(sharedRepos: List[String], includeRepos: Boolean) = {
+):
+  def toTeam(sharedRepos: List[String], includeRepos: Boolean) =
 
-    val lastActiveDate = {
+    val lastActiveDate =
       val exclusiveRepos = repositories.filterNot(r => sharedRepos.contains(r.name))
-      if (exclusiveRepos.isEmpty) None else Some(exclusiveRepos.map(_.lastActiveDate).max)
-    }
+      if exclusiveRepos.isEmpty then None else Some(exclusiveRepos.map(_.lastActiveDate).max)
 
     val repos =
-      if (!includeRepos)
+      if !includeRepos then
         None
       else
         Some(
@@ -51,9 +50,8 @@ case class TeamRepositories(
               .toMap
         )
 
-    val ownedRepos = repositories.collect {
+    val ownedRepos = repositories.collect:
       case gitRepository if gitRepository.owningTeams.contains(teamName) => gitRepository.name
-    }
 
     Team(
       name           = teamName,
@@ -62,16 +60,14 @@ case class TeamRepositories(
       repos          = repos,
       ownedRepos     = ownedRepos.sortBy(_.toUpperCase)
     )
-  }
-}
 
-object TeamRepositories {
-  private implicit val io: Ordering[Instant] = DateTimeUtils.instantOrdering
+object TeamRepositories:
+  private given Ordering[Instant] = DateTimeUtils.instantOrdering
 
   def findDigitalServiceDetails(
     allTeamsAndRepos   : Seq[TeamRepositories],
     digitalServiceName: String
-  ): Option[DigitalService] = {
+  ): Option[DigitalService] =
 
     case class RepoAndTeam(repositoryName: String, teamName: String)
 
@@ -79,9 +75,8 @@ object TeamRepositories {
       allTeamsAndRepos
         .flatMap(teamAndRepo => teamAndRepo.repositories.map(repo => RepoAndTeam(repo.name, teamAndRepo.teamName)))
         .groupBy(_.repositoryName)
-        .map {
+        .map:
           case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
-        }
 
     val gitReposForDigitalService =
       allTeamsAndRepos
@@ -92,14 +87,14 @@ object TeamRepositories {
       gitReposForDigitalService.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
 
     gitReposForDigitalService.distinct
-      .map(gitRepository => Repository.create(gitRepository,
-        repoNameToTeamNamesLookup.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN))))
-      .sortBy(_.name.toUpperCase) match {
+      .map: gitRepository =>
+        Repository.create(gitRepository, repoNameToTeamNamesLookup.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN)))
+      .sortBy(_.name.toUpperCase) match
         case Nil   => None
         case repos => Some(DigitalService(
                         name          = storedDigitalServiceName,
                         lastUpdatedAt = repos.map(_.lastUpdatedAt).max,
-                        repositories  = repos.map(repo =>
+                        repositories  = repos.map: repo =>
                                           DigitalServiceRepository(
                                             repo.name,
                                             repo.createdAt,
@@ -108,10 +103,7 @@ object TeamRepositories {
                                             repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
                                             repo.isArchived
                                           )
-                                        )
                      ))
-      }
-  }
 
   def unknown(repositories: List[GitRepository], updateDate: Instant): TeamRepositories =
     TeamRepositories(
@@ -123,26 +115,24 @@ object TeamRepositories {
 
   val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
-  val apiFormat: OFormat[TeamRepositories] = {
-    implicit val grf = GitRepository.apiFormat
+  val apiFormat: OFormat[TeamRepositories] =
+    given OFormat[GitRepository] = GitRepository.apiFormat
     ( (__ \ "teamName"    ).format[String]
     ~ (__ \ "repositories").format[List[GitRepository]]
     ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
-    )(apply, unlift(unapply))
-  }
+    )(apply, t => Tuple.fromProductTyped(t))
 
-  val mongoFormat: OFormat[TeamRepositories] = {
-    implicit val inf = MongoJavatimeFormats.instantFormat
-    implicit val grf = GitRepository.mongoFormat
+  val mongoFormat: OFormat[TeamRepositories] =
+    given Format[Instant] = MongoJavatimeFormats.instantFormat
+    given OFormat[GitRepository] = GitRepository.mongoFormat
     ( (__ \ "teamName"    ).format[String]
     ~ (__ \ "repositories").format[List[GitRepository]]
     ~ (__ \ "createdDate" ).formatNullable[Instant]
     ~ (__ \ "updateDate"  ).format[Instant]
-    )(TeamRepositories.apply, unlift(TeamRepositories.unapply))
-  }
+    )(TeamRepositories.apply, t => Tuple.fromProductTyped(t))
 
-  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] = {
+  def getAllRepositories(teamRepos: Seq[TeamRepositories]): Seq[Repository] =
     val repoTeams =
       teamRepos
         .flatMap(teamRepo => teamRepo.repositories.map(_.name -> teamRepo.teamName))
@@ -155,13 +145,12 @@ object TeamRepositories {
       .map(gitRepository => Repository.create(gitRepository, repoTeams.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN))))
       .toSeq
       .sortBy(_.name.toUpperCase)
-  }
 
   def findRepositoryDetails(
     teamRepos     : Seq[TeamRepositories],
     repoName      : String,
     ciUrlTemplates: UrlTemplates
-  ): Option[RepositoryDetails] = {
+  ): Option[RepositoryDetails] =
 
     val teamsOwningRepo =
       teamRepos.filter(_.repositories.exists(_.name.equalsIgnoreCase(repoName)))
@@ -169,20 +158,18 @@ object TeamRepositories {
     val maybeRepo: Option[GitRepository] =
       teamsOwningRepo.headOption.flatMap(_.repositories.find(_.name.equalsIgnoreCase(repoName)))
 
-    maybeRepo.map { repo =>
+    maybeRepo.map: repo =>
       RepositoryDetails.create(
         repo         = repo,
         teamNames    = teamsOwningRepo.filterNot(_.teamName == TEAM_UNKNOWN).map(_.teamName),
         urlTemplates = ciUrlTemplates
       )
-    }
-  }
 
   def getRepositoryDetailsList(
     teamRepos     : Seq[TeamRepositories],
     repoType      : RepoType,
     ciUrlTemplates: UrlTemplates
-  ): Seq[RepositoryDetails] = {
+  ): Seq[RepositoryDetails] =
 
     val allReposForType =
       teamRepos
@@ -191,33 +178,29 @@ object TeamRepositories {
         .filter(_.repoType == repoType)
 
     allReposForType
-      .map { repo =>
-        val teamNames = teamRepos.collect {
+      .map: repo =>
+        val teamNames = teamRepos.collect:
           case teamRepository if teamRepository.repositories.exists(_.name.equalsIgnoreCase(repo.name)) => teamRepository.teamName
-        }
 
         RepositoryDetails.create(
           repo         = repo,
           teamNames    = teamNames.filterNot(_ == TEAM_UNKNOWN),
           urlTemplates = ciUrlTemplates
         )
-      }
       .sortBy(_.name.toUpperCase)
-  }
 
-  def getRepositoryToTeamNames(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] = {
-    val mappings = for {
-      tr <- teamRepos
-      r  <- tr.repositories
-    } yield (r.name, tr.teamName)
+  def getRepositoryToTeamNames(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] =
+    val mappings: Seq[(String, String)] =
+      for
+        tr <- teamRepos
+        r  <- tr.repositories
+      yield (r.name, tr.teamName)
 
     mappings
       .groupBy(_._1)
       .view
       .mapValues(_.map(_._2).distinct)
       .toMap
-  }
-}
 
 case class DigitalServiceRepository(
   name         : String,
@@ -228,18 +211,16 @@ case class DigitalServiceRepository(
   archived     : Boolean
 )
 
-object DigitalServiceRepository {
-  val format: Format[DigitalServiceRepository] = {
-    implicit val rtf = RepoType.format
+object DigitalServiceRepository:
+  val format: Format[DigitalServiceRepository] =
+    given Format[RepoType] = RepoType.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "createdAt"    ).format[Instant]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repoType"     ).format[RepoType]
     ~ (__ \ "teamNames"    ).format[Seq[String]]
     ~ (__ \ "archived"     ).format[Boolean]
-    )(apply, unlift(unapply))
-  }
-}
+    )(apply, d => Tuple.fromProductTyped(d))
 
 case class DigitalService(
   name         : String,
@@ -247,12 +228,10 @@ case class DigitalService(
   repositories : Seq[DigitalServiceRepository]
 )
 
-object DigitalService {
-  val format: Format[DigitalService] = {
-    implicit val dsrf = DigitalServiceRepository.format
+object DigitalService:
+  val format: Format[DigitalService] =
+    given Format[DigitalServiceRepository] = DigitalServiceRepository.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "lastUpdatedAt").format[Instant]
     ~ (__ \ "repositories" ).format[Seq[DigitalServiceRepository]]
-    )(apply, unlift(unapply))
-  }
-}
+    )(apply, d => Tuple.fromProductTyped(d))

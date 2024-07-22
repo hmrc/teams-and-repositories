@@ -17,8 +17,9 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.{Configuration, Logger}
-import play.api.libs.json._
+import play.api.libs.ws.writeableOf_JsValue
+import play.api.{Configuration, Logging}
+import play.api.libs.json.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -32,31 +33,27 @@ class SlackNotificationsConnector @Inject()(
   httpClientV2  : HttpClientV2,
   configuration : Configuration,
   servicesConfig: ServicesConfig,
-)(implicit ec: ExecutionContext) {
+)(using ExecutionContext
+) extends Logging:
   import HttpReads.Implicits._
-
-  private val logger = Logger(this.getClass.getName)
 
   val url: String = servicesConfig.baseUrl("slack-notifications")
 
   private val internalAuthToken = configuration.get[String]("internal-auth.token")
 
-  def sendMessage(message: SlackNotificationRequest): Future[SlackNotificationResponse] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val snrW: OWrites[SlackNotificationRequest] = SlackNotificationRequest.writes
-    implicit val snrR: Reads[SlackNotificationResponse] = SlackNotificationResponse.reads
+  def sendMessage(message: SlackNotificationRequest): Future[SlackNotificationResponse] =
+    given HeaderCarrier = HeaderCarrier()
+    given OWrites[SlackNotificationRequest] = SlackNotificationRequest.writes
+    given Reads[SlackNotificationResponse] = SlackNotificationResponse.reads
     httpClientV2
       .post(url"$url/slack-notifications/v2/notification")
       .withBody(Json.toJson(message))
       .setHeader("Authorization" -> internalAuthToken)
       .execute[SlackNotificationResponse]
-      .recoverWith {
+      .recoverWith:
         case NonFatal(ex) =>
           logger.error(s"Unable to notify ${message.channelLookup} on Slack", ex)
           Future.failed(ex)
-      }
-  }
-}
 
 final case class SlackNotificationError(
   code   : String,
@@ -67,9 +64,9 @@ final case class SlackNotificationResponse(
   errors: List[SlackNotificationError]
 )
 
-object SlackNotificationResponse {
-  val reads: Reads[SlackNotificationResponse] = {
-    implicit val sneReads: Reads[SlackNotificationError] =
+object SlackNotificationResponse:
+  val reads: Reads[SlackNotificationResponse] =
+    given Reads[SlackNotificationError] =
       ( (__ \ "code").read[String]
       ~ (__ \ "message").read[String]
       )(SlackNotificationError.apply _)
@@ -77,31 +74,24 @@ object SlackNotificationResponse {
     (__ \ "errors")
       .readWithDefault[List[SlackNotificationError]](List.empty)
       .map(SlackNotificationResponse.apply)
-  }
-}
 
-sealed trait ChannelLookup {
-  def by: String
-}
-
-object ChannelLookup {
-
-  final case class RepositoryChannel(
+enum ChannelLookup:
+  case RepositoryChannel(
     repositoryName: String,
     by            : String = "github-repository"
   ) extends ChannelLookup
 
-  final case class SlackChannel(
+  case SlackChannel(
     slackChannels: List[String],
     by           : String = "slack-channel"
   ) extends ChannelLookup
 
+object ChannelLookup:
   val writes: Writes[ChannelLookup] =
     Writes {
       case s: SlackChannel      => Json.toJson(s)(Json.writes[SlackChannel])
       case s: RepositoryChannel => Json.toJson(s)(Json.writes[RepositoryChannel])
     }
-}
 
 final case class SlackNotificationRequest(
   channelLookup: ChannelLookup,
@@ -111,9 +101,7 @@ final case class SlackNotificationRequest(
   blocks       : Seq[JsValue]
 )
 
-object SlackNotificationRequest {
-  val writes: OWrites[SlackNotificationRequest] = {
-    implicit val clw = ChannelLookup.writes
+object SlackNotificationRequest:
+  val writes: OWrites[SlackNotificationRequest] =
+    given Writes[ChannelLookup] = ChannelLookup.writes
     Json.writes[SlackNotificationRequest]
-  }
-}

@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.mvc.Results
+import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.teamsandrepositories.models.RepoType
 import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
 
@@ -32,10 +33,10 @@ class JenkinsControllerSpec
   extends AnyWordSpec
     with Matchers
     with Results
-    with MockitoSugar {
+    with MockitoSugar:
 
-  "JenkinsController" should {
-    "return a single match as Json" in new Setup {
+  "JenkinsController" should:
+    "return a single match as Json" in new Setup:
       when(mockJenkinsJobsPersistence.findByJobName("job-foo"))
         .thenReturn(
           Future.successful(
@@ -52,27 +53,28 @@ class JenkinsControllerSpec
           )
         )
 
-      val result = controller.lookup("job-foo").apply(FakeRequest())
-      val bodyText = contentAsString(result)
+      val result: Future[Result] =
+        controller.lookup("job-foo").apply(FakeRequest())
+        
+      val bodyText: String =
+        contentAsString(result)
+        
       bodyText shouldBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
-    }
 
-    "return a not found when no matches found" in new Setup {
+    "return a not found when no matches found" in new Setup:
       when(mockJenkinsJobsPersistence.findByJobName("bar"))
         .thenReturn(Future.successful(None))
 
-      val result = controller.lookup("bar").apply(FakeRequest())
+      val result: Future[Result] =
+        controller.lookup("bar").apply(FakeRequest())
+      
       status(result) shouldBe 404
-    }
-  }
 
-  trait Setup {
-    val mockJenkinsJobsPersistence = mock[JenkinsJobsPersistence]
+  trait Setup:
+    val mockJenkinsJobsPersistence: JenkinsJobsPersistence = mock[JenkinsJobsPersistence]
 
-    val controller =
-      new JenkinsController(
+    val controller: JenkinsController =
+      JenkinsController(
         mockJenkinsJobsPersistence,
         stubControllerComponents()
       )
-  }
-}

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
@@ -41,12 +41,12 @@ class GithubConnectorSpec
      with IntegrationPatience
      with OptionValues
      with WireMockSupport
-     with GuiceOneAppPerSuite {
+     with GuiceOneAppPerSuite:
 
   val token = "token"
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .configure(
         "github.open.api.key"      -> token,
         "github.open.api.url"      -> wireMockUrl,
@@ -60,15 +60,16 @@ class GithubConnectorSpec
       )
       .build()
 
-  private val connector = app.injector.instanceOf[GithubConnector]
+  private val connector: GithubConnector =
+    app.injector.instanceOf[GithubConnector]
 
-  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
-  val createdAt =
+  val createdAt: Instant =
     Instant.parse("2019-03-01T12:00:00Z")
 
-  "GithubConnector.getTeams" should {
-    "return teams" in {
+  "GithubConnector.getTeams" should:
+    "return teams" in:
       stubFor(
         post(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(getTeamsQuery.asJsonString))
@@ -127,7 +128,7 @@ class GithubConnectorSpec
           ))
       )
 
-      connector.getTeams().futureValue shouldBe List(
+      connector.getTeams.futureValue shouldBe List(
         GhTeam("A", createdAt),
         GhTeam("B", createdAt),
         GhTeam("C", createdAt)
@@ -142,8 +143,6 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
-  }
 
   val reposJson1 =
     """[
@@ -523,7 +522,7 @@ class GithubConnectorSpec
       }
      """
 
-  val dummyRepoTypeHeuristics =
+  val dummyRepoTypeHeuristics: RepoTypeHeuristics =
     RepoTypeHeuristics(
       prototypeInName     = false,
       testsInName         = false,
@@ -536,7 +535,7 @@ class GithubConnectorSpec
       hasTags             = false
     )
 
-  val repo1 =
+  val repo1: GhRepository =
     GhRepository(
       name               = "n1",
       htmlUrl            = "url1",
@@ -552,7 +551,7 @@ class GithubConnectorSpec
       repoTypeHeuristics = dummyRepoTypeHeuristics
     )
 
-  val repos =
+  val repos: List[GhRepository] =
     List(
       repo1,
       GhRepository(
@@ -585,8 +584,8 @@ class GithubConnectorSpec
       )
     )
 
-  "GithubConnector.getReposForTeam" should {
-    "return repos" in {
+  "GithubConnector.getReposForTeam" should:
+    "return repos" in:
       val team =
         GhTeam(name = "A Team", createdAt = createdAt)
 
@@ -621,9 +620,8 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
 
-    "return an empty list when a team does not exist" in {
+    "return an empty list when a team does not exist" in:
       val team =
         GhTeam(name = "A Team", createdAt = createdAt)
 
@@ -656,11 +654,9 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query.asJsonString))
       )
-    }
-  }
 
-  "GithubConnector.getRepos" should {
-    "return repos" in {
+  "GithubConnector.getRepos" should:
+    "return repos" in:
       stubFor(
         post(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(getReposQuery.asJsonString))
@@ -677,7 +673,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(allReposJson2))
       )
 
-      connector.getRepos().futureValue shouldBe repos
+      connector.getRepos.futureValue shouldBe repos
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
@@ -688,11 +684,9 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query2.asJsonString))
       )
-    }
-  }
 
-  "GithubConnector.getRepo" should {
-    "return the repo" in {
+  "GithubConnector.getRepo" should:
+    "return the repo" in:
       val query =
         getRepoQuery
           .withVariable("repo", JsString("n1"))
@@ -709,11 +703,9 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query.asJsonString))
       )
-    }
-  }
 
-  "RepoTypeHeuristics" should {
-    "infer the repo Type to be a test, if the name ends in -test" in {
+  "RepoTypeHeuristics" should:
+    "infer the repo Type to be a test, if the name ends in -test" in:
       val query =
         getRepoQuery
           .withVariable("repo", JsString("n1-test"))
@@ -735,9 +727,8 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query.asJsonString))
       )
-    }
 
-    "infer the repo Type to be a test, if the name ends in -tests" in {
+    "infer the repo Type to be a test, if the name ends in -tests" in:
       val query =
         getRepoQuery
           .withVariable("repo", JsString("n1-tests"))
@@ -759,9 +750,8 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query.asJsonString))
       )
-    }
 
-    "fail to infer the repoType to be a test, if the name ends in a typo" in {
+    "fail to infer the repoType to be a test, if the name ends in a typo" in:
       val query =
         getRepoQuery
           .withVariable("repo", JsString("n1-testss"))
@@ -782,11 +772,9 @@ class GithubConnectorSpec
         postRequestedFor(urlPathEqualTo("/graphql"))
           .withRequestBody(equalToJson(query.asJsonString))
       )
-    }
-  }
 
-  "GithubConnector.getRateLimitMetrics" should {
-    "return rate limit metrics" in {
+  "GithubConnector.getRateLimitMetrics" should:
+    "return rate limit metrics" in:
       val token = "t"
       stubFor(
         get(urlPathEqualTo("/rate_limit"))
@@ -876,6 +864,3 @@ class GithubConnectorSpec
         getRequestedFor(urlPathEqualTo("/rate_limit"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
-    }
-  }
-}

@@ -28,9 +28,8 @@ import scala.concurrent.ExecutionContext
 class TestRepoRelationshipsController @Inject()(
   relationshipsPersistence: TestRepoRelationshipsPersistence,
   cc                      : ControllerComponents
-)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
   def testRepositories(serviceRepo: String): Action[AnyContent] = Action.async { _ =>
     relationshipsPersistence
@@ -43,4 +42,3 @@ class TestRepoRelationshipsController @Inject()(
       .findServicesByTestRepo(testRepo)
       .map(r => Ok(Json.toJson(r)))
   }
-}

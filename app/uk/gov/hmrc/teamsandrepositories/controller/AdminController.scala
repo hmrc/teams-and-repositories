@@ -29,17 +29,15 @@ class AdminController @Inject()(
   dataReloadScheduler     : DataReloadScheduler,
   persistingService       : PersistingService,
   cc                      : ControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(cc) {
+)(using ExecutionContext) extends BackendController(cc):
 
-  def reloadCache(): Action[AnyContent] = Action {
+  def reloadCache: Action[AnyContent] = Action {
     dataReloadScheduler.reload
     Ok("Cache reload triggered successfully")
   }
 
   def reloadCacheForService(serviceName: String): Action[AnyContent] = Action.async {
-    persistingService.updateRepository(serviceName).value.map {
+    persistingService.updateRepository(serviceName).value.map:
       case Right(_)    => Ok(s"Cache reload for $serviceName triggered successfully")
       case Left(error) => InternalServerError(s"Failed to reload service $serviceName with error $error")
-    }
   }
-}

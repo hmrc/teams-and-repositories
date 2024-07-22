@@ -17,16 +17,16 @@
 package uk.gov.hmrc.teamsandrepositories.config
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 
-class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
+class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar:
 
-  "GithubConfig" should {
-    "parse config correctly" in {
-      val githubConfig = new GithubConfig(Configuration(
+  "GithubConfig" should:
+    "parse config correctly" in:
+      val githubConfig = GithubConfig(Configuration(
         "github.open.api.url"    -> "https://api.github.com"
       , "github.open.api.rawurl" -> "http://localhost:8461/github/raw"
       , "github.open.api.key"    -> "token1"
@@ -42,9 +42,8 @@ class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       githubConfig.rawUrl shouldBe "http://localhost:8461/github/raw"
       githubConfig.excludedUsers shouldBe List("excluded@email.com")
       githubConfig.tokens shouldBe List("user1" -> "token1", "user2" -> "token2")
-    }
 
-    "infer token config from open api credentials" in {
+    "infer token config from open api credentials" in:
       val config =
         ConfigFactory.parseString(
           f"""|
@@ -57,9 +56,6 @@ class GithubConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
             |ratemetrics.githubtokens.1.token    = $${?github.open.api.key}
             """.stripMargin
         ).resolve
-      val githubConfig = new GithubConfig(new Configuration(config))
+      val githubConfig = GithubConfig(new Configuration(config))
 
       githubConfig.tokens shouldBe List("user1" -> "token1")
-    }
-  }
-}

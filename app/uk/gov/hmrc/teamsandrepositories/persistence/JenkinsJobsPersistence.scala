@@ -21,6 +21,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.models.RepoType
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,8 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class JenkinsJobsPersistence @Inject()(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository[JenkinsJobsPersistence.Job](
   mongoComponent = mongoComponent
 , collectionName = "jenkinsJobs"
@@ -44,7 +44,7 @@ class JenkinsJobsPersistence @Inject()(
 , replaceIndexes = true
 , extraCodecs    = Codecs.playFormatSumCodecs(JenkinsJobsPersistence.JobType.format) ++
                    Codecs.playFormatSumCodecs(RepoType.format)
-){
+):
   import JenkinsJobsPersistence._
 
   // we replace all the data for each call to putAll
@@ -77,16 +77,15 @@ class JenkinsJobsPersistence @Inject()(
       .find(Filters.equal("jobType", jobType))
       .toFuture()
 
-  def putAll(buildJobs: Seq[Job])(implicit ec: ExecutionContext): Future[Unit] =
+  def putAll(buildJobs: Seq[Job])(using ExecutionContext): Future[Unit] =
     MongoUtils.replace[Job](
       collection  = collection,
       newVals     = buildJobs,
       compareById = (a, b) => a.jenkinsUrl == b.jenkinsUrl,
       filterById  = entry => Filters.equal("jenkinsURL", entry.jenkinsUrl)
     ).map(_ => ())
-}
 
-object JenkinsJobsPersistence {
+object JenkinsJobsPersistence:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
   import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
@@ -100,15 +99,15 @@ object JenkinsJobsPersistence {
   , latestBuild: Option[JenkinsConnector.LatestBuild]
   )
 
-  object Job {
-    val mongoFormat: Format[Job] = {
-      implicit val latestBuildFormat: OFormat[JenkinsConnector.LatestBuild] =
+  object Job:
+    val mongoFormat: Format[Job] =
+      given OFormat[JenkinsConnector.LatestBuild] =
         ( (__ \ "number"     ).format[Int]
         ~ (__ \ "url"        ).format[String]
         ~ (__ \ "timestamp"  ).format(MongoJavatimeFormats.instantFormat)
         ~ (__ \ "result"     ).formatNullable[JenkinsConnector.LatestBuild.BuildResult]
         ~ (__ \ "description").formatNullable[String]
-        )(JenkinsConnector.LatestBuild.apply, unlift(JenkinsConnector.LatestBuild.unapply))
+        )(JenkinsConnector.LatestBuild.apply, l => Tuple.fromProductTyped(l))
 
       ( (__ \ "repoName"   ).format[String]
       ~ (__ \ "jobName"    ).format[String]
@@ -116,34 +115,26 @@ object JenkinsJobsPersistence {
       ~ (__ \ "jobType"    ).format[JobType](JobType.format)
       ~ (__ \ "repoType"   ).formatNullable[RepoType](RepoType.format)
       ~ (__ \ "latestBuild").formatNullable[JenkinsConnector.LatestBuild]
-      )(Job.apply, unlift(Job.unapply))
-    }
-  }
+      )(Job.apply, j => Tuple.fromProductTyped(j))
 
-  sealed trait JobType { def asString: String }
+  enum JobType(val asString: String):
+    case Job         extends JobType("job"         )
+    case Pipeline    extends JobType("pipeline"    )
+    case PullRequest extends JobType("pull-request")
 
-  object JobType {
-    case object Job         extends JobType { override val asString = "job"         }
-    case object Pipeline    extends JobType { override val asString = "pipeline"    }
-    case object PullRequest extends JobType { override val asString = "pull-request"}
-
-    val values: List[JobType] =
-      List(Job, Pipeline, PullRequest)
-
+  object JobType:
     def parse(s: String): Either[String, JobType] =
       values
         .find(_.asString.equalsIgnoreCase(s))
         .toRight(s"Invalid jobType - should be one of: ${values.map(_.asString).mkString(", ")}")
 
-    val format = new Format[JobType] {
-      override def reads(json: JsValue): JsResult[JobType] =
-        json match {
-          case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
-          case _           => JsError("String value expected")
-        }
+    val format: Format[JobType] =
+      new Format[JobType] {
+        override def reads(json: JsValue): JsResult[JobType] =
+          json match
+            case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
+            case _           => JsError("String value expected")
 
-      override def writes(o: JobType): JsValue =
-        JsString(o.asString)
-    }
-  }
-}
+        override def writes(o: JobType): JsValue =
+          JsString(o.asString)
+      }

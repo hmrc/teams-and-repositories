@@ -24,20 +24,17 @@ import scala.jdk.CollectionConverters._
 
 
 @Singleton
-class GithubConfig @Inject()(configuration: Configuration) {
-  val key           = configuration.get[String]("github.open.api.key")
-  val apiUrl        = configuration.get[String]("github.open.api.url")
-  val rawUrl        = configuration.get[String]("github.open.api.rawurl")
-  val excludedUsers = configuration.get[Seq[String]]("github.excluded.users")
+class GithubConfig @Inject()(configuration: Configuration):
+  val key          : String      = configuration.get[String]("github.open.api.key")
+  val apiUrl       : String      = configuration.get[String]("github.open.api.url")
+  val rawUrl       : String      = configuration.get[String]("github.open.api.rawurl")
+  val excludedUsers: Seq[String] = configuration.get[Seq[String]]("github.excluded.users")
 
   val tokens: List[(String, String)] =
     configuration.get[ConfigList]("ratemetrics.githubtokens").asScala.toList
       .map(cv => new Configuration(cv.asInstanceOf[ConfigObject].toConfig))
-      .flatMap { config =>
-        for {
+      .flatMap: config =>
+        for
           username <- config.getOptional[String]("username")
           token    <- config.getOptional[String]("token")
-        } yield (username, token)
-      }
-
-}
+        yield (username, token)

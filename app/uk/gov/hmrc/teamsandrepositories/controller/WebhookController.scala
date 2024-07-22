@@ -31,18 +31,17 @@ import scala.concurrent.{ExecutionContext, Future}
 class WebhookController @Inject()(
   persistingService: PersistingService,
   cc               : ControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
+)(using ExecutionContext) extends BackendController(cc) with Logging:
 
   def processGithubWebhook(): Action[GithubRequest] = Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
     def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] =
       persistingService.updateRepository(repoName).fold(
         err => logger.info(s"repo: $repoName - failed action: $action - $err"),
         _   => logger.info(s"repo: $repoName - $message")
-      ).recover {
+      ).recover:
         case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
-      }
 
-    request.body match {
+    request.body match
       case push: Push if push.branchRef == "main" =>
         updateRepositoryForAction(push.repoName, "successfully updated repo", "push")
         Accepted(details("Push accepted"))
@@ -67,7 +66,7 @@ class WebhookController @Inject()(
         persistingService
           .archiveRepository(repositoryEvent.repoName)
           .map(_ => logger.info(s"repo: ${repositoryEvent.repoName} - repository archived webhook event has been actioned"))
-          .recover {  case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex)  }
+          .recover { case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex) }
         Accepted(details(s"Repository archived event accepted"))
 
       case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("deleted") =>
@@ -79,22 +78,19 @@ class WebhookController @Inject()(
 
       case repositoryEvent: RepositoryEvent =>
         Ok(details(s"Repository events with ${repositoryEvent.action} actions are ignored"))
-    }
   }
 
   private def details(msg: String): JsObject =
     Json.obj("details" -> msg)
-}
 
-object WebhookController {
+object WebhookController:
   sealed trait GithubRequest
 
-  object GithubRequest {
+  object GithubRequest:
     val githubReads: Reads[GithubRequest] =
       Push.reads
         .orElse(TeamEvent.reads)
         .orElse(RepositoryEvent.reads)
-  }
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#team
   final case class TeamEvent(
@@ -103,13 +99,12 @@ object WebhookController {
     action  : String
   ) extends GithubRequest
 
-  object TeamEvent {
+  object TeamEvent:
     val reads: Reads[GithubRequest] =
       ( (__ \ "team" \ "name"      ).read[String]
       ~ (__ \ "repository" \ "name").read[String]
       ~ (__ \ "action"             ).read[String]
       )(TeamEvent.apply _)
-  }
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   final case class Push(
@@ -117,12 +112,11 @@ object WebhookController {
     branchRef: String
   ) extends GithubRequest
 
-  object Push {
+  object Push:
     val reads: Reads[GithubRequest] =
       ( (__ \ "repository" \ "name").read[String]
       ~ (__ \ "ref"                ).read[String].map(_.stripPrefix("refs/heads/"))
       )(Push.apply _)
-  }
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#repository
   final case class RepositoryEvent(
@@ -130,10 +124,8 @@ object WebhookController {
     action  : String
   ) extends GithubRequest
 
-  object RepositoryEvent {
+  object RepositoryEvent:
     val reads: Reads[GithubRequest] =
       ( (__ \ "repository" \ "name").read[String]
       ~ (__ \ "action"             ).read[String]
       )(RepositoryEvent.apply _)
-  }
-}

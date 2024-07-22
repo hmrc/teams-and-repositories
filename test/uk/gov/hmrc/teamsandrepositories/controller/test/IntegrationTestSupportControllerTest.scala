@@ -19,11 +19,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json, OFormat}
 import uk.gov.hmrc.teamsandrepositories.models.TeamRepositories
 
-class IntegrationTestSupportControllerTest extends AnyWordSpec {
+class IntegrationTestSupportControllerTest extends AnyWordSpec:
 
-  "Integration Controller" should {
+  "Integration Controller" should:
 
-    "Read json" in {
+    "Read json" in:
       val json = """[{
                    |    "teamName" : "PlatOps",
                    |    "repositories" : [
@@ -44,12 +44,8 @@ class IntegrationTestSupportControllerTest extends AnyWordSpec {
                    |}]""".stripMargin
 
 
-      implicit val trf: OFormat[TeamRepositories] = TeamRepositories.apiFormat
+      given OFormat[TeamRepositories] = TeamRepositories.apiFormat
 
-      Json.parse(json).validate[Seq[TeamRepositories]] match {
-        case JsSuccess(v: Seq[TeamRepositories], _) => v.foreach(println)
-        case JsError(_)                             => println("not found")
-      }
-    }
-  }
-}
+      Json.parse(json).validate[Seq[TeamRepositories]] match
+        case JsSuccess(v, _) => v.foreach(println)
+        case JsError(_)      => println("not found")

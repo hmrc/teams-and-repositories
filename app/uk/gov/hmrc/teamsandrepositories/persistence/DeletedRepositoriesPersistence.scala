@@ -22,6 +22,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
 import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,8 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class DeletedRepositoriesPersistence @Inject()(
   val mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using ExecutionContext
 ) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "deleted-repositories",
@@ -40,12 +40,12 @@ class DeletedRepositoriesPersistence @Inject()(
                      IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
                      IndexModel(Indexes.ascending("repoType"),    IndexOptions().name("repoTypeIdx"))
                    )
-) with Transactions {
+) with Transactions:
 
   // need to keep permanent record of deleted repositories
   override lazy val requiresTtlIndex = false
 
-  private implicit val tc: TransactionConfiguration = TransactionConfiguration.strict
+  private given TransactionConfiguration = TransactionConfiguration.strict
 
   private val Quoted = """^\"(.*)\"$""".r
 
@@ -58,10 +58,9 @@ class DeletedRepositoriesPersistence @Inject()(
     collection
       .find(
         Seq(
-          name.map {
+          name.map:
             case Quoted(n) => Filters.equal("name", n)
-            case n         => Filters.regex("name", n)
-          },
+            case n         => Filters.regex("name", n),
           team       .map(tm => Filters.equal("owningTeams", tm         )),
           repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
           serviceType.map(st => Filters.equal("serviceType", st.asString))
@@ -79,17 +78,17 @@ class DeletedRepositoriesPersistence @Inject()(
 
   def putAll(repos: Seq[DeletedGitRepository]): Future[Unit] =
     withSessionAndTransaction(session =>
-      for {
+      for
         _ <- collection.deleteMany(session, Document()).toFuture()
-        _ <- if (repos.nonEmpty) collection.insertMany(session, repos).toFuture()
+        _ <- if repos.nonEmpty then collection.insertMany(session, repos).toFuture()
              else Future.successful(())
-      } yield ()
+      yield ()
     )
 
 
   // Remove when repo has been recreated - added to repositories collection
   def deleteRepos(repoNames: Seq[String]): Future[Long] =
-    if (repoNames.isEmpty)
+    if repoNames.isEmpty then
       Future.successful(0)
     else
       collection
@@ -99,4 +98,3 @@ class DeletedRepositoriesPersistence @Inject()(
         )
         .toFuture()
         .map(_.getDeletedCount)
-}
