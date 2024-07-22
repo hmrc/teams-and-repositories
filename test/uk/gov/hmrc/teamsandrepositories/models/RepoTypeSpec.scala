@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 import scala.util.Random.nextInt
 
@@ -39,7 +40,7 @@ class RepoTypeSpec extends AnyWordSpec with Matchers:
     "parsing service with various capitalization styles" should:
       "returns a RepoType object" in:
         valid_inputs
-          .foreach(i => RepoType.parse(i) match
+          .foreach(i => Parser[RepoType].parse(i) match
             case Right(value) => RepoType.values should contain (value)
             case _            => fail(s" The input $i has no right value!")
           )
@@ -51,4 +52,4 @@ class RepoTypeSpec extends AnyWordSpec with Matchers:
     "parsing invalid query parameter inputs" should:
       "return an error message" in:
         invalid_inputs
-          .foreach(i => RepoType.parse(i).isLeft shouldBe true)
+          .foreach(i => Parser[RepoType].parse(i).isLeft shouldBe true)

@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+import play.api.libs.json.*
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.teamsandrepositories.util.{FromString, Parser}
+import uk.gov.hmrc.teamsandrepositories.util.FromStringEnum.*
 
-enum Tag(val asString: String):
+enum Tag(val asString: String) extends FromString derives Reads, Writes:
   case AdminFrontend    extends Tag("admin"             )
   case Api              extends Tag("api"               )
   case BuiltOffPlatform extends Tag("built-off-platform")
@@ -27,18 +29,9 @@ enum Tag(val asString: String):
   case Stub             extends Tag("stub"              )
 
 object Tag:
-  def parse(s: String): Either[String, Tag] =
-    values
-      .find(_.asString.equalsIgnoreCase(s))
-      .toRight(s"Invalid tag - should be one of: ${values.map(_.asString).mkString(", ")}")
+  given Parser[Tag] = Parser.parser(Tag.values)
 
-  val format: Format[Tag] =
-      new Format[Tag] {
-      override def reads(json: JsValue): JsResult[Tag] =
-        json.validate[String].flatMap(s => parse(s).fold(msg => JsError(msg), t => JsSuccess(t)))
-
-      override def writes(o: Tag): JsValue = JsString(o.asString)
-    }
+  val format: Format[Tag] = Format(derived$Reads, derived$Writes)
 
   import cats.implicits._
   given QueryStringBindable[List[Tag]] =
@@ -46,7 +39,7 @@ object Tag:
       override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, List[Tag]]] =
         params.get(key).map:
           case Nil  => Left("missing tag value")
-          case tags => tags.toList.traverse(Tag.parse)
+          case tags => tags.toList.traverse(Parser[Tag].parse)
 
       override def unbind(key: String, value: List[Tag]): String =
         value.map(t => s"$key=${t.asString}").mkString("&")

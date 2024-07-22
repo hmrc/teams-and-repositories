@@ -16,37 +16,16 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+import play.api.libs.json.*
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.teamsandrepositories.util.{FromString, Parser}
+import uk.gov.hmrc.teamsandrepositories.util.FromStringEnum.*
 
-enum ServiceType(val asString: String):
+enum ServiceType(val asString: String) extends FromString derives QueryStringBindable, Reads, Writes:
   case Frontend extends ServiceType("frontend")
   case Backend  extends ServiceType("backend" )
 
 object ServiceType:
-  def parse(s: String): Either[String, ServiceType] =
-    values
-      .find(_.asString.equalsIgnoreCase(s))
-      .toRight(s"Invalid serviceType - should be one of: ${values.map(_.asString).mkString(", ")}")
+  given Parser[ServiceType] = Parser.parser(ServiceType.values)
 
-  val format: Format[ServiceType] =
-    new Format[ServiceType] {
-      override def reads(json: JsValue): JsResult[ServiceType] =
-        json match
-          case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
-          case _           => JsError("String value expected")
-
-      override def writes(o: ServiceType): JsValue = JsString(o.asString)
-    }
-
-  given QueryStringBindable[ServiceType] =
-    new QueryStringBindable[ServiceType] {
-      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, ServiceType]] =
-        params.get(key).map:
-          case Nil         => Left("missing serviceType value")
-          case head :: Nil => ServiceType.parse(head)
-          case _           => Left("too many serviceType values")
-
-      override def unbind(key: String, value: ServiceType): String =
-        s"$key=${value.asString}"
-    }
+  val format: Format[ServiceType] = Format(derived$Reads, derived$Writes)

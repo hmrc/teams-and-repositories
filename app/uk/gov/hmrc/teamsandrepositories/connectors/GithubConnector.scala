@@ -20,14 +20,15 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import com.codahale.metrics.MetricRegistry
 import play.api.libs.ws.writeableOf_JsValue
 import play.api.Logger
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 import java.time.Instant
 import java.util.Date
@@ -67,7 +68,7 @@ class GithubConnector @Inject()(
   def getTeams(repoName: String): Future[List[String]] =
     val stringReads: Reads[String] = (__ \ "name").read[String]
     given Reads[List[String]] = Reads.list(stringReads)
-    
+
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
       .setHeader(authHeader)
@@ -418,9 +419,9 @@ object GhRepository:
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType             = RepoType.parse(config.get[String]("type").getOrElse("")).toOption
-          , serviceType          = ServiceType.parse(config.get[String]("service-type").getOrElse("")).toOption
-          , tags                 = config.getArray("tags").map(_.flatMap(str => Tag.parse(str).toOption).toSet)
+            repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
+          , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+          , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service")
           , description          = config.get[String]("description")
           , endOfLifeDate        = config.getAsOpt[Date]("end-of-life-date").map(_.toInstant)

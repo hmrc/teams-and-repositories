@@ -17,10 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
 import java.time.Instant
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.Json.JsValueWrapper
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 case class Repository(
   name         : String,
@@ -76,7 +77,7 @@ object Team:
     val mapReads: Reads[Map[RepoType, List[String]]] = jv => JsSuccess(
       jv.as[Map[String, List[String]]].map:
         case (k, v) =>
-          RepoType.parse(k).getOrElse(throw new NoSuchElementException()) -> v
+          Parser[RepoType].parse(k).getOrElse(throw new NoSuchElementException()) -> v
     )
 
     val mapWrites: Writes[Map[RepoType, List[String]]] = (map: Map[RepoType, List[String]]) => Json.obj(map.map {

@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.teamsandrepositories.models
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.teamsandrepositories.util.{FromString, Parser}
+import uk.gov.hmrc.teamsandrepositories.util.FromStringEnum.*
 
-enum RepoType(val asString: String):
+enum RepoType(val asString: String) extends FromString derives QueryStringBindable, Reads, Writes:
   case Service   extends RepoType("Service"  )
   case Library   extends RepoType("Library"  )
   case Prototype extends RepoType("Prototype")
@@ -27,30 +29,6 @@ enum RepoType(val asString: String):
   case Other     extends RepoType("Other"    )
 
 object RepoType:
-  def parse(s: String): Either[String, RepoType] =
-    values
-      .find(_.asString.equalsIgnoreCase(s))
-      .toRight(s"Invalid repoType - should be one of: ${values.map(_.asString).mkString(", ")}")
+  given Parser[RepoType] = Parser.parser(RepoType.values)
 
-  val format: Format[RepoType] =
-    new Format[RepoType] {
-      override def reads(json: JsValue): JsResult[RepoType] =
-        json match
-          case JsString(s) => parse(s).fold(msg => JsError(msg), x => JsSuccess(x))
-          case _           => JsError("String value expected")
-
-      override def writes(o: RepoType): JsValue =
-        JsString(o.asString)
-  }
-
-  given QueryStringBindable[RepoType] =
-    new QueryStringBindable[RepoType] {
-      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, RepoType]] =
-        params.get(key).map:
-          case Nil         => Left("missing repoType value")
-          case head :: Nil => RepoType.parse(head)
-          case _           => Left("too many repoType values")
-
-      override def unbind(key: String, value: RepoType): String =
-        s"$key=${value.asString}"
-    }
+  val format: Format[RepoType] = Format(derived$Reads, derived$Writes)

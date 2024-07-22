@@ -17,39 +17,33 @@
 package uk.gov.hmrc.teamsandrepositories.util
 
 import org.yaml.snakeyaml.Yaml
-import play.api.Logger
+import play.api.Logging
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 import scala.util.Try
 import scala.util.control.NonFatal
 
-case class YamlMap(asMap: Map[String, Object]) {
-  private val logger = Logger(this.getClass)
+case class YamlMap(asMap: Map[String, Object]) extends Logging:
 
   def get[A](key: String): Option[A] =
     asMap.get(key).map(_.asInstanceOf[A])
     
   def getAsOpt[A <: Object : ClassTag](key: String): Option[A] =
-    asMap.get(key).flatMap {
+    asMap.get(key).flatMap:
       case t: A => Some(t)
       case _    => None
-    }
 
   def getArray(key: String): Option[List[String]] =
-    try {
+    try
       get[java.util.List[String]](key).map(_.asScala.toList)
-    }
-    catch {
+    catch
       case NonFatal(ex) =>
         logger.warn(s"Unable to get '$key' from yaml, problems were: ${ex.getMessage}")
         None
-    }
-}
 
-object YamlMap {
+object YamlMap:
   def parse(contents: String): Try[YamlMap] =
-    Try(new Yaml().load[java.util.Map[String, Object]](contents))
+    Try(Yaml().load[java.util.Map[String, Object]](contents))
       .map(_.asScala.toMap)
       .map(apply)
-}
