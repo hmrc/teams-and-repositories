@@ -40,7 +40,6 @@ class LegacyRepositoriesController @Inject()(
 ) extends BackendController(cc):
 
   private given Format[RepositoryDetails] = RepositoryDetails.format
-  private given Format[DigitalService]    = DigitalService.format
 
   def repositories(archived: Option[Boolean]): Action[AnyContent] = Action.async {
     repositoriesPersistence.getAllTeamsAndRepos(archived).map: allTeamsAndRepos =>
@@ -53,25 +52,4 @@ class LegacyRepositoriesController @Inject()(
         TeamRepositories.findRepositoryDetails(allTeamsAndRepos, name, urlTemplatesProvider.ciUrlTemplates) match
           case None                    => NotFound
           case Some(repositoryDetails) => Ok(toJson(repositoryDetails))
-  }
-
-  def digitalServices: Action[AnyContent] = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map: allTeamsAndRepos =>
-        val digitalServices: Seq[String] =
-          allTeamsAndRepos
-            .flatMap(_.repositories)
-            .flatMap(_.digitalServiceName)
-            .distinct
-            .sorted
-
-        Ok(toJson(digitalServices))
-  }
-
-  def digitalServiceDetails(name: String): Action[AnyContent] = Action.async {
-    repositoriesPersistence.getAllTeamsAndRepos(archived = None)
-      .map: allTeamsAndRepos =>
-        TeamRepositories.findDigitalServiceDetails(allTeamsAndRepos, name) match
-          case None                 => NotFound
-          case Some(digitalService) => Ok(toJson(digitalService))
   }

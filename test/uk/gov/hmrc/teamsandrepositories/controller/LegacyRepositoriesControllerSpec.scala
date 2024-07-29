@@ -202,13 +202,6 @@ class LegacyRepositoriesControllerSpec
       )
     )
 
-  "Retrieving a list of digital services" should:
-    "Return a json representation of the data" in new Setup:
-      val result: Future[Result] = controller.digitalServices.apply(FakeRequest())
-
-      val digitalServices: collection.IndexedSeq[JsValue] = contentAsJson(result).as[JsArray].value
-      digitalServices.map(_.as[String]) shouldBe Seq("digital-service-1", "digital-service-2", "digital-service-3")
-
   "Retrieving a service" should:
     "Return a json representation of the service" in new Setup:
       val result: Future[Result] = controller.repositoryDetails("repo-name").apply(FakeRequest())

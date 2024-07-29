@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.models.RepoType.{Library, Other, Prototype, Test, Service}
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.Team
-import uk.gov.hmrc.teamsandrepositories.models.{DigitalServiceRepository, GitRepository, TeamRepositories}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, TeamRepositories}
 
 import scala.collection.immutable.ListMap
 
@@ -232,101 +232,6 @@ class TeamRepositoriesSpec extends AnyWordSpec with Matchers with OptionValues:
 
       val result = TeamRepositories.findRepositoryDetails(teams, "repo1", UrlTemplates(ListMap()))
       result shouldBe None
-
-  "findDigitalServiceDetails" should:
-    "get the correct Digital Service Info" in:
-      val digitalServiceName = "DigitalService1"
-
-      val repo1 =
-        GitRepository(
-          name               = "repo1",
-          description        = "n/a",
-          url                = "n/a",
-          createdDate        = now,
-          lastActiveDate     = now,
-          repoType           = Library,
-          digitalServiceName = Some(digitalServiceName),
-          language           = Some("Scala"),
-          isArchived         = false,
-          defaultBranch      = "main"
-        )
-
-      val mostRecentTimestamp = repo1.lastActiveDate.plusSeconds(1)
-
-      val repo2 =
-        repo1.copy(
-          name           = "repo2",
-          repoType       = Service,
-          lastActiveDate = mostRecentTimestamp
-        )
-
-      val repo3 =
-        repo1.copy(
-          name               = "repo3",
-          digitalServiceName = Some("Unexpected Service Name")
-        )
-
-      val repo4 =
-        repo1.copy(
-          name               = "repo4",
-          digitalServiceName = None
-        )
-
-      val teamsAndRepositories =
-        List(
-          TeamRepositories("team1", List(repo1, repo2), Some(now), now),
-          TeamRepositories("team2", List(repo3), Some(now), now),
-          TeamRepositories("team3", List(repo1, repo2, repo3), Some(now), now),
-          TeamRepositories("team4", List(repo2, repo4), Some(now), now)
-        )
-
-      val result = findDigitalServiceDetails(teamsAndRepositories, "DigitalService1")
-
-      result.value.name shouldBe digitalServiceName
-      result.value.repositories shouldBe Seq(
-        DigitalServiceRepository(
-          name          = repo1.name,
-          createdAt     = repo1.createdDate,
-          lastUpdatedAt = repo1.lastActiveDate,
-          repoType      = repo1.repoType,
-          teamNames     = Seq("team1", "team3"),
-          archived      = false
-        ),
-        DigitalServiceRepository(
-          name          = repo2.name,
-          createdAt     = repo2.createdDate,
-          lastUpdatedAt = repo2.lastActiveDate,
-          repoType      = repo2.repoType,
-          teamNames     = Seq("team1", "team3", "team4"),
-          archived      = false
-        )
-      )
-      result.value.lastUpdatedAt shouldBe mostRecentTimestamp
-
-    "find the Digital Service when the name is of a different case" in:
-      val teams =
-        Seq(
-          TeamRepositories(
-            teamName     = "teamName",
-            repositories = List(
-              GitRepository(
-                name               = "repo1",
-                description        = description,
-                url                = "n/a",
-                createdDate        = now,
-                lastActiveDate     = now,
-                digitalServiceName = Some("DigitalService1"),
-                language           = None,
-                isArchived         = false,
-                defaultBranch      = "main"
-              )
-            ),
-            createdDate  = Some(now),
-            updateDate   = now
-          )
-        )
-
-      findDigitalServiceDetails(teams, "digitalservice1").value.name shouldBe "DigitalService1"
 
   "toTeam" should:
     val teamCreatedDate = Instant.parse("2019-04-01T12:00:00Z")

@@ -21,7 +21,6 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
 import uk.gov.hmrc.teamsandrepositories.controller.model.{Repository, RepositoryDetails, Team}
-import uk.gov.hmrc.teamsandrepositories.util.DateTimeUtils
 
 import java.time.Instant
 
@@ -62,58 +61,7 @@ case class TeamRepositories(
     )
 
 object TeamRepositories:
-  private given Ordering[Instant] = DateTimeUtils.instantOrdering
-
-  def findDigitalServiceDetails(
-    allTeamsAndRepos   : Seq[TeamRepositories],
-    digitalServiceName: String
-  ): Option[DigitalService] =
-
-    case class RepoAndTeam(repositoryName: String, teamName: String)
-
-    val repoNameToTeamNamesLookup: Map[String, Seq[String]] =
-      allTeamsAndRepos
-        .flatMap(teamAndRepo => teamAndRepo.repositories.map(repo => RepoAndTeam(repo.name, teamAndRepo.teamName)))
-        .groupBy(_.repositoryName)
-        .map:
-          case (repositoryName, repoAndTeams) => (repositoryName, repoAndTeams.map(_.teamName).distinct)
-
-    val gitReposForDigitalService =
-      allTeamsAndRepos
-        .flatMap(_.repositories)
-        .filter(_.digitalServiceName.exists(_.equalsIgnoreCase(digitalServiceName)))
-
-    val storedDigitalServiceName: String =
-      gitReposForDigitalService.headOption.flatMap(_.digitalServiceName).getOrElse(digitalServiceName)
-
-    gitReposForDigitalService.distinct
-      .map: gitRepository =>
-        Repository.create(gitRepository, repoNameToTeamNamesLookup.getOrElse(gitRepository.name, Seq(TEAM_UNKNOWN)))
-      .sortBy(_.name.toUpperCase) match
-        case Nil   => None
-        case repos => Some(DigitalService(
-                        name          = storedDigitalServiceName,
-                        lastUpdatedAt = repos.map(_.lastUpdatedAt).max,
-                        repositories  = repos.map: repo =>
-                                          DigitalServiceRepository(
-                                            repo.name,
-                                            repo.createdAt,
-                                            repo.lastUpdatedAt,
-                                            repo.repoType,
-                                            repoNameToTeamNamesLookup.getOrElse(repo.name, Seq(TEAM_UNKNOWN)),
-                                            repo.isArchived
-                                          )
-                     ))
-
-  def unknown(repositories: List[GitRepository], updateDate: Instant): TeamRepositories =
-    TeamRepositories(
-      teamName     = TEAM_UNKNOWN,
-      repositories = repositories,
-      createdDate  = None,
-      updateDate   = updateDate
-    )
-
-  val TEAM_UNKNOWN = "TEAM_UNKNOWN"
+  private val TEAM_UNKNOWN = "TEAM_UNKNOWN"
 
   val apiFormat: OFormat[TeamRepositories] =
     given OFormat[GitRepository] = GitRepository.apiFormat
@@ -164,37 +112,3 @@ object TeamRepositories:
         teamNames    = teamsOwningRepo.filterNot(_.teamName == TEAM_UNKNOWN).map(_.teamName),
         urlTemplates = ciUrlTemplates
       )
-
-case class DigitalServiceRepository(
-  name         : String,
-  createdAt    : Instant,
-  lastUpdatedAt: Instant,
-  repoType     : RepoType,
-  teamNames    : Seq[String],
-  archived     : Boolean
-)
-
-object DigitalServiceRepository:
-  val format: Format[DigitalServiceRepository] =
-    given Format[RepoType] = RepoType.format
-    ( (__ \ "name"         ).format[String]
-    ~ (__ \ "createdAt"    ).format[Instant]
-    ~ (__ \ "lastUpdatedAt").format[Instant]
-    ~ (__ \ "repoType"     ).format[RepoType]
-    ~ (__ \ "teamNames"    ).format[Seq[String]]
-    ~ (__ \ "archived"     ).format[Boolean]
-    )(apply, d => Tuple.fromProductTyped(d))
-
-case class DigitalService(
-  name         : String,
-  lastUpdatedAt: Instant,
-  repositories : Seq[DigitalServiceRepository]
-)
-
-object DigitalService:
-  val format: Format[DigitalService] =
-    given Format[DigitalServiceRepository] = DigitalServiceRepository.format
-    ( (__ \ "name"         ).format[String]
-    ~ (__ \ "lastUpdatedAt").format[Instant]
-    ~ (__ \ "repositories" ).format[Seq[DigitalServiceRepository]]
-    )(apply, d => Tuple.fromProductTyped(d))
