@@ -165,43 +165,6 @@ object TeamRepositories:
         urlTemplates = ciUrlTemplates
       )
 
-  def getRepositoryDetailsList(
-    teamRepos     : Seq[TeamRepositories],
-    repoType      : RepoType,
-    ciUrlTemplates: UrlTemplates
-  ): Seq[RepositoryDetails] =
-
-    val allReposForType =
-      teamRepos
-        .flatMap(_.repositories)
-        .distinct
-        .filter(_.repoType == repoType)
-
-    allReposForType
-      .map: repo =>
-        val teamNames = teamRepos.collect:
-          case teamRepository if teamRepository.repositories.exists(_.name.equalsIgnoreCase(repo.name)) => teamRepository.teamName
-
-        RepositoryDetails.create(
-          repo         = repo,
-          teamNames    = teamNames.filterNot(_ == TEAM_UNKNOWN),
-          urlTemplates = ciUrlTemplates
-        )
-      .sortBy(_.name.toUpperCase)
-
-  def getRepositoryToTeamNames(teamRepos: Seq[TeamRepositories]): Map[String, Seq[String]] =
-    val mappings: Seq[(String, String)] =
-      for
-        tr <- teamRepos
-        r  <- tr.repositories
-      yield (r.name, tr.teamName)
-
-    mappings
-      .groupBy(_._1)
-      .view
-      .mapValues(_.map(_._2).distinct)
-      .toMap
-
 case class DigitalServiceRepository(
   name         : String,
   createdAt    : Instant,
