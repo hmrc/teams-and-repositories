@@ -26,7 +26,6 @@ import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 import uk.gov.hmrc.mongo.metrix.{MetricOrchestrator, MetricSource, MongoMetricRepository}
 import uk.gov.hmrc.teamsandrepositories.config.{GithubConfig, SchedulerConfigs}
 import uk.gov.hmrc.teamsandrepositories.connectors.{GithubConnector, RateLimitMetrics}
-import uk.gov.hmrc.teamsandrepositories.helpers.SchedulerUtils
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
