@@ -42,7 +42,8 @@ class RepositoriesPersistence @Inject()(
                      IndexModel(Indexes.ascending("repoType"), IndexOptions().background(true)),
                      IndexModel(Indexes.ascending("serviceType"), IndexOptions().background(true)),
                      IndexModel(Indexes.ascending("isArchived"), IndexOptions().background(true)),
-                     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true))
+                     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().background(true)),
+                     IndexModel(Indexes.ascending("digitalServiceName"), IndexOptions().background(true).sparse(true))
                    ),
   replaceIndexes = true
 ):
@@ -52,24 +53,26 @@ class RepositoriesPersistence @Inject()(
   private val Quoted = """^\"(.*)\"$""".r
 
   def find(
-    name       : Option[String]      = None,
-    team       : Option[String]      = None,
-    owningTeam : Option[String]      = None,
-    isArchived : Option[Boolean]     = None,
-    repoType   : Option[RepoType]    = None,
-    serviceType: Option[ServiceType] = None,
-    tags       : Option[List[Tag]]   = None,
-  ): Future[Seq[GitRepository]] =
+            name              : Option[String]      = None,
+            team              : Option[String]      = None,
+            owningTeam        : Option[String]      = None,
+            digitalServiceName: Option[String]      = None,
+            isArchived        : Option[Boolean]     = None,
+            repoType          : Option[RepoType]    = None,
+            serviceType       : Option[ServiceType] = None,
+            tags              : Option[List[Tag]]   = None,
+          ): Future[Seq[GitRepository]] =
     val filters = Seq(
-      name       .map:
-                   case Quoted(n) => Filters.equal("name", n)
-                   case n         => Filters.regex("name", n),
-      team       .map(t  => Filters.equal("teamNames"  , t)),
-      owningTeam .map(t  => Filters.equal("owningTeams", t)),
-      isArchived .map(b  => Filters.equal("isArchived" , b)),
-      repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
-      serviceType.map(st => Filters.equal("serviceType", st.asString)),
-      tags       .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*)),
+      name              .map:
+        case Quoted(n) => Filters.equal("name", n)
+        case n         => Filters.regex("name", n),
+      team              .map(t  => Filters.equal("teamNames"  ,        t)),
+      owningTeam        .map(t  => Filters.equal("owningTeams",        t)),
+      digitalServiceName.map(t  => Filters.equal("digitalServiceName", t)),
+      isArchived        .map(b  => Filters.equal("isArchived" ,        b)),
+      repoType          .map(rt => Filters.equal("repoType"   ,        rt.asString)),
+      serviceType       .map(st => Filters.equal("serviceType",        st.asString)),
+      tags              .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*)),
     ).flatten
 
     collection
@@ -117,6 +120,10 @@ class RepositoriesPersistence @Inject()(
       )
       .toFuture()
       .map(_ => ())
+
+  def getDigitalServiceNames: Future[Seq[String]] =
+    collection.distinct[String]("digitalServiceName")
+      .toFuture()
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] =
     given Format[BranchProtection] = BranchProtection.format

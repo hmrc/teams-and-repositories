@@ -55,7 +55,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = None,
+      digitalServiceName  = Some("service B"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = false,
@@ -77,7 +77,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = None,
+      digitalServiceName  = Some("service A"),
       owningTeams         = List("team4", "team5"),
       language            = None,
       isArchived          = true,
@@ -99,7 +99,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Prototype,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = None,
+      digitalServiceName  = Some("service A"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = true,
@@ -121,7 +121,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = Some(ServiceType.Frontend),
       tags                = None,
-      digitalServiceName  = None,
+      digitalServiceName  = Some("service C"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = true,
@@ -190,6 +190,11 @@ class RepositoriesPersistenceSpec
       results should contain only (repo3)
       val results2 = repository.find(repoType = Some(RepoType.Service)).futureValue
       results2 should contain theSameElementsAs Seq(repo1, repo2)
+
+    "find repos by digital service name" in:
+      repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
+      val results = repository.find(digitalServiceName = Some("service A")).futureValue
+      results should contain theSameElementsAs Seq(repo2, repo3)
 
     "find repos by service type" in:
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
@@ -264,3 +269,11 @@ class RepositoriesPersistenceSpec
       repository.deleteRepo(repo1.name).futureValue
 
       findAll().futureValue should contain theSameElementsAs Seq(repo2)
+
+  "getDigitalServiceNames" should:
+    "retrieve a distinct and ordered list of digital service names" in:
+      repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5)).toFuture().futureValue
+
+      val digitalServiceNames = Seq("service A", "service B", "service C")
+
+      repository.getDigitalServiceNames.futureValue should contain theSameElementsInOrderAs digitalServiceNames
