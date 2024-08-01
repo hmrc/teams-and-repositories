@@ -17,15 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.bson.conversions.Bson
-import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.bson.BsonArray
-import org.mongodb.scala.model.Aggregates.{`match`, addFields, group, sort, unwind}
 import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamRepositories}
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
-import org.mongodb.scala.model.Accumulators.{addToSet, first, max, min}
 import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import play.api.libs.json.Format
@@ -52,9 +48,6 @@ class RepositoriesPersistence @Inject()(
 ):
   // updateRepos cleans up unreferenced teams
   override lazy val requiresTtlIndex = false
-
-  private val legacyCollection: MongoCollection[TeamRepositories] =
-    CollectionFactory.collection(mongoComponent.database, collectionName, TeamRepositories.mongoFormat)
 
   private val Quoted = """^\"(.*)\"$""".r
 
@@ -124,24 +117,6 @@ class RepositoriesPersistence @Inject()(
       )
       .toFuture()
       .map(_ => ())
-
-  // This exists to provide backward compatible data to the old API. Dont use it in new functionality!
-  def getAllTeamsAndRepos(archived: Option[Boolean]): Future[Seq[TeamRepositories]] =
-    legacyCollection
-      .aggregate(Seq(
-        `match`(archived.fold[Bson](Filters.empty())(a => Filters.equal("isArchived", a))),
-        unwind("$teamNames"),
-        addFields(Field("teamid", "$teamNames"), Field("teamNames", BsonArray())),
-        group(
-          id = "$teamid",
-          first("teamName", "$teamid"),
-          addToSet("repositories", "$$ROOT"),
-          min("createdDate", "$createdDate"),
-          max("updateDate", "$lastActiveDate")
-        ),
-        sort(Sorts.ascending("_id"))
-      ))
-      .toFuture()
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] =
     given Format[BranchProtection] = BranchProtection.format

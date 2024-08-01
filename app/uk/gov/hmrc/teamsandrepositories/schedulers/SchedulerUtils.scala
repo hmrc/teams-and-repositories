@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.teamsandrepositories.helpers
+package uk.gov.hmrc.teamsandrepositories.schedulers
 
 import org.apache.pekko.actor.ActorSystem
 import play.api.Logging

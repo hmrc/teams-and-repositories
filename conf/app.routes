@@ -1,20 +1,5 @@
 # microservice specific routes
 
-GET         /api/teams                                               uk.gov.hmrc.teamsandrepositories.controller.LegacyTeamsController.teams(includeRepos: Boolean ?= false)
-GET         /api/teams/:team                                         uk.gov.hmrc.teamsandrepositories.controller.LegacyTeamsController.team(team, includeRepos: Boolean ?= false)
-GET         /api/teams_with_repositories                             uk.gov.hmrc.teamsandrepositories.controller.LegacyTeamsController.allTeamsAndRepositories
-
-GET         /api/repository_teams                                    uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryTeams
-
-GET         /api/services                                            uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.services(details: Boolean ?= false)
-GET         /api/libraries                                           uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.libraries(details: Boolean ?= false)
-
-GET         /api/repositories/:name                                  uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositoryDetails(name)
-GET         /api/repositories                                        uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.repositories(archived: Option[Boolean])
-GET         /api/digital-services/:name                              uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServiceDetails(name)
-GET         /api/digital-services                                    uk.gov.hmrc.teamsandrepositories.controller.LegacyRepositoriesController.digitalServices
-
-# deprecated in favour of v2 routes below
 GET         /api/jenkins-url/:service                                uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 GET         /api/jenkins-jobs/:service                               uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
 

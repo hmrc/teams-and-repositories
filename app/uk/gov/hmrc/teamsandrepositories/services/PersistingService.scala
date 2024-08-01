@@ -60,14 +60,16 @@ case class PersistingService @Inject()(
 
       alreadyDeletedReposNames   <- deletedRepositoriesPersistence.find().map(_.map(_.name).toSet)
       recreatedRepos             =  (alreadyDeletedReposNames intersect toPersistReposNames).toSeq
-      _                          =  if recreatedRepos.nonEmpty then logger.info(s"About to recreate ${recreatedRepos.length} previously deleted repos: ${recreatedRepos.mkString(", ")}")
-                                    else                         ()
+      _                          =  if   recreatedRepos.nonEmpty
+                                    then logger.info(s"About to recreate ${recreatedRepos.length} previously deleted repos: ${recreatedRepos.mkString(", ")}")
+                                    else ()
       recreateCount              <- deletedRepositoriesPersistence.deleteRepos(recreatedRepos)
 
       alreadyPersistedReposNames <- repositoriesPersistence.find().map(_.map(_.name).toSet)
       deletedRepos               =  (alreadyPersistedReposNames -- toPersistReposNames).toSeq
-      _                          =  if deletedRepos.nonEmpty then logger.info(s"About to remove ${deletedRepos.length} deleted repos: ${deletedRepos.mkString(", ")}")
-                                    else                       ()
+      _                          =  if   deletedRepos.nonEmpty
+                                    then logger.info(s"About to remove ${deletedRepos.length} deleted repos: ${deletedRepos.mkString(", ")}")
+                                    else ()
       deletedCount               <- deletedRepos.foldLeftM(0) { case (acc, repo) => deleteRepository(repo).map(_ => acc + 1) }
 
       _                          =  logger.info(s"Updated: $updateCount repos. Deleted: $deletedCount repos. Recreated: $recreateCount previously deleted repos.")
@@ -77,25 +79,19 @@ case class PersistingService @Inject()(
   def updateTeamsAndRepositories()(using ExecutionContext): Future[Unit] =
     for
       gitHubTeams    <- githubConnector.getTeams.map(_.filterNot(team => hiddenTeams.contains(team.name)))
-      teamRepos      <- gitHubTeams.foldLeftM(List.empty[TeamRepositories]) { case (acc, team) =>
-                          githubConnector.getReposForTeam(team).map(ghRepos =>
-                            TeamRepositories(
-                              teamName     = team.name,
-                              repositories = ghRepos.map(_.toGitRepository).sortBy(_.name),
-                              createdDate  = Some(team.createdAt),
-                              updateDate   = Instant.now()
-                            ) :: acc
-                          )
-                        }
-      repos          =  teamRepos.flatMap(_.repositories).distinctBy(_.name)
-      teamsForRepo   =  teamRepos.flatMap(tr => tr.repositories.map(r => (r.name, tr.teamName))).groupMap(_._1)(_._2)
-      reposWithTeams =  repos.map { repo =>
-                          val teams = teamsForRepo(repo.name).sorted
+      teamReposMap   <- gitHubTeams.foldLeftM(Map.empty[String, List[GitRepository]]): (acc, team) =>
+                          githubConnector
+                            .getReposForTeam(team)
+                            .map: ghRepos =>
+                              acc ++ Map(team.name -> ghRepos.map(_.toGitRepository).sortBy(_.name))
+      repos          =  teamReposMap.values.flatten.toList.distinctBy(_.name)
+      teamsForRepo   =  teamReposMap.toList.flatMap((teamName, repos) => repos.map(r => (r.name, teamName))).groupMap(_._1)(_._2)
+      reposWithTeams =  repos.map: repo =>
+                          val teams = teamsForRepo(repo.name).toList.sorted
                           repo.copy(
                             teams       = teams,
                             owningTeams = if repo.owningTeams.isEmpty then teams else repo.owningTeams
                           )
-                        }
       teamSummaries  =  gitHubTeams.map(team => TeamSummary(
                           teamName = team.name,
                           gitRepos = reposWithTeams.filter(repo => repo.owningTeams.contains(team.name) && !repo.isArchived)
@@ -121,12 +117,11 @@ case class PersistingService @Inject()(
                                .map(x => if x then Set(repoName) else Set.empty[String])
       repo                <- EitherT
                                .pure[Future, String](rawRepo)
-                               .map(repo =>
+                               .map: repo =>
                                   repo.copy(
                                     teams       = teams,
                                     owningTeams = if repo.owningTeams.isEmpty then teams else repo.owningTeams
                                   )
-                                )
                                .map(defineServiceType(_, frontendRoutes = frontendRoutes, adminFrontendRoutes = adminFrontendRoutes))
                                .map(r => defineTag(r, adminFrontendRoutes = adminFrontendRoutes, servicesBuiltOffPlatform, Some(ghRepo)))
       _                   <- EitherT
@@ -185,7 +180,7 @@ case class PersistingService @Inject()(
   ): GitRepository =
     repo.repoType match
       case RepoType.Service if repo.tags.nonEmpty => repo // tags already defined in repository.yaml
-      case RepoType.Service                       => 
+      case RepoType.Service                       =>
         val newTags =
           Option.when(repo.name.contains("stub"))(Tag.Stub)                       ++
           Option.when(adminFrontendRoutes.contains(repo.name))(Tag.AdminFrontend) ++
