@@ -43,15 +43,16 @@ class TeamsAndRepositoriesController @Inject()(
   given Format[TeamSummary]   = TeamSummary.apiFormat
 
   def repositories(
-    name       : Option[String],
-    team       : Option[String],
-    owningTeam : Option[String],
-    archived   : Option[Boolean],
-    repoType   : Option[RepoType],
-    serviceType: Option[ServiceType],
-    tags       : Option[List[Tag]],
+    name               : Option[String],
+    team               : Option[String],
+    owningTeam         : Option[String],
+    digitalServiceName : Option[String],
+    archived           : Option[Boolean],
+    repoType           : Option[RepoType],
+    serviceType        : Option[ServiceType],
+    tags               : Option[List[Tag]],
   ) = Action.async { request =>
-    repositoriesPersistence.find(name, team, owningTeam, archived, repoType, serviceType, tags)
+    repositoriesPersistence.find(name, team, owningTeam, digitalServiceName, archived, repoType, serviceType, tags)
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 
@@ -60,6 +61,11 @@ class TeamsAndRepositoriesController @Inject()(
       .map(result => Ok(Json.toJson(result)))
   }
 
+  def digitalServices = Action.async { request =>
+    repositoriesPersistence.getDigitalServiceNames
+      .map(result => Ok(Json.toJson(result)))
+  }
+  
   def findRepo(repoName:String) = Action.async { request =>
     repositoriesPersistence.findRepo(repoName).map:
       case None       => NotFound
