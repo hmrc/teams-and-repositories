@@ -55,7 +55,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = Some("service B"),
+      digitalServiceName  = Some("Service B"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = false,
@@ -121,7 +121,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = Some(ServiceType.Frontend),
       tags                = None,
-      digitalServiceName  = Some("service C"),
+      digitalServiceName  = Some("Service C"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = true,
@@ -143,10 +143,32 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = Some(ServiceType.Backend),
       tags                = None,
-      digitalServiceName  = None,
+      digitalServiceName  = Some("Service C"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = true,
+      defaultBranch       = "main",
+      branchProtection    = None,
+      isDeprecated        = false,
+      teams               = List("team2", "team3"),
+      prototypeName       = None
+    )
+
+  private val repo6 =
+    GitRepository(
+      name                = "repo6",
+      description         = "desc 6",
+      url                 = "git/repo6",
+      createdDate         = now,
+      lastActiveDate      = now,
+      isPrivate           = false,
+      repoType            = RepoType.Service,
+      serviceType         = Some(ServiceType.Backend),
+      tags                = None,
+      digitalServiceName  = Some("service A"),
+      owningTeams         = Nil,
+      language            = None,
+      isArchived          = false,
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
@@ -192,9 +214,9 @@ class RepositoriesPersistenceSpec
       results2 should contain theSameElementsAs Seq(repo1, repo2)
 
     "find repos by digital service name" in:
-      repository.collection.insertMany(Seq(repo1, repo2, repo3)).toFuture().futureValue
+      repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
       val results = repository.find(digitalServiceName = Some("service A")).futureValue
-      results should contain theSameElementsAs Seq(repo2, repo3)
+      results should contain theSameElementsAs Seq(repo2, repo3, repo6)
 
     "find repos by service type" in:
       repository.collection.insertMany(Seq(repo3, repo4, repo5)).toFuture().futureValue
@@ -272,8 +294,14 @@ class RepositoriesPersistenceSpec
 
   "getDigitalServiceNames" should:
     "retrieve a distinct and ordered list of digital service names" in:
-      repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5)).toFuture().futureValue
+      repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
 
-      val digitalServiceNames = Seq("service A", "service B", "service C")
+      val digitalServiceNames = Seq("service A", "Service B")
 
       repository.getDigitalServiceNames.futureValue should contain theSameElementsInOrderAs digitalServiceNames
+
+    "exclude digital service names where all associated repos are archived" in:
+      repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
+
+      repository.getDigitalServiceNames.futureValue should not contain "Service C"
+

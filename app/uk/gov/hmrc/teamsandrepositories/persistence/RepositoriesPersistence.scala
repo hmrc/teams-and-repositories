@@ -122,8 +122,12 @@ class RepositoriesPersistence @Inject()(
       .map(_ => ())
 
   def getDigitalServiceNames: Future[Seq[String]] =
-    collection.distinct[String]("digitalServiceName")
+    collection.distinct[String](
+        fieldName = "digitalServiceName",
+        filter    = Filters.eq("isArchived", false)
+      )
       .toFuture()
+      .map(_.sortBy(_.toLowerCase))
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] =
     given Format[BranchProtection] = BranchProtection.format
