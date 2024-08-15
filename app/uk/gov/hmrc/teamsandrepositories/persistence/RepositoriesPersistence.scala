@@ -68,7 +68,7 @@ class RepositoriesPersistence @Inject()(
         case n         => Filters.regex("name", n),
       team              .map(t  => Filters.equal("teamNames"  ,        t)),
       owningTeam        .map(t  => Filters.equal("owningTeams",        t)),
-      digitalServiceName.map(t  => Filters.equal("digitalServiceName", t)),
+      digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds)),
       isArchived        .map(b  => Filters.equal("isArchived" ,        b)),
       repoType          .map(rt => Filters.equal("repoType"   ,        rt.asString)),
       serviceType       .map(st => Filters.equal("serviceType",        st.asString)),
@@ -127,7 +127,6 @@ class RepositoriesPersistence @Inject()(
         filter    = Filters.eq("isArchived", false)
       )
       .toFuture()
-      .map(_.sortBy(_.toLowerCase))
 
   def updateRepoBranchProtection(repoName: String, branchProtection: Option[BranchProtection]): Future[Unit] =
     given Format[BranchProtection] = BranchProtection.format

@@ -155,3 +155,32 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers:
       details.isDefined                shouldBe true
       details.get.prototypeName        shouldBe Some("my-prototype")
       details.get.prototypeAutoPublish shouldBe Some(true)
+
+    "parse digital-service" in:
+      val manifest =
+        """
+          |type: service
+          |service-type: frontend
+          |digital-service: MTD
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.fold(fail("Unable to parse yaml")): data =>
+        data.digitalServiceName.fold(fail("Unable to parse digital-service in yaml")): dsn =>
+          dsn shouldBe "MTD"
+
+    "parse and format digital-service" in:
+      val input    = "a service-name with a hyphen and a trailing Space "
+      val expected = "A Service-Name With A Hyphen And A Trailing Space"
+      val manifest =
+        s"""
+          |type: service
+          |service-type: frontend
+          |digital-service: $input
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("repo1", manifest)
+      details.fold(fail("Unable to parse yaml")): data =>
+        data.digitalServiceName.fold(fail("Unable to parse digital-service in yaml")): dsn =>
+          dsn shouldBe expected
+

@@ -412,6 +412,12 @@ object GhRepository:
 
     private val logger = Logger(this.getClass)
 
+    private def formatDigitalServiceName(name: String): String =
+      name
+        .split(" ").map(_.capitalize).mkString(" ")
+        .split("-").map(_.capitalize).mkString("-")
+        .trim
+
     def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
       YamlMap.parse(repositoryYaml) match
         case Failure(exception) =>
@@ -422,7 +428,7 @@ object GhRepository:
             repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
           , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
           , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
-          , digitalServiceName   = config.get[String]("digital-service")
+          , digitalServiceName   = config.get[String]("digital-service").map(formatDigitalServiceName)
           , description          = config.get[String]("description")
           , endOfLifeDate        = config.getAsOpt[Date]("end-of-life-date").map(_.toInstant)
           , owningTeams          = config.getArray("owning-teams").getOrElse(Nil)
