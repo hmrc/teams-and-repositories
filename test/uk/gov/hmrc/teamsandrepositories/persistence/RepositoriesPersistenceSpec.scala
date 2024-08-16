@@ -77,7 +77,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = Some("service A"),
+      digitalServiceName  = Some("Service A"),
       owningTeams         = List("team4", "team5"),
       language            = None,
       isArchived          = true,
@@ -99,7 +99,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Prototype,
       serviceType         = None,
       tags                = None,
-      digitalServiceName  = Some("service A"),
+      digitalServiceName  = Some("Service A"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = true,
@@ -165,7 +165,7 @@ class RepositoriesPersistenceSpec
       repoType            = RepoType.Service,
       serviceType         = Some(ServiceType.Backend),
       tags                = None,
-      digitalServiceName  = Some("service A"),
+      digitalServiceName  = Some("Service A"),
       owningTeams         = Nil,
       language            = None,
       isArchived          = false,
@@ -215,7 +215,7 @@ class RepositoriesPersistenceSpec
 
     "find repos by digital service name" in:
       repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
-      val results = repository.find(digitalServiceName = Some("service A")).futureValue
+      val results = repository.find(digitalServiceName = Some("Service A")).futureValue
       results should contain theSameElementsAs Seq(repo2, repo3, repo6)
 
     "find repos by service type" in:
@@ -296,7 +296,7 @@ class RepositoriesPersistenceSpec
     "retrieve a distinct and ordered list of digital service names" in:
       repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
 
-      val digitalServiceNames = Seq("service A", "Service B")
+      val digitalServiceNames = Seq("Service A", "Service B")
 
       repository.getDigitalServiceNames.futureValue should contain theSameElementsInOrderAs digitalServiceNames
 
