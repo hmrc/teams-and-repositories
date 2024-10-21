@@ -35,9 +35,7 @@ class ServiceConfigsConnector @Inject()(
   private val baseUrl = servicesConfig.baseUrl("service-configs")
 
   private val readsServiceName: Reads[String] =
-    (__ \ "serviceName")
-      .read[String]
-      .map(String.apply)
+    (__ \ "serviceName").read[String]
 
   def getFrontendServices()(using ExecutionContext): Future[Set[String]] =
     given Reads[String] = readsServiceName
