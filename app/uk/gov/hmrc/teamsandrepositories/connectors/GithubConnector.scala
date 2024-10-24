@@ -18,13 +18,16 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 
 
 import com.codahale.metrics.MetricRegistry
-import play.api.libs.ws.writeableOf_JsValue
-import play.api.Logger
+import com.typesafe.config.Config
+import org.apache.pekko.actor.ActorSystem
+import play.api.http.Status.BAD_GATEWAY
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
+import play.api.libs.ws.writeableOf_JsValue
+import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, Retries, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
@@ -39,12 +42,14 @@ import scala.util.{Failure, Success}
 
 @Singleton
 class GithubConnector @Inject()(
-  githubConfig  : GithubConfig,
-  httpClientV2  : HttpClientV2,
-  metricRegistry: MetricRegistry,
-)(using ExecutionContext):
+  githubConfig              : GithubConfig,
+  httpClientV2              : HttpClientV2,
+  metricRegistry            : MetricRegistry,
+  override val configuration: Config,
+  override val actorSystem  : ActorSystem
+)(using ExecutionContext) extends Retries with Logging:
 
-  import GithubConnector._
+  import GithubConnector.*
 
   private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
@@ -120,13 +125,23 @@ class GithubConnector @Inject()(
   private def executeGqlQuery[A : Reads : ClassTag](
     query: GraphqlQuery
   ): Future[A] =
-    httpClientV2
-      .post(url"${githubConfig.apiUrl}/graphql")
-      .withBody(query.asJson)
-      .setHeader(authHeader)
-      .setHeader(acceptsHeader)
-      .withProxy
-      .execute[A]
+    retryFor[A]("Github graphQL call") {
+      case UpstreamErrorResponse.WithStatusCode(BAD_GATEWAY) => true
+    } {
+      val startTime = Instant.now()
+      httpClientV2
+        .post(url"${githubConfig.apiUrl}/graphql")
+        .withBody(query.asJson)
+        .setHeader(authHeader)
+        .setHeader(acceptsHeader)
+        .withProxy
+        .execute[A]
+        .recoverWith:
+          case ex @ UpstreamErrorResponse.WithStatusCode(BAD_GATEWAY) =>
+            val elapsed = java.time.Duration.between(startTime, Instant.now()).toMillis
+            logger.warn(s"Failed GitHub GraphQL call took ${elapsed}ms. Error: ${ex.getMessage}")
+            Future.failed(ex)
+    }
 
   private def executePagedGqlQuery[A](
     query     : GraphqlQuery,
