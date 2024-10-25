@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connectors
 
-import play.api.libs.json.JsValue
-
+import play.api.libs.json.{JsValue, Reads, __}
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -26,8 +25,8 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ServiceConfigsConnector @Inject()(
-  servicesConfig: ServicesConfig,
-  httpClientV2  : HttpClientV2
+  httpClientV2  : HttpClientV2,
+  servicesConfig: ServicesConfig
 ):
   import uk.gov.hmrc.http.HttpReads.Implicits._
 
@@ -35,24 +34,29 @@ class ServiceConfigsConnector @Inject()(
 
   private val baseUrl = servicesConfig.baseUrl("service-configs")
 
+  private val readsServiceName: Reads[String] =
+    (__ \ "serviceName").read[String]
+
   def getFrontendServices()(using ExecutionContext): Future[Set[String]] =
+    given Reads[String] = readsServiceName
     httpClientV2
-      .get(url"$baseUrl/service-configs/frontend-services")
+      .get(url"$baseUrl/service-configs/routes?routeType=frontend")
       .execute[Set[String]]
 
   def getAdminFrontendServices()(using ExecutionContext): Future[Set[String]] =
+    given Reads[String] = readsServiceName
     httpClientV2
-      .get(url"$baseUrl/service-configs/admin-frontend-services")
+      .get(url"$baseUrl/service-configs/routes?routeType=adminfrontend")
       .execute[Set[String]]
 
   def hasFrontendRoutes(service: String)(using ExecutionContext): Future[Boolean] =
     httpClientV2
-      .get(url"$baseUrl/service-configs/frontend-route/$service")
+      .get(url"$baseUrl/service-configs/routes?serviceName=$service&routeType=frontend")
       .execute[List[JsValue]]
       .map(_.nonEmpty)
 
   def hasAdminFrontendRoutes(service: String)(using ExecutionContext): Future[Boolean] =
     httpClientV2
-      .get(url"$baseUrl/service-configs/admin-frontend-route/$service")
+      .get(url"$baseUrl/service-configs/routes?serviceName=$service&routeType=adminfrontend")
       .execute[List[JsValue]]
       .map(_.nonEmpty)
