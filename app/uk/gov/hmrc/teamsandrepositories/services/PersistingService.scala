@@ -101,6 +101,9 @@ case class PersistingService @Inject()(
       _              <- updateRepositories(reposWithTeams)
     yield ()
 
+  def addTeam(team: TeamSummary): Future[Unit] =
+    teamSummaryPersistence.add(team)
+    
   def updateRepository(repoName: String)(using ExecutionContext): EitherT[Future, String, Unit] =
     for
       ghRepo                 <- EitherT.fromOptionF(

@@ -21,7 +21,8 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
+import uk.gov.hmrc.teamsandrepositories.controller.WebhookController.*
+import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import javax.inject.{Inject, Singleton}
@@ -52,9 +53,9 @@ class WebhookController @Inject()(
 
       case TeamEvent("created", teamName, _) =>
         persistingService
-          .updateTeamsAndRepositories()
+          .addTeam(TeamSummary(teamName, Seq.empty))
           .map(_ => logger.info(s"New team created: $teamName - New team created webhook event has been actioned"))
-          .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams and repositories", ex) }
+          .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams", ex) }
         Accepted(details("Team creation event accepted"))
 
       case TeamEvent("added_to_repository", teamName, Some(repositoryName)) =>

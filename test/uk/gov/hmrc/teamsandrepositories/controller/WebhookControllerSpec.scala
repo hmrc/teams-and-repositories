@@ -116,7 +116,7 @@ class WebhookControllerSpec
 
     "return 202 given 'team' webhook with action 'created'" in :
 
-      when(mockPersistingService.updateTeamsAndRepositories()(using any[ExecutionContext]))
+      when(mockPersistingService.addTeam(any()))
         .thenReturn(Future.unit)
 
       val request: FakeRequest[AnyContentAsJson] =
@@ -138,7 +138,7 @@ class WebhookControllerSpec
 
       status(result) shouldBe ACCEPTED
 
-      verify(mockPersistingService).updateTeamsAndRepositories()(using any[ExecutionContext])
+      verify(mockPersistingService).addTeam(any())
       
     "return 202 given 'team' webhook with action 'added_to_repository'" in:
 

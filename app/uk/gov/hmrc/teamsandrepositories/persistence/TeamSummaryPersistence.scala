@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
+import org.mongodb.scala.ObservableFuture
+import org.mongodb.scala.model.*
 import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
-import org.mongodb.scala.ObservableFuture
+import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,3 +59,9 @@ class TeamSummaryPersistence @Inject()(
       .find()
       .sort(Sorts.ascending("name"))
       .toFuture()
+
+  def add(team: TeamSummary): Future[Unit] =
+    collection
+      .insertOne(team)
+      .toFuture()
+      .map(_ => ())
