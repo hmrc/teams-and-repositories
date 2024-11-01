@@ -50,17 +50,24 @@ class WebhookController @Inject()(
         logger.info(s"repo: ${push.repoName} branch: ${push.branchRef} - no change required for push event")
         Ok(details("No change required for push event"))
 
-      case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("added_to_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully added team: ${teamEvent.teamName}", teamEvent.action)
+      case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("created") =>
+        persistingService
+          .updateTeamsAndRepositories()
+          .map(_ => logger.info(s"New team created: ${teamEvent.teamName} - New team created webhook event has been actioned"))
+          .recover { case ex => logger.error(s"New team: ${teamEvent.teamName} - unexpected error updating teams and repositories", ex) }
+        Accepted(details("Team creation event accepted"))
+
+      case teamRepoEvent: TeamRepoEvent if teamRepoEvent.action.equalsIgnoreCase("added_to_repository") =>
+        updateRepositoryForAction(teamRepoEvent.repoName, s"successfully added team: ${teamRepoEvent.teamName}", teamRepoEvent.action)
         Accepted(details("Team added event accepted"))
 
-      case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("removed_from_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully removed team: ${teamEvent.teamName}", teamEvent.action)
+      case teamRepoEvent: TeamRepoEvent if teamRepoEvent.action.equalsIgnoreCase("removed_from_repository") =>
+        updateRepositoryForAction(teamRepoEvent.repoName, s"successfully removed team: ${teamRepoEvent.teamName}", teamRepoEvent.action)
         Accepted(details("Team removal event accepted"))
 
-      case teamEvent: TeamEvent =>
-        logger.info(s"repo: ${teamEvent.repoName} - team event: ${teamEvent.action} are ignored")
-        Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
+      case teamRepoEvent: TeamRepoEvent =>
+        logger.info(s"repo: ${teamRepoEvent.repoName} - team event: ${teamRepoEvent.action} are ignored")
+        Ok(details(s"Team events for: ${teamRepoEvent.action} are ignored"))
 
       case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("archived") =>
         persistingService
@@ -89,21 +96,33 @@ object WebhookController:
   object GithubRequest:
     val githubReads: Reads[GithubRequest] =
       Push.reads
+        .orElse(TeamRepoEvent.reads)
         .orElse(TeamEvent.reads)
         .orElse(RepositoryEvent.reads)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#team
-  final case class TeamEvent(
+  final case class TeamRepoEvent(
     teamName: String,
     repoName: String,
     action  : String
   ) extends GithubRequest
 
-  object TeamEvent:
+  object TeamRepoEvent:
     val reads: Reads[GithubRequest] =
       ( (__ \ "team" \ "name"      ).read[String]
       ~ (__ \ "repository" \ "name").read[String]
       ~ (__ \ "action"             ).read[String]
+      )(TeamRepoEvent.apply _)
+
+  final case class TeamEvent(
+    teamName: String,
+    action: String
+  ) extends GithubRequest
+
+  object TeamEvent:
+    val reads: Reads[GithubRequest] =
+      ( (__ \ "team" \ "name").read[String]
+      ~ (__ \ "action"       ).read[String]
       )(TeamEvent.apply _)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
