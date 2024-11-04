@@ -21,7 +21,8 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.controller.WebhookController._
+import uk.gov.hmrc.teamsandrepositories.controller.WebhookController.*
+import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
 import uk.gov.hmrc.teamsandrepositories.services.PersistingService
 
 import javax.inject.{Inject, Singleton}
@@ -50,30 +51,37 @@ class WebhookController @Inject()(
         logger.info(s"repo: ${push.repoName} branch: ${push.branchRef} - no change required for push event")
         Ok(details("No change required for push event"))
 
-      case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("added_to_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully added team: ${teamEvent.teamName}", teamEvent.action)
+      case TeamEvent("created", teamName, _) =>
+        persistingService
+          .addTeam(TeamSummary(teamName, Seq.empty))
+          .map(_ => logger.info(s"New team created: $teamName - New team created webhook event has been actioned"))
+          .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams", ex) }
+        Accepted(details("Team creation event accepted"))
+
+      case TeamEvent("added_to_repository", teamName, Some(repositoryName)) =>
+        updateRepositoryForAction(repositoryName, s"successfully added team: $teamName", "added_to_repository")
         Accepted(details("Team added event accepted"))
 
-      case teamEvent: TeamEvent if teamEvent.action.equalsIgnoreCase("removed_from_repository") =>
-        updateRepositoryForAction(teamEvent.repoName, s"successfully removed team: ${teamEvent.teamName}", teamEvent.action)
+      case TeamEvent("removed_from_repository", teamName, Some(repositoryName)) =>
+        updateRepositoryForAction(repositoryName, s"successfully removed team: $teamName", "removed_from_repository")
         Accepted(details("Team removal event accepted"))
 
       case teamEvent: TeamEvent =>
         logger.info(s"repo: ${teamEvent.repoName} - team event: ${teamEvent.action} are ignored")
         Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
 
-      case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("archived") =>
+      case RepositoryEvent("archived", repositoryName) =>
         persistingService
-          .archiveRepository(repositoryEvent.repoName)
-          .map(_ => logger.info(s"repo: ${repositoryEvent.repoName} - repository archived webhook event has been actioned"))
-          .recover { case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex) }
+          .archiveRepository(repositoryName)
+          .map(_ => logger.info(s"repo: $repositoryName - repository archived webhook event has been actioned"))
+          .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
         Accepted(details(s"Repository archived event accepted"))
 
-      case repositoryEvent: RepositoryEvent if repositoryEvent.action.equalsIgnoreCase("deleted") =>
+      case RepositoryEvent("deleted", repositoryName) =>
         persistingService
-          .deleteRepository(repositoryEvent.repoName)
-          .map(_ => logger.info(s"repo: ${repositoryEvent.repoName} - repository deleted webhook event has been actioned"))
-          .recover { case ex => logger.error(s"repo: ${repositoryEvent.repoName} - unexpected error archiving repository", ex) }
+          .deleteRepository(repositoryName)
+          .map(_ => logger.info(s"repo: $repositoryName - repository deleted webhook event has been actioned"))
+          .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
         Accepted(details(s"Repository deleted event accepted"))
 
       case repositoryEvent: RepositoryEvent =>
@@ -93,21 +101,21 @@ object WebhookController:
         .orElse(RepositoryEvent.reads)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#team
-  final case class TeamEvent(
+  case class TeamEvent(
+    action: String,
     teamName: String,
-    repoName: String,
-    action  : String
+    repoName: Option[String]
   ) extends GithubRequest
 
   object TeamEvent:
     val reads: Reads[GithubRequest] =
-      ( (__ \ "team" \ "name"      ).read[String]
-      ~ (__ \ "repository" \ "name").read[String]
-      ~ (__ \ "action"             ).read[String]
+      ( (__ \ "action"             ).read[String].map(_.toLowerCase)
+      ~ (__ \ "team" \ "name"      ).read[String]
+      ~ (__ \ "repository" \ "name").readNullable[String]
       )(TeamEvent.apply _)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
-  final case class Push(
+  case class Push(
     repoName: String,
     branchRef: String
   ) extends GithubRequest
@@ -119,13 +127,13 @@ object WebhookController:
       )(Push.apply _)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#repository
-  final case class RepositoryEvent(
-    repoName: String,
-    action  : String
+  case class RepositoryEvent(
+    action: String,
+    repoName: String
   ) extends GithubRequest
 
   object RepositoryEvent:
     val reads: Reads[GithubRequest] =
-      ( (__ \ "repository" \ "name").read[String]
-      ~ (__ \ "action"             ).read[String]
+      ( (__ \ "action"             ).read[String].map(_.toLowerCase)
+      ~ (__ \ "repository" \ "name").read[String]
       )(RepositoryEvent.apply _)

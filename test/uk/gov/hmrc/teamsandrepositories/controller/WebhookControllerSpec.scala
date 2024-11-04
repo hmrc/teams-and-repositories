@@ -114,6 +114,32 @@ class WebhookControllerSpec
 
       verifyNoInteractions(mockPersistingService)
 
+    "return 202 given 'team' webhook with action 'created'" in :
+
+      when(mockPersistingService.addTeam(any()))
+        .thenReturn(Future.unit)
+
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                | "action": "created",
+                | "team": {
+                |   "name": "foo"
+                | }
+                |}
+                |""".stripMargin
+            )
+          )
+
+      val result = route(app, request).value
+
+      status(result) shouldBe ACCEPTED
+
+      verify(mockPersistingService).addTeam(any())
+      
     "return 202 given 'team' webhook with action 'added_to_repository'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))
