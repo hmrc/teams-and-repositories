@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.connectors
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.ManifestDetails
-import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, Tag, TestType}
 
 import java.time.Instant
 
@@ -184,3 +184,67 @@ class ManifestDetailsTest extends AnyWordSpecLike with Matchers:
         data.digitalServiceName.fold(fail("Unable to parse digital-service in yaml")): dsn =>
           dsn shouldBe expected
 
+    "parse acceptance test type when defined" in:
+      val manifest =
+        """
+          |type: test
+          |test-type: acceptance
+          |""".stripMargin
+      
+      val details = ManifestDetails.parse("test-repo", manifest)
+      details.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type in yaml")): tt =>
+          tt shouldBe TestType.Acceptance
+
+    "parse performance test type when defined" in:
+      val manifest =
+        """
+          |type: test
+          |test-type: performance
+          |""".stripMargin
+
+      val details = ManifestDetails.parse("test-repo", manifest)
+      details.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type in yaml")): tt =>
+          tt shouldBe TestType.Performance
+
+    "derive test type from repo name" in:
+      val manifest =
+        """
+          |type: test
+          |""".stripMargin
+
+      val performance = ManifestDetails.parse("example-performance-tests", manifest)
+      performance.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from performance-tests in repo name")): tt =>
+          tt shouldBe TestType.Performance
+
+      val perf        = ManifestDetails.parse("example-perf-tests"       , manifest)
+      perf.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from perf-tests in repo name")): tt =>
+          tt shouldBe TestType.Performance
+
+      val acceptance  = ManifestDetails.parse("example-acceptance-tests" , manifest)
+      acceptance.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from acceptance-tests in repo name")): tt =>
+          tt shouldBe TestType.Acceptance
+
+      val ui          = ManifestDetails.parse("example-ui-tests"         , manifest)
+      ui.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from ui-tests in repo name")): tt =>
+          tt shouldBe TestType.Acceptance
+
+      val journey     = ManifestDetails.parse("example-journey-tests"    , manifest)
+      journey.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from journey-tests in repo name")): tt =>
+          tt shouldBe TestType.Acceptance
+
+      val api         = ManifestDetails.parse("example-api-tests"        , manifest)
+      api.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from api-tests in repo name")): tt =>
+          tt shouldBe TestType.Acceptance
+
+      val contract    = ManifestDetails.parse("example-contract-tests"   , manifest)
+      contract.fold(fail("Unable to parse yaml")): data =>
+        data.testType.fold(fail("Unable to parse test-type from contract-tests in repo name")): tt =>
+          tt shouldBe TestType.Acceptance
