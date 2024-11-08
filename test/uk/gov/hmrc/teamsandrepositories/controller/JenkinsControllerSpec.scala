@@ -47,6 +47,7 @@ class JenkinsControllerSpec
                 jenkinsUrl  = "http://bar/job/api/",
                 jobType     = JenkinsJobsPersistence.JobType.Job,
                 repoType    = Some(RepoType.Service),
+                testType    = None,
                 latestBuild = None
               )
             )

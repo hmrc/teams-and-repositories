@@ -49,7 +49,7 @@ object JenkinsController:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
   import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-  import uk.gov.hmrc.teamsandrepositories.models.RepoType
+  import uk.gov.hmrc.teamsandrepositories.models.{RepoType, TestType}
   import java.time.Instant
 
   val apiJobWrites: Writes[JenkinsJobsPersistence.Job] =
@@ -66,5 +66,6 @@ object JenkinsController:
     ~ (__ \ "jenkinsURL" ).write[String]
     ~ (__ \ "jobType"    ).write[JenkinsJobsPersistence.JobType](JenkinsJobsPersistence.JobType.format)
     ~ (__ \ "repoType"   ).writeNullable[RepoType](RepoType.format)
+    ~ (__ \ "testType"   ).writeNullable[TestType](TestType.format)
     ~ (__ \ "latestBuild").writeNullable[JenkinsConnector.LatestBuild]
     )(j => Tuple.fromProductTyped(j))
