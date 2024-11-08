@@ -18,6 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.services
 
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.models.RepoType
 
 import cats.implicits._
 
@@ -46,7 +47,9 @@ class JenkinsReloadService @Inject()(
                                   repoName    = repo.name
                                 , jobName     = job.name
                                 , jobType     = if job.name.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
+                                                else if repo.repoType == RepoType.Test then JenkinsJobsPersistence.JobType.Test
                                                 else                                     JenkinsJobsPersistence.JobType.Job
+                                , testType    = repo.testType
                                 , jenkinsUrl  = job.jenkinsUrl
                                 , repoType    = Some(repo.repoType)
                                 , latestBuild = job.latestBuild
@@ -66,6 +69,7 @@ class JenkinsReloadService @Inject()(
                               , jobName     = pipelineDatail.jobName
                               , jobType     = JenkinsJobsPersistence.JobType.Pipeline
                               , repoType    = None
+                              , testType    = None
                               , jenkinsUrl  = pipelineDatail.jenkinsUrl
                               , latestBuild = latestBuild
                             ) :: acc)

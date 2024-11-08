@@ -20,7 +20,7 @@ import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sort
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-import uk.gov.hmrc.teamsandrepositories.models.RepoType
+import uk.gov.hmrc.teamsandrepositories.models.{RepoType, TestType}
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
@@ -96,6 +96,7 @@ object JenkinsJobsPersistence:
   , jenkinsUrl : String
   , jobType    : JobType
   , repoType   : Option[RepoType]
+  , testType   : Option[TestType]
   , latestBuild: Option[JenkinsConnector.LatestBuild]
   )
 
@@ -114,11 +115,13 @@ object JenkinsJobsPersistence:
       ~ (__ \ "jenkinsURL" ).format[String]
       ~ (__ \ "jobType"    ).format[JobType](JobType.format)
       ~ (__ \ "repoType"   ).formatNullable[RepoType](RepoType.format)
+      ~ (__ \ "testType"   ).formatNullable[TestType](TestType.format)
       ~ (__ \ "latestBuild").formatNullable[JenkinsConnector.LatestBuild]
       )(Job.apply, j => Tuple.fromProductTyped(j))
 
   enum JobType(val asString: String):
     case Job         extends JobType("job"         )
+    case Test        extends JobType("test"        )
     case Pipeline    extends JobType("pipeline"    )
     case PullRequest extends JobType("pull-request")
 

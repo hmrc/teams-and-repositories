@@ -115,6 +115,7 @@ class BuildDeployApiConnectorSpec
         , jenkinsUrl  = "http://path/to/jenkins"
         , jobType     = JenkinsJobsPersistence.JobType.PullRequest
         , repoType    = Some(RepoType.Service)
+        , testType    = None
         , latestBuild = None
         )
 

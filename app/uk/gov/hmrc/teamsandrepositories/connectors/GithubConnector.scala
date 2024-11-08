@@ -30,7 +30,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, Retries, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connectors.GhRepository.{ManifestDetails, RepoTypeHeuristics}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.models._
 import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 import java.time.Instant
@@ -362,6 +362,7 @@ case class GhRepository(
           ManifestDetails(
             repoType             = None,
             serviceType          = None,
+            testType             = None,
             tags                 = None,
             digitalServiceName   = None,
             description          = None,
@@ -394,6 +395,7 @@ case class GhRepository(
       isPrivate            = isPrivate,
       repoType             = repoType,
       serviceType          = manifestDetails.serviceType,
+      testType             = manifestDetails.testType,
       tags                 = manifestDetails.tags,
       digitalServiceName   = manifestDetails.digitalServiceName,
       owningTeams          = manifestDetails.owningTeams.sorted,
@@ -412,6 +414,7 @@ object GhRepository:
   final case class ManifestDetails(
     repoType            : Option[RepoType],
     serviceType         : Option[ServiceType],
+    testType            : Option[TestType],
     tags                : Option[Set[Tag]],
     digitalServiceName  : Option[String],
     description         : Option[String],
@@ -433,15 +436,32 @@ object GhRepository:
         .split("-").map(_.capitalize).mkString("-")
         .trim
 
+    private def deriveTestType(repoName: String): Option[TestType] =
+      repoName match
+        case name if "(?i)(performance|perf)(-test(s)?)".r.findFirstIn(name).isDefined                   => Some(TestType.Performance)
+        case name if "(?i)(acceptance|ui|journey|api|contract)(-test(s)?)".r.findFirstIn(name).isDefined => Some(TestType.Acceptance)
+        case _ => None
+
     def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
       YamlMap.parse(repositoryYaml) match
         case Failure(exception) =>
           logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         case Success(config) =>
+          val repoType = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
+          val serviceType =
+            if repoType.contains(RepoType.Service) then
+              Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+            else None
+          val testType =
+            if repoType.contains(RepoType.Test) then
+              Parser[TestType].parse(config.get[String]("test-type").getOrElse("")).toOption
+                .orElse(deriveTestType(repoName))
+            else None
           val manifestDetails = ManifestDetails(
-            repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
-          , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+            repoType             = repoType
+          , serviceType          = serviceType
+          , testType             = testType
           , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service").map(formatDigitalServiceName)
           , description          = config.get[String]("description")

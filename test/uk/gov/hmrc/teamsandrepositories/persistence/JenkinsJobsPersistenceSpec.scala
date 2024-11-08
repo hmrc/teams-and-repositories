@@ -72,6 +72,7 @@ class JenkinsJobsPersistenceSpec
       jobName     = jobName,
       jobType     = jobType,
       repoType    = Some(RepoType.Service),
+      testType    = None,
       jenkinsUrl  = jenkinsUrl,
       latestBuild = Some(JenkinsConnector.LatestBuild(
                       number      = buildNumber,

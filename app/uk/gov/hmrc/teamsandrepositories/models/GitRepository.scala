@@ -33,6 +33,7 @@ case class GitRepository(
   isPrivate           : Boolean                  = false,
   repoType            : RepoType                 = RepoType.Other,
   serviceType         : Option[ServiceType]      = None,
+  testType            : Option[TestType]         = None,
   tags                : Option[Set[Tag]]         = None,
   digitalServiceName  : Option[String]           = None,
   owningTeams         : Seq[String]              = Nil,
@@ -50,9 +51,10 @@ case class GitRepository(
 object GitRepository:
 
   val apiFormat: OFormat[GitRepository] =
-    given Format[RepoType] = RepoType.format
+    given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
-    given Format[Tag] = Tag.format
+    given Format[TestType]    = TestType.format
+    given Format[Tag]         = Tag.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "description"         ).format[String]
     ~ (__ \ "url"                 ).format[String]
@@ -62,6 +64,7 @@ object GitRepository:
     ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"            ).format[RepoType]
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
+    ~ (__ \ "testType"            ).formatNullable[TestType]
     ~ (__ \ "tags"                ).format[Set[Tag]].inmap[Option[Set[Tag]]](Option.apply, _.getOrElse(Set.empty))
     ~ (__ \ "digitalServiceName"  ).formatNullable[String]
     ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
@@ -77,10 +80,11 @@ object GitRepository:
     )(apply, g => Tuple.fromProductTyped(g))
 
   val mongoFormat: OFormat[GitRepository] =
-    given Format[Instant] = MongoJavatimeFormats.instantFormat
-    given Format[RepoType] = RepoType.format
+    given Format[Instant]     = MongoJavatimeFormats.instantFormat
+    given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
-    given Format[Tag] = Tag.format
+    given Format[TestType]    = TestType.format
+    given Format[Tag]         = Tag.format
     ( (__ \ "name"                ).format[String]
     ~ (__ \ "description"         ).format[String]
     ~ (__ \ "url"                 ).format[String]
@@ -90,6 +94,7 @@ object GitRepository:
     ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
     ~ (__ \ "repoType"            ).format[RepoType]
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
+    ~ (__ \ "testType"            ).formatNullable[TestType]
     ~ (__ \ "tags"                ).formatNullable[Set[Tag]]
     ~ (__ \ "digitalServiceName"  ).formatNullable[String]
     ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
