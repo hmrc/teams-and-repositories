@@ -378,6 +378,11 @@ case class GhRepository(
         .repoType
         .getOrElse(repoTypeHeuristics.inferredRepoType)
 
+    val testType: Option[TestType] =
+      manifestDetails
+        .testType
+        .orElse(ManifestDetails.deriveTestType(name))
+    
     val prototypeName: Option[String] =
       Option.when(repoType == RepoType.Prototype)(
         manifestDetails
@@ -395,7 +400,7 @@ case class GhRepository(
       isPrivate            = isPrivate,
       repoType             = repoType,
       serviceType          = manifestDetails.serviceType,
-      testType             = manifestDetails.testType,
+      testType             = testType,
       tags                 = manifestDetails.tags,
       digitalServiceName   = manifestDetails.digitalServiceName,
       owningTeams          = manifestDetails.owningTeams.sorted,
@@ -436,7 +441,7 @@ object GhRepository:
         .split("-").map(_.capitalize).mkString("-")
         .trim
 
-    private def deriveTestType(repoName: String): Option[TestType] =
+    def deriveTestType(repoName: String): Option[TestType] =
       repoName match
         case name if "(?i)(performance|perf)(-test(s)?)".r.findFirstIn(name).isDefined                   => Some(TestType.Performance)
         case name if "(?i)(acceptance|ui|journey|api|contract)(-test(s)?)".r.findFirstIn(name).isDefined => Some(TestType.Acceptance)
@@ -448,20 +453,10 @@ object GhRepository:
           logger.warn(s"repository.yaml for $repoName is not valid YAML and could not be parsed. Parsing Exception: ${exception.getMessage}")
           None
         case Success(config) =>
-          val repoType = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
-          val serviceType =
-            if repoType.contains(RepoType.Service) then
-              Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
-            else None
-          val testType =
-            if repoType.contains(RepoType.Test) then
-              Parser[TestType].parse(config.get[String]("test-type").getOrElse("")).toOption
-                .orElse(deriveTestType(repoName))
-            else None
           val manifestDetails = ManifestDetails(
-            repoType             = repoType
-          , serviceType          = serviceType
-          , testType             = testType
+            repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
+          , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+          , testType             = Parser[TestType].parse(config.get[String]("test-type").getOrElse("")).toOption
           , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service").map(formatDigitalServiceName)
           , description          = config.get[String]("description")
