@@ -37,8 +37,9 @@ class JenkinsConnector @Inject()(
   import HttpReads.Implicits._
   import JenkinsConnector._
 
-  private given Reads[LatestBuild]        = LatestBuild.jenkinsReads
-  private given Reads[Seq[JenkinsObject]] = JenkinsObjects.jenkinsReads
+  private given Reads[LatestBuild]                = LatestBuild.jenkinsReads
+  private given Reads[LatestBuild.TestJobResults] = LatestBuild.TestJobResults.reads
+  private given Reads[Seq[JenkinsObject]]         = JenkinsObjects.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(using ExecutionContext): Future[String] =
     // Prevents Server-Side Request Forgery
@@ -124,6 +125,20 @@ class JenkinsConnector @Inject()(
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
       .execute[LatestBuild]
+      .recoverWithLogging(url)
+
+  def getTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
+    // Prevents Server-Side Request Forgery
+    assert(jenkinsUrl.startsWith(config.BuildJobs.baseUrl), s"$jenkinsUrl was requested for invalid host")
+    
+    given HeaderCarrier = HeaderCarrier()
+
+    val url = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
+
+    httpClientV2
+      .get(url)
+      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .execute[Option[LatestBuild.TestJobResults]]
       .recoverWithLogging(url)
 
   extension [T](future: Future[T])
@@ -216,11 +231,12 @@ object JenkinsConnector:
       (__ \ "jobs").read(Reads.seq[JenkinsObject])
 
   case class LatestBuild(
-    number     : Int,
-    url        : String,
-    timestamp  : Instant,
-    result     : Option[LatestBuild.BuildResult],
-    description: Option[String]
+    number        : Int,
+    url           : String,
+    timestamp     : Instant,
+    result        : Option[LatestBuild.BuildResult],
+    description   : Option[String],
+    testJobResults: Option[LatestBuild.TestJobResults] = None
   )
   object LatestBuild:
     enum BuildResult(val asString: String):
@@ -238,18 +254,36 @@ object JenkinsConnector:
       given Format[BuildResult] =
         Format.of[String].inmap(parse, _.asString)
 
+    case class TestJobResults(
+      securityAlerts         : String,
+      accessibilityViolations: Option[String]
+    )
+
+    object TestJobResults:
+      val writes: Writes[TestJobResults] =
+        ( (__ \ "securityAlerts"         ).write[String]
+        ~ (__ \ "accessibilityViolations").writeNullable[String]
+        )(t => Tuple.fromProductTyped(t))
+
+      val reads: Reads[TestJobResults] =
+        ( (__ \ "securityAlerts"         ).read[String]
+        ~ (__ \ "accessibilityViolations").readNullableWithDefault[String](None)
+        )(TestJobResults.apply _)
+
     val apiWrites: Writes[LatestBuild] =
-      ( (__ \ "number"     ).write[Int]
-      ~ (__ \ "url"        ).write[String]
-      ~ (__ \ "timestamp"  ).write[Instant]
-      ~ (__ \ "result"     ).writeNullable[BuildResult]
-      ~ (__ \ "description").writeNullable[String]
+      ( (__ \ "number"        ).write[Int]
+      ~ (__ \ "url"           ).write[String]
+      ~ (__ \ "timestamp"     ).write[Instant]
+      ~ (__ \ "result"        ).writeNullable[BuildResult]
+      ~ (__ \ "description"   ).writeNullable[String] 
+      ~ (__ \ "testJobResults").writeNullable[TestJobResults](TestJobResults.writes)
       )(a => Tuple.fromProductTyped(a))
 
     val jenkinsReads: Reads[LatestBuild] =
-      ( (__ \ "number"     ).read[Int]
-      ~ (__ \ "url"        ).read[String]
-      ~ (__ \ "timestamp"  ).read[Instant]
-      ~ (__ \ "result"     ).readNullable[BuildResult]
-      ~ (__ \ "description").readNullable[String]
+      ( (__ \ "number"        ).read[Int]
+      ~ (__ \ "url"           ).read[String]
+      ~ (__ \ "timestamp"     ).read[Instant]
+      ~ (__ \ "result"        ).readNullable[BuildResult]
+      ~ (__ \ "description"   ).readNullable[String]
+      ~ (__ \ "testJobResults").readNullableWithDefault[TestJobResults](None)(TestJobResults.reads)
       )(apply _)
