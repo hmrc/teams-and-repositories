@@ -38,7 +38,7 @@ class JenkinsConnector @Inject()(
   import JenkinsConnector._
 
   private given Reads[LatestBuild]                = LatestBuild.jenkinsReads
-  private given Reads[LatestBuild.TestJobResults] = LatestBuild.TestJobResults.reads
+  private given Reads[LatestBuild.TestJobResults] = LatestBuild.TestJobResults.jenkinsReads
   private given Reads[Seq[JenkinsObject]]         = JenkinsObjects.jenkinsReads
 
   def triggerBuildJob(baseUrl: String)(using ExecutionContext): Future[String] =
@@ -260,14 +260,14 @@ object JenkinsConnector:
     )
 
     object TestJobResults:
-      val writes: Writes[TestJobResults] =
+      val apiWrites: Writes[TestJobResults] =
         ( (__ \ "securityAlerts"         ).write[String]
         ~ (__ \ "accessibilityViolations").writeNullable[String]
         )(t => Tuple.fromProductTyped(t))
 
-      val reads: Reads[TestJobResults] =
+      val jenkinsReads: Reads[TestJobResults] =
         ( (__ \ "securityAlerts"         ).read[String]
-        ~ (__ \ "accessibilityViolations").readNullableWithDefault[String](None)
+        ~ (__ \ "accessibilityViolations").readNullable[String]
         )(TestJobResults.apply _)
 
     val apiWrites: Writes[LatestBuild] =
@@ -275,8 +275,8 @@ object JenkinsConnector:
       ~ (__ \ "url"           ).write[String]
       ~ (__ \ "timestamp"     ).write[Instant]
       ~ (__ \ "result"        ).writeNullable[BuildResult]
-      ~ (__ \ "description"   ).writeNullable[String] 
-      ~ (__ \ "testJobResults").writeNullable[TestJobResults](TestJobResults.writes)
+      ~ (__ \ "description"   ).writeNullable[String]
+      ~ (__ \ "testJobResults").writeNullable[TestJobResults](TestJobResults.apiWrites)
       )(a => Tuple.fromProductTyped(a))
 
     val jenkinsReads: Reads[LatestBuild] =
@@ -285,5 +285,5 @@ object JenkinsConnector:
       ~ (__ \ "timestamp"     ).read[Instant]
       ~ (__ \ "result"        ).readNullable[BuildResult]
       ~ (__ \ "description"   ).readNullable[String]
-      ~ (__ \ "testJobResults").readNullableWithDefault[TestJobResults](None)(TestJobResults.reads)
+      ~ (__ \ "testJobResults").readNullable[TestJobResults](TestJobResults.jenkinsReads)
       )(apply _)

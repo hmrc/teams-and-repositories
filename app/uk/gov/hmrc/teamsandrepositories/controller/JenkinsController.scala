@@ -60,7 +60,7 @@ object JenkinsController:
       ~ (__ \ "result"        ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
       ~ (__ \ "description"   ).writeNullable[String]
       ~ (__ \ "testJobResults").writeNullable[JenkinsConnector.LatestBuild.TestJobResults]
-        (JenkinsConnector.LatestBuild.TestJobResults.writes)
+        (JenkinsConnector.LatestBuild.TestJobResults.apiWrites)
       )(l => Tuple.fromProductTyped(l))
 
     ( (__ \ "repoName"   ).write[String]
