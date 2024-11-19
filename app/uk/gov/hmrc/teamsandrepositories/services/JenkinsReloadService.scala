@@ -56,23 +56,28 @@ class JenkinsReloadService @Inject()(
                                 ) :: acc
                               ))
                             }
+      updatedJobs     <- jobs.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty): (acc, job) =>
+                           if job.jobType == JenkinsJobsPersistence.JobType.Test then 
+                             jenkinsConnector.getTestJobResults(job.jenkinsUrl).map: testJobResults =>
+                               acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = testJobResults)))
+                           else Future.successful(acc :+ job)
       pipelineDetails <- buildDeployApiConnector
                            .getBuildJobsDetails()
                            .map(_.map(x => (x.repoName, x.buildJobs.find(_.jobType == BuildDeployApiConnector.JobType.Pipeline))))
                            .map(_.collect { case (a, Some(b)) => (a, b) })
-      pipelineJobs    <- pipelineDetails.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty) { case (acc, (repoName, pipelineDatail)) =>
+      pipelineJobs    <- pipelineDetails.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty) { case (acc, (repoName, pipelineDetail)) =>
                           jenkinsConnector
-                            .getLatestBuildData(pipelineDatail.jenkinsUrl)
+                            .getLatestBuildData(pipelineDetail.jenkinsUrl)
                             .map(latestBuild =>
                               JenkinsJobsPersistence.Job(
                                 repoName    = repoName
-                              , jobName     = pipelineDatail.jobName
+                              , jobName     = pipelineDetail.jobName
                               , jobType     = JenkinsJobsPersistence.JobType.Pipeline
                               , repoType    = None
                               , testType    = None
-                              , jenkinsUrl  = pipelineDatail.jenkinsUrl
+                              , jenkinsUrl  = pipelineDetail.jenkinsUrl
                               , latestBuild = latestBuild
                             ) :: acc)
                          }
-      _               <- jenkinsJobsPersistence.putAll(jobs ++ pipelineJobs)
+      _               <- jenkinsJobsPersistence.putAll(updatedJobs ++ pipelineJobs)
     yield ()

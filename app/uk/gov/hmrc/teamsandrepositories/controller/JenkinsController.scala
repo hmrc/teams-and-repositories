@@ -54,11 +54,13 @@ object JenkinsController:
 
   val apiJobWrites: Writes[JenkinsJobsPersistence.Job] =
     given Writes[JenkinsConnector.LatestBuild] =
-      ( (__ \ "number"     ).write[Int]
-      ~ (__ \ "url"        ).write[String]
-      ~ (__ \ "timestamp"  ).write[Instant]
-      ~ (__ \ "result"     ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
-      ~ (__ \ "description").writeNullable[String]
+      ( (__ \ "number"        ).write[Int]
+      ~ (__ \ "url"           ).write[String]
+      ~ (__ \ "timestamp"     ).write[Instant]
+      ~ (__ \ "result"        ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
+      ~ (__ \ "description"   ).writeNullable[String]
+      ~ (__ \ "testJobResults").writeNullable[JenkinsConnector.LatestBuild.TestJobResults]
+        (JenkinsConnector.LatestBuild.TestJobResults.apiWrites)
       )(l => Tuple.fromProductTyped(l))
 
     ( (__ \ "repoName"   ).write[String]
@@ -67,5 +69,5 @@ object JenkinsController:
     ~ (__ \ "jobType"    ).write[JenkinsJobsPersistence.JobType](JenkinsJobsPersistence.JobType.format)
     ~ (__ \ "repoType"   ).writeNullable[RepoType](RepoType.format)
     ~ (__ \ "testType"   ).writeNullable[TestType](TestType.format)
-    ~ (__ \ "latestBuild").writeNullable[JenkinsConnector.LatestBuild]
+    ~ (__ \ "latestBuild").writeNullable[JenkinsConnector.LatestBuild](JenkinsConnector.LatestBuild.apiWrites)
     )(j => Tuple.fromProductTyped(j))

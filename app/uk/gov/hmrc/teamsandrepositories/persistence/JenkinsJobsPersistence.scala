@@ -102,12 +102,19 @@ object JenkinsJobsPersistence:
 
   object Job:
     val mongoFormat: Format[Job] =
+
+      given OFormat[JenkinsConnector.LatestBuild.TestJobResults] =
+        ( (__ \ "securityAlerts"         ).format[String] 
+        ~ (__ \ "accessibilityViolations").formatNullable[String]
+        )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
+      
       given OFormat[JenkinsConnector.LatestBuild] =
-        ( (__ \ "number"     ).format[Int]
-        ~ (__ \ "url"        ).format[String]
-        ~ (__ \ "timestamp"  ).format(MongoJavatimeFormats.instantFormat)
-        ~ (__ \ "result"     ).formatNullable[JenkinsConnector.LatestBuild.BuildResult]
-        ~ (__ \ "description").formatNullable[String]
+        ( (__ \ "number"        ).format[Int]
+        ~ (__ \ "url"           ).format[String]
+        ~ (__ \ "timestamp"     ).format(MongoJavatimeFormats.instantFormat)
+        ~ (__ \ "result"        ).formatNullable[JenkinsConnector.LatestBuild.BuildResult]
+        ~ (__ \ "description"   ).formatNullable[String]
+        ~ (__ \ "testJobResults").formatNullable[JenkinsConnector.LatestBuild.TestJobResults]
         )(JenkinsConnector.LatestBuild.apply, l => Tuple.fromProductTyped(l))
 
       ( (__ \ "repoName"   ).format[String]
