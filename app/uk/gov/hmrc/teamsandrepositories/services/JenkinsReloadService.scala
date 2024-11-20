@@ -17,11 +17,11 @@
 package uk.gov.hmrc.teamsandrepositories.services
 
 import uk.gov.hmrc.teamsandrepositories.connectors.{BuildDeployApiConnector, JenkinsConnector}
+import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector.LatestBuild.TestJobResults
 import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 import uk.gov.hmrc.teamsandrepositories.models.RepoType
 
-import cats.implicits._
-
+import cats.implicits.*
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,6 +34,20 @@ class JenkinsReloadService @Inject()(
 ):
 
   private val RepoNameRegex = """.*hmrc/([^/]+)\.git""".r
+
+  private def getTestJobResults(url: String)(using ExecutionContext): Future[Option[TestJobResults]] =
+    if url.contains("https://build.tax.service.gov.uk") then jenkinsConnector.getBuildTestJobResults(url)
+    else                                                     jenkinsConnector.getPerformanceTestJobResults(url)
+
+  private def extractTestJobResults(description: String): Option[TestJobResults] =
+    val securityAlerts      = """Security alerts: (\d+)"""     .r.findFirstMatchIn(description).map(_.group(1))
+    val accessibilityIssues = """Accessibility issues: (\d+)""".r.findFirstMatchIn(description).map(_.group(1))
+
+    if securityAlerts.isEmpty && accessibilityIssues.isEmpty then
+      None
+    else
+      Some(TestJobResults(securityAlerts.getOrElse(""), accessibilityIssues))
+
   def updateBuildAndPerformanceJobs()(using ExecutionContext): Future[Unit] =
     for
       buildJobs       <- jenkinsConnector.findBuildJobs()
@@ -46,9 +60,9 @@ class JenkinsReloadService @Inject()(
                                 JenkinsJobsPersistence.Job(
                                   repoName    = repo.name
                                 , jobName     = job.name
-                                , jobType     = if job.name.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
-                                                else if repo.repoType == RepoType.Test then JenkinsJobsPersistence.JobType.Test
-                                                else                                     JenkinsJobsPersistence.JobType.Job
+                                , jobType     = if      job.name.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
+                                                else if repo.repoType == RepoType.Test   then JenkinsJobsPersistence.JobType.Test
+                                                else                                          JenkinsJobsPersistence.JobType.Job
                                 , testType    = repo.testType
                                 , jenkinsUrl  = job.jenkinsUrl
                                 , repoType    = Some(repo.repoType)
@@ -57,10 +71,15 @@ class JenkinsReloadService @Inject()(
                               ))
                             }
       updatedJobs     <- jobs.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty): (acc, job) =>
-                           if job.jobType == JenkinsJobsPersistence.JobType.Test then 
-                             jenkinsConnector.getTestJobResults(job.jenkinsUrl).map: testJobResults =>
-                               acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = testJobResults)))
-                           else Future.successful(acc :+ job)
+                           job.jobType match
+                             case JenkinsJobsPersistence.JobType.Test =>
+                               // used for old builds that publish test results in the description instead of as json
+                               val extractedResults = job.latestBuild.flatMap(_.description).flatMap(extractTestJobResults)
+                               getTestJobResults(job.jenkinsUrl).map:
+                                 case Some(results) => acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = Some(results))))
+                                 case None          => acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = extractedResults)))
+                             case _ =>
+                               Future.successful(acc :+ job)
       pipelineDetails <- buildDeployApiConnector
                            .getBuildJobsDetails()
                            .map(_.map(x => (x.repoName, x.buildJobs.find(_.jobType == BuildDeployApiConnector.JobType.Pipeline))))

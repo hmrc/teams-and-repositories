@@ -127,17 +127,29 @@ class JenkinsConnector @Inject()(
       .execute[LatestBuild]
       .recoverWithLogging(url)
 
-  def getTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
+  def getBuildTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
     // Prevents Server-Side Request Forgery
     assert(jenkinsUrl.startsWith(config.BuildJobs.baseUrl), s"$jenkinsUrl was requested for invalid host")
-    
-    given HeaderCarrier = HeaderCarrier()
 
+    given HeaderCarrier = HeaderCarrier()
     val url = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
 
     httpClientV2
       .get(url)
       .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .execute[Option[LatestBuild.TestJobResults]]
+      .recoverWithLogging(url)
+
+  def getPerformanceTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
+    // Prevents Server-Side Request Forgery
+    assert(jenkinsUrl.startsWith(config.PerformanceJobs.baseUrl), s"$jenkinsUrl was requested for invalid host")
+
+    given HeaderCarrier = HeaderCarrier()
+    val url = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
+
+    httpClientV2
+      .get(url)
+      .setHeader("Authorization" -> config.PerformanceJobs.authorizationHeader)
       .execute[Option[LatestBuild.TestJobResults]]
       .recoverWithLogging(url)
 
