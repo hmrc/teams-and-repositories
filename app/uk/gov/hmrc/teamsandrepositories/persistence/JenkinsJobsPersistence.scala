@@ -104,8 +104,8 @@ object JenkinsJobsPersistence:
     val mongoFormat: Format[Job] =
 
       given OFormat[JenkinsConnector.LatestBuild.TestJobResults] =
-        ( (__ \ "securityAlerts"         ).format[String] 
-        ~ (__ \ "accessibilityViolations").formatNullable[String]
+        ( (__ \ "numAccessibilityViolations").formatNullable[Int] 
+        ~ (__ \ "numSecurityAlerts"         ).formatNullable[Int]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
       
       given OFormat[JenkinsConnector.LatestBuild] =

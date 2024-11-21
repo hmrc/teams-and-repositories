@@ -129,15 +129,20 @@ class JenkinsConnector @Inject()(
 
   def getTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
     // Prevents Server-Side Request Forgery
-    assert(jenkinsUrl.startsWith(config.BuildJobs.baseUrl), s"$jenkinsUrl was requested for invalid host")
-    
-    given HeaderCarrier = HeaderCarrier()
+    assert(
+      List(config.BuildJobs.baseUrl, config.PerformanceJobs.baseUrl).exists(jenkinsUrl.startsWith),
+      s"$jenkinsUrl was requested for invalid host"
+    )
 
-    val url = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
+    given HeaderCarrier = HeaderCarrier()
+    
+    val url        = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
+    val authHeader = if url.toString.startsWith("https://build.tax.service.gov.uk") then config.BuildJobs.authorizationHeader
+                     else config.PerformanceJobs.authorizationHeader
 
     httpClientV2
       .get(url)
-      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .setHeader("Authorization" -> authHeader)
       .execute[Option[LatestBuild.TestJobResults]]
       .recoverWithLogging(url)
 
@@ -255,19 +260,19 @@ object JenkinsConnector:
         Format.of[String].inmap(parse, _.asString)
 
     case class TestJobResults(
-      securityAlerts         : String,
-      accessibilityViolations: Option[String]
+      numAccessibilityViolations: Option[Int],
+      numSecurityAlerts         : Option[Int]
     )
 
     object TestJobResults:
       val apiWrites: Writes[TestJobResults] =
-        ( (__ \ "securityAlerts"         ).write[String]
-        ~ (__ \ "accessibilityViolations").writeNullable[String]
+        ( (__ \ "numAccessibilityViolations").writeNullable[Int]
+        ~ (__ \ "numSecurityAlerts"         ).writeNullable[Int]
         )(t => Tuple.fromProductTyped(t))
-
+    
       val jenkinsReads: Reads[TestJobResults] =
-        ( (__ \ "securityAlerts"         ).read[String]
-        ~ (__ \ "accessibilityViolations").readNullable[String]
+        ( (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
         )(TestJobResults.apply _)
 
     val apiWrites: Writes[LatestBuild] =
