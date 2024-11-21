@@ -34,19 +34,13 @@ class JenkinsReloadService @Inject()(
 ):
 
   private val RepoNameRegex = """.*hmrc/([^/]+)\.git""".r
-
-  private def getTestJobResults(url: String)(using ExecutionContext): Future[Option[TestJobResults]] =
-    if url.contains("https://build.tax.service.gov.uk") then jenkinsConnector.getBuildTestJobResults(url)
-    else                                                     jenkinsConnector.getPerformanceTestJobResults(url)
-
+  
   private def extractTestJobResults(description: String): Option[TestJobResults] =
-    val securityAlerts      = """Security alerts: (\d+)"""     .r.findFirstMatchIn(description).map(_.group(1))
-    val accessibilityIssues = """Accessibility issues: (\d+)""".r.findFirstMatchIn(description).map(_.group(1))
+    val securityAlerts      = """Security alerts: (\d+)"""     .r.findFirstMatchIn(description).map(_.group(1).toInt)
+    val accessibilityIssues = """Accessibility issues: (\d+)""".r.findFirstMatchIn(description).map(_.group(1).toInt)
 
-    if securityAlerts.isEmpty && accessibilityIssues.isEmpty then
-      None
-    else
-      Some(TestJobResults(securityAlerts.getOrElse(""), accessibilityIssues))
+    if securityAlerts.isEmpty && accessibilityIssues.isEmpty then None
+    else Some(TestJobResults(numAccessibilityViolations = accessibilityIssues, numSecurityAlerts = securityAlerts))
 
   def updateBuildAndPerformanceJobs()(using ExecutionContext): Future[Unit] =
     for
@@ -73,12 +67,12 @@ class JenkinsReloadService @Inject()(
       updatedJobs     <- jobs.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty): (acc, job) =>
                            job.jobType match
                              case JenkinsJobsPersistence.JobType.Test =>
-                               // used for old builds that publish test results in the description instead of as json
-                               val extractedResults = job.latestBuild.flatMap(_.description).flatMap(extractTestJobResults)
-                               getTestJobResults(job.jenkinsUrl).map:
+                               jenkinsConnector.getTestJobResults(job.jenkinsUrl).map:
                                  case Some(results) => acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = Some(results))))
-                                 case None          => acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = extractedResults)))
-                             case _ =>
+                                 case None          => // used for old builds that publish test results in the description instead of as json
+                                                       val extractedResults        = job.latestBuild.flatMap(_.description).flatMap(extractTestJobResults)
+                                                       acc :+ job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = extractedResults))) 
+                             case _ => 
                                Future.successful(acc :+ job)
       pipelineDetails <- buildDeployApiConnector
                            .getBuildJobsDetails()
