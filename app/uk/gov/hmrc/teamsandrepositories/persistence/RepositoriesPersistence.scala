@@ -53,19 +53,19 @@ class RepositoriesPersistence @Inject()(
   private val Quoted = """^\"(.*)\"$""".r
 
   def find(
-            name              : Option[String]      = None,
-            team              : Option[String]      = None,
-            owningTeam        : Option[String]      = None,
-            digitalServiceName: Option[String]      = None,
-            isArchived        : Option[Boolean]     = None,
-            repoType          : Option[RepoType]    = None,
-            serviceType       : Option[ServiceType] = None,
-            tags              : Option[List[Tag]]   = None,
-          ): Future[Seq[GitRepository]] =
+    name              : Option[String]      = None,
+    team              : Option[String]      = None,
+    owningTeam        : Option[String]      = None,
+    digitalServiceName: Option[String]      = None,
+    isArchived        : Option[Boolean]     = None,
+    repoType          : Option[RepoType]    = None,
+    serviceType       : Option[ServiceType] = None,
+    tags              : Option[List[Tag]]   = None,
+  ): Future[Seq[GitRepository]] =
     val filters = Seq(
       name              .map:
-        case Quoted(n) => Filters.equal("name", n)
-        case n         => Filters.regex("name", n),
+                          case Quoted(n) => Filters.equal("name", n)
+                          case n         => Filters.regex("name", n),
       team              .map(t  => Filters.equal("teamNames"  ,        t)),
       owningTeam        .map(t  => Filters.equal("owningTeams",        t)),
       digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds)),

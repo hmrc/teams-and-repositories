@@ -19,31 +19,47 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class JenkinsController @Inject()(
-  jenkinsJobsPersistence: JenkinsJobsPersistence,
-  cc                    : ControllerComponents
+  jenkinsJobsPersistence : JenkinsJobsPersistence,
+  repositoriesPersistence: RepositoriesPersistence,
+  cc                     : ControllerComponents
 )(using ExecutionContext
 ) extends BackendController(cc):
 
   private given Writes[JenkinsJobsPersistence.Job] = JenkinsController.apiJobWrites
 
-  def lookup(name: String): Action[AnyContent] = Action.async {
-    jenkinsJobsPersistence.findByJobName(name).map:
-      case Some(jobs) => Ok(Json.toJson(jobs))
-      case None       => NotFound
-  }
+  def lookup(name: String): Action[AnyContent] =
+    Action.async:
+      jenkinsJobsPersistence.findByJobName(name).map:
+        case Some(jobs) => Ok(Json.toJson(jobs))
+        case None       => NotFound
 
-  def findAllJobsByRepo(name: String): Action[AnyContent] = Action.async {
-    jenkinsJobsPersistence
-      .findAllByRepo(name)
-      .map(jobs => Ok(Json.obj("jobs" -> Json.toJson(jobs))))
-  }
+  def findAllJobsByRepo(name: String): Action[AnyContent] =
+    Action.async:
+      jenkinsJobsPersistence
+        .findAllByRepo(name)
+        .map(jobs => Ok(Json.obj("jobs" -> Json.toJson(jobs))))
+
+
+  def findTestJobs(teamName: Option[String], digitalService: Option[String]): Action[AnyContent] =
+    Action.async:
+      for
+        repos    <- (teamName, digitalService) match
+                      case (None, None) => Future.successful(None)
+                      case _            => repositoriesPersistence.find(
+                                             owningTeam         = teamName,
+                                             digitalServiceName = digitalService
+                                           )
+                                           .map(repos => Some(repos.map(_.name)))
+        testJobs <- jenkinsJobsPersistence.findAll(repos)
+      yield
+        Ok(Json.toJson(testJobs))
 
 object JenkinsController:
   import play.api.libs.functional.syntax._
@@ -53,16 +69,6 @@ object JenkinsController:
   import java.time.Instant
 
   val apiJobWrites: Writes[JenkinsJobsPersistence.Job] =
-    given Writes[JenkinsConnector.LatestBuild] =
-      ( (__ \ "number"        ).write[Int]
-      ~ (__ \ "url"           ).write[String]
-      ~ (__ \ "timestamp"     ).write[Instant]
-      ~ (__ \ "result"        ).writeNullable[JenkinsConnector.LatestBuild.BuildResult]
-      ~ (__ \ "description"   ).writeNullable[String]
-      ~ (__ \ "testJobResults").writeNullable[JenkinsConnector.LatestBuild.TestJobResults]
-        (JenkinsConnector.LatestBuild.TestJobResults.apiWrites)
-      )(l => Tuple.fromProductTyped(l))
-
     ( (__ \ "repoName"   ).write[String]
     ~ (__ \ "jobName"    ).write[String]
     ~ (__ \ "jenkinsURL" ).write[String]
