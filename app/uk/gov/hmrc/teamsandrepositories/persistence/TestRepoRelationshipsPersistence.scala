@@ -71,7 +71,7 @@ object TestRepoRelationshipsPersistence:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
-  final case class TestRepoRelationship(
+  case class TestRepoRelationship(
     testRepo   : String,
     serviceRepo: String
   )

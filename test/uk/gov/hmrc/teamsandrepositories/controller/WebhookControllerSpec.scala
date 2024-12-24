@@ -33,7 +33,7 @@ import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{POST, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsJson}
 import uk.gov.hmrc.teamsandrepositories.persistence.RepositoriesPersistence
-import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+import uk.gov.hmrc.teamsandrepositories.service.PersistingService
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -139,7 +139,7 @@ class WebhookControllerSpec
       status(result) shouldBe ACCEPTED
 
       verify(mockPersistingService).addTeam(any())
-      
+
     "return 202 given 'team' webhook with action 'added_to_repository'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))

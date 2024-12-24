@@ -22,8 +22,8 @@ import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController.*
-import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
-import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+import uk.gov.hmrc.teamsandrepositories.model.TeamSummary
+import uk.gov.hmrc.teamsandrepositories.service.PersistingService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

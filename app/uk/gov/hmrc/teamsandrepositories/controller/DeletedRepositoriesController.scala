@@ -20,7 +20,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.DeletedRepositoriesPersistence
 
 import javax.inject.{Inject, Singleton}

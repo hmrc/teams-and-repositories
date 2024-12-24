@@ -27,9 +27,9 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.internalauth.client.BackendAuthComponents
 import uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController
-import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
-import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
+import uk.gov.hmrc.teamsandrepositories.service.BranchProtectionService
 
 import java.time.Instant
 import scala.concurrent.Future
@@ -179,4 +179,3 @@ class TeamsAndRepositoriesControllerSpec
         teams              = None,
         prototypeName      = None
       )
-

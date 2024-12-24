@@ -16,19 +16,19 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
+import org.mongodb.scala.ObservableFuture
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, RepoType}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.mongodb.scala.ObservableFuture
 
 class DeletedRepositoriesPersistenceSpec
-  extends AnyWordSpecLike
+  extends AnyWordSpec
      with Matchers
      with MockitoSugar
      with DefaultPlayMongoRepositorySupport[DeletedGitRepository]:

@@ -18,16 +18,16 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
+import uk.gov.hmrc.teamsandrepositories.model.TeamSummary
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class TeamSummaryPersistenceSpec
-  extends AnyWordSpecLike
+  extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with DefaultPlayMongoRepositorySupport[TeamSummary]:

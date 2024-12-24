@@ -53,20 +53,25 @@ class JenkinsController @Inject()(
         repos    <- (teamName, digitalService) match
                       case (None, None) => Future.successful(None)
                       case _            => repositoriesPersistence.find(
+                                             name               = None,
+                                             team               = None,
                                              owningTeam         = teamName,
-                                             digitalServiceName = digitalService
+                                             digitalServiceName = digitalService,
+                                             isArchived         = None,
+                                             repoType           = None,
+                                             serviceType        = None,
+                                             tags               = None
                                            )
                                            .map(repos => Some(repos.map(_.name)))
-        testJobs <- jenkinsJobsPersistence.findAll(repos)
+        testJobs <- jenkinsJobsPersistence.findTests(repos)
       yield
         Ok(Json.toJson(testJobs))
 
 object JenkinsController:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
-  import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-  import uk.gov.hmrc.teamsandrepositories.models.{RepoType, TestType}
-  import java.time.Instant
+  import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
+  import uk.gov.hmrc.teamsandrepositories.model.{RepoType, TestType}
 
   val apiJobWrites: Writes[JenkinsJobsPersistence.Job] =
     ( (__ \ "repoName"   ).write[String]

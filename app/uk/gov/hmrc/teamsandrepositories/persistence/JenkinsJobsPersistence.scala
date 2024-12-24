@@ -19,8 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-import uk.gov.hmrc.teamsandrepositories.models.{RepoType, TestType}
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.model.{RepoType, TestType}
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
@@ -72,7 +72,7 @@ class JenkinsJobsPersistence @Inject()(
       .find(Filters.equal("repoName", repoName))
       .toFuture()
 
-  def findAll(repoNames: Option[Seq[String]]): Future[Seq[Job]] =
+  def findTests(repoNames: Option[Seq[String]]): Future[Seq[Job]] =
     collection
       .find(
         Filters.and(

@@ -21,9 +21,9 @@ import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
-import uk.gov.hmrc.teamsandrepositories.services.BranchProtectionService
+import uk.gov.hmrc.teamsandrepositories.service.BranchProtectionService
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -65,7 +65,7 @@ class TeamsAndRepositoriesController @Inject()(
     repositoriesPersistence.getDigitalServiceNames
       .map(result => Ok(Json.toJson(result)))
   }
-  
+
   def findRepo(repoName:String) = Action.async { request =>
     repositoriesPersistence.findRepo(repoName).map:
       case None       => NotFound

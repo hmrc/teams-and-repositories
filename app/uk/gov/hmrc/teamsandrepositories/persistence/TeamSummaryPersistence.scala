@@ -21,7 +21,7 @@ import org.mongodb.scala.model.*
 import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.teamsandrepositories.models.TeamSummary
+import uk.gov.hmrc.teamsandrepositories.model.TeamSummary
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

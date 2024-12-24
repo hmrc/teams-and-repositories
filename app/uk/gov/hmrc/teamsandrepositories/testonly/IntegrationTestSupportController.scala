@@ -20,7 +20,7 @@ import org.mongodb.scala.bson.{BsonDocument, Document}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, OFormat, Reads}
 import play.api.mvc.{Action, AnyContent, BodyParser, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, GitRepository, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, GitRepository, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import org.mongodb.scala.ObservableFuture
 

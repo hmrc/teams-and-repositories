@@ -20,9 +20,9 @@ import org.bson.conversions.Bson
 import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType, ServiceType, Tag}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
-import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
+import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import play.api.libs.json.Format
 
@@ -60,7 +60,7 @@ class RepositoriesPersistence @Inject()(
     isArchived        : Option[Boolean]     = None,
     repoType          : Option[RepoType]    = None,
     serviceType       : Option[ServiceType] = None,
-    tags              : Option[List[Tag]]   = None,
+    tags              : Option[List[Tag]]   = None
   ): Future[Seq[GitRepository]] =
     val filters = Seq(
       name              .map:
@@ -72,7 +72,7 @@ class RepositoriesPersistence @Inject()(
       isArchived        .map(b  => Filters.equal("isArchived" ,        b)),
       repoType          .map(rt => Filters.equal("repoType"   ,        rt.asString)),
       serviceType       .map(st => Filters.equal("serviceType",        st.asString)),
-      tags              .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*)),
+      tags              .map(ts => Filters.and(ts.map(t => Filters.equal("tags", t.asString)): _*))
     ).flatten
 
     collection
