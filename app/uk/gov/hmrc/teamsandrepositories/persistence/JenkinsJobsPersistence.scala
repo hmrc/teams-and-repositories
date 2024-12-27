@@ -19,8 +19,8 @@ package uk.gov.hmrc.teamsandrepositories.persistence
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
-import uk.gov.hmrc.teamsandrepositories.models.{RepoType, TestType}
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
+import uk.gov.hmrc.teamsandrepositories.model.{RepoType, TestType}
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
@@ -67,9 +67,19 @@ class JenkinsJobsPersistence @Inject()(
       .first()
       .toFutureOption()
 
-  def findAllByRepo(service: String): Future[Seq[Job]] =
+  def findAllByRepo(repoName: String): Future[Seq[Job]] =
     collection
-      .find(Filters.equal("repoName", service))
+      .find(Filters.equal("repoName", repoName))
+      .toFuture()
+
+  def findTests(repoNames: Option[Seq[String]]): Future[Seq[Job]] =
+    collection
+      .find(
+        Filters.and(
+          Filters.equal("jobType", JobType.Test),
+          repoNames.fold(Filters.empty)(rns => Filters.in("repoName", rns: _*))
+        )
+      )
       .toFuture()
 
   def findAllByJobType(jobType: JobType): Future[Seq[Job]] =
@@ -104,10 +114,10 @@ object JenkinsJobsPersistence:
     val mongoFormat: Format[Job] =
 
       given OFormat[JenkinsConnector.LatestBuild.TestJobResults] =
-        ( (__ \ "numAccessibilityViolations").formatNullable[Int] 
+        ( (__ \ "numAccessibilityViolations").formatNullable[Int]
         ~ (__ \ "numSecurityAlerts"         ).formatNullable[Int]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
-      
+
       given OFormat[JenkinsConnector.LatestBuild] =
         ( (__ \ "number"        ).format[Int]
         ~ (__ \ "url"           ).format[String]

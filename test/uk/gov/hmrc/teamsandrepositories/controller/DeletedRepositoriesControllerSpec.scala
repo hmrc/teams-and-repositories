@@ -19,9 +19,9 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.Mockito.*
+import org.scalatest.{BeforeAndAfterEach, OptionValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterEach, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -29,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.teamsandrepositories.models.{DeletedGitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.DeletedRepositoriesPersistence
 
 import java.time.Instant

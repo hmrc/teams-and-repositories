@@ -2,6 +2,7 @@
 
 GET         /api/jenkins-url/:service                                uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.lookup(service)
 GET         /api/jenkins-jobs/:service                               uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findAllJobsByRepo(service)
+GET         /api/test-jobs                                           uk.gov.hmrc.teamsandrepositories.controller.JenkinsController.findTestJobs(teamName: Option[String], digitalService: Option[String])
 
 # admin
 GET         /api/cache/reload                                        uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCache

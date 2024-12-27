@@ -16,21 +16,21 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
+import org.mongodb.scala.ObservableFuture
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.teamsandrepositories.connectors.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.models.{RepoType, ServiceType, GitRepository}
-import org.mongodb.scala.ObservableFuture
+import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
+import uk.gov.hmrc.teamsandrepositories.model.{RepoType, ServiceType, GitRepository}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RepositoriesPersistenceSpec
-  extends AnyWordSpecLike
+  extends AnyWordSpec
      with Matchers
      with MockitoSugar
      with DefaultPlayMongoRepositorySupport[GitRepository]
@@ -304,4 +304,3 @@ class RepositoriesPersistenceSpec
       repository.collection.insertMany(Seq(repo1, repo2, repo3, repo4, repo5, repo6)).toFuture().futureValue
 
       repository.getDigitalServiceNames.futureValue should not contain "Service C"
-

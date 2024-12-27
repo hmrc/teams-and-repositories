@@ -20,12 +20,12 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.teamsandrepositories.model.RepoType
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.teamsandrepositories.models.RepoType
-import uk.gov.hmrc.teamsandrepositories.connectors.JenkinsConnector
 
 class JenkinsJobsPersistenceSpec
   extends AnyWordSpec
@@ -63,6 +63,20 @@ class JenkinsJobsPersistenceSpec
       val job3 = mkBuildJob("service2Job3", JenkinsJobsPersistence.JobType.Job        , "service2")
       repository.putAll(Seq(job1, job2, job3)).futureValue
       repository.findAllByJobType(JenkinsJobsPersistence.JobType.Job).futureValue shouldBe Seq(job1, job3)
+
+  "BuildJobRepository.findTests" should:
+    val job1 = mkBuildJob("service1Job1", JenkinsJobsPersistence.JobType.Test       , "service1")
+    val job2 = mkBuildJob("service2Job1", JenkinsJobsPersistence.JobType.Test       , "service2")
+    val job3 = mkBuildJob("service3Job1", JenkinsJobsPersistence.JobType.Test       , "service3")
+    val job4 = mkBuildJob("service1Job2", JenkinsJobsPersistence.JobType.PullRequest, "service1")
+
+    "return all test jobs" in:
+      repository.putAll(Seq(job1, job2, job3, job4)).futureValue
+      repository.findTests(None).futureValue should contain theSameElementsAs Seq(job1, job2, job3)
+
+    "return tests with matching repo names" in:
+      repository.putAll(Seq(job1, job2, job3, job4)).futureValue
+      repository.findTests(Some(Seq(job1.repoName, job2.repoName))).futureValue should contain theSameElementsAs Seq(job1, job2)
 
   def mkBuildJob(jobName: String, jobType: JenkinsJobsPersistence.JobType, repositoryName: String): JenkinsJobsPersistence.Job =
     val jenkinsUrl  = s"https://build.tax.service.gov.uk/job/teamName/job/$jobName/"

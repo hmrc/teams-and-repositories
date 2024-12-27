@@ -23,44 +23,31 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.teamsandrepositories.models.RepoType
-import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class JenkinsControllerSpec
   extends AnyWordSpec
-    with Matchers
-    with Results
-    with MockitoSugar:
+     with Matchers
+     with Results
+     with MockitoSugar:
 
-  "JenkinsController" should:
+  "JenkinsController.lookup" should:
     "return a single match as Json" in new Setup:
       when(mockJenkinsJobsPersistence.findByJobName("job-foo"))
-        .thenReturn(
-          Future.successful(
-            Some(
-              JenkinsJobsPersistence.Job(
-                repoName    = "repo-one",
-                jobName     = "job-foo",
-                jenkinsUrl  = "http://bar/job/api/",
-                jobType     = JenkinsJobsPersistence.JobType.Job,
-                repoType    = Some(RepoType.Service),
-                testType    = None,
-                latestBuild = None
-              )
-            )
-          )
-        )
+        .thenReturn:
+          Future.successful(Some(job))
 
       val result: Future[Result] =
         controller.lookup("job-foo").apply(FakeRequest())
-        
-      val bodyText: String =
-        contentAsString(result)
-        
-      bodyText shouldBe """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
+
+      status(result) shouldBe 200
+
+      contentAsString(result) shouldBe
+         """{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}"""
 
     "return a not found when no matches found" in new Setup:
       when(mockJenkinsJobsPersistence.findByJobName("bar"))
@@ -68,14 +55,71 @@ class JenkinsControllerSpec
 
       val result: Future[Result] =
         controller.lookup("bar").apply(FakeRequest())
-      
+
       status(result) shouldBe 404
 
+  "JenkinsController.findTestJobs" should:
+    "return test jobs for repos matching team and digitalService" in new Setup:
+      val team           = Some("team")
+      val digitalService = Some("digitalService")
+      val repos          = Seq.empty[GitRepository]
+      val jobs           = Seq(job)
+
+      when(mockRepositoriesPersistence.find(
+        name               = None,
+        team               = None,
+        owningTeam         = team,
+        digitalServiceName = digitalService,
+        isArchived         = None,
+        repoType           = None,
+        serviceType        = None,
+        tags               = None
+      ))
+        .thenReturn(Future.successful(repos))
+
+      when(mockJenkinsJobsPersistence.findTests(Some(repos.map(_.name))))
+        .thenReturn(Future.successful(jobs))
+
+      val result: Future[Result] =
+        controller.findTestJobs(Some("team"), Some("digitalService")).apply(FakeRequest())
+
+      status(result) shouldBe 200
+
+      contentAsString(result) shouldBe
+         """[{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}]"""
+
+    "return all test jobs" in new Setup:
+      val jobs = Seq(job)
+
+      when(mockJenkinsJobsPersistence.findTests(None))
+        .thenReturn(Future.successful(jobs))
+
+      val result: Future[Result] =
+        controller.findTestJobs(None, None).apply(FakeRequest())
+
+      status(result) shouldBe 200
+
+      contentAsString(result) shouldBe
+         """[{"repoName":"repo-one","jobName":"job-foo","jenkinsURL":"http://bar/job/api/","jobType":"job","repoType":"Service"}]"""
+
+  val job =
+    JenkinsJobsPersistence.Job(
+      repoName    = "repo-one",
+      jobName     = "job-foo",
+      jenkinsUrl  = "http://bar/job/api/",
+      jobType     = JenkinsJobsPersistence.JobType.Job,
+      repoType    = Some(RepoType.Service),
+      testType    = None,
+      latestBuild = None
+    )
+
   trait Setup:
-    val mockJenkinsJobsPersistence: JenkinsJobsPersistence = mock[JenkinsJobsPersistence]
+    val mockJenkinsJobsPersistence: JenkinsJobsPersistence   = mock[JenkinsJobsPersistence]
+    val mockRepositoriesPersistence: RepositoriesPersistence = mock[RepositoriesPersistence]
 
     val controller: JenkinsController =
       JenkinsController(
         mockJenkinsJobsPersistence,
+        mockRepositoriesPersistence,
         stubControllerComponents()
       )

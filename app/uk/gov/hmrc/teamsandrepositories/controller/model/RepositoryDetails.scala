@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.teamsandrepositories.controller.model
 
-import java.net.URI
-import java.time.Instant
 import play.api.Logging
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
 import uk.gov.hmrc.teamsandrepositories.config.UrlTemplates
-import uk.gov.hmrc.teamsandrepositories.models.{GitRepository, RepoType}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType}
 
+import java.net.URI
+import java.time.Instant
 import scala.util.{Failure, Success, Try}
 
 case class Environment(

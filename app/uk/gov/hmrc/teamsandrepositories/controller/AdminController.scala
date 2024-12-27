@@ -20,7 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.schedulers.DataReloadScheduler
-import uk.gov.hmrc.teamsandrepositories.services.PersistingService
+import uk.gov.hmrc.teamsandrepositories.service.PersistingService
 
 import scala.concurrent.ExecutionContext
 
