@@ -81,4 +81,14 @@ class TeamSummaryPersistenceSpec
     "return all summaries for all teams" in:
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
-      repository.findTeamSummaries().futureValue should contain theSameElementsAs Seq(teamSummary1, teamSummary2)
+      repository.findTeamSummaries(None).futureValue should contain theSameElementsAs Seq(teamSummary1, teamSummary2)
+
+    "return a summary when a single team is selected" in:
+      insert(teamSummary1).futureValue
+      insert(teamSummary2).futureValue
+      repository.findTeamSummaries(Some("team-one")).futureValue should contain theSameElementsAs Seq(teamSummary1)
+
+    "return no summaries when team name does not exist" in:
+      insert(teamSummary1).futureValue
+      insert(teamSummary2).futureValue
+      repository.findTeamSummaries(Some("team-bad")).futureValue should contain theSameElementsAs Nil
