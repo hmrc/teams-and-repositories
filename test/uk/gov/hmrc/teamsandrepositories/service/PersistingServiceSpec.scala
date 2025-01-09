@@ -27,7 +27,7 @@ import play.api.Configuration
 import uk.gov.hmrc.teamsandrepositories.connector.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
-import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
 
 import java.time.Instant
@@ -331,6 +331,7 @@ class PersistingServiceSpec
     val reposPersistence        : RepositoriesPersistence          = mock[RepositoriesPersistence]
     val deletedRepoPersistence  : DeletedRepositoriesPersistence   = mock[DeletedRepositoriesPersistence]
     val teamsPersistence        : TeamSummaryPersistence           = mock[TeamSummaryPersistence]
+    val openPrPersistence       : OpenPullRequestPersistence       = mock[OpenPullRequestPersistence]
     val relationshipsPersistence: TestRepoRelationshipsPersistence = mock[TestRepoRelationshipsPersistence]
     val githubConnector         : GithubConnector                  = mock[GithubConnector]
     val serviceConfigsConnector : ServiceConfigsConnector          = mock[ServiceConfigsConnector]
@@ -348,7 +349,7 @@ class PersistingServiceSpec
     when(relationshipsPersistence.putRelationships(any[String], any[Seq[TestRepoRelationship]])).thenReturn(Future.unit)
 
     val onTest: PersistingService =
-      PersistingService(reposPersistence, deletedRepoPersistence, teamsPersistence, relationshipsPersistence, configuration, serviceConfigsConnector, githubConnector)
+      PersistingService(reposPersistence, deletedRepoPersistence, teamsPersistence, openPrPersistence, relationshipsPersistence, configuration, serviceConfigsConnector, githubConnector)
 
     val now: Instant = Instant.now()
 

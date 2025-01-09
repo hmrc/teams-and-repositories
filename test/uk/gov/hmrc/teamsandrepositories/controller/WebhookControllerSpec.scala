@@ -66,6 +66,74 @@ class WebhookControllerSpec
 
   "WebhookController" should:
 
+    "return 202 given 'pull request' webhook with action of 'opened'" in :
+
+      when(mockPersistingService.addOpenPr(any()))
+        .thenReturn(Future.unit)
+
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                |  "action": "opened",
+                |  "repository": {
+                |    "name": "example-repo"
+                |  },
+                |  "pull_request": {
+                |    "title": "Fix issue",
+                |    "html_url": "https://github.com/example-repo/pull/1",
+                |    "user": {
+                |      "login": "username"
+                |    },
+                |    "created_at": "2025-01-01T12:00:00Z"
+                |  }
+                |}
+                |""".stripMargin
+            )
+          )
+
+      val result = route(app, request).value
+
+      status(result) shouldBe ACCEPTED
+
+      verify(mockPersistingService).addOpenPr(any())
+
+    "return 202 given 'pull request' webhook with action of 'closed'" in :
+
+      when(mockPersistingService.deleteOpenPr(any()))
+        .thenReturn(Future.unit)
+
+      val request: FakeRequest[AnyContentAsJson] =
+        FakeRequest(POST, whroute)
+          .withJsonBody(
+            Json.parse(
+              """
+                |{
+                |  "action": "closed",
+                |  "repository": {
+                |    "name": "example-repo"
+                |  },
+                |  "pull_request": {
+                |    "title": "My Closed Pull Request",
+                |    "html_url": "https://github.com/username/example-repo/pull/1",
+                |    "user": {
+                |      "login": "username"
+                |    },
+                |    "created_at": "2025-01-01T12:00:00Z"
+                |  }
+                |}
+                |""".stripMargin
+            )
+          )
+
+      val result = route(app, request).value
+
+      status(result) shouldBe ACCEPTED
+
+      verify(mockPersistingService).deleteOpenPr(any())
+
     "return 202 given 'push' webhook with a branch ref of 'main'" in:
 
       when(mockPersistingService.updateRepository(any())(using any[ExecutionContext]))

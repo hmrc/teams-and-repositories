@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.connector
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -29,7 +29,8 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connector.GithubConnector.{getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
+import uk.gov.hmrc.teamsandrepositories.connector.GithubConnector.{getOpenPrsQuery, getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
+import uk.gov.hmrc.teamsandrepositories.model.OpenPullRequest
 
 import java.time.Instant
 
@@ -453,6 +454,56 @@ class GithubConnectorSpec
       }
      """
 
+  val openPrsJson =
+    """
+      {
+        "data": {
+          "organization": {
+            "repositories": {
+              "nodes": [
+                {
+                  "name": "example-repo1",
+                  "pullRequests": {
+                    "nodes": []
+                  }
+                },
+                {
+                  "name": "example-repo2",
+                  "pullRequests": {
+                    "nodes": [
+                      {
+                        "title": "Some PR Title",
+                        "url": "https://github.com/example-repo2/pull/1",
+                        "author": {
+                          "login": "username1"
+                        },
+                        "createdAt": "2020-03-13T11:18:06Z"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "example-repo3",
+                  "pullRequests": {
+                    "nodes": [
+                      {
+                        "title": "Some PR Title",
+                        "url": "https://github.com/example-repo3/pull/1",
+                        "author": {
+                          "login": "username2"
+                        },
+                        "createdAt": "2020-03-13T11:18:06Z"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    """
+
   def heuristicsJson(repoName: String): String =
     s"""
       {
@@ -583,6 +634,39 @@ class GithubConnectorSpec
         repoTypeHeuristics = dummyRepoTypeHeuristics
       )
     )
+
+  "GithubConnector.getOpenPrs" should :
+    "return all open pull requests" in :
+      val openPullRequests =
+        List(
+          OpenPullRequest(
+            repoName  = "example-repo2",
+            title     = "Some PR Title",
+            url       = "https://github.com/example-repo2/pull/1",
+            author    = "username1",
+            createdAt = Instant.parse("2020-03-13T11:18:06Z")
+          ),
+          OpenPullRequest(
+            repoName  = "example-repo3",
+            title     = "Some PR Title",
+            url       = "https://github.com/example-repo3/pull/1",
+            author    = "username2",
+            createdAt = Instant.parse("2020-03-13T11:18:06Z")
+          )
+        )
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getOpenPrsQuery.asJsonString))
+          .willReturn(aResponse().withBody(openPrsJson))
+      )
+
+      connector.getOpenPrs.futureValue shouldBe openPullRequests
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getOpenPrsQuery.asJsonString))
+      )
 
   "GithubConnector.getReposForTeam" should:
     "return repos" in:
