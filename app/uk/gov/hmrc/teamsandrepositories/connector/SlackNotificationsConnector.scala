@@ -94,11 +94,12 @@ object ChannelLookup:
     }
 
 case class SlackNotificationRequest(
-  channelLookup: ChannelLookup,
-  displayName  : String,
-  emoji        : String,
-  text         : String,
-  blocks       : Seq[JsValue]
+  channelLookup  : ChannelLookup,
+  displayName    : String,
+  emoji          : String,
+  text           : String,
+  blocks         : Seq[JsValue],
+  callbackChannel: Option[String]
 )
 
 object SlackNotificationRequest:
