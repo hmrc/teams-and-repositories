@@ -96,28 +96,30 @@ case class JenkinsRebuildService @Inject()(
       val message = slackConfig.messageText.replace("{serviceName}", serviceName)
       for
         rsp <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
-                 channelLookup = ChannelLookup.RepositoryChannel(serviceName)
-               , displayName   = "Automatic Rebuilder"
-               , emoji         = ":hammer_and_wrench:"
-               , text          = message
-               , blocks        = jsSection(message)                          ::
-                                 Json.parse("""{"type": "divider"}""")       ::
-                                 jsSection(s"<${build.url}|$serviceName>") ::
-                                 Nil
+                 channelLookup   = ChannelLookup.RepositoryChannel(serviceName)
+               , displayName     = "Automatic Rebuilder"
+               , emoji           = ":hammer_and_wrench:"
+               , text            = message
+               , blocks          = jsSection(message)                          ::
+                                   Json.parse("""{"type": "divider"}""")       ::
+                                   jsSection(s"<${build.url}|$serviceName>") ::
+                                   Nil
+               , callbackChannel = Some("team-platops-alerts")
                ))
         if rsp.errors.nonEmpty
         _   =  logger.error(s"Errors sending rebuild FAILED notification: ${rsp.errors.mkString("[", ",", "]")}")
         if rsp.errors.nonEmpty
         err <- slackNotificationsConnector.sendMessage(SlackNotificationRequest(
-                 channelLookup = ChannelLookup.SlackChannel(List(slackConfig.adminChannel))
-               , displayName   = "Automatic Rebuilder"
-               , emoji         = ":hammer_and_wrench:"
-               , text          = s"Automatic Rebuilder failed to deliver slack message for service: $serviceName"
-               , blocks        = jsSection(s"Failed to deliver the following slack message to intended channel(s).\\n$message") ::
-                                 jsSection(rsp.errors.map(" - " + _.message).mkString("\\n"))                                   ::
-                                 Json.parse("""{"type": "divider"}""")                                                          ::
-                                 jsSection(s"<${build.url}|$serviceName>")                                                    ::
-                                 Nil
+                 channelLookup   = ChannelLookup.SlackChannel(List(slackConfig.adminChannel))
+               , displayName     = "Automatic Rebuilder"
+               , emoji           = ":hammer_and_wrench:"
+               , text            = s"Automatic Rebuilder failed to deliver slack message for service: $serviceName"
+               , blocks          = jsSection(s"Failed to deliver the following slack message to intended channel(s).\\n$message") ::
+                                   jsSection(rsp.errors.map(" - " + _.message).mkString("\\n"))                                   ::
+                                   Json.parse("""{"type": "divider"}""")                                                          ::
+                                   jsSection(s"<${build.url}|$serviceName>")                                                    ::
+                                   Nil
+               , callbackChannel = Some("team-platops-alerts")
                ))
         if err.errors.nonEmpty
         _          =  logger.error(s"Errors sending rebuild alert FAILED notification: ${err.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
