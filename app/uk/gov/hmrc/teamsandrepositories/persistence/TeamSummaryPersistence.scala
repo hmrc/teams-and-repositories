@@ -22,6 +22,7 @@ import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.teamsandrepositories.model.TeamSummary
+import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -59,6 +60,12 @@ class TeamSummaryPersistence @Inject()(
       .sort(Sorts.ascending("name"))
       .collation(Collations.caseInsensitive)
       .toFuture()
+
+  def findTeamSummary(teamName: String): Future[Option[TeamSummary]] =
+    collection
+      .find(Filters.equal("name", teamName))
+      .collation(caseInsensitive)
+      .headOption()
 
   def add(team: TeamSummary): Future[Unit] =
     collection

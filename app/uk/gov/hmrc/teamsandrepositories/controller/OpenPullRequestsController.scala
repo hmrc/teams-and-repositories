@@ -20,13 +20,15 @@ import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.model.OpenPullRequest
-import uk.gov.hmrc.teamsandrepositories.persistence.OpenPullRequestPersistence
+import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OpenPullRequestsController @Inject()(
+  teamSummaryPersistence: TeamSummaryPersistence,
+  repositoriesPersistence: RepositoriesPersistence,
   openPullRequestPersistence: OpenPullRequestPersistence,
   cc: ControllerComponents
 )(using ExecutionContext
@@ -34,14 +36,31 @@ class OpenPullRequestsController @Inject()(
 
   private given OFormat[OpenPullRequest] = OpenPullRequest.mongoFormat
 
-  def getOpenPrsByRepo(repoName: String): Action[AnyContent] = Action.async {
-    openPullRequestPersistence
-      .findOpenPullRequestsByRepo(repoName)
-      .map(result => Ok(Json.toJson(result)))
-  }
-
-  def getOpenPrsByAuthor(author: String): Action[AnyContent] = Action.async {
-    openPullRequestPersistence
-      .findOpenPullRequestsByAuthor(author)
-      .map(result => Ok(Json.toJson(result)))
+  def getOpenPrs(reposOwnedByTeamName: Option[String], reposOwnedByDigitalServiceName: Option[String]): Action[AnyContent] = Action.async {
+    (reposOwnedByTeamName, reposOwnedByDigitalServiceName) match
+      case (Some(teamName), None) =>
+        teamSummaryPersistence.findTeamSummaries(Some(teamName)).flatMap: teamSummaries =>
+          Future.sequence(
+            teamSummaries
+              .flatMap: teamSummary =>
+                teamSummary.repos.map(repoName => openPullRequestPersistence.findOpenPullRequestsByRepo(repoName))
+            )
+            .map: openPrs =>
+              Ok(Json.toJson(openPrs.flatten))
+      case (None, Some(digitalServiceName)) =>
+        repositoriesPersistence.find(
+          name = None,
+          team = None,
+          owningTeam = None,
+          digitalServiceName = Some(digitalServiceName),
+          isArchived = None,
+          repoType = None,
+          serviceType = None,
+          tags = None
+        ).flatMap: repos =>
+          Future.sequence(repos.map(repo => openPullRequestPersistence.findOpenPullRequestsByRepo(repo.name)))
+            .map: openPrs =>
+              Ok(Json.toJson(openPrs.flatten))
+      case _ =>
+        Future.successful(BadRequest(Json.obj("error" -> "Provide either reposOwnedByTeamName or reposOwnedByDigitalServiceName, but not both")))
   }
