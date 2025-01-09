@@ -24,6 +24,8 @@ import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence,
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import cats.instances.future._
+import cats.syntax.traverse._
 
 @Singleton
 class OpenPullRequestsController @Inject()(
@@ -34,33 +36,30 @@ class OpenPullRequestsController @Inject()(
 )(using ExecutionContext
 ) extends BackendController(cc):
 
-  private given OFormat[OpenPullRequest] = OpenPullRequest.mongoFormat
+  private given Writes[OpenPullRequest] = OpenPullRequest.apiWrites
 
   def getOpenPrs(reposOwnedByTeamName: Option[String], reposOwnedByDigitalServiceName: Option[String]): Action[AnyContent] = Action.async {
     (reposOwnedByTeamName, reposOwnedByDigitalServiceName) match
       case (Some(teamName), None) =>
-        teamSummaryPersistence.findTeamSummaries(Some(teamName)).flatMap: teamSummaries =>
-          Future.sequence(
-            teamSummaries
-              .flatMap: teamSummary =>
-                teamSummary.repos.map(repoName => openPullRequestPersistence.findOpenPullRequestsByRepo(repoName))
-            )
-            .map: openPrs =>
-              Ok(Json.toJson(openPrs.flatten))
+        for
+          teamSummaries <- teamSummaryPersistence.findTeamSummaries(Some(teamName))
+          repos         =  teamSummaries.flatMap(_.repos)
+          openPrs       <- repos.traverse(repoName => openPullRequestPersistence.findOpenPullRequests(repoName = Some(repoName)))
+        yield Ok(Json.toJson(openPrs.flatten))
       case (None, Some(digitalServiceName)) =>
-        repositoriesPersistence.find(
-          name = None,
-          team = None,
-          owningTeam = None,
-          digitalServiceName = Some(digitalServiceName),
-          isArchived = None,
-          repoType = None,
-          serviceType = None,
-          tags = None
-        ).flatMap: repos =>
-          Future.sequence(repos.map(repo => openPullRequestPersistence.findOpenPullRequestsByRepo(repo.name)))
-            .map: openPrs =>
-              Ok(Json.toJson(openPrs.flatten))
+        for
+          repos <- repositoriesPersistence.find(
+                     name               = None,
+                     team               = None,
+                     owningTeam         = None,
+                     digitalServiceName = Some(digitalServiceName),
+                     isArchived         = None,
+                     repoType           = None,
+                     serviceType        = None,
+                     tags               = None
+                   )
+          openPrs <- repos.traverse(repo => openPullRequestPersistence.findOpenPullRequests(repoName = Some(repo.name)))
+        yield Ok(Json.toJson(openPrs.flatten))
       case _ =>
         Future.successful(BadRequest(Json.obj("error" -> "Provide either reposOwnedByTeamName or reposOwnedByDigitalServiceName, but not both")))
   }

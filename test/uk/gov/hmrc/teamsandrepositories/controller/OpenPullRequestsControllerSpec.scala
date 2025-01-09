@@ -26,10 +26,9 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, OpenPullRequest, RepoType, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
@@ -66,8 +65,6 @@ class OpenPullRequestsControllerSpec
 
   private lazy val now = Instant.now()
 
-  private given Writes[Instant] = MongoJavatimeFormats.instantFormat
-
   "OpenPullRequestsController" should:
 
     "get all open pull requests for repos owned by a team" in:
@@ -77,13 +74,13 @@ class OpenPullRequestsControllerSpec
             TeamSummary("team-a", Some(now), Seq("example-repo1", "example-repo2"))
         )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequestsByRepo(eqTo("example-repo1")))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(eqTo(Some("example-repo1")), any()))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo1", "pr title 1", "https://github.com/example-repo1/pull/1", "author1", now),
           OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now)
         )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequestsByRepo(eqTo("example-repo2")))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any()))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo2", "pr title 3", "https://github.com/example-repo2/pull/1", "author3", now),
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
@@ -94,15 +91,15 @@ class OpenPullRequestsControllerSpec
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(s"""
         [
-          {"repoName":"example-repo1","title":"pr title 1","url":"https://github.com/example-repo1/pull/1","author":"author1","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo1","title":"pr title 2","url":"https://github.com/example-repo1/pull/2","author":"author2","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo2","title":"pr title 3","url":"https://github.com/example-repo2/pull/1","author":"author3","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo2","title":"pr title 4","url":"https://github.com/example-repo2/pull/2","author":"author4","createdAt":${Json.toJson(now)}}
+          {"repoName":"example-repo1","title":"pr title 1","url":"https://github.com/example-repo1/pull/1","author":"author1","createdAt":"$now"},
+          {"repoName":"example-repo1","title":"pr title 2","url":"https://github.com/example-repo1/pull/2","author":"author2","createdAt":"$now"},
+          {"repoName":"example-repo2","title":"pr title 3","url":"https://github.com/example-repo2/pull/1","author":"author3","createdAt":"$now"},
+          {"repoName":"example-repo2","title":"pr title 4","url":"https://github.com/example-repo2/pull/2","author":"author4","createdAt":"$now"}
         ]
       """)
 
-      verify(mockOpenPullRequestPersistence).findOpenPullRequestsByRepo(eqTo("example-repo1"))
-      verify(mockOpenPullRequestPersistence).findOpenPullRequestsByRepo(eqTo("example-repo2"))
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any())
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any())
 
     "get all open pull requests for repos owned by a digital service" in :
       when(mockRepositoriesPersistence.find(any(), any(), any(), eqTo(Some("a digital service")), any(), any(), any(), any()))
@@ -132,13 +129,13 @@ class OpenPullRequestsControllerSpec
             )
           )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequestsByRepo(eqTo("example-repo1")))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any()))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo1", "pr title 1", "https://github.com/example-repo1/pull/1", "author1", now),
           OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now)
         )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequestsByRepo(eqTo("example-repo2")))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any()))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo2", "pr title 3", "https://github.com/example-repo2/pull/1", "author3", now),
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
@@ -150,12 +147,12 @@ class OpenPullRequestsControllerSpec
       contentAsJson(result) shouldBe Json.parse(
         s"""
         [
-          {"repoName":"example-repo1","title":"pr title 1","url":"https://github.com/example-repo1/pull/1","author":"author1","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo1","title":"pr title 2","url":"https://github.com/example-repo1/pull/2","author":"author2","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo2","title":"pr title 3","url":"https://github.com/example-repo2/pull/1","author":"author3","createdAt":${Json.toJson(now)}},
-          {"repoName":"example-repo2","title":"pr title 4","url":"https://github.com/example-repo2/pull/2","author":"author4","createdAt":${Json.toJson(now)}}
+          {"repoName":"example-repo1","title":"pr title 1","url":"https://github.com/example-repo1/pull/1","author":"author1","createdAt":"$now"},
+          {"repoName":"example-repo1","title":"pr title 2","url":"https://github.com/example-repo1/pull/2","author":"author2","createdAt":"$now"},
+          {"repoName":"example-repo2","title":"pr title 3","url":"https://github.com/example-repo2/pull/1","author":"author3","createdAt":"$now"},
+          {"repoName":"example-repo2","title":"pr title 4","url":"https://github.com/example-repo2/pull/2","author":"author4","createdAt":"$now"}
         ]
       """)
 
-      verify(mockOpenPullRequestPersistence).findOpenPullRequestsByRepo(eqTo("example-repo1"))
-      verify(mockOpenPullRequestPersistence).findOpenPullRequestsByRepo(eqTo("example-repo2"))
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any())
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any())

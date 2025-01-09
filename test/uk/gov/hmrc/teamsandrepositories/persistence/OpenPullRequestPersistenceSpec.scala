@@ -52,52 +52,40 @@ class OpenPullRequestPersistenceSpec
         createdAt = Instant.parse("2020-03-13T11:18:06Z")
       )
 
-    "getAllOpenPullRequests" should :
+    "findOpenPullRequests" should :
       "get all open pull requests" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.getAllOpenPullRequests.futureValue
+        val results = repository.findOpenPullRequests().futureValue
         results shouldBe Seq(pr1, pr2)
 
-    "findOpenPullRequestsByRepo" should:
       "get all open pull requests for a specific repository" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequestsByRepo(repoName = pr1.repoName).futureValue
+        val results = repository.findOpenPullRequests(repoName = Some(pr1.repoName)).futureValue
         results shouldBe Seq(pr1)
 
-    "findOpenPullRequestsByAuthor" should:
       "get all open pull requests for a specific user" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequestsByAuthor(author = pr2.author).futureValue
+        val results = repository.findOpenPullRequests(author = Some(pr2.author)).futureValue
         results shouldBe Seq(pr2)
 
     "putOpenPullRequests" should:
       "insert all open pull requests" in:
         repository.putOpenPullRequests(Seq(pr1, pr2)).futureValue
-        val results = repository.getAllOpenPullRequests.futureValue
+        val results = repository.findOpenPullRequests().futureValue
         results shouldBe Seq(pr1, pr2)
 
     "putOpenPullRequest" should:
       "insert a single open pull request" in:
         repository.putOpenPullRequest(pr1).futureValue
-        val results = repository.getAllOpenPullRequests.futureValue
+        val results = repository.findOpenPullRequests().futureValue
         results shouldBe Seq(pr1)
 
-    "deleteOpenPullRequests" should:
-      "delete pr1 & pr2" in :
-        repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        repository.deleteOpenPullRequests(Seq(pr1.url, pr2.url)).futureValue shouldBe 2
-        repository.getAllOpenPullRequests.futureValue shouldBe Seq.empty
-
-      "handle Nil" in :
-        repository.deleteOpenPullRequests(Seq.empty).futureValue shouldBe 0
-        repository.getAllOpenPullRequests.futureValue shouldBe Seq.empty
-
-    "deleteOpenPullRequest" should:        
+    "deleteOpenPullRequest" should:
       "delete pr1" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
         repository.deleteOpenPullRequest(pr1.url).futureValue shouldBe 1
-        repository.getAllOpenPullRequests.futureValue shouldBe Seq(pr2)
+        repository.findOpenPullRequests().futureValue shouldBe Seq(pr2)
 
       "handle pr not found" in:
         repository.deleteOpenPullRequest(pr1.url).futureValue shouldBe 0
-        repository.getAllOpenPullRequests.futureValue shouldBe Seq.empty
+        repository.findOpenPullRequests().futureValue shouldBe Seq.empty

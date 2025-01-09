@@ -54,8 +54,8 @@ class OpenPrDataReloadScheduler @Inject()(
 
   scheduleWithLock("Open Pull Requests Reloader", config.openPrDataReloadScheduler, lockService) {
     for
-      count <- persistingService.updateOpenPullRequests()
-      _     =  logger.info(s"Finished updating Open Pull Requests - $count records updated")
+      _ <- persistingService.updateOpenPullRequests()
+      _ =  logger.info(s"Finished updating Open Pull Requests")
     yield ()
   }
 

@@ -46,12 +46,9 @@ case class PersistingService @Inject()(
 
   def updateOpenPullRequests()(using ExecutionContext): Future[Unit] =
     for
-      openPrs      <- githubConnector.getOpenPrs
-      currentPrs   <- openPullRequestPersistence.getAllOpenPullRequests
-      toDelete     =  currentPrs.map(_.url).diff(openPrs.map(_.url))
-      deletedCount <- openPullRequestPersistence.deleteOpenPullRequests(toDelete)
-      count        <- openPullRequestPersistence.putOpenPullRequests(openPrs)
-      _            =  logger.info(s"Persisted $count Repositories with open pull request data and deleted $deletedCount closed pull requests")
+      openPrs             <- githubConnector.getOpenPrs
+      _                   <- openPullRequestPersistence.putOpenPullRequests(openPrs)
+      _                   =  logger.info(s"Persisted ${openPrs.size} open pull requests")
     yield ()
 
   def addOpenPr(openPr: OpenPullRequest): Future[Unit] =

@@ -36,55 +36,55 @@ class OpenPullRequestPersistence @Inject()(
   collectionName = "openPullRequests",
   domainFormat   = OpenPullRequest.mongoFormat,
   indexes        = Seq(
-    IndexModel(Indexes.ascending("url"), IndexOptions().background(true).collation(caseInsensitive).unique(true)),
-    IndexModel(Indexes.ascending("repoName"), IndexOptions().background(true).collation(caseInsensitive)),
-    IndexModel(Indexes.ascending("author"), IndexOptions().background(true).collation(caseInsensitive))
+    IndexModel(Indexes.ascending("url"), IndexOptions().collation(caseInsensitive).unique(true)),
+    IndexModel(Indexes.ascending("repoName"), IndexOptions().collation(caseInsensitive)),
+    IndexModel(Indexes.ascending("author"), IndexOptions().collation(caseInsensitive))
   ),
   replaceIndexes = true
 ):
   // updateOpenPullRequests cleans up data
   override lazy val requiresTtlIndex = false
 
-  def getAllOpenPullRequests: Future[Seq[OpenPullRequest]] =
+  def findOpenPullRequests(
+    repoName: Option[String] = None,
+    author: Option[String] = None
+  ): Future[Seq[OpenPullRequest]] =
+
+    val filters = Seq(
+      repoName.map(name => Filters.equal("repoName", name)),
+      author.map(name => Filters.equal("author", name))
+    ).flatten match
+      case Nil => Filters.empty()
+      case filterSeq => Filters.and(filterSeq: _*)
+
     collection
-      .find()
-      .toFuture()
-    
-  def findOpenPullRequestsByRepo(repoName: String): Future[Seq[OpenPullRequest]] =
-    collection
-      .find(Filters.equal("repoName", repoName))
+      .find(filters)
       .collation(caseInsensitive)
       .toFuture()
 
-  def findOpenPullRequestsByAuthor(author: String): Future[Seq[OpenPullRequest]] =
-    collection
-      .find(Filters.equal("author", author))
-      .collation(caseInsensitive)
-      .toFuture()
-    
-  def putOpenPullRequests(openPrs: Seq[OpenPullRequest]): Future[Int] =
-    collection
-      .bulkWrite(openPrs.map(openPr =>
-        ReplaceOneModel(
-          Filters.equal("url", openPr.url),
-          openPr,
-          ReplaceOptions().collation(caseInsensitive).upsert(true)
-        )
-      ))
-      .toFuture()
-      .map(_.getModifiedCount)
+  def putOpenPullRequests(openPrs: Seq[OpenPullRequest]): Future[Unit] =
+    MongoUtils.replace[OpenPullRequest](
+      collection    = collection,
+      newVals       = openPrs,
+      compareById   = (a, b) => a.url == b.url,
+      filterById    = pr => Filters.equal("url", pr.url),
+      collation     = Collations.caseInsensitive
+    ).map(_ => ())
 
   def putOpenPullRequest(openPr: OpenPullRequest): Future[Unit] =
-    putOpenPullRequests(Seq(openPr))
+    collection
+      .replaceOne(
+        filter      = Filters.equal("url" , openPr.url),
+        replacement = openPr,
+        options     = ReplaceOptions().collation(caseInsensitive).upsert(true)
+      )
+      .toFuture()
       .map(_ => ())
 
   def deleteOpenPullRequest(url: String): Future[Long] =
-    deleteOpenPullRequests(Seq(url))
-
-  def deleteOpenPullRequests(urls: Seq[String]): Future[Long] =
     collection
-      .deleteMany(
-        filter = Filters.in("url", urls: _*),
+      .deleteOne(
+        filter = Filters.equal("url", url),
         options = DeleteOptions().collation(caseInsensitive)
       )
       .toFuture()

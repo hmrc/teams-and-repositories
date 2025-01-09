@@ -23,10 +23,10 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import java.time.Instant
 
 case class OpenPullRequest(
-  repoName: String,
-  title: String,
-  url: String,
-  author: String,
+  repoName : String,
+  title    : String,
+  url      : String,
+  author   : String,
   createdAt: Instant
 )
 
@@ -38,10 +38,10 @@ object OpenPullRequest:
                             val repoName = (repo \ "name").as[String]
                             (repo \ "pullRequests" \ "nodes").as[Seq[JsObject]].map: pr =>
                               OpenPullRequest(
-                                repoName = repoName,
-                                title = (pr \ "title").as[String],
-                                url = (pr \ "url").as[String],
-                                author = (pr \ "author" \ "login").asOpt[String].getOrElse("Unknown"),
+                                repoName  = repoName,
+                                title     = (pr \ "title").as[String],
+                                url       = (pr \ "url").as[String],
+                                author    = (pr \ "author" \ "login").asOpt[String].getOrElse("Unknown"),
                                 createdAt = (pr \ "createdAt").as[Instant]
                               )
     yield openPullRequests.toList
@@ -53,4 +53,12 @@ object OpenPullRequest:
     ~ (__ \ "url"        ).format[String]
     ~ (__ \ "author"     ).format[String]
     ~ (__ \ "createdAt"  ).format[Instant]
-    )(apply, g => Tuple.fromProductTyped(g))
+    )(apply, o => Tuple.fromProductTyped(o))
+
+  val apiWrites: Writes[OpenPullRequest] =
+    ( (__ \ "repoName" ).write[String]
+    ~ (__ \ "title"    ).write[String]
+    ~ (__ \ "url"      ).write[String]
+    ~ (__ \ "author"   ).write[String]
+    ~ (__ \ "createdAt").write[Instant]
+    )(o => Tuple.fromProductTyped(o))

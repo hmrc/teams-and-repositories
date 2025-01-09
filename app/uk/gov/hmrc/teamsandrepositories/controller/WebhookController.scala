@@ -47,10 +47,10 @@ class WebhookController @Inject()(
       case pullRequest: PullRequest if pullRequest.action == "opened" =>
         persistingService.addOpenPr(
           OpenPullRequest(
-            repoName = pullRequest.repoName,
-            title = pullRequest.title,
-            url = pullRequest.url,
-            author = pullRequest.author,
+            repoName  = pullRequest.repoName,
+            title     = pullRequest.title,
+            url       = pullRequest.url,
+            author    = pullRequest.author,
             createdAt = pullRequest.createdAt
           )
         )
@@ -126,11 +126,11 @@ object WebhookController:
 
  // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   case class PullRequest(
-    action: String,
-    repoName: String,
-    title: String,
-    url: String,
-    author: String,
+    action   : String,
+    repoName : String,
+    title    : String,
+    url      : String,
+    author   : String,
     createdAt: Instant
   ) extends GithubRequest
 
