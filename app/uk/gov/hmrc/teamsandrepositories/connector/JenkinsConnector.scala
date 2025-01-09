@@ -261,18 +261,21 @@ object JenkinsConnector:
 
     case class TestJobResults(
       numAccessibilityViolations: Option[Int],
-      numSecurityAlerts         : Option[Int]
+      numSecurityAlerts         : Option[Int],
+      rawJson                   : Option[JsValue] = None
     )
 
     object TestJobResults:
       val apiWrites: Writes[TestJobResults] =
         ( (__ \ "numAccessibilityViolations").writeNullable[Int]
         ~ (__ \ "numSecurityAlerts"         ).writeNullable[Int]
+        ~ (__ \ "rawJson"                   ).writeNullable[JsValue]
         )(t => Tuple.fromProductTyped(t))
 
       val jenkinsReads: Reads[TestJobResults] =
         ( (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
         ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
         )(TestJobResults.apply _)
 
     val apiWrites: Writes[LatestBuild] =

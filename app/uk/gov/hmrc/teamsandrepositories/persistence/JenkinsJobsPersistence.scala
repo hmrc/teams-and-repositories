@@ -116,6 +116,7 @@ object JenkinsJobsPersistence:
       given OFormat[JenkinsConnector.LatestBuild.TestJobResults] =
         ( (__ \ "numAccessibilityViolations").formatNullable[Int]
         ~ (__ \ "numSecurityAlerts"         ).formatNullable[Int]
+        ~ (__ \ "rawJson"                   ).formatNullable[JsValue]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
 
       given OFormat[JenkinsConnector.LatestBuild] =
