@@ -56,8 +56,9 @@ class TeamsAndRepositoriesController @Inject()(
       .map(result => Ok(Json.toJson(result.sortBy(_.name))))
   }
 
-  def allTeams() = Action.async { request =>
-    teamSummaryPersistence.findTeamSummaries()
+  def teams(name: Option[String]) = Action.async { request =>
+    teamSummaryPersistence
+      .findTeamSummaries(name)
       .map(result => Ok(Json.toJson(result)))
   }
 

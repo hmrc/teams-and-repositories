@@ -53,10 +53,11 @@ class TeamSummaryPersistence @Inject()(
        case (upserted, deleted) =>
          logger.info(s"Upserted $upserted and deleted $deleted teams")
 
-  def findTeamSummaries(): Future[Seq[TeamSummary]] =
+  def findTeamSummaries(name: Option[String]): Future[Seq[TeamSummary]] =
     collection
-      .find()
+      .find(name.fold(Filters.empty)(n => Filters.equal("name", n)))
       .sort(Sorts.ascending("name"))
+      .collation(Collations.caseInsensitive)
       .toFuture()
 
   def add(team: TeamSummary): Future[Unit] =
