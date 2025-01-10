@@ -31,14 +31,14 @@ class TestRepoRelationshipsController @Inject()(
 )(using ExecutionContext
 ) extends BackendController(cc):
 
-  def testRepositories(serviceRepo: String): Action[AnyContent] = Action.async { _ =>
-    relationshipsPersistence
-      .findTestReposByService(serviceRepo)
-      .map(r => Ok(Json.toJson(r)))
-  }
+  def testRepositories(serviceRepo: String): Action[AnyContent] =
+    Action.async:
+      relationshipsPersistence
+        .findTestReposByService(serviceRepo)
+        .map(r => Ok(Json.toJson(r)))
 
-  def servicesUnderTest(testRepo: String): Action[AnyContent] = Action.async { _ =>
-    relationshipsPersistence
-      .findServicesByTestRepo(testRepo)
-      .map(r => Ok(Json.toJson(r)))
-  }
+  def servicesUnderTest(testRepo: String): Action[AnyContent] =
+    Action.async:
+      relationshipsPersistence
+        .findServicesByTestRepo(testRepo)
+        .map(r => Ok(Json.toJson(r)))

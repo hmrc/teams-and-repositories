@@ -129,7 +129,7 @@ class GithubConnectorSpec
           ))
       )
 
-      connector.getTeams.futureValue shouldBe List(
+      connector.getTeams().futureValue shouldBe List(
         GhTeam("A", createdAt),
         GhTeam("B", createdAt),
         GhTeam("C", createdAt)
@@ -661,7 +661,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(openPrsJson))
       )
 
-      connector.getOpenPrs.futureValue shouldBe openPullRequests
+      connector.getOpenPrs().futureValue shouldBe openPullRequests
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
@@ -757,7 +757,7 @@ class GithubConnectorSpec
           .willReturn(aResponse().withBody(allReposJson2))
       )
 
-      connector.getRepos.futureValue shouldBe repos
+      connector.getRepos().futureValue shouldBe repos
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))

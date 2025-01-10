@@ -46,9 +46,9 @@ case class PersistingService @Inject()(
 
   def updateOpenPullRequests()(using ExecutionContext): Future[Unit] =
     for
-      openPrs             <- githubConnector.getOpenPrs
-      _                   <- openPullRequestPersistence.putOpenPullRequests(openPrs)
-      _                   =  logger.info(s"Persisted ${openPrs.size} open pull requests")
+      openPrs <- githubConnector.getOpenPrs()
+      _       <- openPullRequestPersistence.putOpenPullRequests(openPrs)
+      _       =  logger.info(s"Persisted ${openPrs.size} open pull requests")
     yield ()
 
   def addOpenPr(openPr: OpenPullRequest): Future[Unit] =
@@ -61,7 +61,7 @@ case class PersistingService @Inject()(
     for
       frontendServices           <- serviceConfigsConnector.getFrontendServices()
       adminFrontendServices      <- serviceConfigsConnector.getAdminFrontendServices()
-      ghRepos                    <- githubConnector.getRepos
+      ghRepos                    <- githubConnector.getRepos()
       allRepos                   =  ghRepos.map(r => r.name -> r.toGitRepository).toMap
       orphanRepos                =  (allRepos -- reposWithTeams.map(_.name).toSet).values
       toPersistRepos             =  (reposWithTeams ++ orphanRepos)
@@ -92,8 +92,8 @@ case class PersistingService @Inject()(
 
   def updateTeamsAndRepositories()(using ExecutionContext): Future[Unit] =
     for
-      gitHubTeams    <- githubConnector.getTeams.map(_.filterNot(team => hiddenTeams.contains(team.name)))
-      teamReposMap   <- gitHubTeams.foldLeftM(Map.empty[String, List[GitRepository]]): (acc, team) =>
+      gitHubTeams    <- githubConnector.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
+      teamReposMap   <- gitHubTeams.foldLeftM(Map.empty[String, Seq[GitRepository]]): (acc, team) =>
                           githubConnector
                             .getReposForTeam(team)
                             .map: ghRepos =>

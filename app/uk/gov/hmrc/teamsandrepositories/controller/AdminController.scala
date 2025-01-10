@@ -31,13 +31,13 @@ class AdminController @Inject()(
   cc                      : ControllerComponents
 )(using ExecutionContext) extends BackendController(cc):
 
-  def reloadCache: Action[AnyContent] = Action {
-    dataReloadScheduler.reload
-    Ok("Cache reload triggered successfully")
-  }
+  def reloadCache: Action[AnyContent] =
+    Action:
+      dataReloadScheduler.reload
+      Ok("Cache reload triggered successfully")
 
-  def reloadCacheForService(serviceName: String): Action[AnyContent] = Action.async {
-    persistingService.updateRepository(serviceName).value.map:
-      case Right(_)    => Ok(s"Cache reload for $serviceName triggered successfully")
-      case Left(error) => InternalServerError(s"Failed to reload service $serviceName with error $error")
-  }
+  def reloadCacheForService(serviceName: String): Action[AnyContent] =
+    Action.async:
+      persistingService.updateRepository(serviceName).value.map:
+        case Right(_)    => Ok(s"Cache reload for $serviceName triggered successfully")
+        case Left(error) => InternalServerError(s"Failed to reload service $serviceName with error $error")

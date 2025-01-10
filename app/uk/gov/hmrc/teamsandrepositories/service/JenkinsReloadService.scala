@@ -81,7 +81,7 @@ class JenkinsReloadService @Inject()(
       pipelineJobs    <- pipelineDetails.foldLeftM[Future, List[JenkinsJobsPersistence.Job]](List.empty) { case (acc, (repoName, pipelineDetail)) =>
                           jenkinsConnector
                             .getLatestBuildData(pipelineDetail.jenkinsUrl)
-                            .map(latestBuild =>
+                            .map: latestBuild =>
                               JenkinsJobsPersistence.Job(
                                 repoName    = repoName
                               , jobName     = pipelineDetail.jobName
@@ -90,7 +90,7 @@ class JenkinsReloadService @Inject()(
                               , testType    = None
                               , jenkinsUrl  = pipelineDetail.jenkinsUrl
                               , latestBuild = latestBuild
-                            ) :: acc)
+                              ) :: acc
                          }
       _               <- jenkinsJobsPersistence.putAll(updatedJobs ++ pipelineJobs)
     yield ()

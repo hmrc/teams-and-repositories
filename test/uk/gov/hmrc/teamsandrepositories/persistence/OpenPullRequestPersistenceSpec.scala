@@ -36,19 +36,19 @@ class OpenPullRequestPersistenceSpec
 
     private val pr1 =
       OpenPullRequest(
-          repoName = "example-pr2",
-          title = "Some PR Title",
-          url = "https://github.com/example-pr2/pull/1",
-          author = "username1",
+          repoName  = "example-pr2",
+          title     = "Some PR Title",
+          url       = "https://github.com/example-pr2/pull/1",
+          author    = "username1",
           createdAt = Instant.parse("2020-03-13T11:18:06Z")
         )
 
-    private val pr2 =  
+    private val pr2 =
       OpenPullRequest(
-        repoName = "example-repo3",
-        title = "Some PR Title",
-        url = "https://github.com/example-repo3/pull/1",
-        author = "username2",
+        repoName  = "example-repo3",
+        title     = "Some PR Title",
+        url       = "https://github.com/example-repo3/pull/1",
+        author    = "username2",
         createdAt = Instant.parse("2020-03-13T11:18:06Z")
       )
 
@@ -60,12 +60,17 @@ class OpenPullRequestPersistenceSpec
 
       "get all open pull requests for a specific repository" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequests(repoName = Some(pr1.repoName)).futureValue
+        val results = repository.findOpenPullRequests(repos = Some(Seq(pr1.repoName))).futureValue
         results shouldBe Seq(pr1)
+
+      "get all open pull requests for provided repositories" in:
+        repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
+        val results = repository.findOpenPullRequests(repos = Some(Seq(pr1.repoName, pr2.repoName))).futureValue
+        results shouldBe Seq(pr1, pr2)
 
       "get all open pull requests for a specific user" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequests(author = Some(pr2.author)).futureValue
+        val results = repository.findOpenPullRequests(authors = Some(Seq(pr2.author))).futureValue
         results shouldBe Seq(pr2)
 
     "putOpenPullRequests" should:

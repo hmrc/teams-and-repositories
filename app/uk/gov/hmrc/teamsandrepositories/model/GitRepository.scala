@@ -42,7 +42,7 @@ case class GitRepository(
   defaultBranch       : String,
   branchProtection    : Option[BranchProtection] = None,
   isDeprecated        : Boolean                  = false,
-  teams               : List[String]             = Nil,
+  teams               : Seq[String]              = Nil,
   prototypeName       : Option[String]           = None,
   prototypeAutoPublish: Option[Boolean]          = None,
   repositoryYamlText  : Option[String]           = None
@@ -50,7 +50,7 @@ case class GitRepository(
 
 object GitRepository:
 
-  val apiFormat: OFormat[GitRepository] =
+  val apiFormat: Format[GitRepository] =
     given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
     given Format[TestType]    = TestType.format
@@ -73,13 +73,13 @@ object GitRepository:
     ~ (__ \ "defaultBranch"       ).format[String]
     ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"           ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "teamNames"           ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
     )(apply, g => Tuple.fromProductTyped(g))
 
-  val mongoFormat: OFormat[GitRepository] =
+  val mongoFormat: Format[GitRepository] =
     given Format[Instant]     = MongoJavatimeFormats.instantFormat
     given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
@@ -103,7 +103,7 @@ object GitRepository:
     ~ (__ \ "defaultBranch"       ).formatWithDefault[String]("master")
     ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
     ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"           ).formatWithDefault[List[String]](Nil)
+    ~ (__ \ "teamNames"           ).formatWithDefault[Seq[String]](Nil)
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
     ~ (__ \ "repositoryYamlText"  ).formatNullable[String]

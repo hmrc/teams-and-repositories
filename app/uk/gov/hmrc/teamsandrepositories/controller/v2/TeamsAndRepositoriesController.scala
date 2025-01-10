@@ -51,35 +51,37 @@ class TeamsAndRepositoriesController @Inject()(
     repoType           : Option[RepoType],
     serviceType        : Option[ServiceType],
     tags               : Option[List[Tag]],
-  ) = Action.async { request =>
-    repositoriesPersistence.find(name, team, owningTeam, digitalServiceName, archived, repoType, serviceType, tags)
-      .map(result => Ok(Json.toJson(result.sortBy(_.name))))
-  }
+  ): Action[AnyContent] =
+    Action.async: request =>
+      repositoriesPersistence.find(name, team, owningTeam, digitalServiceName, archived, repoType, serviceType, tags)
+        .map(result => Ok(Json.toJson(result.sortBy(_.name))))
 
-  def teams(name: Option[String]) = Action.async { request =>
-    teamSummaryPersistence
-      .findTeamSummaries(name)
-      .map(result => Ok(Json.toJson(result)))
-  }
+  def teams(name: Option[String]): Action[AnyContent] =
+    Action.async: request =>
+      teamSummaryPersistence
+        .findTeamSummaries(name)
+        .map(result => Ok(Json.toJson(result)))
 
-  def digitalServices = Action.async { request =>
-    repositoriesPersistence.getDigitalServiceNames
-      .map(result => Ok(Json.toJson(result)))
-  }
+  def digitalServices: Action[AnyContent] =
+    Action.async: request =>
+      repositoriesPersistence.getDigitalServiceNames
+        .map(result => Ok(Json.toJson(result)))
 
-  def findRepo(repoName:String) = Action.async { request =>
-    repositoriesPersistence.findRepo(repoName).map:
-      case None       => NotFound
-      case Some(repo) => Ok(Json.toJson(repo))
-  }
+  def findRepo(repoName:String): Action[AnyContent] =
+    Action.async: request =>
+      repositoriesPersistence.findRepo(repoName).map:
+        case None       => NotFound
+        case Some(repo) => Ok(Json.toJson(repo))
 
   def enableBranchProtection(repoName: String): Action[JsValue] =
     auth
       .authorizedAction(
         Predicate.Permission(
           Resource.from("catalogue-repository", s"$repoName"),
-          IAAction("WRITE_BRANCH_PROTECTION")))
-      .async[JsValue](parse.json) { implicit request =>
+          IAAction("WRITE_BRANCH_PROTECTION")
+        )
+      )
+      .async[JsValue](parse.json): request =>
         val payload =
           implicitly[Reads[Boolean]].reads(request.body)
 
@@ -92,19 +94,18 @@ class TeamsAndRepositoriesController @Inject()(
                 .map(_ => Ok)
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
-    }
 
-  def decommissionedRepos(repoType: Option[RepoType] = None): Action[AnyContent] = Action.async { request =>
-    for
-      archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
-                          .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
-      deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
-                          .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
-      decommissioned =  (archivedRepos ++ deletedRepos)
-                          .distinct
-                          .sortBy(_.repoName.toLowerCase)
-    yield Ok(Json.toJson(decommissioned))
-  }
+  def decommissionedRepos(repoType: Option[RepoType] = None): Action[AnyContent] =
+    Action.async: request =>
+      for
+        archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
+                            .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
+        deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
+                            .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
+        decommissioned =  (archivedRepos ++ deletedRepos)
+                            .distinct
+                            .sortBy(_.repoName.toLowerCase)
+      yield Ok(Json.toJson(decommissioned))
 
 case class DecommissionedRepo(
   repoName: String,

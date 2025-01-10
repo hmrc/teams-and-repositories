@@ -298,7 +298,7 @@ class WebhookControllerSpec
     "return 202 given 'repository' webhook with 'archived' action" in:
 
       when(mockPersistingService.archiveRepository(any()))
-        .thenReturn(Future.successful(()))
+        .thenReturn(Future.unit)
 
       val request: FakeRequest[AnyContentAsJson] =
         FakeRequest(POST, whroute)
@@ -323,7 +323,7 @@ class WebhookControllerSpec
 
     "return 202 given 'repository' webhook with 'deleted' action and existing repo is found" in:
       when(mockPersistingService.deleteRepository(eqTo("foo"))(using any[ExecutionContext]))
-        .thenReturn(Future.successful(()))
+        .thenReturn(Future.unit)
 
       val request: FakeRequest[AnyContentAsJson] =
         FakeRequest(POST, whroute)

@@ -30,7 +30,7 @@ case class DeletedGitRepository(
   serviceType         : Option[ServiceType]   = None,
   digitalServiceName  : Option[String]        = None,
   owningTeams         : Option[Seq[String]]   = None,
-  teams               : Option[List[String]]  = None,
+  teams               : Option[Seq[String]]   = None,
   prototypeName       : Option[String]        = None,
 )
 
@@ -49,7 +49,7 @@ object DeletedGitRepository:
       prototypeName      = gitRepository.prototypeName
     )
 
-  val apiFormat: OFormat[DeletedGitRepository] =
+  val apiFormat: Format[DeletedGitRepository] =
     given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
     ( (__ \ "name"                ).format[String]
@@ -59,11 +59,11 @@ object DeletedGitRepository:
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
     ~ (__ \ "digitalServiceName"  ).formatNullable[String]
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
-    ~ (__ \ "teamNames"           ).formatNullable[List[String]]
+    ~ (__ \ "teamNames"           ).formatNullable[Seq[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     )(apply, d => Tuple.fromProductTyped(d))
 
-  val mongoFormat: OFormat[DeletedGitRepository] =
+  val mongoFormat: Format[DeletedGitRepository] =
     given Format[Instant]    = MongoJavatimeFormats.instantFormat
     given Format[RepoType]    = RepoType.format
     given Format[ServiceType] = ServiceType.format
@@ -74,6 +74,6 @@ object DeletedGitRepository:
     ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
     ~ (__ \ "digitalServiceName"  ).formatNullable[String]
     ~ (__ \ "owningTeams"         ).formatNullable[Seq[String]]
-    ~ (__ \ "teamNames"           ).formatNullable[List[String]]
+    ~ (__ \ "teamNames"           ).formatNullable[Seq[String]]
     ~ (__ \ "prototypeName"       ).formatNullable[String]
     )(apply, d => Tuple.fromProductTyped(d))
