@@ -66,7 +66,6 @@ class OpenPullRequestsControllerSpec
   private lazy val now = Instant.now()
 
   "OpenPullRequestsController" should:
-
     "get all open pull requests for repos owned by a team" in:
       when(mockTeamSummaryPersistence.findTeamSummaries(eqTo(Some("team-a"))))
         .thenReturn(
@@ -74,19 +73,15 @@ class OpenPullRequestsControllerSpec
             TeamSummary("team-a", Some(now), Seq("example-repo1", "example-repo2"))
         )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequests(eqTo(Some("example-repo1")), any()))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), authors = any))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo1", "pr title 1", "https://github.com/example-repo1/pull/1", "author1", now),
-          OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now)
-        )))
-
-      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any()))
-        .thenReturn(Future.successful(Seq(
+          OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now),
           OpenPullRequest("example-repo2", "pr title 3", "https://github.com/example-repo2/pull/1", "author3", now),
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
         )))
 
-      val result = route(app, FakeRequest(GET, getOpenPrsRoute(Some("team-a"), None))).value
+      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = Some("team-a"), digitalServiceName = None))).value
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(s"""
@@ -98,11 +93,10 @@ class OpenPullRequestsControllerSpec
         ]
       """)
 
-      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any())
-      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any())
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), authors = any)
 
     "get all open pull requests for repos owned by a digital service" in :
-      when(mockRepositoriesPersistence.find(any(), any(), any(), eqTo(Some("a digital service")), any(), any(), any(), any()))
+      when(mockRepositoriesPersistence.find(any, any, any, eqTo(Some("a digital service")), any, any, any, any))
         .thenReturn(
           Future.successful(Seq(
             GitRepository(
@@ -129,19 +123,15 @@ class OpenPullRequestsControllerSpec
             )
           )))
 
-      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any()))
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), authors = any))
         .thenReturn(Future.successful(Seq(
           OpenPullRequest("example-repo1", "pr title 1", "https://github.com/example-repo1/pull/1", "author1", now),
-          OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now)
-        )))
-
-      when(mockOpenPullRequestPersistence.findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any()))
-        .thenReturn(Future.successful(Seq(
+          OpenPullRequest("example-repo1", "pr title 2", "https://github.com/example-repo1/pull/2", "author2", now),
           OpenPullRequest("example-repo2", "pr title 3", "https://github.com/example-repo2/pull/1", "author3", now),
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
         )))
 
-      val result = route(app, FakeRequest(GET, getOpenPrsRoute(None, Some("a digital service")))).value
+      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = None, digitalServiceName = Some("a digital service")))).value
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -154,5 +144,4 @@ class OpenPullRequestsControllerSpec
         ]
       """)
 
-      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo1")), any())
-      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repoName = eqTo(Some("example-repo2")), any())
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), any)

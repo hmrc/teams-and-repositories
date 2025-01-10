@@ -60,12 +60,17 @@ class OpenPullRequestPersistenceSpec
 
       "get all open pull requests for a specific repository" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequests(repoName = Some(pr1.repoName)).futureValue
+        val results = repository.findOpenPullRequests(repos = Some(Seq(pr1.repoName))).futureValue
         results shouldBe Seq(pr1)
+
+      "get all open pull requests for provided repositories" in:
+        repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
+        val results = repository.findOpenPullRequests(repos = Some(Seq(pr1.repoName, pr2.repoName))).futureValue
+        results shouldBe Seq(pr1, pr2)
 
       "get all open pull requests for a specific user" in:
         repository.collection.insertMany(Seq(pr1, pr2)).toFuture().futureValue
-        val results = repository.findOpenPullRequests(author = Some(pr2.author)).futureValue
+        val results = repository.findOpenPullRequests(authors = Some(Seq(pr2.author))).futureValue
         results shouldBe Seq(pr2)
 
     "putOpenPullRequests" should:

@@ -46,13 +46,13 @@ class OpenPullRequestPersistence @Inject()(
   override lazy val requiresTtlIndex = false
 
   def findOpenPullRequests(
-    repoName: Option[String] = None,
-    author  : Option[String] = None
+    repos  : Option[Seq[String]] = None,
+    authors: Option[Seq[String]] = None
   ): Future[Seq[OpenPullRequest]] =
 
     val filters = Seq(
-      repoName.map(name => Filters.equal("repoName", name)),
-      author  .map(name => Filters.equal("author", name))
+      repos  .map(name => Filters.in("repoName", name: _*)),
+      authors.map(name => Filters.in("author"  , name: _*))
     ).flatten
 
     collection
