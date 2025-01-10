@@ -24,6 +24,7 @@ import uk.gov.hmrc.teamsandrepositories.util.FromStringEnum.*
 enum TestType(val asString: String) extends FromString derives QueryStringBindable, Reads, Writes:
   case Acceptance  extends TestType("Acceptance")
   case Performance extends TestType("Performance")
+  case Contract    extends TestType("Contract")
 
 object TestType:
   given Parser[TestType] = Parser.parser(TestType.values)

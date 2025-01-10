@@ -235,4 +235,4 @@ class ManifestDetailsTest extends AnyWordSpec with Matchers:
 
       ManifestDetails.deriveTestType("example-contract-tests")
         .fold(fail("Unable to parse test-type from contract-tests in repo name")): tt =>
-          tt shouldBe TestType.Acceptance
+          tt shouldBe TestType.Contract
