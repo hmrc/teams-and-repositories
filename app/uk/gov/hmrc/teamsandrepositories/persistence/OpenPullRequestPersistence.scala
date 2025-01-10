@@ -29,17 +29,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OpenPullRequestPersistence @Inject()(
-                                         mongoComponent: MongoComponent
-                                       )(using ExecutionContext
-                                       ) extends PlayMongoRepository(
+  mongoComponent: MongoComponent
+)(using ExecutionContext
+) extends PlayMongoRepository(
   mongoComponent = mongoComponent,
   collectionName = "openPullRequests",
   domainFormat   = OpenPullRequest.mongoFormat,
   indexes        = Seq(
-    IndexModel(Indexes.ascending("url"), IndexOptions().collation(caseInsensitive).unique(true)),
-    IndexModel(Indexes.ascending("repoName"), IndexOptions().collation(caseInsensitive)),
-    IndexModel(Indexes.ascending("author"), IndexOptions().collation(caseInsensitive))
-  ),
+                     IndexModel(Indexes.ascending("url"     ), IndexOptions().collation(caseInsensitive).unique(true)),
+                     IndexModel(Indexes.ascending("repoName"), IndexOptions().collation(caseInsensitive)),
+                     IndexModel(Indexes.ascending("author"  ), IndexOptions().collation(caseInsensitive))
+                   ),
   replaceIndexes = true
 ):
   // updateOpenPullRequests cleans up data
@@ -47,28 +47,26 @@ class OpenPullRequestPersistence @Inject()(
 
   def findOpenPullRequests(
     repoName: Option[String] = None,
-    author: Option[String] = None
+    author  : Option[String] = None
   ): Future[Seq[OpenPullRequest]] =
 
     val filters = Seq(
       repoName.map(name => Filters.equal("repoName", name)),
-      author.map(name => Filters.equal("author", name))
-    ).flatten match
-      case Nil => Filters.empty()
-      case filterSeq => Filters.and(filterSeq: _*)
+      author  .map(name => Filters.equal("author", name))
+    ).flatten
 
     collection
-      .find(filters)
+      .find(if filters.isEmpty then Filters.empty() else Filters.and(filters: _*))
       .collation(caseInsensitive)
       .toFuture()
 
   def putOpenPullRequests(openPrs: Seq[OpenPullRequest]): Future[Unit] =
     MongoUtils.replace[OpenPullRequest](
-      collection    = collection,
-      newVals       = openPrs,
-      compareById   = (a, b) => a.url == b.url,
-      filterById    = pr => Filters.equal("url", pr.url),
-      collation     = Collations.caseInsensitive
+      collection  = collection,
+      newVals     = openPrs,
+      compareById = (a, b) => a.url == b.url,
+      filterById  = pr => Filters.equal("url", pr.url),
+      collation   = Collations.caseInsensitive
     ).map(_ => ())
 
   def putOpenPullRequest(openPr: OpenPullRequest): Future[Unit] =
@@ -84,7 +82,7 @@ class OpenPullRequestPersistence @Inject()(
   def deleteOpenPullRequest(url: String): Future[Long] =
     collection
       .deleteOne(
-        filter = Filters.equal("url", url),
+        filter  = Filters.equal("url", url),
         options = DeleteOptions().collation(caseInsensitive)
       )
       .toFuture()

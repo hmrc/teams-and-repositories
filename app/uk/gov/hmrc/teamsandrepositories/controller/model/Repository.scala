@@ -50,7 +50,7 @@ object Repository:
       isDeprecated  = gr.isDeprecated
     )
 
-  given OFormat[Repository] =
+  given Format[Repository] =
     given Format[RepoType] = RepoType.format
     ( (__ \ "name"         ).format[String]
     ~ (__ \ "teamNames"    ).format[Seq[String]]
@@ -74,11 +74,11 @@ case class Team(
 object Team:
 
   val mapFormat: Format[Map[RepoType, List[String]]] =
-    val mapReads: Reads[Map[RepoType, List[String]]] = jv => JsSuccess(
-      jv.as[Map[String, List[String]]].map:
-        case (k, v) =>
-          Parser[RepoType].parse(k).getOrElse(throw new NoSuchElementException()) -> v
-    )
+    val mapReads: Reads[Map[RepoType, List[String]]] =
+      jv => JsSuccess:
+              jv.as[Map[String, List[String]]].map:
+                case (k, v) =>
+                  Parser[RepoType].parse(k).getOrElse(throw new NoSuchElementException()) -> v
 
     val mapWrites: Writes[Map[RepoType, List[String]]] = (map: Map[RepoType, List[String]]) => Json.obj(map.map {
         case (s, o) =>

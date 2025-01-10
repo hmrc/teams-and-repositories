@@ -159,7 +159,10 @@ object JenkinsConnector:
       s"jobs[fullName,name,url,lastBuild[number,url,timestamp,result,description],scm[userRemoteConfigs[url]]${if acc == "" then "" else s",$acc"}]"
     }
 
-  case class JenkinsQueueData(cancelled: Option[Boolean], executable: Option[JenkinsQueueExecutable])
+  case class JenkinsQueueData(
+    cancelled : Option[Boolean],
+    executable: Option[JenkinsQueueExecutable]
+  )
 
   object JenkinsQueueData:
     given Reads[JenkinsQueueData] =

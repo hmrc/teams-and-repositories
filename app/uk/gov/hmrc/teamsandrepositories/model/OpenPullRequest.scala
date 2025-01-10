@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.teamsandrepositories.model
 
+import cats.Monad
+import cats.syntax.all.*
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import scala.annotation.tailrec
 import java.time.Instant
 
 case class OpenPullRequest(
@@ -31,22 +34,38 @@ case class OpenPullRequest(
 )
 
 object OpenPullRequest:
-  val reads: Reads[List[OpenPullRequest]] = Reads: json =>
-    for
-      repos            <- json.validate[Seq[JsObject]]
-      openPullRequests =  repos.flatMap: repo =>
-                            val repoName = (repo \ "name").as[String]
-                            (repo \ "pullRequests" \ "nodes").as[Seq[JsObject]].map: pr =>
-                              OpenPullRequest(
-                                repoName  = repoName,
-                                title     = (pr \ "title").as[String],
-                                url       = (pr \ "url").as[String],
-                                author    = (pr \ "author" \ "login").asOpt[String].getOrElse("Unknown"),
-                                createdAt = (pr \ "createdAt").as[Instant]
-                              )
-    yield openPullRequests.toList
 
-  val mongoFormat: OFormat[OpenPullRequest] =
+  private val monadJsResult: Monad[JsResult] =
+    new Monad[JsResult]:
+      override def flatMap[A, B](fa: JsResult[A])(f: A => JsResult[B]): JsResult[B] =
+        fa.flatMap(f)
+
+      @tailrec
+      override def tailRecM[A, B](a: A)(f: A => JsResult[Either[A, B]]): JsResult[B] =
+        f(a) match
+          case JsSuccess(Left(a), _)  => tailRecM(a)(f)
+          case JsSuccess(Right(b), _) => pure(b)
+          case error: JsError         => error
+
+      override def pure[A](x: A): JsResult[A] =
+        JsSuccess(x)
+
+  val seqReads: Reads[Seq[OpenPullRequest]] =
+    given Monad[JsResult] = monadJsResult
+
+    def prReads(repoName: String): Reads[OpenPullRequest] =
+      ( Reads.pure(repoName)
+      ~ (__ \ "title"           ).read[String]
+      ~ (__ \ "url"             ).read[String]
+      ~ (__ \ "author" \ "login").readNullable[String].map(_.getOrElse("Unknown"))
+      ~ (__ \ "createdAt"       ).read[Instant]
+      )(apply)
+
+    (__ \ "name").read[String].flatMap[Seq[OpenPullRequest]]: repoName =>
+      (__ \ "pullRequests" \ "nodes").read[Seq[JsObject]].flatMap: jos =>
+         _ => jos.traverse(prReads(repoName).reads)
+
+  val mongoFormat: Format[OpenPullRequest] =
     given Format[Instant] = MongoJavatimeFormats.instantFormat
     ( (__ \ "repoName"   ).format[String]
     ~ (__ \ "title"      ).format[String]

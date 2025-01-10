@@ -18,7 +18,7 @@ package uk.gov.hmrc.teamsandrepositories.config
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Configuration
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, Format}
 
 import scala.collection.immutable.ListMap
 
@@ -35,7 +35,7 @@ case class UrlTemplate(
     template.replace(s"$$name", serviceName)
 
 object UrlTemplate:
-  given OFormat[UrlTemplate] = Json.format[UrlTemplate]
+  given Format[UrlTemplate] = Json.format[UrlTemplate]
 
 @Singleton
 class UrlTemplatesProvider @Inject()(

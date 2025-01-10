@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.model
 
-import play.api.libs.json.{OFormat, __}
+import play.api.libs.json.{Format, __}
 import play.api.libs.functional.syntax._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
@@ -36,13 +36,13 @@ object TeamSummary:
       repos          = gitRepos.map(_.name)
     )
 
-  val apiFormat: OFormat[TeamSummary] =
+  val apiFormat: Format[TeamSummary] =
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).format[Seq[String]]
     )(TeamSummary.apply, t => Tuple.fromProductTyped(t))
 
-  val mongoFormat: OFormat[TeamSummary] =
+  val mongoFormat: Format[TeamSummary] =
     ( (__ \ "name"           ).format[String]
     ~ (__ \ "lastActiveDate" ).formatNullable[Instant](MongoJavatimeFormats.instantFormat)
     ~ (__ \ "repos"          ).format[Seq[String]]

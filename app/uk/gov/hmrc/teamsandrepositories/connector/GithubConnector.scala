@@ -51,76 +51,72 @@ class GithubConnector @Inject()(
 
   import GithubConnector.*
 
-  private val authHeader = "Authorization" -> s"token ${githubConfig.key}"
-  private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
+  private val authHeader    = "Authorization" -> s"token ${githubConfig.key}"
+  private val acceptsHeader = "Accepts"       -> "application/vnd.github.v3+json"
 
   private given HeaderCarrier = HeaderCarrier()
 
-  def getOpenPrs: Future[List[OpenPullRequest]] =
-    withCounter(s"github.open.teams") {
+  def getOpenPrs(): Future[Seq[OpenPullRequest]] =
+    withCounter(s"github.open.teams"):
       val root: JsPath =
         __ \ "data" \ "organization" \ "repositories"
 
-      given Reads[List[OpenPullRequest]] =
-        (root \ "nodes").read(OpenPullRequest.reads)
+      given Reads[Seq[OpenPullRequest]] =
+        (root \ "nodes").read(Reads.seq(OpenPullRequest.seqReads)).map(_.flatten)
 
       executePagedGqlQuery(
-        query = getOpenPrsQuery,
+        query      = getOpenPrsQuery,
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
-    }
 
-  def getTeams: Future[List[GhTeam]] =
-    withCounter(s"github.open.teams") {
+  def getTeams(): Future[Seq[GhTeam]] =
+    withCounter(s"github.open.teams"):
       val root: JsPath =
         __ \ "data" \ "organization" \ "teams"
 
-      given Reads[List[GhTeam]] =
-        (root \ "nodes").read(Reads.list(GhTeam.reads))
+      given Reads[Seq[GhTeam]] =
+        (root \ "nodes").read(Reads.seq(GhTeam.reads))
 
       executePagedGqlQuery(
-        query = getTeamsQuery,
+        query      = getTeamsQuery,
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
-    }
 
-  def getTeams(repoName: String): Future[List[String]] =
+  def getTeams(repoName: String): Future[Seq[String]] =
     val stringReads: Reads[String] = (__ \ "name").read[String]
-    given Reads[List[String]] = Reads.list(stringReads)
+    given Reads[Seq[String]] = Reads.seq(stringReads)
 
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/teams")
       .setHeader(authHeader)
       .withProxy
-      .execute[List[String]]
+      .execute[Seq[String]]
 
-  def getReposForTeam(team: GhTeam): Future[List[GhRepository]] =
-    withCounter("github.open.repos") {
+  def getReposForTeam(team: GhTeam): Future[Seq[GhRepository]] =
+    withCounter("github.open.repos"):
       val root =
         __ \ "data" \ "organization" \ "team" \ "repositories"
 
-      given Reads[List[GhRepository]] =
-        (root \ "nodes").readWithDefault(List.empty[GhRepository])(Reads.list(GhRepository.reads(githubConfig)))
+      given Reads[Seq[GhRepository]] =
+        (root \ "nodes").readWithDefault(Seq.empty[GhRepository])(Reads.seq(GhRepository.reads(githubConfig)))
 
-      executePagedGqlQuery[List[GhRepository]](
-        query = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
+      executePagedGqlQuery[Seq[GhRepository]](
+        query      = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
-    }
 
-  def getRepos: Future[List[GhRepository]] =
-    withCounter("github.open.repos") {
+  def getRepos(): Future[Seq[GhRepository]] =
+    withCounter("github.open.repos"):
       val root =
         __ \ "data" \ "organization" \ "repositories"
 
-      given Reads[List[GhRepository]] =
-        (root \ "nodes").read(Reads.list(GhRepository.reads(githubConfig)))
+      given Reads[Seq[GhRepository]] =
+        (root \ "nodes").read(Reads.seq(GhRepository.reads(githubConfig)))
 
-      executePagedGqlQuery[List[GhRepository]](
-        query = getReposQuery,
+      executePagedGqlQuery[Seq[GhRepository]](
+        query      = getReposQuery,
         cursorPath = root \ "pageInfo" \ "endCursor",
       ).map(_.flatten)
-    }
 
   def getRepo(repoName: String): Future[Option[GhRepository]] =
     given Reads[Option[GhRepository]] =
@@ -141,7 +137,7 @@ class GithubConnector @Inject()(
   ): Future[A] =
     retryFor[A]("Github graphQL call") {
       case UpstreamErrorResponse.WithStatusCode(BAD_GATEWAY) => true
-    } {
+    }{
       val startTime = Instant.now()
       httpClientV2
         .post(url"${githubConfig.apiUrl}/graphql")
@@ -169,15 +165,14 @@ class GithubConnector @Inject()(
 
     for
       response <- executeGqlQuery[WithCursor[A]](query)
-      recurse  <- response.cursor.fold(Future.successful(List(response.value))) { cursor =>
+      recurse  <- response.cursor.fold(Future.successful(List(response.value))): cursor =>
                     executePagedGqlQuery[A](query.withVariable("cursor", JsString(cursor)), cursorPath)
                       .map(response.value :: _)
-                  }
     yield recurse
 
   private case class WithCursor[A](
     cursor: Option[String],
-    value: A
+    value : A
   )
 
   private def withCounter[T](name: String)(f: Future[T]) =

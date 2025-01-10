@@ -113,13 +113,13 @@ object JenkinsJobsPersistence:
   object Job:
     val mongoFormat: Format[Job] =
 
-      given OFormat[JenkinsConnector.LatestBuild.TestJobResults] =
+      given Format[JenkinsConnector.LatestBuild.TestJobResults] =
         ( (__ \ "numAccessibilityViolations").formatNullable[Int]
         ~ (__ \ "numSecurityAlerts"         ).formatNullable[Int]
         ~ (__ \ "rawJson"                   ).formatNullable[JsValue]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
 
-      given OFormat[JenkinsConnector.LatestBuild] =
+      given Format[JenkinsConnector.LatestBuild] =
         ( (__ \ "number"        ).format[Int]
         ~ (__ \ "url"           ).format[String]
         ~ (__ \ "timestamp"     ).format(MongoJavatimeFormats.instantFormat)

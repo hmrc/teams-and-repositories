@@ -71,7 +71,7 @@ case class RepositoryDetails(
 
 object RepositoryDetails extends Logging:
 
-  val format: OFormat[RepositoryDetails] =
+  val format: Format[RepositoryDetails] =
     given Format[RepoType] = RepoType.format
     given Format[Link] = Link.format
     given Format[Environment] = Environment.format

@@ -77,9 +77,9 @@ class SchedulerConfigs @Inject()(configuration: Configuration):
   val openPrDataReloadScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
-      , enabledKey = "cache.openPrs.reloadEnabled"
-      , intervalKey = "cache.openPrs.duration"
-      , initialDelayKey = "cache.openPrs.initialDelay"
+    , enabledKey = "cache.openPrs.reloadEnabled"
+    , intervalKey = "cache.openPrs.duration"
+    , initialDelayKey = "cache.openPrs.initialDelay"
     )
 
   val metrixScheduler: SchedulerConfig =
@@ -96,4 +96,4 @@ class SchedulerConfigs @Inject()(configuration: Configuration):
     , enabledKey      = "scheduler.rebuild.enabled"
     , intervalKey     = "scheduler.rebuild.interval"
     , initialDelayKey = "scheduler.rebuild.initialDelay"
-  )
+    )

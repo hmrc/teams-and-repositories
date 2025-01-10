@@ -77,13 +77,12 @@ class DeletedRepositoriesPersistence @Inject()(
       .map(_ => ())
 
   def putAll(repos: Seq[DeletedGitRepository]): Future[Unit] =
-    withSessionAndTransaction(session =>
+    withSessionAndTransaction: session =>
       for
         _ <- collection.deleteMany(session, Document()).toFuture()
         _ <- if repos.nonEmpty then collection.insertMany(session, repos).toFuture()
-             else Future.successful(())
+             else Future.unit
       yield ()
-    )
 
 
   // Remove when repo has been recreated - added to repositories collection

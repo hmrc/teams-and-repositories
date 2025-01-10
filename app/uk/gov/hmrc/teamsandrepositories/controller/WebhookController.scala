@@ -35,81 +35,81 @@ class WebhookController @Inject()(
   cc               : ControllerComponents
 )(using ExecutionContext) extends BackendController(cc) with Logging:
 
-  def processGithubWebhook(): Action[GithubRequest] = Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)) { implicit request =>
-    def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] =
-      persistingService.updateRepository(repoName).fold(
-        err => logger.info(s"repo: $repoName - failed action: $action - $err"),
-        _   => logger.info(s"repo: $repoName - $message")
-      ).recover:
-        case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
+  def processGithubWebhook(): Action[GithubRequest] =
+    Action.apply(parse.json[GithubRequest](GithubRequest.githubReads)): request =>
+      def updateRepositoryForAction(repoName: String, message: String, action: String): Future[Unit] =
+        persistingService.updateRepository(repoName).fold(
+          err => logger.info(s"repo: $repoName - failed action: $action - $err"),
+          _   => logger.info(s"repo: $repoName - $message")
+        ).recover:
+          case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
 
-    request.body match
-      case pullRequest: PullRequest if pullRequest.action == "opened" =>
-        persistingService.addOpenPr(
-          OpenPullRequest(
-            repoName  = pullRequest.repoName,
-            title     = pullRequest.title,
-            url       = pullRequest.url,
-            author    = pullRequest.author,
-            createdAt = pullRequest.createdAt
+      request.body match
+        case pullRequest: PullRequest if pullRequest.action == "opened" =>
+          persistingService.addOpenPr(
+            OpenPullRequest(
+              repoName  = pullRequest.repoName,
+              title     = pullRequest.title,
+              url       = pullRequest.url,
+              author    = pullRequest.author,
+              createdAt = pullRequest.createdAt
+            )
           )
-        )
-        logger.info(s"Pull request opened: ${pullRequest.url}")
-        Accepted(details("Pull request opened event accepted"))
+          logger.info(s"Pull request opened: ${pullRequest.url}")
+          Accepted(details("Pull request opened event accepted"))
 
-      case pullRequest: PullRequest if pullRequest.action == "closed" =>
-        persistingService.deleteOpenPr(pullRequest.url)
-        logger.info(s"Pull request closed: ${pullRequest.url}")
-        Accepted(details("Pull request closed event accepted"))
+        case pullRequest: PullRequest if pullRequest.action == "closed" =>
+          persistingService.deleteOpenPr(pullRequest.url)
+          logger.info(s"Pull request closed: ${pullRequest.url}")
+          Accepted(details("Pull request closed event accepted"))
 
-      case pullRequest: PullRequest =>
-        logger.info(s"repo: ${pullRequest.repoName} - no change required for pull request event")
-        Ok(details("No change required for pull request event"))
+        case pullRequest: PullRequest =>
+          logger.info(s"repo: ${pullRequest.repoName} - no change required for pull request event")
+          Ok(details("No change required for pull request event"))
 
-      case push: Push if push.branchRef == "main" =>
-        updateRepositoryForAction(push.repoName, "successfully updated repo", "push")
-        Accepted(details("Push accepted"))
+        case push: Push if push.branchRef == "main" =>
+          updateRepositoryForAction(push.repoName, "successfully updated repo", "push")
+          Accepted(details("Push accepted"))
 
-      case push: Push =>
-        logger.info(s"repo: ${push.repoName} branch: ${push.branchRef} - no change required for push event")
-        Ok(details("No change required for push event"))
+        case push: Push =>
+          logger.info(s"repo: ${push.repoName} branch: ${push.branchRef} - no change required for push event")
+          Ok(details("No change required for push event"))
 
-      case TeamEvent("created", teamName, _) =>
-        persistingService
-          .addTeam(TeamSummary(teamName, Seq.empty))
-          .map(_ => logger.info(s"New team created: $teamName - New team created webhook event has been actioned"))
-          .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams", ex) }
-        Accepted(details("Team creation event accepted"))
+        case TeamEvent("created", teamName, _) =>
+          persistingService
+            .addTeam(TeamSummary(teamName, Seq.empty))
+            .map(_ => logger.info(s"New team created: $teamName - New team created webhook event has been actioned"))
+            .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams", ex) }
+          Accepted(details("Team creation event accepted"))
 
-      case TeamEvent("added_to_repository", teamName, Some(repositoryName)) =>
-        updateRepositoryForAction(repositoryName, s"successfully added team: $teamName", "added_to_repository")
-        Accepted(details("Team added event accepted"))
+        case TeamEvent("added_to_repository", teamName, Some(repositoryName)) =>
+          updateRepositoryForAction(repositoryName, s"successfully added team: $teamName", "added_to_repository")
+          Accepted(details("Team added event accepted"))
 
-      case TeamEvent("removed_from_repository", teamName, Some(repositoryName)) =>
-        updateRepositoryForAction(repositoryName, s"successfully removed team: $teamName", "removed_from_repository")
-        Accepted(details("Team removal event accepted"))
+        case TeamEvent("removed_from_repository", teamName, Some(repositoryName)) =>
+          updateRepositoryForAction(repositoryName, s"successfully removed team: $teamName", "removed_from_repository")
+          Accepted(details("Team removal event accepted"))
 
-      case teamEvent: TeamEvent =>
-        logger.info(s"repo: ${teamEvent.repoName} - team event: ${teamEvent.action} are ignored")
-        Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
+        case teamEvent: TeamEvent =>
+          logger.info(s"repo: ${teamEvent.repoName} - team event: ${teamEvent.action} are ignored")
+          Ok(details(s"Team events for: ${teamEvent.action} are ignored"))
 
-      case RepositoryEvent("archived", repositoryName) =>
-        persistingService
-          .archiveRepository(repositoryName)
-          .map(_ => logger.info(s"repo: $repositoryName - repository archived webhook event has been actioned"))
-          .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
-        Accepted(details(s"Repository archived event accepted"))
+        case RepositoryEvent("archived", repositoryName) =>
+          persistingService
+            .archiveRepository(repositoryName)
+            .map(_ => logger.info(s"repo: $repositoryName - repository archived webhook event has been actioned"))
+            .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
+          Accepted(details(s"Repository archived event accepted"))
 
-      case RepositoryEvent("deleted", repositoryName) =>
-        persistingService
-          .deleteRepository(repositoryName)
-          .map(_ => logger.info(s"repo: $repositoryName - repository deleted webhook event has been actioned"))
-          .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
-        Accepted(details(s"Repository deleted event accepted"))
+        case RepositoryEvent("deleted", repositoryName) =>
+          persistingService
+            .deleteRepository(repositoryName)
+            .map(_ => logger.info(s"repo: $repositoryName - repository deleted webhook event has been actioned"))
+            .recover { case ex => logger.error(s"repo: $repositoryName - unexpected error archiving repository", ex) }
+          Accepted(details(s"Repository deleted event accepted"))
 
-      case repositoryEvent: RepositoryEvent =>
-        Ok(details(s"Repository events with ${repositoryEvent.action} actions are ignored"))
-  }
+        case repositoryEvent: RepositoryEvent =>
+          Ok(details(s"Repository events with ${repositoryEvent.action} actions are ignored"))
 
   private def details(msg: String): JsObject =
     Json.obj("details" -> msg)

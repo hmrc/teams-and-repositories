@@ -63,7 +63,7 @@ object MongoUtils:
     for
       old      <- collection.find(oldValsFilter).toFuture()
       upserted <- //upsert any that were not present already
-                  bulkWrite(
+                  bulkWrite:
                     newVals
                       .filterNot(old.contains)
                       .map: entry =>
@@ -72,9 +72,8 @@ object MongoUtils:
                           entry,
                           ReplaceOptions().collation(collation).upsert(true)
                         )
-                  )
       deleted  <- // delete any that are no longer present
-                  bulkWrite(
+                  bulkWrite:
                     old
                       .filterNot(oldC => newVals.exists(newC => compareById(oldC, newC)))
                       .map: entry =>
@@ -82,5 +81,4 @@ object MongoUtils:
                           filterById(entry),
                           DeleteOptions().collation(collation)
                         )
-                  )
     yield (upserted, deleted)

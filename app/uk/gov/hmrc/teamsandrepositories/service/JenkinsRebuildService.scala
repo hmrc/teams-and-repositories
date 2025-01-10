@@ -122,7 +122,7 @@ case class JenkinsRebuildService @Inject()(
                , callbackChannel = Some("team-platops-alerts")
                ))
         if err.errors.nonEmpty
-        _          =  logger.error(s"Errors sending rebuild alert FAILED notification: ${err.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
+        _   =  logger.error(s"Errors sending rebuild alert FAILED notification: ${err.errors.mkString("[", ",", "]")} - alert slackChannel = ${slackConfig.adminChannel}")
       yield ()
     else
       Future.unit

@@ -36,19 +36,19 @@ class OpenPullRequestPersistenceSpec
 
     private val pr1 =
       OpenPullRequest(
-          repoName = "example-pr2",
-          title = "Some PR Title",
-          url = "https://github.com/example-pr2/pull/1",
-          author = "username1",
+          repoName  = "example-pr2",
+          title     = "Some PR Title",
+          url       = "https://github.com/example-pr2/pull/1",
+          author    = "username1",
           createdAt = Instant.parse("2020-03-13T11:18:06Z")
         )
 
-    private val pr2 =  
+    private val pr2 =
       OpenPullRequest(
-        repoName = "example-repo3",
-        title = "Some PR Title",
-        url = "https://github.com/example-repo3/pull/1",
-        author = "username2",
+        repoName  = "example-repo3",
+        title     = "Some PR Title",
+        url       = "https://github.com/example-repo3/pull/1",
+        author    = "username2",
         createdAt = Instant.parse("2020-03-13T11:18:06Z")
       )
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.controller
 
 
-import play.api.libs.json._
+import play.api.libs.json.{Format, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, RepoType, ServiceType}
@@ -29,14 +29,19 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class DeletedRepositoriesController @Inject()(
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
-  cc: ControllerComponents
+  cc                            : ControllerComponents
 )(using ExecutionContext
 ) extends BackendController(cc):
 
-  private given OFormat[DeletedGitRepository] = DeletedGitRepository.apiFormat
+  private given Format[DeletedGitRepository] = DeletedGitRepository.apiFormat
 
-  def getDeletedRepos(name: Option[String], owningTeam: Option[String], repoType: Option[RepoType], serviceType: Option[ServiceType]): Action[AnyContent] = Action.async {
-    deletedRepositoriesPersistence
-      .find(name, owningTeam, repoType, serviceType)
-      .map(result => Ok(Json.toJson(result)))
-  }
+  def getDeletedRepos(
+    name       : Option[String],
+    owningTeam : Option[String],
+    repoType   : Option[RepoType],
+    serviceType: Option[ServiceType]
+  ): Action[AnyContent] =
+    Action.async:
+      deletedRepositoriesPersistence
+        .find(name, owningTeam, repoType, serviceType)
+        .map(result => Ok(Json.toJson(result)))
