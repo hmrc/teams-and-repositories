@@ -485,8 +485,9 @@ object GhRepository:
 
     def deriveTestType(repoName: String): Option[TestType] =
       repoName match
-        case name if "(?i)(performance|perf)(-test(s)?)".r.findFirstIn(name).isDefined                   => Some(TestType.Performance)
-        case name if "(?i)(acceptance|ui|journey|api|contract)(-test(s)?)".r.findFirstIn(name).isDefined => Some(TestType.Acceptance)
+        case name if "(?i)(performance|perf)(-test(s)?)".r.findFirstIn(name).isDefined          => Some(TestType.Performance)
+        case name if "(?i)(acceptance|ui|journey|api)(-test(s)?)".r.findFirstIn(name).isDefined => Some(TestType.Acceptance)
+        case name if "(?i)(contract-test(s)?)".r.findFirstIn(name).isDefined                    => Some(TestType.Contract)
         case _ => None
 
     def parse(repoName: String, repositoryYaml: String): Option[ManifestDetails] =
