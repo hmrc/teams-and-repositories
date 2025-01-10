@@ -22,7 +22,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.teamsandrepositories.connector.{GhRepository, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.model.*
-import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
 import uk.gov.hmrc.teamsandrepositories.persistence.TestRepoRelationshipsPersistence.TestRepoRelationship
 import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 
@@ -34,6 +34,7 @@ case class PersistingService @Inject()(
   repositoriesPersistence       : RepositoriesPersistence,
   deletedRepositoriesPersistence: DeletedRepositoriesPersistence,
   teamSummaryPersistence        : TeamSummaryPersistence,
+  openPullRequestPersistence    : OpenPullRequestPersistence,
   relationshipsPersistence      : TestRepoRelationshipsPersistence,
   configuration                 : Configuration,
   serviceConfigsConnector       : ServiceConfigsConnector,
@@ -42,6 +43,19 @@ case class PersistingService @Inject()(
 
   private val hiddenTeams              = configuration.get[Seq[String]]("hidden.teams").toSet
   private val servicesBuiltOffPlatform = configuration.get[Seq[String]]("built-off-platform").toSet
+
+  def updateOpenPullRequests()(using ExecutionContext): Future[Unit] =
+    for
+      openPrs             <- githubConnector.getOpenPrs
+      _                   <- openPullRequestPersistence.putOpenPullRequests(openPrs)
+      _                   =  logger.info(s"Persisted ${openPrs.size} open pull requests")
+    yield ()
+
+  def addOpenPr(openPr: OpenPullRequest): Future[Unit] =
+    openPullRequestPersistence.putOpenPullRequest(openPr)
+
+  def deleteOpenPr(url: String): Future[Long] =
+    openPullRequestPersistence.deleteOpenPullRequest(url)
 
   private def updateRepositories(reposWithTeams: Seq[GitRepository])(using ExecutionContext): Future[Unit] =
     for

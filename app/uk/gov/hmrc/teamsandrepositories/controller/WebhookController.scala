@@ -22,9 +22,10 @@ import play.api.libs.json.{JsObject, Json, Reads, __}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.teamsandrepositories.controller.WebhookController.*
-import uk.gov.hmrc.teamsandrepositories.model.TeamSummary
+import uk.gov.hmrc.teamsandrepositories.model.{OpenPullRequest, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.service.PersistingService
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,6 +44,28 @@ class WebhookController @Inject()(
         case ex => logger.error(s"repo: $repoName - $action - $ex", ex)
 
     request.body match
+      case pullRequest: PullRequest if pullRequest.action == "opened" =>
+        persistingService.addOpenPr(
+          OpenPullRequest(
+            repoName  = pullRequest.repoName,
+            title     = pullRequest.title,
+            url       = pullRequest.url,
+            author    = pullRequest.author,
+            createdAt = pullRequest.createdAt
+          )
+        )
+        logger.info(s"Pull request opened: ${pullRequest.url}")
+        Accepted(details("Pull request opened event accepted"))
+
+      case pullRequest: PullRequest if pullRequest.action == "closed" =>
+        persistingService.deleteOpenPr(pullRequest.url)
+        logger.info(s"Pull request closed: ${pullRequest.url}")
+        Accepted(details("Pull request closed event accepted"))
+
+      case pullRequest: PullRequest =>
+        logger.info(s"repo: ${pullRequest.repoName} - no change required for pull request event")
+        Ok(details("No change required for pull request event"))
+
       case push: Push if push.branchRef == "main" =>
         updateRepositoryForAction(push.repoName, "successfully updated repo", "push")
         Accepted(details("Push accepted"))
@@ -96,9 +119,30 @@ object WebhookController:
 
   object GithubRequest:
     val githubReads: Reads[GithubRequest] =
-      Push.reads
+      PullRequest.reads
+        .orElse(Push.reads)
         .orElse(TeamEvent.reads)
         .orElse(RepositoryEvent.reads)
+
+ // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
+  case class PullRequest(
+    action   : String,
+    repoName : String,
+    title    : String,
+    url      : String,
+    author   : String,
+    createdAt: Instant
+  ) extends GithubRequest
+
+  object PullRequest:
+    val reads: Reads[GithubRequest] =
+      ( (__ \ "action"                         ).read[String].map(_.toLowerCase)
+      ~ (__ \ "repository" \ "name"            ).read[String]
+      ~ (__ \ "pull_request" \ "title"         ).read[String]
+      ~ (__ \ "pull_request" \ "html_url"      ).read[String]
+      ~ (__ \ "pull_request" \ "user" \ "login").read[String]
+      ~ (__ \ "pull_request" \ "created_at"    ).read[Instant]
+      )(PullRequest.apply _)
 
   // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#team
   case class TeamEvent(

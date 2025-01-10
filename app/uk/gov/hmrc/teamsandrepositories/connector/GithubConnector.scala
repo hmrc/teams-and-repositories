@@ -30,7 +30,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, Retries, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.{ManifestDetails, RepoTypeHeuristics}
-import uk.gov.hmrc.teamsandrepositories.model._
+import uk.gov.hmrc.teamsandrepositories.model.*
 import uk.gov.hmrc.teamsandrepositories.util.Parser
 
 import java.time.Instant
@@ -55,6 +55,20 @@ class GithubConnector @Inject()(
   private val acceptsHeader = "Accepts" -> "application/vnd.github.v3+json"
 
   private given HeaderCarrier = HeaderCarrier()
+
+  def getOpenPrs: Future[List[OpenPullRequest]] =
+    withCounter(s"github.open.teams") {
+      val root: JsPath =
+        __ \ "data" \ "organization" \ "repositories"
+
+      given Reads[List[OpenPullRequest]] =
+        (root \ "nodes").read(OpenPullRequest.reads)
+
+      executePagedGqlQuery(
+        query = getOpenPrsQuery,
+        cursorPath = root \ "pageInfo" \ "endCursor"
+      ).map(_.flatten)
+    }
 
   def getTeams: Future[List[GhTeam]] =
     withCounter(s"github.open.teams") {
@@ -318,6 +332,34 @@ object GithubConnector:
               nodes {
                 name
                 createdAt
+              }
+            }
+          }
+        }
+      """
+    )
+
+  val getOpenPrsQuery: GraphqlQuery =
+    GraphqlQuery(
+      """
+        query($cursor: String) {
+          organization(login: "hmrc") {
+            repositories(first: 100, after: $cursor) {
+              pageInfo {
+                endCursor
+              }
+              nodes {
+                name
+                pullRequests(states: OPEN, first: 100) {
+                  nodes {
+                    title
+                    url
+                    author {
+                      login
+                    }
+                    createdAt
+                  }
+                }
               }
             }
           }

@@ -74,6 +74,14 @@ class SchedulerConfigs @Inject()(configuration: Configuration):
     , initialDelayKey = "cache.teams.initialDelay"
     )
 
+  val openPrDataReloadScheduler: SchedulerConfig =
+    SchedulerConfig(
+      configuration
+      , enabledKey = "cache.openPrs.reloadEnabled"
+      , intervalKey = "cache.openPrs.duration"
+      , initialDelayKey = "cache.openPrs.initialDelay"
+    )
+
   val metrixScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
