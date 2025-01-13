@@ -29,7 +29,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, OpenPullRequest, RepoType, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.connector.UserManagementConnector
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, OpenPullRequest, RepoType, TeamSummary, User}
 import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
 import java.time.Instant
@@ -45,11 +46,13 @@ class OpenPullRequestsControllerSpec
 
   val mockOpenPullRequestPersistence: OpenPullRequestPersistence = mock[OpenPullRequestPersistence]
   val mockTeamSummaryPersistence    : TeamSummaryPersistence     = mock[TeamSummaryPersistence]
+  val mockUserManagementConnector   : UserManagementConnector    = mock[UserManagementConnector]
   val mockRepositoriesPersistence   : RepositoriesPersistence    = mock[RepositoriesPersistence]
 
   implicit override lazy val app: Application =
     GuiceApplicationBuilder()
       .overrides(
+        bind[UserManagementConnector].toInstance(mockUserManagementConnector),
         bind[OpenPullRequestPersistence].toInstance(mockOpenPullRequestPersistence),
         bind[TeamSummaryPersistence].toInstance(mockTeamSummaryPersistence),
         bind[RepositoriesPersistence].toInstance(mockRepositoriesPersistence)
@@ -60,8 +63,8 @@ class OpenPullRequestsControllerSpec
     super.beforeEach()
     reset(mockOpenPullRequestPersistence)
 
-  private def getOpenPrsRoute(repoName: Option[String], digitalServiceName: Option[String]) =
-    routes.OpenPullRequestsController.getOpenPrs(repoName, digitalServiceName).url
+  private def getOpenPrsRoute(repoName: Option[String], digitalServiceName: Option[String], raisedByMembersOfTeam: Option[String]) =
+    routes.OpenPullRequestsController.getOpenPrs(repoName, digitalServiceName, raisedByMembersOfTeam).url
 
   private lazy val now = Instant.now()
 
@@ -81,7 +84,7 @@ class OpenPullRequestsControllerSpec
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
         )))
 
-      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = Some("team-a"), digitalServiceName = None))).value
+      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = Some("team-a"), digitalServiceName = None, raisedByMembersOfTeam = None))).value
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(s"""
@@ -131,7 +134,7 @@ class OpenPullRequestsControllerSpec
           OpenPullRequest("example-repo2", "pr title 4", "https://github.com/example-repo2/pull/2", "author4", now)
         )))
 
-      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = None, digitalServiceName = Some("a digital service")))).value
+      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = None, digitalServiceName = Some("a digital service"), raisedByMembersOfTeam = None))).value
 
       status(result) shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -145,3 +148,34 @@ class OpenPullRequestsControllerSpec
       """)
 
       verify(mockOpenPullRequestPersistence).findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), any)
+
+    "get all open pull requests raised by members of a team" in :
+      when(mockUserManagementConnector.getUsersForTeam(eqTo("team-a")))
+        .thenReturn(
+          Future.successful(Seq(
+            User(Some("author1")),
+            User(Some("author2"))
+          )))
+
+      when(mockOpenPullRequestPersistence.findOpenPullRequests(repos = any, authors = eqTo(Some(Seq("author1", "author2")))))
+        .thenReturn(Future.successful(Seq(
+          OpenPullRequest("example-repo1", "pr title 1", "https://github.com/example-repo1/pull/1", "author1", now),
+          OpenPullRequest("example-repo2", "pr title 2", "https://github.com/example-repo2/pull/2", "author2", now),
+          OpenPullRequest("example-repo3", "pr title 3", "https://github.com/example-repo3/pull/1", "author1", now),
+          OpenPullRequest("example-repo4", "pr title 4", "https://github.com/example-repo4/pull/2", "author2", now)
+        )))
+
+      val result = route(app, FakeRequest(GET, getOpenPrsRoute(repoName = None, digitalServiceName = None, raisedByMembersOfTeam = Some("team-a")))).value
+
+      status(result) shouldBe OK
+      contentAsJson(result) shouldBe Json.parse(
+        s"""
+        [
+          {"repoName":"example-repo1","title":"pr title 1","url":"https://github.com/example-repo1/pull/1","author":"author1","createdAt":"$now"},
+          {"repoName":"example-repo2","title":"pr title 2","url":"https://github.com/example-repo2/pull/2","author":"author2","createdAt":"$now"},
+          {"repoName":"example-repo3","title":"pr title 3","url":"https://github.com/example-repo3/pull/1","author":"author1","createdAt":"$now"},
+          {"repoName":"example-repo4","title":"pr title 4","url":"https://github.com/example-repo4/pull/2","author":"author2","createdAt":"$now"}
+        ]
+      """)
+
+      verify(mockOpenPullRequestPersistence).findOpenPullRequests(repos = any, authors = eqTo(Some(Seq("author1", "author2"))))

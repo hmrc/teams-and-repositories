@@ -19,6 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.controller
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.teamsandrepositories.connector.UserManagementConnector
 import uk.gov.hmrc.teamsandrepositories.model.OpenPullRequest
 import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
@@ -27,6 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OpenPullRequestsController @Inject()(
+  userManagementConnector   : UserManagementConnector,
   teamSummaryPersistence    : TeamSummaryPersistence,
   repositoriesPersistence   : RepositoriesPersistence,
   openPullRequestPersistence: OpenPullRequestPersistence,
@@ -36,16 +38,16 @@ class OpenPullRequestsController @Inject()(
 
   private given Writes[OpenPullRequest] = OpenPullRequest.apiWrites
 
-  def getOpenPrs(reposOwnedByTeamName: Option[String], reposOwnedByDigitalServiceName: Option[String]): Action[AnyContent] =
+  def getOpenPrs(reposOwnedByTeamName: Option[String], reposOwnedByDigitalServiceName: Option[String], raisedByMembersOfTeamName: Option[String]): Action[AnyContent] =
     Action.async:
-      (reposOwnedByTeamName, reposOwnedByDigitalServiceName) match
-        case (Some(teamName), None) =>
+      (reposOwnedByTeamName, reposOwnedByDigitalServiceName, raisedByMembersOfTeamName) match
+        case (Some(teamName), None, None) =>
           for
             teamSummaries <- teamSummaryPersistence.findTeamSummaries(Some(teamName))
             repos         =  teamSummaries.flatMap(_.repos)
             openPrs       <- openPullRequestPersistence.findOpenPullRequests(repos = Some(repos))
           yield Ok(Json.toJson(openPrs))
-        case (None, Some(digitalServiceName)) =>
+        case (None, Some(digitalServiceName), None) =>
           for
             repos   <- repositoriesPersistence.find(
                          name               = None,
@@ -59,5 +61,11 @@ class OpenPullRequestsController @Inject()(
                        )
             openPrs <- openPullRequestPersistence.findOpenPullRequests(repos = Some(repos.map(_.name)))
           yield Ok(Json.toJson(openPrs))
+        case (None, None, Some(teamName)) =>
+          for
+            users           <- userManagementConnector.getUsersForTeam(teamName)
+            githubUsernames = users.flatMap(_.githubUsername)
+            openPrs         <- openPullRequestPersistence.findOpenPullRequests(authors = Some(githubUsernames))
+          yield Ok(Json.toJson(openPrs))
         case _ =>
-          Future.successful(BadRequest(Json.obj("error" -> "Provide either reposOwnedByTeamName or reposOwnedByDigitalServiceName, but not both")))
+          Future.successful(BadRequest(Json.obj("error" -> "Provide only one of reposOwnedByTeamName, reposOwnedByDigitalServiceName, or raisedByMembersOfTeam")))
