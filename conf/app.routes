@@ -12,7 +12,7 @@ GET         /api/cache/reload/:serviceName                           uk.gov.hmrc
 GET         /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepos(name: Option[String], team: Option[String], repoType: Option[RepoType], serviceType: Option[ServiceType])
 
 # open pull requests
-GET         /api/open-pull-requests                                  uk.gov.hmrc.teamsandrepositories.controller.OpenPullRequestsController.getOpenPrs(reposOwnedByTeamName: Option[String], reposOwnedByDigitalServiceName: Option[String])
+GET         /api/open-pull-requests                                  uk.gov.hmrc.teamsandrepositories.controller.OpenPullRequestsController.getOpenPrs(reposOwnedByTeam: Option[String], reposOwnedByDigitalService: Option[String], raisedByMembersOfTeam: Option[String])
 
 # v2 api
 GET         /api/v2/repositories                                     uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.repositories(name: Option[String], team: Option[String], owningTeam: Option[String], digitalServiceName: Option[String], archived: Option[Boolean], repoType: Option[RepoType], serviceType: Option[ServiceType], tag: Option[List[Tag]])
