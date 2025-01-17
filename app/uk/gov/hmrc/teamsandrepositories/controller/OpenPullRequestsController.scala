@@ -23,6 +23,7 @@ import uk.gov.hmrc.teamsandrepositories.connector.UserManagementConnector
 import uk.gov.hmrc.teamsandrepositories.model.OpenPullRequest
 import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -46,26 +47,29 @@ class OpenPullRequestsController @Inject()(
             teamSummaries <- teamSummaryPersistence.findTeamSummaries(Some(teamName))
             repos         =  teamSummaries.flatMap(_.repos)
             openPrs       <- openPullRequestPersistence.findOpenPullRequests(repos = Some(repos))
-          yield Ok(Json.toJson(openPrs))
+            sortedPrs     =  openPrs.sortBy(_.createdAt)(Ordering[Instant].reverse)
+          yield Ok(Json.toJson(sortedPrs))
         case (None, Some(digitalServiceName), None) =>
           for
-            repos   <- repositoriesPersistence.find(
-                         name               = None,
-                         team               = None,
-                         owningTeam         = None,
-                         digitalServiceName = Some(digitalServiceName),
-                         isArchived         = None,
-                         repoType           = None,
-                         serviceType        = None,
-                         tags               = None
-                       )
-            openPrs <- openPullRequestPersistence.findOpenPullRequests(repos = Some(repos.map(_.name)))
-          yield Ok(Json.toJson(openPrs))
+            repos    <- repositoriesPersistence.find(
+                          name               = None,
+                          team               = None,
+                          owningTeam         = None,
+                          digitalServiceName = Some(digitalServiceName),
+                          isArchived         = None,
+                          repoType           = None,
+                          serviceType        = None,
+                          tags               = None
+                        )
+            openPrs  <- openPullRequestPersistence.findOpenPullRequests(repos = Some(repos.map(_.name)))
+            sortedPrs =  openPrs.sortBy(_.createdAt)(Ordering[Instant].reverse)
+          yield Ok(Json.toJson(sortedPrs))
         case (None, None, Some(teamName)) =>
           for
             users           <- userManagementConnector.getUsersForTeam(teamName)
             githubUsernames = users.flatMap(_.githubUsername)
             openPrs         <- openPullRequestPersistence.findOpenPullRequests(authors = Some(githubUsernames))
-          yield Ok(Json.toJson(openPrs))
+            sortedPrs       =  openPrs.sortBy(_.createdAt)(Ordering[Instant].reverse)
+          yield Ok(Json.toJson(sortedPrs))
         case _ =>
           Future.successful(BadRequest(Json.obj("error" -> "Provide only one of reposOwnedByTeamName, reposOwnedByDigitalServiceName, or raisedByMembersOfTeam")))

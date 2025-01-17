@@ -69,6 +69,18 @@ class GithubConnector @Inject()(
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
 
+  def getOpenPrsForRepo(repoName: String): Future[Seq[OpenPullRequest]] =
+    val root: JsPath =
+      __ \ "data" \ "organization" \ "repository" \ "pullRequests"
+
+    given Reads[Seq[OpenPullRequest]] =
+      (root \ "nodes").readWithDefault(Seq.empty[OpenPullRequest])(Reads.seq(OpenPullRequest.prReads(repoName)))
+
+    executePagedGqlQuery(
+      query = getOpenPrsForRepoQuery.withVariable("repoName", JsString(repoName)),
+      cursorPath = root \ "pageInfo" \ "endCursor"
+    ).map(_.flatten)
+
   def getTeams(): Future[Seq[GhTeam]] =
     withCounter(s"github.open.teams"):
       val root: JsPath =
@@ -339,7 +351,7 @@ object GithubConnector:
       """
         query($cursor: String) {
           organization(login: "hmrc") {
-            repositories(first: 100, after: $cursor) {
+            repositories(first: 100, after: $cursor, orderBy: {field: CREATED_AT, direction: ASC}) {
               pageInfo {
                 endCursor
               }
@@ -354,6 +366,31 @@ object GithubConnector:
                     }
                     createdAt
                   }
+                }
+              }
+            }
+          }
+        }
+      """
+    )
+
+  val getOpenPrsForRepoQuery: GraphqlQuery =
+    GraphqlQuery(
+      """
+        query($repoName: String!, $cursor: String) {
+          organization(login: "hmrc") {
+            repository(name: $repoName) {
+              pullRequests(states: OPEN, first: 100, after: $cursor) {
+                pageInfo {
+                  endCursor
+                }
+                nodes {
+                  title
+                  url
+                  author {
+                    login
+                  }
+                  createdAt
                 }
               }
             }

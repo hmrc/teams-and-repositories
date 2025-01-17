@@ -29,7 +29,7 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.RepoTypeHeuristics
-import uk.gov.hmrc.teamsandrepositories.connector.GithubConnector.{getOpenPrsQuery, getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
+import uk.gov.hmrc.teamsandrepositories.connector.GithubConnector.{getOpenPrsForRepoQuery, getOpenPrsQuery, getRepoQuery, getReposForTeamQuery, getReposQuery, getTeamsQuery}
 import uk.gov.hmrc.teamsandrepositories.model.OpenPullRequest
 
 import java.time.Instant
@@ -504,6 +504,46 @@ class GithubConnectorSpec
       }
     """
 
+  val openPrsForRepoJson =
+    s"""
+        {
+         "data": {
+           "organization": {
+             "repository": {
+               "pullRequests": {
+                 "nodes": [
+                   {
+                     "title": "PR Title 1",
+                     "url": "https://github.com/example-repo/pull/1",
+                     "author": {
+                       "login": "author1"
+                     },
+                     "createdAt": "2020-03-13T11:18:06Z"
+                   },
+                   {
+                     "title": "PR Title 2",
+                     "url": "https://github.com/example-repo/pull/2",
+                     "author": {
+                       "login": "author2"
+                     },
+                     "createdAt": "2020-03-12T11:18:06Z"
+                   },
+                   {
+                     "title": "PR Title 3",
+                     "url": "https://github.com/example-repo/pull/3",
+                     "author": {
+                       "login": "author3"
+                     },
+                     "createdAt": "2020-03-11T11:18:06Z"
+                   }
+                 ]
+               }
+             }
+           }
+         }
+       }
+       """
+
   def heuristicsJson(repoName: String): String =
     s"""
       {
@@ -733,6 +773,87 @@ class GithubConnectorSpec
       )
 
       connector.getReposForTeam(team).futureValue shouldBe empty
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+      )
+
+  "GithubConnector.openPrsForRepo" should :
+    "return all open pull requests for a given repository" in :
+      val repoName = "example-repo"
+      val openPullRequests =
+        List(
+          OpenPullRequest(
+            repoName = repoName,
+            title = "PR Title 1",
+            url = "https://github.com/example-repo/pull/1",
+            author = "author1",
+            createdAt = Instant.parse("2020-03-13T11:18:06Z")
+          ),
+          OpenPullRequest(
+            repoName = repoName,
+            title = "PR Title 2",
+            url = "https://github.com/example-repo/pull/2",
+            author = "author2",
+            createdAt = Instant.parse("2020-03-12T11:18:06Z")
+          ),
+          OpenPullRequest(
+            repoName = repoName,
+            title = "PR Title 3",
+            url = "https://github.com/example-repo/pull/3",
+            author = "author3",
+            createdAt = Instant.parse("2020-03-11T11:18:06Z")
+          )
+        )
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getOpenPrsForRepoQuery.withVariable("repoName", JsString(repoName)).asJsonString))
+          .willReturn(aResponse().withBody(openPrsForRepoJson))
+      )
+
+      connector.getOpenPrsForRepo(repoName).futureValue shouldBe openPullRequests
+
+      wireMockServer.verify(
+        postRequestedFor(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(getOpenPrsForRepoQuery.withVariable("repoName", JsString(repoName)).asJsonString))
+      )
+
+    "return an empty list when no open pull requests exist" in :
+      val repoName = "example-repo"
+
+      val query =
+        getOpenPrsForRepoQuery
+          .withVariable("repoName", JsString(repoName))
+
+      stubFor(
+        post(urlPathEqualTo("/graphql"))
+          .withRequestBody(equalToJson(query.asJsonString))
+          .willReturn(
+            aResponse()
+              .withBody(
+                """
+                    {
+                      "data": {
+                        "organization": {
+                          "repository": {
+                            "pullRequests": {
+                              "pageInfo": {
+                                "endCursor": null
+                              },
+                              "nodes": null
+                            }
+                          }
+                        }
+                      }
+                    }
+                  """
+              )
+          )
+      )
+
+      connector.getOpenPrsForRepo(repoName).futureValue shouldBe empty
 
       wireMockServer.verify(
         postRequestedFor(urlPathEqualTo("/graphql"))
