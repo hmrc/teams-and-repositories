@@ -46,9 +46,13 @@ case class PersistingService @Inject()(
 
   def updateOpenPullRequests()(using ExecutionContext): Future[Unit] =
     for
-      openPrs <- githubConnector.getOpenPrs()
-      _       <- openPullRequestPersistence.putOpenPullRequests(openPrs)
-      _       =  logger.info(s"Persisted ${openPrs.size} open pull requests")
+      openPrs       <- githubConnector.getOpenPrs()
+      reposToRescan =  openPrs.groupBy(_.repoName).collect { case (repoName, prs) if prs.size == 100 => repoName }.toSeq
+      extraOpenPrs <- reposToRescan.foldLeftM(Seq.empty[OpenPullRequest]):
+                         (acc, repo) => githubConnector.getOpenPrsForRepo(repo).map(acc ++ _)
+      allOpenPrs    =  (openPrs ++ extraOpenPrs).distinct
+      _             <- openPullRequestPersistence.putOpenPullRequests(allOpenPrs)
+      _             =  logger.info(s"Persisted ${openPrs.size} open pull requests")
     yield ()
 
   def addOpenPr(openPr: OpenPullRequest): Future[Unit] =
