@@ -296,9 +296,9 @@ object JenkinsConnector:
         )(t => Tuple.fromProductTyped(t))
 
       val jenkinsReads: Reads[TestJobResults] =
-        ( (__ \ "accessibilityViolations"    ).readNullable[String].map(_.flatMap(_.toIntOption))
-        ~ (__ \ "securityAlerts"             ).readNullable[String].map(_.flatMap(_.toIntOption))
-        ~ (__ \ "securityAssessmentBreakdown").readNullable[SecurityAssessmentBreakdown]
+        ( (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ (__ \ "alertsSummary"          ).readNullable[SecurityAssessmentBreakdown]
         ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
         )(TestJobResults.apply _)
 
