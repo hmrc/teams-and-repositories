@@ -262,22 +262,43 @@ object JenkinsConnector:
       given Format[BuildResult] =
         Format.of[String].inmap(parse, _.asString)
 
+    
+    case class SecurityAssessmentBreakdown(
+      high         : Int,
+      medium       : Int,
+      low          : Int,
+      informational: Int
+    )
+
+    object SecurityAssessmentBreakdown:
+      val format: Format[SecurityAssessmentBreakdown] =
+        ( (__ \ "High"         ).format[Int]
+        ~ (__ \ "Medium"       ).format[Int]
+        ~ (__ \ "Low"          ).format[Int]
+        ~ (__ \ "Informational").format[Int]
+        )(apply, s => Tuple.fromProductTyped(s))
+
+    
     case class TestJobResults(
-      numAccessibilityViolations: Option[Int],
-      numSecurityAlerts         : Option[Int],
-      rawJson                   : Option[JsValue] = None
+      numAccessibilityViolations : Option[Int],
+      numSecurityAlerts          : Option[Int],
+      securityAssessmentBreakdown: Option[SecurityAssessmentBreakdown] = None,
+      rawJson                    : Option[JsValue]                     = None
     )
 
     object TestJobResults:
+      given Format[SecurityAssessmentBreakdown] = SecurityAssessmentBreakdown.format
       val apiWrites: Writes[TestJobResults] =
-        ( (__ \ "numAccessibilityViolations").writeNullable[Int]
-        ~ (__ \ "numSecurityAlerts"         ).writeNullable[Int]
-        ~ (__ \ "rawJson"                   ).writeNullable[JsValue]
+        ( (__ \ "numAccessibilityViolations" ).writeNullable[Int]
+        ~ (__ \ "numSecurityAlerts"          ).writeNullable[Int]
+        ~ (__ \ "securityAssessmentBreakdown").writeNullable[SecurityAssessmentBreakdown]
+        ~ (__ \ "rawJson"                    ).writeNullable[JsValue]
         )(t => Tuple.fromProductTyped(t))
 
       val jenkinsReads: Reads[TestJobResults] =
-        ( (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
-        ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
+        ( (__ \ "accessibilityViolations"    ).readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ (__ \ "securityAlerts"             ).readNullable[String].map(_.flatMap(_.toIntOption))
+        ~ (__ \ "securityAssessmentBreakdown").readNullable[SecurityAssessmentBreakdown]
         ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
         )(TestJobResults.apply _)
 
