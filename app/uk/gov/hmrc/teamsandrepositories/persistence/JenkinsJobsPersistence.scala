@@ -25,6 +25,7 @@ import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector.LatestBuild.SecurityAssessmentBreakdown
 
 @Singleton
 class JenkinsJobsPersistence @Inject()(
@@ -114,9 +115,10 @@ object JenkinsJobsPersistence:
     val mongoFormat: Format[Job] =
 
       given Format[JenkinsConnector.LatestBuild.TestJobResults] =
-        ( (__ \ "numAccessibilityViolations").formatNullable[Int]
-        ~ (__ \ "numSecurityAlerts"         ).formatNullable[Int]
-        ~ (__ \ "rawJson"                   ).formatNullable[JsValue]
+        ( (__ \ "numAccessibilityViolations" ).formatNullable[Int]
+        ~ (__ \ "numSecurityAlerts"          ).formatNullable[Int]
+        ~ (__ \ "securityAssessmentBreakdown").formatNullable[SecurityAssessmentBreakdown](SecurityAssessmentBreakdown.format)
+        ~ (__ \ "rawJson"                    ).formatNullable[JsValue]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
 
       given Format[JenkinsConnector.LatestBuild] =
