@@ -262,7 +262,7 @@ object JenkinsConnector:
       given Format[BuildResult] =
         Format.of[String].inmap(parse, _.asString)
 
-    
+
     case class SecurityAssessmentBreakdown(
       high         : Int,
       medium       : Int,
@@ -278,7 +278,7 @@ object JenkinsConnector:
         ~ (__ \ "Informational").format[Int]
         )(apply, s => Tuple.fromProductTyped(s))
 
-    
+
     case class TestJobResults(
       numAccessibilityViolations : Option[Int],
       numSecurityAlerts          : Option[Int],
@@ -296,7 +296,10 @@ object JenkinsConnector:
         )(t => Tuple.fromProductTyped(t))
 
       val jenkinsReads: Reads[TestJobResults] =
-        ( (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
+        ( ((__ \ "accessibilityViolations").readNullable[Int]
+           orElse
+           (__ \ "accessibilityViolations").readNullable[String].map(_.flatMap(_.toIntOption))
+          )
         ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
         ~ (__ \ "alertsSummary"          ).readNullable[SecurityAssessmentBreakdown]
         ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
@@ -317,5 +320,5 @@ object JenkinsConnector:
       ~ (__ \ "timestamp"     ).read[Instant]
       ~ (__ \ "result"        ).readNullable[BuildResult]
       ~ (__ \ "description"   ).readNullable[String]
-      ~ (__ \ "testJobResults").readNullable[TestJobResults](TestJobResults.jenkinsReads)
+      ~ Reads.pure(None) // testJobResults will be copied in later
       )(apply _)
