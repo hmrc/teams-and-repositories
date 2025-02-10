@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.teamsandrepositories.connector
 
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import com.github.tomakehurst.wiremock.client.WireMock._
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import uk.gov.hmrc.teamsandrepositories.config.BuildDeployApiConfig
 import uk.gov.hmrc.teamsandrepositories.model.RepoType
@@ -38,7 +38,6 @@ class BuildDeployApiConnectorSpec
      with IntegrationPatience:
 
   "getBuildJobs" should:
-
     "Invoke the API and return build jobs if successful" in:
       stubFor(
         post("/get-build-jobs")
@@ -69,7 +68,6 @@ class BuildDeployApiConnectorSpec
       )
 
   "enableBranchProtection" should:
-
     "Invoke the API and return unit if successful" in:
       stubFor(
         post("/set-branch-protection")
