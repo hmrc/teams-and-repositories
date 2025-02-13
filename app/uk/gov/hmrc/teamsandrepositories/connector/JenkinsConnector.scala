@@ -283,6 +283,7 @@ object JenkinsConnector:
       numAccessibilityViolations : Option[Int],
       numSecurityAlerts          : Option[Int],
       securityAssessmentBreakdown: Option[SecurityAssessmentBreakdown] = None,
+      testJobBuilder             : Option[String]                      = None,
       rawJson                    : Option[JsValue]                     = None
     )
 
@@ -292,6 +293,7 @@ object JenkinsConnector:
         ( (__ \ "numAccessibilityViolations" ).writeNullable[Int]
         ~ (__ \ "numSecurityAlerts"          ).writeNullable[Int]
         ~ (__ \ "securityAssessmentBreakdown").writeNullable[SecurityAssessmentBreakdown]
+        ~ (__ \ "testJobBuilder"             ).writeNullable[String]
         ~ (__ \ "rawJson"                    ).writeNullable[JsValue]
         )(t => Tuple.fromProductTyped(t))
 
@@ -302,6 +304,7 @@ object JenkinsConnector:
           )
         ~ (__ \ "securityAlerts"         ).readNullable[String].map(_.flatMap(_.toIntOption))
         ~ (__ \ "alertsSummary"          ).readNullable[SecurityAssessmentBreakdown]
+        ~ (__ \ "testJobBuilder"         ).readNullable[String]
         ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
         )(TestJobResults.apply _)
 
