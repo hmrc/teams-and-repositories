@@ -187,7 +187,8 @@ class JenkinsConnectorSpec
             "Medium"       : 4,
             "Low"          : 5,
             "Informational": 6
-          }
+          },
+          "testJobBuilder": "UITestJobBuilder"
         }""")
 
       stubFor(
@@ -205,6 +206,7 @@ class JenkinsConnectorSpec
                                           low           = 5,
                                           informational = 6
                                         )),
+          testJobBuilder              = Some("UITestJobBuilder"),
           rawJson                     = Some(testResultJson)
         ))
 

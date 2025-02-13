@@ -118,6 +118,7 @@ object JenkinsJobsPersistence:
         ( (__ \ "numAccessibilityViolations" ).formatNullable[Int]
         ~ (__ \ "numSecurityAlerts"          ).formatNullable[Int]
         ~ (__ \ "securityAssessmentBreakdown").formatNullable[SecurityAssessmentBreakdown](SecurityAssessmentBreakdown.format)
+        ~ (__ \ "testJobBuilder"             ).formatNullable[String]
         ~ (__ \ "rawJson"                    ).formatNullable[JsValue]
         )(JenkinsConnector.LatestBuild.TestJobResults.apply, t => Tuple.fromProductTyped(t))
 
