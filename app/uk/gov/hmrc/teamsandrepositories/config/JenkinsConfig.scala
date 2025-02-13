@@ -45,4 +45,4 @@ class JenkinsConfig @Inject()(config: Configuration):
 
   val queueThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.queue.throttle")
   val buildThrottleDuration: FiniteDuration = config.get[FiniteDuration]("jenkins.build.throttle")
-  val searchDepth          : Int            = config.get[Int]("cache.jenkins.searchDepth")
+  val searchDepth          : Int            = config.get[Int]("scheduler.jenkins.searchDepth")

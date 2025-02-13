@@ -226,6 +226,6 @@ class JenkinsConnectorSpec
         "jenkins.performancejobs.url"          -> s"$wireMockUrl/performancejobs/",
         "jenkins.performancejobs.username"     -> "performancejobsuser",
         "jenkins.performancejobs.token"        -> "performancejobstoken",
-        "cache.jenkins.searchDepth"            -> 10
+        "scheduler.jenkins.searchDepth"        -> 10
       )
     )

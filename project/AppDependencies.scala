@@ -2,8 +2,8 @@ import play.sbt.PlayImport.ws
 import sbt._
 
 object AppDependencies {
-  val bootstrapPlayVersion = "9.7.0"
-  val hmrcMongoVersion     = "2.3.0"
+  val bootstrapPlayVersion = "9.8.0"
+  val hmrcMongoVersion     = "2.5.0"
 
   val compile = Seq(
     ws,
@@ -11,7 +11,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-metrix-play-30"    % hmrcMongoVersion,
     "uk.gov.hmrc"            %% "internal-auth-client-play-30" % "3.0.0",
     "org.yaml"               %  "snakeyaml"                    % "2.3",
-    "org.typelevel"          %% "cats-core"                    % "2.12.0",
+    "org.typelevel"          %% "cats-core"                    % "2.13.0",
     "org.codehaus.groovy"    %  "groovy-astbuilder"            % "3.0.16",
   )
 

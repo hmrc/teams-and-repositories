@@ -12,4 +12,4 @@ For developers:
     docker run -d --name teams-and-repositories-mongo mongo
 
 
-The cache reload is disabled by default. Enable it by setting ```cache.teams.reloadEnabled=false```
+The cache reload is disabled by default. Enable it by setting ```scheduler.teams.enabled=false```
