@@ -22,38 +22,38 @@ import play.api.Configuration
 import scala.concurrent.duration.FiniteDuration
 
 case class SchedulerConfig(
-    enabledKey  : String
-  , enabled     : Boolean
-  , interval    : FiniteDuration
-  , initialDelay: FiniteDuration
-  )
+  enabledKey  : String
+, enabled     : Boolean
+, interval    : FiniteDuration
+, initialDelay: FiniteDuration
+)
 
 object SchedulerConfig:
   def apply(
-        configuration: Configuration
-      , enabledKey   : String
-      , interval     : FiniteDuration
-      , initialDelay : FiniteDuration
-      ): SchedulerConfig =
+    configuration: Configuration
+  , enabledKey   : String
+  , interval     : FiniteDuration
+  , initialDelay : FiniteDuration
+  ): SchedulerConfig =
     SchedulerConfig(
-        enabledKey
-      , enabled      = configuration.get[Boolean](enabledKey)
-      , interval     = interval
-      , initialDelay = initialDelay
-      )
+      enabledKey
+    , enabled      = configuration.get[Boolean](enabledKey)
+    , interval     = interval
+    , initialDelay = initialDelay
+    )
 
   def apply(
-        configuration  : Configuration
-      , enabledKey     : String
-      , intervalKey    : String
-      , initialDelayKey: String
-      ): SchedulerConfig =
+    configuration  : Configuration
+  , enabledKey     : String
+  , intervalKey    : String
+  , initialDelayKey: String
+  ): SchedulerConfig =
     SchedulerConfig(
-        enabledKey
-      , enabled      = configuration.get[Boolean](enabledKey)
-      , interval     = configuration.get[FiniteDuration](intervalKey)
-      , initialDelay = configuration.get[FiniteDuration](initialDelayKey)
-      )
+      enabledKey
+    , enabled      = configuration.get[Boolean](enabledKey)
+    , interval     = configuration.get[FiniteDuration](intervalKey)
+    , initialDelay = configuration.get[FiniteDuration](initialDelayKey)
+    )
 
 @Singleton
 class SchedulerConfigs @Inject()(configuration: Configuration):
@@ -61,25 +61,25 @@ class SchedulerConfigs @Inject()(configuration: Configuration):
   val jenkinsScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
-    , enabledKey      = "cache.jenkins.reloadEnabled"
-    , intervalKey     = "cache.jenkins.duration"
-    , initialDelayKey = "cache.jenkins.initialDelay"
+    , enabledKey      = "scheduler.jenkins.enabled"
+    , intervalKey     = "scheduler.jenkins.interval"
+    , initialDelayKey = "scheduler.jenkins.initialDelay"
     )
 
   val dataReloadScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
-    , enabledKey      = "cache.teams.reloadEnabled"
-    , intervalKey     = "cache.teams.duration"
-    , initialDelayKey = "cache.teams.initialDelay"
+    , enabledKey      = "scheduler.teams.enabled"
+    , intervalKey     = "scheduler.teams.interval"
+    , initialDelayKey = "scheduler.teams.initialDelay"
     )
 
   val openPrDataReloadScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
-    , enabledKey = "cache.openPrs.reloadEnabled"
-    , intervalKey = "cache.openPrs.duration"
-    , initialDelayKey = "cache.openPrs.initialDelay"
+    , enabledKey      = "scheduler.openPrs.enabled"
+    , intervalKey     = "scheduler.openPrs.interval"
+    , initialDelayKey = "scheduler.openPrs.initialDelay"
     )
 
   val metrixScheduler: SchedulerConfig =
