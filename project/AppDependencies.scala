@@ -2,7 +2,7 @@ import play.sbt.PlayImport.ws
 import sbt._
 
 object AppDependencies {
-  val bootstrapPlayVersion = "9.8.0"
+  val bootstrapPlayVersion = "9.10.0"
   val hmrcMongoVersion     = "2.5.0"
 
   val compile = Seq(

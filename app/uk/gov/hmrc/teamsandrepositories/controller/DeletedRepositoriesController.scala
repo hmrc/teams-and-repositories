@@ -36,12 +36,13 @@ class DeletedRepositoriesController @Inject()(
   private given Format[DeletedGitRepository] = DeletedGitRepository.apiFormat
 
   def getDeletedRepos(
-    name       : Option[String],
-    owningTeam : Option[String],
-    repoType   : Option[RepoType],
-    serviceType: Option[ServiceType]
+    name              : Option[String],
+    owningTeam        : Option[String],
+    digitalServiceName: Option[String],
+    repoType          : Option[RepoType],
+    serviceType       : Option[ServiceType]
   ): Action[AnyContent] =
     Action.async:
       deletedRepositoriesPersistence
-        .find(name, owningTeam, repoType, serviceType)
+        .find(name, owningTeam, digitalServiceName, repoType, serviceType)
         .map(result => Ok(Json.toJson(result)))

@@ -50,10 +50,11 @@ class DeletedRepositoriesPersistence @Inject()(
   private val Quoted = """^\"(.*)\"$""".r
 
   def find(
-    name       : Option[String]      = None
-  , team       : Option[String]      = None
-  , repoType   : Option[RepoType]    = None
-  , serviceType: Option[ServiceType] = None
+    name              : Option[String]      = None
+  , team              : Option[String]      = None
+  , digitalServiceName: Option[String]      = None
+  , repoType          : Option[RepoType]    = None
+  , serviceType       : Option[ServiceType] = None
   ): Future[Seq[DeletedGitRepository]] =
     collection
       .find(
@@ -61,9 +62,10 @@ class DeletedRepositoriesPersistence @Inject()(
           name.map:
             case Quoted(n) => Filters.equal("name", n)
             case n         => Filters.regex("name", n),
-          team       .map(tm => Filters.equal("owningTeams", tm         )),
-          repoType   .map(rt => Filters.equal("repoType"   , rt.asString)),
-          serviceType.map(st => Filters.equal("serviceType", st.asString))
+          team              .map(tm => Filters.equal("owningTeams"       , tm         )),
+          digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds         )),
+          repoType          .map(rt => Filters.equal("repoType"          , rt.asString)),
+          serviceType       .map(st => Filters.equal("serviceType"       , st.asString))
         ).flatten
          .foldLeft(Filters.empty())(Filters.and(_, _))
       )
