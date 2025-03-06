@@ -58,12 +58,12 @@ object OpenPullRequest:
 
   def prReads(repoName: String): Reads[OpenPullRequest] =
     (Reads.pure(repoName)
-    ~ (__ \ "title").read[String]
-    ~ (__ \ "url").read[String]
+    ~ (__ \ "title"           ).read[String]
+    ~ (__ \ "url"             ).read[String]
     ~ (__ \ "author" \ "login").readNullable[String].map(_.getOrElse("Unknown"))
-    ~ (__ \ "createdAt").read[Instant]
+    ~ (__ \ "createdAt"       ).read[Instant]
     )(apply)
-    
+
   val mongoFormat: Format[OpenPullRequest] =
     given Format[Instant] = MongoJavatimeFormats.instantFormat
     ( (__ \ "repoName"   ).format[String]

@@ -137,7 +137,7 @@ object WebhookController:
   object PullRequest:
     val reads: Reads[GithubRequest] =
       ( (__ \ "action"                         ).read[String].map(_.toLowerCase)
-      ~ (__ \ "repository" \ "name"            ).read[String]
+      ~ (__ \ "repository"   \ "name"          ).read[String]
       ~ (__ \ "pull_request" \ "title"         ).read[String]
       ~ (__ \ "pull_request" \ "html_url"      ).read[String]
       ~ (__ \ "pull_request" \ "user" \ "login").read[String]
@@ -154,7 +154,7 @@ object WebhookController:
   object TeamEvent:
     val reads: Reads[GithubRequest] =
       ( (__ \ "action"             ).read[String].map(_.toLowerCase)
-      ~ (__ \ "team" \ "name"      ).read[String]
+      ~ (__ \ "team"       \ "name").read[String]
       ~ (__ \ "repository" \ "name").readNullable[String]
       )(TeamEvent.apply _)
 
