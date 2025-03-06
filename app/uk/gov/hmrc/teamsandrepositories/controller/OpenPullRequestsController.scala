@@ -67,7 +67,7 @@ class OpenPullRequestsController @Inject()(
         case (None, None, Some(teamName)) =>
           for
             users           <- userManagementConnector.getUsersForTeam(teamName)
-            githubUsernames = users.flatMap(_.githubUsername)
+            githubUsernames =  users.flatMap(_.githubUsername)
             openPrs         <- openPullRequestPersistence.findOpenPullRequests(authors = Some(githubUsernames))
             sortedPrs       =  openPrs.sortBy(_.createdAt)(Ordering[Instant].reverse)
           yield Ok(Json.toJson(sortedPrs))

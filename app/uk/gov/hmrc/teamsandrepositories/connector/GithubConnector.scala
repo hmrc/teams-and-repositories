@@ -351,7 +351,7 @@ object GithubConnector:
       """
         query($cursor: String) {
           organization(login: "hmrc") {
-            repositories(first: 100, after: $cursor, orderBy: {field: CREATED_AT, direction: ASC}) {
+            repositories(first: 100, after: $cursor, isArchived:false, orderBy: {field: CREATED_AT, direction: ASC}) {
               pageInfo {
                 endCursor
               }
