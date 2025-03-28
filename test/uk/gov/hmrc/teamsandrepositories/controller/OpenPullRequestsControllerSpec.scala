@@ -30,7 +30,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.teamsandrepositories.connector.UserManagementConnector
-import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, OpenPullRequest, RepoType, TeamSummary, User}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, Organisation, OpenPullRequest, RepoType, TeamSummary, User}
 import uk.gov.hmrc.teamsandrepositories.persistence.{OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 
 import java.time.Instant
@@ -99,11 +99,12 @@ class OpenPullRequestsControllerSpec
       verify(mockOpenPullRequestPersistence).findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), authors = any)
 
     "get all open pull requests for repos owned by a digital service" in :
-      when(mockRepositoriesPersistence.find(any, any, any, eqTo(Some("a digital service")), any, any, any, any))
+      when(mockRepositoriesPersistence.find(any, any, any, any, eqTo(Some("a digital service")), any, any, any, any))
         .thenReturn(
           Future.successful(Seq(
             GitRepository(
               name               = "example-repo1",
+              organisation       = Some(Organisation.Mdtp),
               description        = "Some Description",
               url                = "https://github.com/org/example-repo1",
               createdDate        = now,
@@ -115,6 +116,7 @@ class OpenPullRequestsControllerSpec
             ),
             GitRepository(
               name               = "example-repo2",
+              organisation       = Some(Organisation.Mdtp),
               description        = "Some Description",
               url                = "https://github.com/org/example-repo2",
               createdDate        = now,

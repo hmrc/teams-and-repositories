@@ -45,7 +45,7 @@ object DeletedGitRepository:
       serviceType        = gitRepository.serviceType,
       digitalServiceName = gitRepository.digitalServiceName,
       owningTeams        = Some(gitRepository.owningTeams),
-      teams              = Some(gitRepository.teams),
+      teams              = Some(gitRepository.teamNames),
       prototypeName      = gitRepository.prototypeName
     )
 

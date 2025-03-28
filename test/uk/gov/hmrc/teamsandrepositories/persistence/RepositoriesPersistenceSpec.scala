@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
-import uk.gov.hmrc.teamsandrepositories.model.{RepoType, ServiceType, GitRepository}
+import uk.gov.hmrc.teamsandrepositories.model.{Organisation, RepoType, ServiceType, GitRepository}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -47,6 +47,7 @@ class RepositoriesPersistenceSpec
   private val repo1 =
     GitRepository(
       name                = "repo1",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 1",
       url                 = "git/repo1",
       createdDate         = now,
@@ -62,13 +63,14 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
       isDeprecated        = false,
-      teams               = List("team1", "team2"),
+      teamNames           = List("team1", "team2"),
       prototypeName       = None
     )
 
   private val repo2 =
     GitRepository(
       name                = "repo2",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 2",
       url                 = "git/repo2",
       createdDate         = now,
@@ -84,13 +86,14 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
-      teams               = List("team2", "team3"),
+      teamNames           = List("team2", "team3"),
       prototypeName       = None
     )
 
   private val repo3 =
     GitRepository(
       name                = "repo3",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 3",
       url                 = "git/repo3",
       createdDate         = now,
@@ -106,13 +109,14 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
-      teams               = List("team1","team2", "team3"),
+      teamNames           = List("team1","team2", "team3"),
       prototypeName       = Some("https://repo3.herokuapp.com")
     )
 
   private val repo4 =
     GitRepository(
       name                = "repo4",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 4",
       url                 = "git/repo4",
       createdDate         = now,
@@ -128,13 +132,14 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
-      teams               = List("team2", "team3"),
+      teamNames           = List("team2", "team3"),
       prototypeName       = None
     )
 
   private val repo5 =
     GitRepository(
       name                = "repo5",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 5",
       url                 = "git/repo5",
       createdDate         = now,
@@ -150,13 +155,14 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
-      teams               = List("team2", "team3"),
+      teamNames           = List("team2", "team3"),
       prototypeName       = None
     )
 
   private val repo6 =
     GitRepository(
       name                = "repo6",
+      organisation        = Some(Organisation.Mdtp),
       description         = "desc 6",
       url                 = "git/repo6",
       createdDate         = now,
@@ -172,7 +178,7 @@ class RepositoriesPersistenceSpec
       defaultBranch       = "main",
       branchProtection    = None,
       isDeprecated        = false,
-      teams               = List("team2", "team3"),
+      teamNames           = List("team2", "team3"),
       prototypeName       = None
     )
 
@@ -224,6 +230,18 @@ class RepositoriesPersistenceSpec
       results should contain only repo4
       val results2 = repository.find(serviceType = Some(ServiceType.Backend)).futureValue
       results2 should contain only repo5
+
+    "find repos by organisation" in:
+      repository.collection.insertMany(Seq(
+        repo1
+      , repo2
+      , repo3.copy(organisation = None)
+      , repo4.copy(organisation = Some(Organisation.External("other")))
+      )).toFuture().futureValue
+
+      repository.find(                                                   ).futureValue.size should be (4)
+      repository.find(organisation = Some(Organisation.Mdtp)             ).futureValue.size should be (2)
+      repository.find(organisation = Some(Organisation.External("other"))).futureValue.size should be (1)
 
   "putRepos" should:
     "insert new repositories" in:
