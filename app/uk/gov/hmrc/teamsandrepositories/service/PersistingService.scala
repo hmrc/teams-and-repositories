@@ -107,7 +107,7 @@ case class PersistingService @Inject()(
       reposWithTeams =  repos.map: repo =>
                           val teams = teamsForRepo(repo.name).toList.sorted
                           repo.copy(
-                            teams       = teams,
+                            teamNames   = teams,
                             owningTeams = if repo.owningTeams.isEmpty then teams else repo.owningTeams
                           )
       teamSummaries  =  gitHubTeams.map(team => TeamSummary(
@@ -138,7 +138,7 @@ case class PersistingService @Inject()(
                                   .pure[Future, String](rawRepo)
                                   .map: repo =>
                                      repo.copy(
-                                       teams       = teams,
+                                       teamNames   = teams,
                                        owningTeams = if repo.owningTeams.isEmpty then teams else repo.owningTeams
                                      )
                                   .map(defineServiceType(_, isFrontend = isFrontendService, isAdmin = isAdminFrontendService))

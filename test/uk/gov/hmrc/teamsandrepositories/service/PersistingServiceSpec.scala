@@ -63,10 +63,10 @@ class PersistingServiceSpec
 
         persistedRepos.length                                         shouldBe 3
         persistedRepos.map(_.name)                                    should contain theSameElementsAs Seq("repo-1", "repo-2", "repo-3")
-        persistedRepos.filter(_.teams.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
+        persistedRepos.filter(_.teamNames.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
           "repo-1",
           "repo-2")
-        persistedRepos.filter(_.teams.contains("team-b")).map(_.name) should contain theSameElementsAs Seq("repo-3")
+        persistedRepos.filter(_.teamNames.contains("team-b")).map(_.name) should contain theSameElementsAs Seq("repo-3")
 
       "assign multiple teams to same repository" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "repo-1")
@@ -87,10 +87,10 @@ class PersistingServiceSpec
 
         persistedRepos.length                                         shouldBe 3
         persistedRepos.map(_.name)                                    should contain theSameElementsAs List("repo-1", "repo-2", "repo-3")
-        persistedRepos.filter(_.teams.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
+        persistedRepos.filter(_.teamNames.contains("team-a")).map(_.name) should contain theSameElementsAs Seq(
           "repo-1",
           "repo-2")
-        persistedRepos.filter(_.teams.contains("team-b")).map(_.name) should contain theSameElementsAs Seq(
+        persistedRepos.filter(_.teamNames.contains("team-b")).map(_.name) should contain theSameElementsAs Seq(
           "repo-2",
           "repo-3")
 
@@ -114,7 +114,7 @@ class PersistingServiceSpec
 
         persistedRepos.length      shouldBe 4
         persistedRepos.map(_.name) should contain theSameElementsAs List("repo-1", "repo-2", "repo-3", "repo-4")
-        persistedRepos.map(r => r.name -> r).toMap.get("repo-4").map(_.teams) shouldBe Some(Seq.empty)
+        persistedRepos.map(r => r.name -> r).toMap.get("repo-4").map(_.teamNames) shouldBe Some(Seq.empty)
 
       "assign service type" in new Setup:
         val repo1: GhRepository = aRepo.copy(name = "other")                                                                           // Other repo type
@@ -380,6 +380,6 @@ class PersistingServiceSpec
       isArchived         = false,
       defaultBranch      = "main",
       branchProtection   = None,
-      repositoryYamlText = None,
+      repositoryYamlText = Some("a: 1"), // makes repository yaml file valid to default organisation
       repoTypeHeuristics = aHeuristics
     )
