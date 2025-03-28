@@ -21,7 +21,7 @@ import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, Organisation, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.service.BranchProtectionService
 
@@ -44,6 +44,7 @@ class TeamsAndRepositoriesController @Inject()(
 
   def repositories(
     name               : Option[String],
+    organisation       : Option[Organisation],
     team               : Option[String],
     owningTeam         : Option[String],
     digitalServiceName : Option[String],
@@ -53,7 +54,8 @@ class TeamsAndRepositoriesController @Inject()(
     tags               : Option[List[Tag]],
   ): Action[AnyContent] =
     Action.async: request =>
-      repositoriesPersistence.find(name, team, owningTeam, digitalServiceName, archived, repoType, serviceType, tags)
+      repositoriesPersistence
+        .find(name, organisation, team, owningTeam, digitalServiceName, archived, repoType, serviceType, tags)
         .map(result => Ok(Json.toJson(result.sortBy(_.name))))
 
   def teams(name: Option[String]): Action[AnyContent] =

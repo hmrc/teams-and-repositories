@@ -9,7 +9,7 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc"            %% "bootstrap-backend-play-30"    % bootstrapPlayVersion,
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-metrix-play-30"    % hmrcMongoVersion,
-    "uk.gov.hmrc"            %% "internal-auth-client-play-30" % "3.1.0",
+    "uk.gov.hmrc"            %% "internal-auth-client-play-30" % "4.0.0",
     "org.yaml"               %  "snakeyaml"                    % "2.3",
     "org.typelevel"          %% "cats-core"                    % "2.13.0",
     "org.codehaus.groovy"    %  "groovy-astbuilder"            % "3.0.16",

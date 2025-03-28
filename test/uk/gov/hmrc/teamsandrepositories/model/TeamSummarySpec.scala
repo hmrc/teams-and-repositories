@@ -26,13 +26,13 @@ class TeamSummarySpec extends AnyWordSpec with Matchers:
 
   "TeamSummary.apply" in new Setup:
     val gitRepo1: GitRepository =
-      gitRepository.copy(name = "repo-one",   owningTeams = Seq("A"),      teams = List("A", "B", "C"))
+      gitRepository.copy(name = "repo-one",   owningTeams = Seq("A"),      teamNames = List("A", "B", "C"))
 
     val gitRepo2: GitRepository =
-      gitRepository.copy(name = "repo-two",   owningTeams = Seq("B"),      teams = List("A", "B", "C"), lastActiveDate = now.minus(5, ChronoUnit.DAYS))
+      gitRepository.copy(name = "repo-two",   owningTeams = Seq("B"),      teamNames = List("A", "B", "C"), lastActiveDate = now.minus(5, ChronoUnit.DAYS))
 
     val gitRepo3: GitRepository =
-      gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teams = List("A", "B", "C"), lastActiveDate = now)
+      gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teamNames = List("A", "B", "C"), lastActiveDate = now)
 
     TeamSummary.apply("A", List(gitRepo1, gitRepo3)) shouldBe TeamSummary("A", Some(now), Seq("repo-one", "repo-three"))
     TeamSummary.apply("B", List(gitRepo2, gitRepo3)) shouldBe TeamSummary("B", Some(now), Seq("repo-two", "repo-three"))
@@ -43,13 +43,14 @@ class TeamSummarySpec extends AnyWordSpec with Matchers:
     val gitRepository: GitRepository =
       GitRepository(
         name          = "",
+        organisation  = Some(Organisation.Mdtp),
         description   = "some description",
         url           = "url",
         createdDate   = now,
         lastActiveDate= now,
         repoType      = RepoType.Other,
         owningTeams   = Seq.empty,
-        teams         = List.empty,
+        teamNames     = List.empty,
         language      = Some("Scala"),
         isArchived    = false,
         defaultBranch = "main"

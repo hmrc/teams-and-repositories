@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.internalauth.client.BackendAuthComponents
 import uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController
-import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, Organisation, GitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.service.BranchProtectionService
 
@@ -147,6 +147,7 @@ class TeamsAndRepositoriesControllerSpec
     val aRepo: GitRepository =
       GitRepository(
         name                 = "",
+        organisation         = Some(Organisation.Mdtp),
         description          = "a-repo",
         url                  = "repo-url",
         createdDate          = now,
@@ -161,7 +162,7 @@ class TeamsAndRepositoriesControllerSpec
         defaultBranch        = "branch",
         branchProtection     = None,
         isDeprecated         = true,
-        teams                = List.empty,
+        teamNames            = List.empty,
         prototypeName        = None,
         prototypeAutoPublish = None,
         repositoryYamlText   = None
