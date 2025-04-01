@@ -1,3 +1,12 @@
+# Migration to 11.171.0
+
+```javascript
+db.getCollection('deleted-repositories').updateMany(
+  {},
+  {$set: {"organisation": "mdtp"}}
+);
+```
+
 # Migration to 11.102.0
 
 `prototypeUrl` renamed to `prototypeName`
@@ -46,13 +55,13 @@ db.repositories.updateMany(
 
 # Migration to 11.23.0
 
-Data model changes from teams with repos, to repos with teams. 
+Data model changes from teams with repos, to repos with teams.
 
 ```javascript
 db.getCollection('teamsAndRepositories').aggregate([
      {$unwind: "$repositories"}
     ,{$group: {
-        _id: "$repositories.name", 
+        _id: "$repositories.name",
         repositories: {$max: "$repositories"},
         teams: {$addToSet: "$teamName"},
         }

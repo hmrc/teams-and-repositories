@@ -97,12 +97,17 @@ class TeamsAndRepositoriesController @Inject()(
             else
               Future.successful(BadRequest("Disabling branch protection is not currently supported.")))
 
-  def decommissionedRepos(repoType: Option[RepoType] = None): Action[AnyContent] =
+  def decommissionedRepos(
+    organisation: Option[Organisation]
+  , repoType    : Option[RepoType]
+  ): Action[AnyContent] =
     Action.async: request =>
       for
-        archivedRepos  <- repositoriesPersistence.find(isArchived = Some(true), repoType = repoType)
+        archivedRepos  <- repositoriesPersistence
+                            .find(isArchived = Some(true), organisation = organisation, repoType = repoType)
                             .map(_.map(repo => DecommissionedRepo(repo.name, Some(repo.repoType))))
-        deletedRepos   <- deletedRepositoriesPersistence.find(repoType = repoType)
+        deletedRepos   <- deletedRepositoriesPersistence
+                            .find(organisation = organisation, repoType = repoType)
                             .map(_.map(repo => DecommissionedRepo(repo.name, repo.repoType)))
         decommissioned =  (archivedRepos ++ deletedRepos)
                             .distinct

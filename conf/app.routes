@@ -9,7 +9,7 @@ GET         /api/cache/reload                                        uk.gov.hmrc
 GET         /api/cache/reload/:serviceName                           uk.gov.hmrc.teamsandrepositories.controller.AdminController.reloadCacheForService(serviceName)
 
 # deleted repositories
-GET         /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepos(name: Option[String], team: Option[String], digitalServiceName: Option[String], repoType: Option[RepoType], serviceType: Option[ServiceType])
+GET         /api/deleted-repositories                                uk.gov.hmrc.teamsandrepositories.controller.DeletedRepositoriesController.getDeletedRepos(name: Option[String], organisation: Option[Organisation], team: Option[String], digitalServiceName: Option[String], repoType: Option[RepoType], serviceType: Option[ServiceType])
 
 # open pull requests
 GET         /api/open-pull-requests                                  uk.gov.hmrc.teamsandrepositories.controller.OpenPullRequestsController.getOpenPrs(reposOwnedByTeam: Option[String], reposOwnedByDigitalService: Option[String], raisedByMembersOfTeam: Option[String])
@@ -23,7 +23,7 @@ GET         /api/v2/repositories/:repoName/test-repositories         uk.gov.hmrc
 GET         /api/v2/repositories/:repoName/services-under-test       uk.gov.hmrc.teamsandrepositories.controller.TestRepoRelationshipsController.servicesUnderTest(repoName)
 POST        /api/v2/repositories/:repoName/branch-protection/enabled uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.enableBranchProtection(repoName)
 GET         /api/v2/teams                                            uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.teams(name: Option[String])
-GET         /api/v2/decommissioned-repositories                      uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.decommissionedRepos(repoType: Option[RepoType])
+GET         /api/v2/decommissioned-repositories                      uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.decommissionedRepos(organisation: Option[Organisation], repoType: Option[RepoType])
 GET         /api/v2/digital-services                                 uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController.digitalServices
 
 POST        /teams-and-repositories/webhook                          uk.gov.hmrc.teamsandrepositories.controller.WebhookController.processGithubWebhook()
