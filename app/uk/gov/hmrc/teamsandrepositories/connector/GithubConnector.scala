@@ -532,7 +532,7 @@ object GhRepository:
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            organisation         = Parser[Organisation].parse(config.get[String]("organisation").getOrElse("")).toOption
+            organisation         = Parser[Organisation].parse(config.get[String]("organisation").getOrElse(Organisation.Mdtp.asString)).toOption
           , repoType             = Parser[RepoType    ].parse(config.get[String]("type"        ).getOrElse("")).toOption
           , serviceType          = Parser[ServiceType ].parse(config.get[String]("service-type").getOrElse("")).toOption
           , testType             = Parser[TestType].parse(config.get[String]("test-type").getOrElse("")).toOption

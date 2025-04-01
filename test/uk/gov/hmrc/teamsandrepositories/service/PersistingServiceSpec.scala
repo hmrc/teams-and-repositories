@@ -380,6 +380,6 @@ class PersistingServiceSpec
       isArchived         = false,
       defaultBranch      = "main",
       branchProtection   = None,
-      repositoryYamlText = Some("a: 1"), // makes repository yaml file valid to default organisation
+      repositoryYamlText = None,
       repoTypeHeuristics = aHeuristics
     )
