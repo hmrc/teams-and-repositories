@@ -449,9 +449,9 @@ case class GhRepository(
         )
 
     val repoType: RepoType =
-      manifestDetails
-        .repoType
-        .getOrElse(repoTypeHeuristics.inferredRepoType)
+      if   manifestDetails.organisation == Some(Organisation.Mdtp)
+      then manifestDetails.repoType.getOrElse(repoTypeHeuristics.inferredRepoType)
+      else RepoType.Other
 
     val testType: Option[TestType] =
       manifestDetails
