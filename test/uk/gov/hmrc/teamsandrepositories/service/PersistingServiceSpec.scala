@@ -380,6 +380,6 @@ class PersistingServiceSpec
       isArchived         = false,
       defaultBranch      = "main",
       branchProtection   = None,
-      repositoryYamlText = None,
+      repositoryYamlText = Some("a: 1"), // Any valid yaml will default to Organisation.Mdtp and repo type is inferred from heuristics
       repoTypeHeuristics = aHeuristics
     )
