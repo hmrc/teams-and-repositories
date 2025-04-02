@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.internalauth.client.BackendAuthComponents
 import uk.gov.hmrc.teamsandrepositories.controller.v2.TeamsAndRepositoriesController
-import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, GitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, Organisation, GitRepository, RepoType, ServiceType}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import uk.gov.hmrc.teamsandrepositories.service.BranchProtectionService
 
@@ -44,13 +44,13 @@ class TeamsAndRepositoriesControllerSpec
   "TeamsAndRepositoriesController" should:
     "return all decommissioned repos" in new Setup:
 
-      when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = None))
+      when(mockRepositoriesPersistence.find(isArchived = Some(true), organisation = None, repoType = None))
         .thenReturn(Future.successful(Seq(
           aRepo.copy(name = "repo-1", repoType=RepoType.Service),
           aRepo.copy(name = "repo-2", repoType=RepoType.Library)
         )))
 
-      when(mockDeletedRepositoriesPersistence.find(repoType = None))
+      when(mockDeletedRepositoriesPersistence.find(organisation = None, repoType = None))
         .thenReturn(Future.successful(Seq(
           aDeletedRepo.copy(name = "repo-3", repoType = Some(RepoType.Other)),
           aDeletedRepo.copy(name = "repo-4", repoType = None)
@@ -58,7 +58,7 @@ class TeamsAndRepositoriesControllerSpec
 
 
       val result: Future[Result] =
-        controller.decommissionedRepos().apply(FakeRequest())
+        controller.decommissionedRepos(organisation = None, repoType = None).apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -86,13 +86,13 @@ class TeamsAndRepositoriesControllerSpec
 
       val service: RepoType = RepoType.Service
 
-      when(mockRepositoriesPersistence.find(isArchived = Some(true), repoType = Some(service)))
+      when(mockRepositoriesPersistence.find(isArchived = Some(true), organisation = Some(Organisation.Mdtp), repoType = Some(service)))
         .thenReturn(Future.successful(Seq(
           aRepo.copy(name = "repo-1", repoType=service),
           aRepo.copy(name = "repo-2", repoType=service)
         )))
 
-      when(mockDeletedRepositoriesPersistence.find(repoType = Some(service)))
+      when(mockDeletedRepositoriesPersistence.find(organisation = Some(Organisation.Mdtp), repoType = Some(service)))
         .thenReturn(Future.successful(Seq(
           aDeletedRepo.copy(name = "repo-3", repoType = Some(service)),
           aDeletedRepo.copy(name = "repo-4", repoType = Some(service))
@@ -100,7 +100,7 @@ class TeamsAndRepositoriesControllerSpec
 
 
       val result: Future[Result] =
-        controller.decommissionedRepos(repoType = Some(service)).apply(FakeRequest())
+        controller.decommissionedRepos(organisation = Some(Organisation.Mdtp), repoType = Some(service)).apply(FakeRequest())
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.parse(
@@ -147,6 +147,7 @@ class TeamsAndRepositoriesControllerSpec
     val aRepo: GitRepository =
       GitRepository(
         name                 = "",
+        organisation         = Some(Organisation.Mdtp),
         description          = "a-repo",
         url                  = "repo-url",
         createdDate          = now,
@@ -161,7 +162,7 @@ class TeamsAndRepositoriesControllerSpec
         defaultBranch        = "branch",
         branchProtection     = None,
         isDeprecated         = true,
-        teams                = List.empty,
+        teamNames            = List.empty,
         prototypeName        = None,
         prototypeAutoPublish = None,
         repositoryYamlText   = None
@@ -170,6 +171,7 @@ class TeamsAndRepositoriesControllerSpec
     val aDeletedRepo: DeletedGitRepository =
       DeletedGitRepository(
         name               = "",
+        organisation       = Some(Organisation.Mdtp),
         deletedDate        = now,
         isPrivate          = None,
         repoType           = Some(RepoType.Service),

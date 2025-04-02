@@ -434,6 +434,7 @@ case class GhRepository(
         .flatMap(ManifestDetails.parse(name, _))
         .getOrElse(
           ManifestDetails(
+            organisation         = None,
             repoType             = None,
             serviceType          = None,
             testType             = None,
@@ -466,6 +467,7 @@ case class GhRepository(
 
     GitRepository(
       name                 = name,
+      organisation         = manifestDetails.organisation,
       description          = manifestDetails.description.getOrElse(""),
       url                  = htmlUrl,
       createdDate          = createdDate,
@@ -491,6 +493,7 @@ case class GhRepository(
 object GhRepository:
 
   case class ManifestDetails(
+    organisation        : Option[Organisation],
     repoType            : Option[RepoType],
     serviceType         : Option[ServiceType],
     testType            : Option[TestType],
@@ -529,8 +532,9 @@ object GhRepository:
           None
         case Success(config) =>
           val manifestDetails = ManifestDetails(
-            repoType             = Parser[RepoType].parse(config.get[String]("type").getOrElse("")).toOption
-          , serviceType          = Parser[ServiceType].parse(config.get[String]("service-type").getOrElse("")).toOption
+            organisation         = Parser[Organisation].parse(config.get[String]("organisation").getOrElse(Organisation.Mdtp.asString)).toOption
+          , repoType             = Parser[RepoType    ].parse(config.get[String]("type"        ).getOrElse("")).toOption
+          , serviceType          = Parser[ServiceType ].parse(config.get[String]("service-type").getOrElse("")).toOption
           , testType             = Parser[TestType].parse(config.get[String]("test-type").getOrElse("")).toOption
           , tags                 = config.getArray("tags").map(_.flatMap(str => Parser[Tag].parse(str).toOption).toSet)
           , digitalServiceName   = config.get[String]("digital-service").map(formatDigitalServiceName)

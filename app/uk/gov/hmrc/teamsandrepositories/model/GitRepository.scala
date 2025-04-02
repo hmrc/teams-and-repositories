@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.teamsandrepositories.model
 
-import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
@@ -25,6 +24,7 @@ import java.time.Instant
 
 case class GitRepository(
   name                : String,
+  organisation        : Option[Organisation],
   description         : String,
   url                 : String,
   createdDate         : Instant,
@@ -42,69 +42,23 @@ case class GitRepository(
   defaultBranch       : String,
   branchProtection    : Option[BranchProtection] = None,
   isDeprecated        : Boolean                  = false,
-  teams               : Seq[String]              = Nil,
+  teamNames           : Seq[String]              = Nil,
   prototypeName       : Option[String]           = None,
   prototypeAutoPublish: Option[Boolean]          = None,
   repositoryYamlText  : Option[String]           = None
 )
 
 object GitRepository:
+  private given Format[Organisation]     = Organisation.format
+  private given Format[RepoType]         = RepoType.format
+  private given Format[ServiceType]      = ServiceType.format
+  private given Format[TestType]         = TestType.format
+  private given Format[Tag]              = Tag.format
+  private given Format[BranchProtection] = BranchProtection.format
 
   val apiFormat: Format[GitRepository] =
-    given Format[RepoType]    = RepoType.format
-    given Format[ServiceType] = ServiceType.format
-    given Format[TestType]    = TestType.format
-    given Format[Tag]         = Tag.format
-    ( (__ \ "name"                ).format[String]
-    ~ (__ \ "description"         ).format[String]
-    ~ (__ \ "url"                 ).format[String]
-    ~ (__ \ "createdDate"         ).format[Instant]
-    ~ (__ \ "lastActiveDate"      ).format[Instant]
-    ~ (__ \ "endOfLifeDate"       ).formatNullable[Instant]
-    ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"            ).format[RepoType]
-    ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
-    ~ (__ \ "testType"            ).formatNullable[TestType]
-    ~ (__ \ "tags"                ).format[Set[Tag]].inmap[Option[Set[Tag]]](Option.apply, _.getOrElse(Set.empty))
-    ~ (__ \ "digitalServiceName"  ).formatNullable[String]
-    ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"            ).formatNullable[String]
-    ~ (__ \ "isArchived"          ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"       ).format[String]
-    ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
-    ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"           ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "prototypeName"       ).formatNullable[String]
-    ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
-    ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, g => Tuple.fromProductTyped(g))
+    Json.format[GitRepository] // over 22 fields
 
   val mongoFormat: Format[GitRepository] =
-    given Format[Instant]     = MongoJavatimeFormats.instantFormat
-    given Format[RepoType]    = RepoType.format
-    given Format[ServiceType] = ServiceType.format
-    given Format[TestType]    = TestType.format
-    given Format[Tag]         = Tag.format
-    ( (__ \ "name"                ).format[String]
-    ~ (__ \ "description"         ).format[String]
-    ~ (__ \ "url"                 ).format[String]
-    ~ (__ \ "createdDate"         ).format[Instant]
-    ~ (__ \ "lastActiveDate"      ).format[Instant]
-    ~ (__ \ "endOfLifeDate"       ).formatNullable[Instant]
-    ~ (__ \ "isPrivate"           ).formatWithDefault[Boolean](false)
-    ~ (__ \ "repoType"            ).format[RepoType]
-    ~ (__ \ "serviceType"         ).formatNullable[ServiceType]
-    ~ (__ \ "testType"            ).formatNullable[TestType]
-    ~ (__ \ "tags"                ).formatNullable[Set[Tag]]
-    ~ (__ \ "digitalServiceName"  ).formatNullable[String]
-    ~ (__ \ "owningTeams"         ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "language"            ).formatNullable[String]
-    ~ (__ \ "isArchived"          ).formatWithDefault[Boolean](false)
-    ~ (__ \ "defaultBranch"       ).formatWithDefault[String]("master")
-    ~ (__ \ "branchProtection"    ).formatNullable(BranchProtection.format)
-    ~ (__ \ "isDeprecated"        ).formatWithDefault[Boolean](false)
-    ~ (__ \ "teamNames"           ).formatWithDefault[Seq[String]](Nil)
-    ~ (__ \ "prototypeName"       ).formatNullable[String]
-    ~ (__ \ "prototypeAutoPublish").formatNullable[Boolean]
-    ~ (__ \ "repositoryYamlText"  ).formatNullable[String]
-    )(apply, g => Tuple.fromProductTyped(g))
+    given Format[Instant] = MongoJavatimeFormats.instantFormat
+    Json.format[GitRepository] // over 22 fields

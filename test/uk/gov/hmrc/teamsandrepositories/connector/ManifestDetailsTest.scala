@@ -19,7 +19,7 @@ package uk.gov.hmrc.teamsandrepositories.connector
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.ManifestDetails
-import uk.gov.hmrc.teamsandrepositories.model.{RepoType, ServiceType, Tag, TestType}
+import uk.gov.hmrc.teamsandrepositories.model.{RepoType, Organisation, ServiceType, Tag, TestType}
 
 import java.time.Instant
 
@@ -27,18 +27,24 @@ class ManifestDetailsTest extends AnyWordSpec with Matchers:
 
   "ManifestDetails.Parse" should:
 
-    "parse deprecated flag and reason" in:
-      val manifest =
-        """
-          |repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
-          |type: library
-          |deprecated: true
-          |""".stripMargin
+    "handle empty yaml string" in:
+      val details = ManifestDetails.parse("repo1", "")
+      details.isDefined        shouldBe false
 
-      val details = ManifestDetails.parse("repo1", manifest)
+    "default organisation to Mdtp when given a yaml string" in:
+      val details = ManifestDetails.parse("repo1", "some-key: some-value")
       details.isDefined        shouldBe true
-      details.get.repoType     shouldBe Some(RepoType.Library)
-      details.get.isDeprecated shouldBe true
+      details.get.organisation shouldBe Some(Organisation.Mdtp)
+
+    "parse mdtp organisation" in:
+      val details = ManifestDetails.parse("repo1", "organisation: mdtp")
+      details.isDefined        shouldBe true
+      details.get.organisation shouldBe Some(Organisation.Mdtp)
+
+    "parse external organisation" in:
+      val details = ManifestDetails.parse("repo1", "organisation: some-organisation")
+      details.isDefined        shouldBe true
+      details.get.organisation shouldBe Some(Organisation.External("some-organisation"))
 
     "parse description" in:
       val manifest =

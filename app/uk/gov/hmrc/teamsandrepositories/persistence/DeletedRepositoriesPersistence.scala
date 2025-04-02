@@ -21,7 +21,7 @@ import org.mongodb.scala.model.{DeleteOptions, Filters, IndexModel, IndexOptions
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.transaction.{TransactionConfiguration, Transactions}
-import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, RepoType, ServiceType}
+import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, Organisation, RepoType, ServiceType}
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
@@ -36,9 +36,10 @@ class DeletedRepositoriesPersistence @Inject()(
   collectionName = "deleted-repositories",
   domainFormat   = DeletedGitRepository.mongoFormat,
   indexes        = Seq(
-                     IndexModel(Indexes.ascending("name"),        IndexOptions().name("nameIdx").collation(Collations.caseInsensitive).unique(true)),
-                     IndexModel(Indexes.ascending("owningTeams"), IndexOptions().name("teamIdx")),
-                     IndexModel(Indexes.ascending("repoType"),    IndexOptions().name("repoTypeIdx"))
+                     IndexModel(Indexes.ascending("name")        , IndexOptions().name("nameIdx").collation(Collations.caseInsensitive).unique(true)),
+                     IndexModel(Indexes.ascending("organisation"), IndexOptions()),
+                     IndexModel(Indexes.ascending("owningTeams") , IndexOptions().name("teamIdx")),
+                     IndexModel(Indexes.ascending("repoType")    , IndexOptions().name("repoTypeIdx"))
                    )
 ) with Transactions:
 
@@ -50,11 +51,12 @@ class DeletedRepositoriesPersistence @Inject()(
   private val Quoted = """^\"(.*)\"$""".r
 
   def find(
-    name              : Option[String]      = None
-  , team              : Option[String]      = None
-  , digitalServiceName: Option[String]      = None
-  , repoType          : Option[RepoType]    = None
-  , serviceType       : Option[ServiceType] = None
+    name              : Option[String]       = None
+  , organisation      : Option[Organisation] = None
+  , team              : Option[String]       = None
+  , digitalServiceName: Option[String]       = None
+  , repoType          : Option[RepoType]     = None
+  , serviceType       : Option[ServiceType]  = None
   ): Future[Seq[DeletedGitRepository]] =
     collection
       .find(
@@ -62,6 +64,7 @@ class DeletedRepositoriesPersistence @Inject()(
           name.map:
             case Quoted(n) => Filters.equal("name", n)
             case n         => Filters.regex("name", n),
+          organisation      .map(o  => Filters.equal("organisation"      , o.asString)),
           team              .map(tm => Filters.equal("owningTeams"       , tm         )),
           digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds         )),
           repoType          .map(rt => Filters.equal("repoType"          , rt.asString)),
