@@ -67,6 +67,17 @@ class TestRepoRelationshipsPersistence @Inject()(
       .toFuture()
       .map(_.map(_.serviceRepo))
 
+  def deleteByRepo(repo: String): Future[Unit] =
+    collection
+      .deleteMany(
+        Filters.or(
+          Filters.equal("serviceRepo", repo),
+          Filters.equal("testRepo", repo)
+        )
+      )
+      .toFuture()
+      .map(_ => ())
+
 object TestRepoRelationshipsPersistence:
   import play.api.libs.functional.syntax._
   import play.api.libs.json._

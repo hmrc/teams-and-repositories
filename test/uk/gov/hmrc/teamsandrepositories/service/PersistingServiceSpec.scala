@@ -314,6 +314,7 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
+        when(relationshipsPersistence.deleteByRepo(repo1.name)).thenReturn(Future.unit)
         onTest.updateTeamsAndRepositories().futureValue
 
         val persistedTeams: List[TeamSummary] =

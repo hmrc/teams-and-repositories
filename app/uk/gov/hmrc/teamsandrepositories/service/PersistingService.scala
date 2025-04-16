@@ -91,7 +91,9 @@ case class PersistingService @Inject()(
       deletedCount               <- deletedRepos.foldLeftM(0) { case (acc, repo) => deleteRepository(repo).map(_ => acc + 1) }
 
       _                          =  logger.info(s"Updated: $updateCount repos. Deleted: $deletedCount repos. Recreated: $recreateCount previously deleted repos.")
-      _                          <- toPersistRepos.toList.traverse(updateTestRepoRelationships)
+      _                          <- toPersistRepos.filter(!_.isArchived).toList.traverse(updateTestRepoRelationships)
+      reposToDeleteRelationships =  deletedRepos ++ toPersistRepos.filter(_.isArchived).map(_.name)
+      _                          <- reposToDeleteRelationships.toList.traverse(relationshipsPersistence.deleteByRepo)
     yield ()
 
   def updateTeamsAndRepositories()(using ExecutionContext): Future[Unit] =
@@ -147,12 +149,19 @@ case class PersistingService @Inject()(
                                   .liftF(deletedRepositoriesPersistence.deleteRepos(Seq(repo.name)))
       _                      <- EitherT
                                   .liftF(repositoriesPersistence.putRepo(repo))
-      _                      <- EitherT
-                                  .liftF(updateTestRepoRelationships(rawRepo))
+      _                      <- EitherT.right[String](
+                                  if !rawRepo.isArchived then
+                                    updateTestRepoRelationships(rawRepo)
+                                  else
+                                    Future.unit
+                                )
     yield ()
 
-  def archiveRepository(repoName: String): Future[Unit] =
-    repositoriesPersistence.archiveRepo(repoName)
+  def archiveRepository(repoName: String)(using ExecutionContext): Future[Unit] =
+    for
+      _ <- repositoriesPersistence.archiveRepo(repoName)
+      _ <- relationshipsPersistence.deleteByRepo(repoName)
+    yield ()
 
   def deleteRepository(repoName: String)(using ExecutionContext): Future[Unit] =
     repositoriesPersistence
@@ -161,8 +170,12 @@ case class PersistingService @Inject()(
         case Some(repo) => for {
                              _ <- deletedRepositoriesPersistence.putRepo(DeletedGitRepository.fromGitRepository(repo, Instant.now()))
                              _ <- repositoriesPersistence.deleteRepo(repoName)
+                             _ <- relationshipsPersistence.deleteByRepo(repoName)
                            } yield ()
-        case None       => deletedRepositoriesPersistence.putRepo(DeletedGitRepository(repoName, Instant.now()))
+        case None       => for {
+                             _ <- deletedRepositoriesPersistence.putRepo(DeletedGitRepository(repoName, Instant.now()))
+                             _ <- relationshipsPersistence.deleteByRepo(repoName)
+                           } yield ()
       .recover:
         case DuplicateKey(_) => logger.info(s"repo: $repoName - already stored in deleted-repositories collection")
 
