@@ -104,6 +104,14 @@ class GithubConnector @Inject()(
       .withProxy
       .execute[Seq[String]]
 
+  def getBranchProtectionRules(repoName: String, defaultBranch: String): Future[Option[BranchProtectionRules]] =
+    given Reads[BranchProtectionRules] = BranchProtectionRules.reads
+    httpClientV2
+      .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection")
+      .setHeader(authHeader)
+      .withProxy
+      .execute[Option[BranchProtectionRules]]
+
   def getReposForTeam(team: GhTeam): Future[Seq[GhRepository]] =
     withCounter("github.open.repos"):
       val root =
@@ -660,3 +668,94 @@ object BranchProtection:
     ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
     ~ (__ \ "requiresCommitSignatures").format[Boolean]
     )(apply, b => Tuple.fromProductTyped(b))
+
+case class DismissalRestrictions(
+  users: List[String],
+  teams: List[String]
+)
+
+object DismissalRestrictions:
+  val reads: Reads[DismissalRestrictions] =
+    ( (__ \ "users").read[List[JsValue]].map(_.map(js => (js \ "login").as[String]))
+    ~ (__ \ "teams").read[List[JsValue]].map(_.map(js => (js \ "slug" ).as[String]))
+    )(apply)
+
+  val writes: Writes[DismissalRestrictions] =
+    ( (__ \ "users").write[List[String]]
+    ~ (__ \ "teams").write[List[String]]
+    )(dr => Tuple.fromProductTyped(dr))
+
+case class RequiredPullRequestReviews(
+  dismissStaleReviews         : Boolean,
+  requireCodeOwnerReviews     : Boolean,
+  requireLastPushApproval     : Boolean,
+  requiredApprovingReviewCount: Int,
+  dismissalRestrictions       : Option[DismissalRestrictions]
+)
+
+object RequiredPullRequestReviews:
+  given Reads[DismissalRestrictions]  = DismissalRestrictions.reads
+  given Writes[DismissalRestrictions] = DismissalRestrictions.writes
+  val format: Format[RequiredPullRequestReviews] =
+    ( (__ \ "dismiss_stale_reviews"          ).format[Boolean]
+    ~ (__ \ "require_code_owner_reviews"     ).format[Boolean]
+    ~ (__ \ "require_last_push_approval"     ).format[Boolean]
+    ~ (__ \ "required_approving_review_count").format[Int]
+    ~ (__ \ "dismissal_restrictions"         ).formatNullable[DismissalRestrictions]
+    )(apply, r => Tuple.fromProductTyped(r))
+
+case class RequiredStatusChecks(
+  strict  : Boolean,
+  contexts: List[String]
+)
+
+object RequiredStatusChecks:
+  val format: Format[RequiredStatusChecks] =
+    ( (__ \ "strict"  ).format[Boolean]
+    ~ (__ \ "contexts").format[List[String]]
+    )(apply, r => Tuple.fromProductTyped(r))
+
+case class BranchProtectionRules(
+  requiredPullRequestReviews    : Option[RequiredPullRequestReviews],
+  requiredStatusChecks          : Option[RequiredStatusChecks],
+  requiredSignatures            : Boolean,
+  enforceAdmins                 : Boolean,
+  requiredLinearHistory         : Boolean,
+  allowForcePushes              : Boolean,
+  allowDeletions                : Boolean,
+  blockCreations                : Boolean,
+  requiredConversationResolution: Boolean,
+  lockBranch                    : Boolean,
+  allowForkSyncing              : Boolean
+)
+
+object BranchProtectionRules:
+  given Format[RequiredPullRequestReviews] = RequiredPullRequestReviews.format
+  given Format[RequiredStatusChecks]       = RequiredStatusChecks.format
+  val reads: Reads[BranchProtectionRules] =
+    ( (__ \ "required_pull_request_reviews"               ).readNullable[RequiredPullRequestReviews]
+    ~ (__ \ "required_status_checks"                      ).readNullable[RequiredStatusChecks]
+    ~ (__ \ "required_signatures"              \ "enabled").read[Boolean]
+    ~ (__ \ "enforce_admins"                   \ "enabled").read[Boolean]
+    ~ (__ \ "required_linear_history"          \ "enabled").read[Boolean]
+    ~ (__ \ "allow_force_pushes"               \ "enabled").read[Boolean]
+    ~ (__ \ "allow_deletions"                  \ "enabled").read[Boolean]
+    ~ (__ \ "block_creations"                  \ "enabled").read[Boolean]
+    ~ (__ \ "required_conversation_resolution" \ "enabled").read[Boolean]
+    ~ (__ \ "lock_branch"                      \ "enabled").read[Boolean]
+    ~ (__ \ "allow_fork_syncing"               \ "enabled").read[Boolean]
+    )(apply)
+
+  val writes: Writes[BranchProtectionRules] =
+    ( (__ \ "required_pull_request_reviews"   ).writeNullable[RequiredPullRequestReviews]
+    ~ (__ \ "required_status_checks"          ).writeNullable[RequiredStatusChecks]
+    ~ (__ \ "required_signatures"             ).write[Boolean]
+    ~ (__ \ "enforce_admins"                  ).write[Boolean]
+    ~ (__ \ "required_linear_history"         ).write[Boolean]
+    ~ (__ \ "allow_force_pushes"              ).write[Boolean]
+    ~ (__ \ "allow_deletions"                 ).write[Boolean]
+    ~ (__ \ "block_creations"                 ).write[Boolean]
+    ~ (__ \ "required_conversation_resolution").write[Boolean]
+    ~ (__ \ "lock_branch"                     ).write[Boolean]
+    ~ (__ \ "allow_fork_syncing"              ).write[Boolean]
+    )(b => Tuple.fromProductTyped(b))

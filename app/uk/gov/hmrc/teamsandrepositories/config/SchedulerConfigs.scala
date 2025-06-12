@@ -66,6 +66,14 @@ class SchedulerConfigs @Inject()(configuration: Configuration):
     , initialDelayKey = "scheduler.jenkins.initialDelay"
     )
 
+  val branchProtectionScheduler: SchedulerConfig =
+    SchedulerConfig(
+      configuration
+    , enabledKey      = "scheduler.branchProtection.enabled"
+    , intervalKey     = "scheduler.branchProtection.interval"
+    , initialDelayKey = "scheduler.branchProtection.initialDelay"
+    )
+
   val dataReloadScheduler: SchedulerConfig =
     SchedulerConfig(
       configuration
