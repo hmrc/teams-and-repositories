@@ -21,8 +21,9 @@ import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.teamsandrepositories.connector.{BranchProtection, BuildDeployApiConnector, GhRepository, GithubConnector}
+import uk.gov.hmrc.teamsandrepositories.connector.{BranchProtection, BranchProtectionRules, BuildDeployApiConnector, GhRepository, GithubConnector, RequiredStatusChecks}
 import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, JenkinsJobsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence.{Job, JobType}
 import uk.gov.hmrc.teamsandrepositories.model.RepoType
 
 import java.time.Instant
@@ -111,6 +112,33 @@ class BranchProtectionServiceSpec
         .futureValue
 
       verifyNoMoreInteractions(repositoriesPersistence)
+  
+  "updateRulesIfNeeded" should:
+
+    "return updated rules when no required status checks currently set" in new Setup:
+      val expected = someRules.copy(
+        requiredStatusChecks = Some(RequiredStatusChecks(strict = false, contexts = List("some-repo-pr-builder")))
+      )
+
+      service.updateRulesIfNeeded(someJob, Some(someRules)) shouldBe Some(expected)
+
+    "return updated rules when the pr builder isn't in a list of already defined status checks respecting current strict setting" in new Setup:
+      val existing = someRules.copy(
+        requiredStatusChecks = Some(RequiredStatusChecks(strict = true, contexts = List("another-check")))
+      )
+
+      val expected = someRules.copy(
+        requiredStatusChecks = Some(RequiredStatusChecks(strict = true, contexts = List("another-check", "some-repo-pr-builder")))
+      )
+
+      service.updateRulesIfNeeded(someJob, Some(existing)) shouldBe Some(expected)
+
+    "return None when no updates required" in new Setup:
+      val existing = someRules.copy(
+        requiredStatusChecks = Some(RequiredStatusChecks(strict = false, contexts = List("some-repo-pr-builder")))
+      )
+
+      service.updateRulesIfNeeded(someJob, Some(existing)) shouldBe None
 
   trait Setup:
     val buildDeployApiConnector: BuildDeployApiConnector = mock[BuildDeployApiConnector]
@@ -135,4 +163,30 @@ class BranchProtectionServiceSpec
       branchProtection   = Some(BranchProtection(true, true, true)),
       repositoryYamlText = None,
       repoTypeHeuristics = GhRepository.RepoTypeHeuristics(false, false, false, false, false, false, false, false, false)
+    )
+
+  private lazy val someJob =
+    Job(
+      repoName    = "some-repo",
+      jobName     = "some-repo-pr-builder",
+      jenkinsUrl  = "",
+      jobType     = JobType.PullRequest,
+      repoType    = None,
+      testType    = None,
+      latestBuild = None
+    )
+
+  private lazy val someRules =
+    BranchProtectionRules(
+      requiredPullRequestReviews     = None,
+      requiredStatusChecks           = None,
+      requiredSignatures             = true,
+      enforceAdmins                  = true,
+      requiredLinearHistory          = false,
+      allowForcePushes               = false,
+      allowDeletions                 = false,
+      blockCreations                 = false,
+      requiredConversationResolution = false,
+      lockBranch                     = false,
+      allowForkSyncing               = false
     )
