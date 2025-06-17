@@ -112,6 +112,19 @@ class GithubConnector @Inject()(
       .withProxy
       .execute[Option[BranchProtectionRules]]
 
+  def updateBranchProtectionRules(
+    repoName     : String,
+    defaultBranch: String,
+    updatedRules : BranchProtectionRules
+  ): Future[Unit] =
+    given Writes[BranchProtectionRules] = BranchProtectionRules.writes
+    httpClientV2
+      .put(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection")
+      .setHeader(authHeader)
+      .withBody(Json.toJson(updatedRules))
+      .withProxy
+      .execute[Unit]
+
   def getReposForTeam(team: GhTeam): Future[Seq[GhRepository]] =
     withCounter("github.open.repos"):
       val root =

@@ -59,8 +59,9 @@ class BranchProtectionService @Inject()(
                     }
       _          <- updates.foldLeftM(()):
                       (_, update) =>
-                        Future.successful(logger.info(s"[DRY RUN] Would update ${update.repoName}/${update.defaultBranch} to have ${update.jobName} as a required status check"))
-      _          =  logger.info(s"Found ${updates.length} repositories that need branch protection rule updates")
+                        githubConnector.updateBranchProtectionRules(update.repoName, update.defaultBranch, update.updatedRules)
+                          .map(_ => logger.info(s"${update.repoName}/${update.defaultBranch} branch protection rules have been updated to have ${update.jobName} as a required status check"))
+      _          =  logger.info(s"Found and updated the branch protection rules of ${updates.length} repositories that had a pr builder that was not enforced as a required status check")
     yield ()
 
   private[service] def updateRulesIfNeeded(
