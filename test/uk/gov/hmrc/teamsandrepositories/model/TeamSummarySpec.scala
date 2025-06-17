@@ -34,8 +34,8 @@ class TeamSummarySpec extends AnyWordSpec with Matchers:
     val gitRepo3: GitRepository =
       gitRepository.copy(name = "repo-three", owningTeams = Seq("A", "B"), teamNames = List("A", "B", "C"), lastActiveDate = now)
 
-    TeamSummary.apply("A", List(gitRepo1, gitRepo3)) shouldBe TeamSummary("A", Some(now), Seq("repo-one", "repo-three"))
-    TeamSummary.apply("B", List(gitRepo2, gitRepo3)) shouldBe TeamSummary("B", Some(now), Seq("repo-two", "repo-three"))
+    TeamSummary.apply("A", List(gitRepo1, gitRepo3), now) shouldBe TeamSummary("A", Some(now), Seq("repo-one", "repo-three"), now)
+    TeamSummary.apply("B", List(gitRepo2, gitRepo3), now) shouldBe TeamSummary("B", Some(now), Seq("repo-two", "repo-three"), now)
 
   trait Setup:
     val now: Instant = Instant.now()

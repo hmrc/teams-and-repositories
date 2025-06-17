@@ -24,7 +24,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.teamsandrepositories.connector.{GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
+import uk.gov.hmrc.teamsandrepositories.connector.{BranchProtection, GhRepository, GhTeam, GithubConnector, ServiceConfigsConnector}
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.RepoTypeHeuristics
 import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, RepoType, ServiceType, Tag, TeamSummary}
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, OpenPullRequestPersistence, RepositoriesPersistence, TeamSummaryPersistence, TestRepoRelationshipsPersistence}
@@ -58,7 +58,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedRepos.length                                         shouldBe 3
@@ -82,7 +82,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedRepos.length                                         shouldBe 3
@@ -109,7 +109,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedRepos.length      shouldBe 4
@@ -130,7 +130,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedRepos
@@ -162,7 +162,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] = {
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
         }
         persistedRepos
@@ -216,17 +216,17 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
-        onTest.updateTeamsAndRepositories().futureValue
+        onTest.updateTeamsAndRepositories(now).futureValue
 
         val persistedTeams: List[TeamSummary] = {
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
-          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
+          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture(), any)
           argCaptor.getValue
         }
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs List(
-          TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2")),
-          TeamSummary("team-b", Some(now), Seq("repo-3"))
+          TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2"), now),
+          TeamSummary("team-b", Some(now), Seq("repo-3"), now)
         )
 
       "create team summaries from teams that have no repos" in new Setup:
@@ -239,17 +239,17 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
-        onTest.updateTeamsAndRepositories().futureValue
+        onTest.updateTeamsAndRepositories(now).futureValue
 
         val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
-          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
+          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs List(
-          TeamSummary("team-a", None, Seq.empty),
-          TeamSummary("team-b", None, Seq.empty)
+          TeamSummary("team-a", None, Seq.empty, now),
+          TeamSummary("team-b", None, Seq.empty, now)
         )
 
       "create git repositories and exclude hidden teams from owning teams list" in new Setup:
@@ -268,7 +268,7 @@ class PersistingServiceSpec
 
         val persistedRepos: Seq[GitRepository] =
           val argCaptor: ArgumentCaptor[Seq[GitRepository]] = ArgumentCaptor.forClass(classOf[Seq[GitRepository]])
-          verify(reposPersistence).putRepos(argCaptor.capture())
+          verify(reposPersistence).putRepos(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedRepos.length                                                       shouldBe 3
@@ -288,18 +288,18 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getFrontendServices()).thenReturn(Future.successful(Set()))
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
-        onTest.updateTeamsAndRepositories().futureValue
+        onTest.updateTeamsAndRepositories(now).futureValue
 
         val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
-          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
+          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs
           List(
-            TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2")),
-            TeamSummary("team-b", Some(now), Seq("repo-3")),
+            TeamSummary("team-a", Some(now), Seq("repo-1", "repo-2"), now),
+            TeamSummary("team-b", Some(now), Seq("repo-3"), now),
           )
 
       "create team summaries and exclude archived repos" in new Setup:
@@ -315,17 +315,17 @@ class PersistingServiceSpec
         when(serviceConfigsConnector.getAdminFrontendServices()).thenReturn(Future.successful(Set()))
         when(githubConnector.getRepos()).thenReturn(Future.successful(List(repo1, repo2, repo3)))
         when(relationshipsPersistence.deleteByRepo(repo1.name)).thenReturn(Future.unit)
-        onTest.updateTeamsAndRepositories().futureValue
+        onTest.updateTeamsAndRepositories(now).futureValue
 
         val persistedTeams: List[TeamSummary] =
           val argCaptor: ArgumentCaptor[List[TeamSummary]] = ArgumentCaptor.forClass(classOf[List[TeamSummary]])
-          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture())
+          verify(teamsPersistence).updateTeamSummaries(argCaptor.capture(), any)
           argCaptor.getValue
 
         persistedTeams.length shouldBe 2
         persistedTeams should contain theSameElementsAs List(
-          TeamSummary("team-a", Some(now), Seq("repo-2")),
-          TeamSummary("team-b", Some(now), Seq("repo-3")),
+          TeamSummary("team-a", Some(now), Seq("repo-2"), now),
+          TeamSummary("team-b", Some(now), Seq("repo-3"), now),
         )
 
   trait Setup:
@@ -342,9 +342,9 @@ class PersistingServiceSpec
 
     when(configuration.get[Seq[String]]("hidden.teams")).thenReturn(Seq(hiddenTeamName))
     when(configuration.get[Seq[String]]("built-off-platform")).thenReturn(Seq("repo-built-off-platform"))
-    when(teamsPersistence.updateTeamSummaries(any)).thenReturn(Future.unit)
+    when(teamsPersistence.updateTeamSummaries(any, any)).thenReturn(Future.unit)
     when(reposPersistence.find()).thenReturn(Future.successful(Nil))
-    when(reposPersistence.putRepos(any)).thenReturn(Future.successful(0))
+    when(reposPersistence.putRepos(any, any)).thenReturn(Future.successful(0))
     when(deletedRepoPersistence.find()).thenReturn(Future.successful(Nil))
     when(deletedRepoPersistence.deleteRepos(any)).thenReturn(Future.successful(0.toLong))
     when(relationshipsPersistence.putRelationships(any[String], any[Seq[TestRepoRelationship]])).thenReturn(Future.unit)

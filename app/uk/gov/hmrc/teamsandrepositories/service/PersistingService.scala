@@ -61,7 +61,7 @@ case class PersistingService @Inject()(
   def deleteOpenPr(url: String): Future[Long] =
     openPullRequestPersistence.deleteOpenPullRequest(url)
 
-  private def updateRepositories(reposWithTeams: Seq[GitRepository])(using ExecutionContext): Future[Unit] =
+  private def updateRepositories(reposWithTeams: Seq[GitRepository], updateStartTime: Instant)(using ExecutionContext): Future[Unit] =
     for
       frontendServices           <- serviceConfigsConnector.getFrontendServices()
       adminFrontendServices      <- serviceConfigsConnector.getAdminFrontendServices()
@@ -71,10 +71,11 @@ case class PersistingService @Inject()(
       toPersistRepos             =  (reposWithTeams ++ orphanRepos)
                                       .map(r => defineServiceType(r, isFrontend = frontendServices.contains(r.name), isAdmin = adminFrontendServices.contains(r.name)))
                                       .map(r => defineTag(r, isAdmin = adminFrontendServices.contains(r.name), servicesBuiltOffPlatform, ghRepos.find(_.name == r.name)))
+                                      .map(_.copy(lastUpdated = updateStartTime))
       toPersistReposNames        =  toPersistRepos.map(_.name).toSet
 
       _                          =  logger.info(s"found ${toPersistRepos.length} repos")
-      updateCount                <- repositoriesPersistence.putRepos(toPersistRepos)
+      updateCount                <- repositoriesPersistence.putRepos(toPersistRepos, updateStartTime)
 
       alreadyDeletedReposNames   <- deletedRepositoriesPersistence.find().map(_.map(_.name).toSet)
       recreatedRepos             =  (alreadyDeletedReposNames intersect toPersistReposNames).toSeq
@@ -96,7 +97,7 @@ case class PersistingService @Inject()(
       _                          <- reposToDeleteRelationships.toList.traverse(relationshipsPersistence.deleteByRepo)
     yield ()
 
-  def updateTeamsAndRepositories()(using ExecutionContext): Future[Unit] =
+  def updateTeamsAndRepositories(updateStartTime: Instant = Instant.now())(using ExecutionContext): Future[Unit] =
     for
       gitHubTeams    <- githubConnector.getTeams().map(_.filterNot(team => hiddenTeams.contains(team.name)))
       teamReposMap   <- gitHubTeams.foldLeftM(Map.empty[String, Seq[GitRepository]]): (acc, team) =>
@@ -113,12 +114,13 @@ case class PersistingService @Inject()(
                             owningTeams = if repo.owningTeams.isEmpty then teams else repo.owningTeams
                           )
       teamSummaries  =  gitHubTeams.map(team => TeamSummary(
-                          teamName = team.name,
-                          gitRepos = reposWithTeams.filter(repo => repo.owningTeams.contains(team.name) && !repo.isArchived)
+                          teamName    = team.name,
+                          gitRepos    = reposWithTeams.filter(repo => repo.owningTeams.contains(team.name) && !repo.isArchived),
+                          lastUpdated = updateStartTime
                         ))
-      count          <- teamSummaryPersistence.updateTeamSummaries(teamSummaries)
-      _              =  logger.info(s"Persisted: $count Teams")
-      _              <- updateRepositories(reposWithTeams)
+      count          <- teamSummaryPersistence.updateTeamSummaries(teamSummaries, updateStartTime)
+      _              =  logger.info(s"Persisted: ${teamSummaries.length} Teams")
+      _              <- updateRepositories(reposWithTeams, updateStartTime)
     yield ()
 
   def addTeam(team: TeamSummary): Future[Unit] =
