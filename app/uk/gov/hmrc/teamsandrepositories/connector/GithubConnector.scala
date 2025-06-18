@@ -232,6 +232,7 @@ object GithubConnector:
           requiresApprovingReviews
           dismissesStaleReviews
           requiresCommitSignatures
+          requiredStatusCheckContexts
         }
       }
       lastFiveCommits: defaultBranchRef {
@@ -650,13 +651,15 @@ object RateLimit:
 case class BranchProtection(
   requiresApprovingReviews: Boolean,
   dismissesStaleReview    : Boolean,
-  requiresCommitSignatures: Boolean
+  requiresCommitSignatures: Boolean,
+  requiredStatusChecks    : Seq[String] = Seq.empty
 )
 
 object BranchProtection:
 
   val format: Format[BranchProtection] =
-    ( (__ \ "requiresApprovingReviews").format[Boolean]
-    ~ (__ \ "dismissesStaleReviews"   ).format[Boolean]
-    ~ (__ \ "requiresCommitSignatures").format[Boolean]
+    ( (__ \ "requiresApprovingReviews"   ).format[Boolean]
+    ~ (__ \ "dismissesStaleReviews"      ).format[Boolean]
+    ~ (__ \ "requiresCommitSignatures"   ).format[Boolean]
+    ~ (__ \ "requiredStatusCheckContexts").formatWithDefault[Seq[String]](Seq.empty)
     )(apply, b => Tuple.fromProductTyped(b))
