@@ -25,25 +25,31 @@ import java.time.Instant
 case class TeamSummary(
   name          : String,
   lastActiveDate: Option[Instant],
-  repos         : Seq[String]
+  repos         : Seq[String],
+  lastUpdated   : Instant = Instant.now()
 )
 
 object TeamSummary:
-  def apply(teamName: String, gitRepos: Seq[GitRepository]): TeamSummary =
+  def apply(teamName: String, gitRepos: Seq[GitRepository], lastUpdated: Instant): TeamSummary =
     TeamSummary(
       name           = teamName,
       lastActiveDate = if gitRepos.nonEmpty then Some(gitRepos.map(_.lastActiveDate).max) else None,
-      repos          = gitRepos.map(_.name)
+      repos          = gitRepos.map(_.name),
+      lastUpdated    = lastUpdated
     )
 
   val apiFormat: Format[TeamSummary] =
     ( (__ \ "name"          ).format[String]
     ~ (__ \ "lastActiveDate").formatNullable[Instant]
     ~ (__ \ "repos"         ).format[Seq[String]]
-    )(TeamSummary.apply, t => Tuple.fromProductTyped(t))
+    )((name, date, repos) => TeamSummary(name, date, repos, Instant.now()),
+      t => (t.name, t.lastActiveDate, t.repos)
+    )
 
   val mongoFormat: Format[TeamSummary] =
+    given Format[Instant] = MongoJavatimeFormats.instantFormat
     ( (__ \ "name"           ).format[String]
-    ~ (__ \ "lastActiveDate" ).formatNullable[Instant](MongoJavatimeFormats.instantFormat)
+    ~ (__ \ "lastActiveDate" ).formatNullable[Instant]
     ~ (__ \ "repos"          ).format[Seq[String]]
+    ~ (__ \ "lastUpdated"    ).format[Instant]
     )(TeamSummary.apply, t => Tuple.fromProductTyped(t))

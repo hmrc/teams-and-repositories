@@ -24,8 +24,10 @@ import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, Organisation, Repo
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
+import play.api.Logging
 import play.api.libs.json.Format
 
+import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,10 +46,11 @@ class RepositoriesPersistence @Inject()(
                      IndexModel(Indexes.ascending("serviceType")       , IndexOptions().background(true)),
                      IndexModel(Indexes.ascending("isArchived")        , IndexOptions().background(true)),
                      IndexModel(Indexes.ascending("owningTeams")       , IndexOptions().background(true)),
+                     IndexModel(Indexes.ascending("lastUpdated")       , IndexOptions().background(true)),
                      IndexModel(Indexes.ascending("digitalServiceName"), IndexOptions().background(true).sparse(true))
                    ),
   replaceIndexes = true
-):
+) with Logging:
   // updateRepos cleans up unreferenced teams
   override lazy val requiresTtlIndex = false
 
@@ -89,20 +92,37 @@ class RepositoriesPersistence @Inject()(
       .collation(caseInsensitive)
       .headOption()
 
-  def putRepos(repos: Seq[GitRepository]): Future[Int] =
-    collection
-      .bulkWrite(repos.map(repo =>
-        ReplaceOneModel(
-          Filters.equal("name", repo.name),
-          repo,
-          ReplaceOptions().collation(caseInsensitive).upsert(true)
-        )
-      ))
-      .toFuture()
-      .map(_.getModifiedCount)
+  def putRepos(repos: Seq[GitRepository], updateStartTime: Instant): Future[Int] =
+    val skipFilter = Filters.and(
+      Filters.in("name", repos.map(_.name) *),
+      Filters.gt("lastUpdated", updateStartTime)
+    )
 
-  def putRepo(repos: GitRepository): Future[Unit] =
-    putRepos(Seq(repos))
+    for
+      toRetain      <- collection.find(skipFilter).collation(caseInsensitive).toFuture()
+      toRetainNames =  toRetain.map(_.name.toLowerCase).toSet
+      toPersist     =  repos.filterNot(r => toRetainNames.contains(r.name.toLowerCase))
+      _             =  if toRetain.nonEmpty then
+                         logger.info(s"Retained ${toRetain.size} repos that were updated after bulk update started: ${toRetain.map(_.name).mkString(", ")}")
+      result        <- collection
+                         .bulkWrite(toPersist.map(repo =>
+                           ReplaceOneModel(
+                             Filters.equal("name", repo.name),
+                             repo,
+                             ReplaceOptions().collation(caseInsensitive).upsert(true)
+                           )
+                         ))
+                         .toFuture()
+    yield result.getModifiedCount
+
+  def putRepo(repo: GitRepository): Future[Unit] =
+    collection
+      .replaceOne(
+        Filters.equal("name", repo.name),
+        repo,
+        ReplaceOptions().collation(caseInsensitive).upsert(true)
+      )
+      .toFuture()
       .map(_ => ())
 
   def archiveRepo(repoName: String): Future[Unit] =

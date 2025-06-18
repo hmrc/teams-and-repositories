@@ -73,7 +73,7 @@ class OpenPullRequestsControllerSpec
       when(mockTeamSummaryPersistence.findTeamSummaries(eqTo(Some("team-a"))))
         .thenReturn(
           Future.successful(Seq(
-            TeamSummary("team-a", Some(now), Seq("example-repo1", "example-repo2"))
+            TeamSummary("team-a", Some(now), Seq("example-repo1", "example-repo2"), now)
         )))
 
       when(mockOpenPullRequestPersistence.findOpenPullRequests(repos = eqTo(Some(Seq("example-repo1", "example-repo2"))), authors = any))
@@ -112,7 +112,8 @@ class OpenPullRequestsControllerSpec
               repoType           = RepoType.Service,
               isArchived         = false,
               defaultBranch      = "main",
-              digitalServiceName = Some("a digital service")
+              digitalServiceName = Some("a digital service"),
+              lastUpdated        = now
             ),
             GitRepository(
               name               = "example-repo2",
@@ -124,7 +125,8 @@ class OpenPullRequestsControllerSpec
               repoType           = RepoType.Service,
               isArchived         = false,
               defaultBranch      = "main",
-              digitalServiceName = Some("a digital service")
+              digitalServiceName = Some("a digital service"),
+              lastUpdated        = now
             )
           )))
 

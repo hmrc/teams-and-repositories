@@ -40,41 +40,43 @@ class TeamSummaryPersistenceSpec
     TeamSummary(
       name           = "team-one",
       lastActiveDate = Some(now),
-      repos          = Seq("repo-one")
+      repos          = Seq("repo-one"),
+      lastUpdated    = now
     )
 
   private val teamSummary2 =
     TeamSummary(
       name           = "team-two",
       lastActiveDate = Some(now),
-      repos          = Seq("repo-one")
+      repos          = Seq("repo-one"),
+      lastUpdated    = now
     )
 
   "update" should:
     "insert new team summaries" in:
-      repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
+      repository.updateTeamSummaries(List(teamSummary1, teamSummary2), now).futureValue
       findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
 
     "update existing teams summaries" in:
       insert(teamSummary1.copy(lastActiveDate = Some(now.minus(5, ChronoUnit.DAYS)))).futureValue
-      repository.updateTeamSummaries(List(teamSummary1, teamSummary2)).futureValue
+      repository.updateTeamSummaries(List(teamSummary1, teamSummary2), now).futureValue
       findAll().futureValue should contain theSameElementsAs List(teamSummary1, teamSummary2)
 
     "delete team summaries not in the update list" in:
       insert(teamSummary1).futureValue
       insert(teamSummary2).futureValue
-      repository.updateTeamSummaries(List(teamSummary1)).futureValue
+      repository.updateTeamSummaries(List(teamSummary1), now).futureValue
       findAll().futureValue should contain (teamSummary1)
       findAll().futureValue should not contain teamSummary2
 
     "support case-insensitive collation" in:
       insert(teamSummary1).futureValue
       val teamSummary1Upper = teamSummary1.copy(name = teamSummary1.name.toUpperCase)
-      repository.updateTeamSummaries(Seq(teamSummary1Upper)).futureValue
+      repository.updateTeamSummaries(Seq(teamSummary1Upper), now).futureValue
       findAll().futureValue should contain (teamSummary1Upper)
       findAll().futureValue should not contain teamSummary1
 
-      repository.updateTeamSummaries(Seq.empty).futureValue
+      repository.updateTeamSummaries(Seq.empty, now).futureValue
       findAll().futureValue shouldBe Seq.empty
 
   "findTeamSummaries" should:

@@ -64,7 +64,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = Some(BranchProtection(requiresApprovingReviews = true, dismissesStaleReview = true, requiresCommitSignatures = true)),
       isDeprecated        = false,
       teamNames           = List("team1", "team2"),
-      prototypeName       = None
+      prototypeName       = None,
+      lastUpdated         = now
     )
 
   private val repo2 =
@@ -87,7 +88,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = None,
       isDeprecated        = false,
       teamNames           = List("team2", "team3"),
-      prototypeName       = None
+      prototypeName       = None,
+      lastUpdated         = now
     )
 
   private val repo3 =
@@ -110,7 +112,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = None,
       isDeprecated        = false,
       teamNames           = List("team1","team2", "team3"),
-      prototypeName       = Some("https://repo3.herokuapp.com")
+      prototypeName       = Some("https://repo3.herokuapp.com"),
+      lastUpdated         = now
     )
 
   private val repo4 =
@@ -133,7 +136,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = None,
       isDeprecated        = false,
       teamNames           = List("team2", "team3"),
-      prototypeName       = None
+      prototypeName       = None,
+      lastUpdated         = now
     )
 
   private val repo5 =
@@ -156,7 +160,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = None,
       isDeprecated        = false,
       teamNames           = List("team2", "team3"),
-      prototypeName       = None
+      prototypeName       = None,
+      lastUpdated         = now
     )
 
   private val repo6 =
@@ -179,7 +184,8 @@ class RepositoriesPersistenceSpec
       branchProtection    = None,
       isDeprecated        = false,
       teamNames           = List("team2", "team3"),
-      prototypeName       = None
+      prototypeName       = None,
+      lastUpdated         = now
     )
 
   "find" should:
@@ -245,12 +251,12 @@ class RepositoriesPersistenceSpec
 
   "putRepos" should:
     "insert new repositories" in:
-      repository.putRepos(Seq(repo1,repo2)).futureValue
+      repository.putRepos(Seq(repo1,repo2), now).futureValue
       findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
 
     "update existing repositories" in:
       insert(repo1.copy(description = "the old description")).futureValue
-      repository.putRepos(Seq(repo1,repo2)).futureValue
+      repository.putRepos(Seq(repo1,repo2), now).futureValue
       findAll().futureValue should contain theSameElementsAs Seq(repo1, repo2)
 
   "deletedRepos" should:

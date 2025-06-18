@@ -24,6 +24,7 @@ import uk.gov.hmrc.teamsandrepositories.model.{DeletedGitRepository, GitReposito
 import uk.gov.hmrc.teamsandrepositories.persistence.{DeletedRepositoriesPersistence, JenkinsJobsPersistence, RepositoriesPersistence, TeamSummaryPersistence}
 import org.mongodb.scala.ObservableFuture
 
+import java.time.Instant
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
@@ -42,7 +43,7 @@ class IntegrationTestSupportController @Inject()(
   def addRepositories(): Action[Seq[GitRepository]] =
     given Format[GitRepository] = GitRepository.apiFormat
     Action.async(validateJson[Seq[GitRepository]]): request =>
-      repositoriesPersistence.putRepos(request.body).map( _ => Ok("Ok"))
+      repositoriesPersistence.putRepos(request.body, updateStartTime = Instant.now()).map(_ => Ok("Ok"))
 
   def clearAll: Action[AnyContent] =
     Action.async:

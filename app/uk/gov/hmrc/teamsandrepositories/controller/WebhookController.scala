@@ -77,7 +77,7 @@ class WebhookController @Inject()(
 
         case TeamEvent("created", teamName, _) =>
           persistingService
-            .addTeam(TeamSummary(teamName, Seq.empty))
+            .addTeam(TeamSummary(teamName, gitRepos = Seq.empty, lastUpdated = Instant.now()))
             .map(_ => logger.info(s"New team created: $teamName - New team created webhook event has been actioned"))
             .recover { case ex => logger.error(s"New team: $teamName - unexpected error updating teams", ex) }
           Accepted(details("Team creation event accepted"))

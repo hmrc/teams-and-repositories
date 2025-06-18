@@ -1,3 +1,10 @@
+# Migration to 11.177.0
+
+```javascript
+db.teamSummaries.updateMany({ lastUpdated: { $exists: false } },{ $set: { lastUpdated: now } });
+db.repositories.updateMany({ lastUpdated: { $exists: false } },{ $set: { lastUpdated: now } });
+```
+
 # Migration to 11.171.0
 
 ```javascript

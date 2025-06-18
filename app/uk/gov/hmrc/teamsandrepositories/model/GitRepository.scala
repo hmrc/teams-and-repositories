@@ -45,7 +45,8 @@ case class GitRepository(
   teamNames           : Seq[String]              = Nil,
   prototypeName       : Option[String]           = None,
   prototypeAutoPublish: Option[Boolean]          = None,
-  repositoryYamlText  : Option[String]           = None
+  repositoryYamlText  : Option[String]           = None,
+  lastUpdated         : Instant                  = Instant.now()
 )
 
 object GitRepository:
@@ -56,8 +57,12 @@ object GitRepository:
   private given Format[Tag]              = Tag.format
   private given Format[BranchProtection] = BranchProtection.format
 
-  val apiFormat: Format[GitRepository] =
-    Json.format[GitRepository] // over 22 fields
+  val apiFormat: Format[GitRepository] = Format(
+    Json.reads[GitRepository], // over 22 fields
+    (repo: GitRepository) =>
+      val fullJson = Json.writes[GitRepository].writes(repo)
+      fullJson.as[JsObject] - "lastUpdated"
+  )
 
   val mongoFormat: Format[GitRepository] =
     given Format[Instant] = MongoJavatimeFormats.instantFormat
