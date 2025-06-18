@@ -202,7 +202,8 @@ class GithubConnectorSpec
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
              "dismissesStaleReviews": true,
-             "requiresCommitSignatures": true
+             "requiresCommitSignatures": true,
+             "requiredStatusCheckContexts": []
            }
          }
        },
@@ -261,7 +262,8 @@ class GithubConnectorSpec
            "branchProtectionRule": {
              "requiresApprovingReviews": true,
              "dismissesStaleReviews": true,
-             "requiresCommitSignatures": true
+             "requiresCommitSignatures": true,
+             "requiredStatusCheckContexts": []
            }
          }
        }
@@ -445,7 +447,8 @@ class GithubConnectorSpec
                 "branchProtectionRule": {
                   "requiresApprovingReviews": true,
                   "dismissesStaleReviews": true,
-                  "requiresCommitSignatures": true
+                  "requiresCommitSignatures": true,
+                  "requiredStatusCheckContexts": []
                 }
               }
             }
@@ -604,7 +607,8 @@ class GithubConnectorSpec
                 "branchProtectionRule": {
                   "requiresApprovingReviews": true,
                   "dismissesStaleReviews": true,
-                  "requiresCommitSignatures": true
+                  "requiresCommitSignatures": true,
+                  "requiredStatusCheckContexts": []
                 }
               }
             }
