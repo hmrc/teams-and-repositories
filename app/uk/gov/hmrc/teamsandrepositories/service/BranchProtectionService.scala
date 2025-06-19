@@ -52,22 +52,22 @@ class BranchProtectionService @Inject()(
                          if shouldUpdateRepo(job.jobName, repo)
                          currentRules <- OptionT.liftF(githubConnector.getBranchProtectionRules(repo.name, repo.defaultBranch))
                          updatedRules <- OptionT.fromOption[Future](updateRulesWithStatusCheck(job.jobName, currentRules))
-                         //_            <- OptionT.liftF(githubConnector.updateBranchProtectionRules(repo.name, repo.defaultBranch, updatedRules))
-                         _            =  logger.info(s"[DRY RUN] ${repo.name}/${repo.defaultBranch} branch protection rules have been updated to have ${job.jobName} as a required status check")
+                         _            <- OptionT.liftF(githubConnector.updateBranchProtectionRules(repo.name, repo.defaultBranch, updatedRules))
+                         _            =  logger.info(s"${repo.name}/${repo.defaultBranch} branch protection rules have been updated to have ${job.jobName} as a required status check")
                        yield count + 1
                       ).value.map(_.getOrElse(count)).recover {
                         case ex =>
-                          logger.warn(s"[DRY RUN] unable to evaluate branch protection rules for ${job.repoName}: ${ex.getMessage}")
+                          logger.warn(s"unable to evaluate branch protection rules for ${job.repoName}: ${ex.getMessage}")
                           count
                       }
                     }
-      _           =  logger.info(s"[DRY RUN] Found and updated the branch protection rules of $updateCount repositories that had a pr builder that was not enforced as a required status check")
+      _           =  logger.info(s"Found and updated the branch protection rules of $updateCount repositories that had a pr builder that was not enforced as a required status check")
     yield ()
 
   private[service] def shouldUpdateRepo(jobName: String, repo: GitRepository): Boolean =
-    repo.branchProtection.fold(false){ branchProtection =>
-      !branchProtection.requiredStatusChecks.contains(jobName)
-    }
+    repo.branchProtection.fold(false):
+      branchProtection =>
+        !branchProtection.requiredStatusChecks.contains(jobName)
     
   private[service] def updateRulesWithStatusCheck(
     jobName: String,
