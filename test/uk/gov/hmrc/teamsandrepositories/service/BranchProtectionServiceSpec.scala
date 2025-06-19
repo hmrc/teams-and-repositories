@@ -23,6 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.teamsandrepositories.connector.{BranchProtection, BuildDeployApiConnector, GhRepository, GithubConnector}
 import uk.gov.hmrc.teamsandrepositories.persistence.{RepositoriesPersistence, JenkinsJobsPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence.Job
 import uk.gov.hmrc.teamsandrepositories.model.RepoType
 
 import java.time.Instant
@@ -111,6 +112,23 @@ class BranchProtectionServiceSpec
         .futureValue
 
       verifyNoMoreInteractions(repositoriesPersistence)
+
+  "shouldUpdateRepo" should:
+    "return false when cached repo has no branch protection info" in new Setup:
+      val repo = someRepository.copy(branchProtection = None).toGitRepository
+      service.shouldUpdateRepo("some-pr-builder", repo) shouldBe false
+
+    "return true when cached repo has no current required status checks" in new Setup:
+      val repo = someRepository.toGitRepository
+      service.shouldUpdateRepo("some-pr-builder", repo) shouldBe true
+
+    "return false when pr builder is already a required status check" in new Setup:
+      val repo = someRepository.copy(branchProtection = Some(BranchProtection(true, true, true, Seq("some-pr-builder")))).toGitRepository
+      service.shouldUpdateRepo("some-pr-builder", repo) shouldBe false
+
+    "return true when cached repo has other required status checks but not this pr builder" in new Setup:
+      val repo = someRepository.copy(branchProtection = Some(BranchProtection(true, true, true, Seq("another-check")))).toGitRepository
+      service.shouldUpdateRepo("some-pr-builder", repo) shouldBe true
 
   trait Setup:
     val buildDeployApiConnector: BuildDeployApiConnector = mock[BuildDeployApiConnector]

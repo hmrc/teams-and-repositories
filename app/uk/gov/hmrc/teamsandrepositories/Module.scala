@@ -17,7 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories
 
 import com.google.inject.AbstractModule
-import uk.gov.hmrc.teamsandrepositories.schedulers.{DataReloadScheduler, GithubRatelimitMetricsScheduler, JenkinsRebuildScheduler, JenkinsReloadScheduler, OpenPrDataReloadScheduler}
+import uk.gov.hmrc.teamsandrepositories.schedulers.*
 
 class Module() extends AbstractModule:
   override def configure(): Unit =
@@ -26,3 +26,4 @@ class Module() extends AbstractModule:
     bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
     bind(classOf[JenkinsRebuildScheduler        ]).asEagerSingleton()
     bind(classOf[JenkinsReloadScheduler         ]).asEagerSingleton()
+    bind(classOf[BranchProtectionRulesScheduler ]).asEagerSingleton()
