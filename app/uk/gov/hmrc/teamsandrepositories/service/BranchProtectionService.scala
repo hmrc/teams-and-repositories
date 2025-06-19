@@ -20,8 +20,8 @@ import cats.implicits.*
 import cats.data.OptionT
 import play.api.Logging
 import uk.gov.hmrc.teamsandrepositories.connector.{BranchProtectionRules, BuildDeployApiConnector, GhRepository, GithubConnector, RequiredStatusChecks}
-import uk.gov.hmrc.teamsandrepositories.model.NoSuchRepository
-import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence.{Job, JobType}
+import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, NoSuchRepository}
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence.JobType
 import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
 
 import javax.inject.{Inject, Singleton}
@@ -45,55 +45,39 @@ class BranchProtectionService @Inject()(
 
   def enforceRequiredStatusChecks(using ExecutionContext): Future[Unit] =
     for
-      prBuilders <- jenkinsJobsPersistence.findAllByJobType(JobType.PullRequest)
-      updates    <- prBuilders.foldLeftM(List.empty[RuleUpdate]) { (acc, job) =>
+      prBuilders  <- jenkinsJobsPersistence.findAllByJobType(JobType.PullRequest)
+      updateCount <- prBuilders.foldLeftM(0) { (count, job) =>
                       (for
                          repo         <- OptionT(repositoriesPersistence.findRepo(job.repoName))
-                         current      <- OptionT.liftF(githubConnector.getBranchProtectionRules(repo.name, repo.defaultBranch))
-                         updatedRules =  updateRulesIfNeeded(job, current)
-                       yield updatedRules.fold(acc)(rules => RuleUpdate(repo.name, job.jobName, repo.defaultBranch, rules) :: acc)
-                      ).getOrElse {
-                        logger.warn(s"unable to evaluate branch protection rules for ${job.repoName}")
-                        acc
+                         if shouldUpdateRepo(job.jobName, repo)
+                         currentRules <- OptionT.liftF(githubConnector.getBranchProtectionRules(repo.name, repo.defaultBranch))
+                         updatedRules <- OptionT.fromOption[Future](updateRulesWithStatusCheck(job.jobName, currentRules))
+                         //_            <- OptionT.liftF(githubConnector.updateBranchProtectionRules(repo.name, repo.defaultBranch, updatedRules))
+                         _            =  logger.info(s"[DRY RUN] ${repo.name}/${repo.defaultBranch} branch protection rules have been updated to have ${job.jobName} as a required status check")
+                       yield count + 1
+                      ).value.map(_.getOrElse(count)).recover {
+                        case ex =>
+                          logger.warn(s"[DRY RUN] unable to evaluate branch protection rules for ${job.repoName}: ${ex.getMessage}")
+                          count
                       }
                     }
-      _          <- updates.foldLeftM(()):
-                      (_, update) =>
-                        githubConnector.updateBranchProtectionRules(update.repoName, update.defaultBranch, update.updatedRules)
-                          .map(_ => logger.info(s"${update.repoName}/${update.defaultBranch} branch protection rules have been updated to have ${update.jobName} as a required status check"))
-      _          =  logger.info(s"Found and updated the branch protection rules of ${updates.length} repositories that had a pr builder that was not enforced as a required status check")
+      _           =  logger.info(s"[DRY RUN] Found and updated the branch protection rules of $updateCount repositories that had a pr builder that was not enforced as a required status check")
     yield ()
 
-  private[service] def updateRulesIfNeeded(
-    prBuilder   : Job,
+  private[service] def shouldUpdateRepo(jobName: String, repo: GitRepository): Boolean =
+    repo.branchProtection.fold(false){ branchProtection =>
+      !branchProtection.requiredStatusChecks.contains(jobName)
+    }
+    
+  private[service] def updateRulesWithStatusCheck(
+    jobName: String,
     currentRules: Option[BranchProtectionRules]
   ): Option[BranchProtectionRules] =
-    currentRules match
-      case None =>
-        logger.warn(s"skipping ${prBuilder.repoName} as no branch protection rules currently present")
-        None
-      case Some(rules) =>
-        val needsUpdate =
-          rules.requiredStatusChecks.fold(true)(!_.contexts.contains(prBuilder.jobName))
+    currentRules.map:
+      rules =>
+        val updatedStatusChecks = rules.requiredStatusChecks.fold(
+          RequiredStatusChecks(strict = false, contexts = List(jobName))
+        )(existing => existing.copy(contexts = existing.contexts :+ jobName))
 
-        val requireUpToDateBranch =
-          rules.requiredStatusChecks.fold(false)(_.strict)
-        
-        Option.when(needsUpdate) {
-          val updatedStatusChecks =
-            rules.requiredStatusChecks.fold(
-              RequiredStatusChecks(strict = requireUpToDateBranch, contexts = List(prBuilder.jobName))
-            )(existing => existing.copy(contexts = (existing.contexts :+ prBuilder.jobName)))
-
-          rules.copy(requiredStatusChecks = Some(updatedStatusChecks))
-        }
-
-  case class RuleUpdate(
-    repoName     : String,
-    jobName      : String,
-    defaultBranch: String,
-    updatedRules : BranchProtectionRules
-  )
-        
-    
+        rules.copy(requiredStatusChecks = Some(updatedStatusChecks))
 
