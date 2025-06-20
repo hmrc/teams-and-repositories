@@ -52,7 +52,7 @@ trait SchedulerUtils extends Logging:
                 logger.error(s"Scheduler $label interrupted after ${System.currentTimeMillis - start} millis because: ${e.getMessage}", e)
       applicationLifecycle.addStopHook(() => Future(cancellable.cancel()))
     else
-      logger.info(s"Scheduler $label is DISABLED. to enable, configure configure ${schedulerConfig.enabledKey}=true in config.")
+      logger.info(s"Scheduler $label is DISABLED. to enable, configure ${schedulerConfig.enabledKey}=true in config.")
 
   def scheduleWithLock(
     label          : String,
