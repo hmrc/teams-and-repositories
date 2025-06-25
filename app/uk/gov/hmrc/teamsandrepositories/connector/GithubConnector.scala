@@ -109,6 +109,8 @@ class GithubConnector @Inject()(
     httpClientV2
       .get(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection")
       .setHeader(authHeader)
+      .setHeader("Accept" -> "application/vnd.github+json")
+      .setHeader("X-GitHub-Api-Version" -> "2022-11-28")
       .withProxy
       .execute[Option[BranchProtectionRules]]
 
@@ -121,6 +123,7 @@ class GithubConnector @Inject()(
     httpClientV2
       .put(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection")
       .setHeader(authHeader)
+      .setHeader("X-GitHub-Api-Version" -> "2022-11-28")
       .withBody(Json.toJson(updatedRules))
       .withProxy
       .execute[Unit]
@@ -742,7 +745,8 @@ case class BranchProtectionRules(
   blockCreations                : Boolean,
   requiredConversationResolution: Boolean,
   lockBranch                    : Boolean,
-  allowForkSyncing              : Boolean
+  allowForkSyncing              : Boolean,
+  restrictions                  : JsValue
 )
 
 object BranchProtectionRules:
@@ -760,6 +764,7 @@ object BranchProtectionRules:
     ~ (__ \ "required_conversation_resolution" \ "enabled").read[Boolean]
     ~ (__ \ "lock_branch"                      \ "enabled").read[Boolean]
     ~ (__ \ "allow_fork_syncing"               \ "enabled").read[Boolean]
+    ~ (__ \ "restrictions"                                ).readWithDefault[JsValue](JsNull)
     )(apply)
 
   val writes: Writes[BranchProtectionRules] =
@@ -774,4 +779,5 @@ object BranchProtectionRules:
     ~ (__ \ "required_conversation_resolution").write[Boolean]
     ~ (__ \ "lock_branch"                     ).write[Boolean]
     ~ (__ \ "allow_fork_syncing"              ).write[Boolean]
+    ~ (__ \ "restrictions"                    ).write[JsValue]
     )(b => Tuple.fromProductTyped(b))
