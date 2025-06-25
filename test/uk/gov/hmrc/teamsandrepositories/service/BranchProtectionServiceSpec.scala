@@ -29,6 +29,7 @@ import uk.gov.hmrc.teamsandrepositories.model.RepoType
 import java.time.Instant
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import play.api.libs.json.JsNull
 
 class BranchProtectionServiceSpec
   extends AnyWordSpec
@@ -179,5 +180,6 @@ class BranchProtectionServiceSpec
       blockCreations = false,
       requiredConversationResolution = false,
       lockBranch = false,
-      allowForkSyncing = false
+      allowForkSyncing = false,
+      restrictions = JsNull
     )

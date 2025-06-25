@@ -20,14 +20,14 @@ package uk.gov.hmrc.teamsandrepositories.connector
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.apache.pekko.actor.ActorSystem
-import play.api.http.Status.BAD_GATEWAY
+import play.api.http.Status
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
 import play.api.libs.ws.writeableOf_JsValue
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, Retries, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Retries, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.teamsandrepositories.config.GithubConfig
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.{ManifestDetails, RepoTypeHeuristics}
 import uk.gov.hmrc.teamsandrepositories.model.*
@@ -120,13 +120,18 @@ class GithubConnector @Inject()(
     updatedRules : BranchProtectionRules
   ): Future[Unit] =
     given Writes[BranchProtectionRules] = BranchProtectionRules.writes
+    val url = url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection"
     httpClientV2
-      .put(url"${githubConfig.apiUrl}/repos/hmrc/$repoName/branches/$defaultBranch/protection")
+      .put(url)
       .setHeader(authHeader)
       .setHeader("X-GitHub-Api-Version" -> "2022-11-28")
       .withBody(Json.toJson(updatedRules))
       .withProxy
-      .execute[Unit]
+      .execute[HttpResponse]
+      .flatMap: res =>
+        if Status.isSuccessful(res.status) then
+          Future.unit
+        else Future.failed(sys.error(s"Call to $url failed with status: ${res.status}, body: ${res.body}"))
 
   def getReposForTeam(team: GhTeam): Future[Seq[GhRepository]] =
     withCounter("github.open.repos"):
@@ -172,7 +177,7 @@ class GithubConnector @Inject()(
     query: GraphqlQuery
   ): Future[A] =
     retryFor[A]("Github graphQL call") {
-      case UpstreamErrorResponse.WithStatusCode(BAD_GATEWAY) => true
+      case UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY) => true
     }{
       val startTime = Instant.now()
       httpClientV2
@@ -183,7 +188,7 @@ class GithubConnector @Inject()(
         .withProxy
         .execute[A]
         .recoverWith:
-          case ex @ UpstreamErrorResponse.WithStatusCode(BAD_GATEWAY) =>
+          case ex @ UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY) =>
             val elapsed = java.time.Duration.between(startTime, Instant.now()).toMillis
             logger.warn(s"Failed GitHub GraphQL call took ${elapsed}ms. Error: ${ex.getMessage}")
             Future.failed(ex)

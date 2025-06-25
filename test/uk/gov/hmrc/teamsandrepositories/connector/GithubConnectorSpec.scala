@@ -25,7 +25,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsString
+import play.api.libs.json.{JsNull, JsString}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.teamsandrepositories.connector.GhRepository.RepoTypeHeuristics
@@ -1073,3 +1073,21 @@ class GithubConnectorSpec
         getRequestedFor(urlPathEqualTo("/rate_limit"))
           .withHeader("Authorization", equalTo(s"token $token"))
       )
+  
+  "updateBranchProtectionRules" should:
+    "error when non 2xx response" in:
+      stubFor(
+        put(urlPathEqualTo("/repos/hmrc/some-repo/branches/main/protection"))
+          .willReturn(
+            aResponse()
+              .withStatus(422)
+          )
+      )
+
+      val updatedRules = BranchProtectionRules(None, None, true, true, false, false, false, false, false, false, false, JsNull)
+
+      val exception = intercept[RuntimeException] {
+          connector.updateBranchProtectionRules("some-repo", "main", updatedRules).futureValue
+      }
+
+      exception.getMessage should include("failed with status: 422")
