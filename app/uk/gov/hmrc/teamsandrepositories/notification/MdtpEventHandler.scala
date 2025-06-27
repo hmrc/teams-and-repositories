@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector.LatestBuild
 
 @Singleton
-class MdtpdEventHandler @Inject()(
+class MdtpEventHandler @Inject()(
   configuration       : Configuration
 , jenkinsReloadService: JenkinsReloadService
 )(using
