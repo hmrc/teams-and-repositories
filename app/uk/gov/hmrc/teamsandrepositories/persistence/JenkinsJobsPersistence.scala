@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.teamsandrepositories.persistence
 
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, Sorts}
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, ReplaceOptions, Sorts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
@@ -68,6 +68,12 @@ class JenkinsJobsPersistence @Inject()(
       .first()
       .toFutureOption()
 
+  def findByJenkinsUrl(jenkinsUrl: String): Future[Option[Job]] =
+    collection
+      .find(Filters.equal("jenkinsURL", jenkinsUrl))
+      .first()
+      .toFutureOption()
+
   def findAllByRepo(repoName: String): Future[Seq[Job]] =
     collection
       .find(Filters.equal("repoName", repoName))
@@ -95,6 +101,16 @@ class JenkinsJobsPersistence @Inject()(
       compareById = (a, b) => a.jenkinsUrl == b.jenkinsUrl,
       filterById  = entry => Filters.equal("jenkinsURL", entry.jenkinsUrl)
     ).map(_ => ())
+
+  def putOne(buildJob: Job)(using ExecutionContext): Future[Unit] =
+    collection
+      .replaceOne(
+        filter      = Filters.equal("jenkinsURL" , buildJob.jenkinsUrl),
+        replacement = buildJob,
+        options     = ReplaceOptions().upsert(true)
+      )
+      .toFuture()
+      .map(_ => ())
 
 object JenkinsJobsPersistence:
   import play.api.libs.functional.syntax._
