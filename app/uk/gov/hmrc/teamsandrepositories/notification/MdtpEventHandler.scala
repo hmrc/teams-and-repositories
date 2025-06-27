@@ -123,7 +123,7 @@ object MdtpEventHandler:
       ~ (__ \ "job_name"              ).read[String]
       ~ (__ \ "job_url"               ).read[String]
       ~ (__ \ "job_github_url"        ).read[String]
-      ~ (__ \ "build_number"          ).read[Int]
+      ~ (__ \ "build_number"          ).read[String].map(_.toInt)
       ~ (__ \ "build_url"             ).read[String]
       ~ (__ \ "build_finish_timestamp").read[Instant]
       ~ (__ \ "build_start_timestamp" ).read[Instant]
