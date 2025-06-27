@@ -19,7 +19,9 @@ package uk.gov.hmrc.teamsandrepositories.service
 import cats.implicits.*
 import uk.gov.hmrc.teamsandrepositories.connector.{BuildDeployApiConnector, JenkinsConnector}
 import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector.LatestBuild.TestJobResults
+import uk.gov.hmrc.teamsandrepositories.notification.MdtpEventHandler.JenkinsBuildEvent
 import uk.gov.hmrc.teamsandrepositories.persistence.{JenkinsJobsPersistence, RepositoriesPersistence}
+import uk.gov.hmrc.teamsandrepositories.persistence.JenkinsJobsPersistence.Job
 import uk.gov.hmrc.teamsandrepositories.model.RepoType
 
 import javax.inject.{Inject, Singleton}
@@ -54,9 +56,7 @@ class JenkinsReloadService @Inject()(
                                 JenkinsJobsPersistence.Job(
                                   repoName    = repo.name
                                 , jobName     = job.name
-                                , jobType     = if      job.name.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
-                                                else if repo.repoType == RepoType.Test   then JenkinsJobsPersistence.JobType.Test
-                                                else                                          JenkinsJobsPersistence.JobType.Job
+                                , jobType     = determineJobType(job.name, repo.repoType)
                                 , testType    = repo.testType
                                 , jenkinsUrl  = job.jenkinsUrl
                                 , repoType    = Some(repo.repoType)
@@ -94,3 +94,74 @@ class JenkinsReloadService @Inject()(
                          }
       _               <- jenkinsJobsPersistence.putAll(updatedJobs ++ pipelineJobs)
     yield ()
+
+  def updateJob(event: JenkinsBuildEvent)(using ExecutionContext): Future[Unit] =
+    jenkinsJobsPersistence
+      .findByJenkinsUrl(event.jobUrl)
+      .flatMap:
+        case Some(job) => updateExistingJob(job, event)
+        case None      => updateNewJob(event)
+
+  private def updateExistingJob(job: Job, event: JenkinsBuildEvent)(using ExecutionContext): Future[Unit] =
+    for
+      latestBuild <- jenkinsConnector.getLatestBuildData(event.jobUrl)
+      updatedJob  <- job.jobType match
+                       case JenkinsJobsPersistence.JobType.Test =>
+                         jenkinsConnector.getTestJobResults(job.jenkinsUrl).map { testResults =>
+                           val buildWithTestResults = latestBuild.map(build =>
+                             testResults match
+                               case Some(results) => build.copy(testJobResults = Some(results))
+                               case None          => 
+                                 // fallback to extracting from description for old builds
+                                 val extractedResults = build.description.flatMap(extractTestJobResults)
+                                 build.copy(testJobResults = extractedResults)
+                           )
+                           job.copy(latestBuild = buildWithTestResults)
+                         }
+                       case _ =>
+                         Future.successful(job.copy(latestBuild = latestBuild))
+      _           <- jenkinsJobsPersistence.putOne(updatedJob)
+    yield ()
+
+  private def updateNewJob(event: JenkinsBuildEvent)(using ExecutionContext): Future[Unit] =
+    event.githubUrl match
+      case RepoNameRegex(repoName) =>
+        for
+          repoOpt <- repositoriesPersistence.findRepo(repoName)
+          _       <- repoOpt match
+                       case Some(repo) =>
+                         for
+                           latestBuild <- jenkinsConnector.getLatestBuildData(event.jobUrl)
+                           jobType     =  determineJobType(event.jobName, repo.repoType)
+                           job         =  JenkinsJobsPersistence.Job(
+                                            repoName    = repo.name
+                                          , jobName     = event.jobName
+                                          , jobType     = jobType
+                                          , testType    = repo.testType
+                                          , jenkinsUrl  = event.jobUrl
+                                          , repoType    = Some(repo.repoType)
+                                          , latestBuild = latestBuild
+                                          )
+                           updatedJob  <- jobType match
+                                            case JenkinsJobsPersistence.JobType.Test =>
+                                              jenkinsConnector.getTestJobResults(event.jobUrl).map:
+                                                case Some(results) =>
+                                                  job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = Some(results))))
+                                                case None          => 
+                                                  val extractedResults = job.latestBuild.flatMap(_.description).flatMap(extractTestJobResults)
+                                                  job.copy(latestBuild = job.latestBuild.map(_.copy(testJobResults = extractedResults)))
+                                            case _ =>
+                                              Future.successful(job)
+                           _           <- jenkinsJobsPersistence.putOne(updatedJob)
+                         yield ()
+                       case None =>
+                         Future.failed(sys.error("unknown github repository"))
+        yield ()
+      case _ =>
+        Future.failed(sys.error("unable to extract repo name from githubUrl"))
+
+  private def determineJobType(jobName: String, repoType: RepoType): JenkinsJobsPersistence.JobType =
+    if      jobName.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
+    else if repoType == RepoType.Test       then JenkinsJobsPersistence.JobType.Test
+    else                                         JenkinsJobsPersistence.JobType.Job
+    

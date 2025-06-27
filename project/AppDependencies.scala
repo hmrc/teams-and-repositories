@@ -12,7 +12,7 @@ object AppDependencies {
     "uk.gov.hmrc"            %% "internal-auth-client-play-30" % "4.0.0",
     "org.yaml"               %  "snakeyaml"                    % "2.3",
     "org.typelevel"          %% "cats-core"                    % "2.13.0",
-    "org.codehaus.groovy"    %  "groovy-astbuilder"            % "3.0.16",
+    "software.amazon.awssdk" %  "sqs"                          % "2.31.43"
   )
 
   val test = Seq(

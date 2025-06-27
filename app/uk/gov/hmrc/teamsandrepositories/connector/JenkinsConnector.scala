@@ -62,7 +62,10 @@ class JenkinsConnector @Inject()(
 
   def getLatestBuildData(jobUrl: String)(using ExecutionContext): Future[Option[LatestBuild]] =
     // Prevents Server-Side Request Forgery
-    assert(jobUrl.startsWith(config.BuildJobs.baseUrl), s"$jobUrl does not match expected base url: ${config.BuildJobs.baseUrl}")
+    assert(
+     List(config.BuildJobs.baseUrl, config.PerformanceJobs.baseUrl).exists(jobUrl.startsWith),
+     s"$jobUrl was requested for invalid host"
+    )
 
     given HeaderCarrier = HeaderCarrier()
     val url = url"$jobUrl/lastBuild/api/json?tree=number,url,timestamp,result"
@@ -259,7 +262,7 @@ object JenkinsConnector:
         values
           .find(_.asString.equalsIgnoreCase(s)).getOrElse(Other)
 
-      given Format[BuildResult] =
+      val format: Format[BuildResult] =
         Format.of[String].inmap(parse, _.asString)
 
 
@@ -308,6 +311,7 @@ object JenkinsConnector:
         ~ Reads[Option[JsValue]](json => JsSuccess(Some(json)))
         )(TestJobResults.apply _)
 
+    given Format[BuildResult] = BuildResult.format
     val apiWrites: Writes[LatestBuild] =
       ( (__ \ "number"        ).write[Int]
       ~ (__ \ "url"           ).write[String]
