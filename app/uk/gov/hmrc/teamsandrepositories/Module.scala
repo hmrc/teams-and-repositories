@@ -16,14 +16,31 @@
 
 package uk.gov.hmrc.teamsandrepositories
 
-import com.google.inject.AbstractModule
+import play.api.{Configuration, Environment, Logger}
+import play.api.inject.Binding
 import uk.gov.hmrc.teamsandrepositories.schedulers.*
+import uk.gov.hmrc.teamsandrepositories.notification.MdtpEventHandler
 
-class Module() extends AbstractModule:
-  override def configure(): Unit =
-    bind(classOf[DataReloadScheduler            ]).asEagerSingleton()
-    bind(classOf[OpenPrDataReloadScheduler      ]).asEagerSingleton()
-    bind(classOf[GithubRatelimitMetricsScheduler]).asEagerSingleton()
-    bind(classOf[JenkinsRebuildScheduler        ]).asEagerSingleton()
-    bind(classOf[JenkinsReloadScheduler         ]).asEagerSingleton()
-    bind(classOf[BranchProtectionRulesScheduler ]).asEagerSingleton()
+class Module() extends play.api.inject.Module:
+
+  private val logger = Logger(getClass)
+
+  private def conditionalBindings(configuration: Configuration): Seq[Binding[?]] =
+    if configuration.get[Boolean]("aws.sqs.enabled") then
+      Seq(
+        bind[MdtpEventHandler].toSelf.eagerly()
+      )
+    else
+      logger.warn("SQS handlers are disabled")
+      Seq.empty
+
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[?]] =
+    Seq(
+      bind[DataReloadScheduler            ].toSelf.eagerly()
+    , bind[OpenPrDataReloadScheduler      ].toSelf.eagerly()
+    , bind[GithubRatelimitMetricsScheduler].toSelf.eagerly()
+    , bind[JenkinsRebuildScheduler        ].toSelf.eagerly()
+    , bind[JenkinsReloadScheduler         ].toSelf.eagerly()
+    , bind[BranchProtectionRulesScheduler ].toSelf.eagerly()
+    ) ++
+    conditionalBindings(configuration)
