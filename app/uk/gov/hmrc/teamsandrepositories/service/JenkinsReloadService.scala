@@ -158,7 +158,8 @@ class JenkinsReloadService @Inject()(
                          Future.failed(sys.error("unknown github repository"))
         yield ()
       case _ =>
-        Future.failed(sys.error("unable to extract repo name from githubUrl"))
+        // skip
+        Future.unit
 
   private def determineJobType(jobName: String, repoType: RepoType): JenkinsJobsPersistence.JobType =
     if      jobName.endsWith("-pr-builder") then JenkinsJobsPersistence.JobType.PullRequest
