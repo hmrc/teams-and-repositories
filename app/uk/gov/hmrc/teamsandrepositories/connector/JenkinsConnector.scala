@@ -61,11 +61,13 @@ class JenkinsConnector @Inject()(
       .recoverWithLogging(url)
 
   def getLatestBuildData(jobUrl: String)(using ExecutionContext): Future[Option[LatestBuild]] =
-    // Prevents Server-Side Request Forgery
-    assert(
-     List(config.BuildJobs.baseUrl, config.PerformanceJobs.baseUrl).exists(jobUrl.startsWith),
-     s"$jobUrl was requested for invalid host"
-    )
+    val authHeader = jobUrl match
+      case url if url.startsWith(config.BuildJobs.baseUrl) => 
+        config.BuildJobs.authorizationHeader
+      case url if url.startsWith(config.PerformanceJobs.baseUrl) => 
+        config.PerformanceJobs.authorizationHeader
+      case _ => 
+        throw new IllegalArgumentException(s"$jobUrl is not from a recognised Jenkins host")
 
     given HeaderCarrier = HeaderCarrier()
     val url = url"$jobUrl/lastBuild/api/json?tree=number,url,timestamp,result"
@@ -73,7 +75,7 @@ class JenkinsConnector @Inject()(
 
     httpClientV2
       .post(url)
-      .setHeader("Authorization" -> config.BuildJobs.authorizationHeader)
+      .setHeader("Authorization" -> authHeader)
       .execute[Option[LatestBuild]]
       .recoverWithLogging(url)
 
@@ -131,17 +133,17 @@ class JenkinsConnector @Inject()(
       .recoverWithLogging(url)
 
   def getTestJobResults(jenkinsUrl: String)(using ExecutionContext): Future[Option[LatestBuild.TestJobResults]] =
-    // Prevents Server-Side Request Forgery
-    assert(
-      List(config.BuildJobs.baseUrl, config.PerformanceJobs.baseUrl).exists(jenkinsUrl.startsWith),
-      s"$jenkinsUrl was requested for invalid host"
-    )
+    val authHeader = jenkinsUrl match
+      case url if url.startsWith(config.BuildJobs.baseUrl) => 
+        config.BuildJobs.authorizationHeader
+      case url if url.startsWith(config.PerformanceJobs.baseUrl) => 
+        config.PerformanceJobs.authorizationHeader
+      case _ => 
+        throw new IllegalArgumentException(s"$jenkinsUrl is not from a recognised Jenkins host")
 
     given HeaderCarrier = HeaderCarrier()
 
     val url        = url"${jenkinsUrl}lastBuild/artifact/test-results.json"
-    val authHeader = if url.toString.startsWith("https://build.tax.service.gov.uk") then config.BuildJobs.authorizationHeader
-                     else config.PerformanceJobs.authorizationHeader
 
     httpClientV2
       .get(url)
