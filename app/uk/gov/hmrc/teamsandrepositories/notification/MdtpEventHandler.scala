@@ -111,7 +111,7 @@ object MdtpEventHandler:
   , buildNumer : Int
   , buildUrl   : String
   , buildFinish: Instant
-  , buildStart : Instant
+  , buildStart : Option[Instant]
   , result     : LatestBuild.BuildResult
   )
 
@@ -126,6 +126,6 @@ object MdtpEventHandler:
       ~ (__ \ "build_number"          ).read[String].map(_.toInt)
       ~ (__ \ "build_url"             ).read[String]
       ~ (__ \ "build_finish_timestamp").read[Instant]
-      ~ (__ \ "build_start_timestamp" ).read[Instant]
+      ~ (__ \ "build_start_timestamp" ).readNullable[Instant]
       ~ (__ \ "result"                ).read[LatestBuild.BuildResult]
       )(JenkinsBuildEvent.apply _)
