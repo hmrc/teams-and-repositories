@@ -39,20 +39,21 @@ case class JenkinsRebuildService @Inject()(
 , slackNotificationsConnector : SlackNotificationsConnector
 ) extends Logging:
 
-  private val minDaysUnbuilt: Instant =
-     Instant.now().minus(configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt"), DAYS)
+  private val minDaysUnbuilt: Int =
+    configuration.get[Int]("scheduler.rebuild.minDaysUnbuilt")
 
   def rebuildJobWithNoRecentBuild()(using ExecutionContext): Future[Unit] =
+    val before = Instant.now().minus(minDaysUnbuilt, DAYS)
     (for
        job      <- EitherT.fromOptionF(
                      jenkinsJobsPersistence
                        .oldestServiceJob()
-                       .map(_.filter(_.latestBuild.exists(_.timestamp.isBefore(minDaysUnbuilt))))
+                       .map(_.filter(_.latestBuild.exists(_.timestamp.isBefore(before))))
                    , logger.info("No old builds to trigger")
                    )
        _        <- EitherT.fromOptionF(
                      jenkinsConnector.getLatestBuildData(job.jenkinsUrl).map(_.filter(x => job.latestBuild.map(_.timestamp).contains(x.timestamp)))
-                   , logger.info("Build already triggered")
+                   , logger.info(s"Build already triggered for job ${job.jobName} repo: ${job.repoName}")
                    )
        _        =  logger.info(s"Triggering job ${job.jobName} for repo: ${job.repoName}")
        queueUrl <- EitherT.right[Unit](jenkinsConnector.triggerBuildJob(job.jenkinsUrl))
