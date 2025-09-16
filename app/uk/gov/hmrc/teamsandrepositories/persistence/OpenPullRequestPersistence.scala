@@ -17,7 +17,6 @@
 package uk.gov.hmrc.teamsandrepositories.persistence
 
 import org.mongodb.scala.model.*
-import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
