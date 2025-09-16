@@ -21,7 +21,6 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector
 import uk.gov.hmrc.teamsandrepositories.model.{RepoType, TestType}
-import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

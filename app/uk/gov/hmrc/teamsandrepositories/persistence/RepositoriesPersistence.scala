@@ -23,7 +23,6 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.teamsandrepositories.model.{GitRepository, Organisation, RepoType, ServiceType, Tag}
 import uk.gov.hmrc.teamsandrepositories.persistence.Collations.caseInsensitive
 import uk.gov.hmrc.teamsandrepositories.connector.BranchProtection
-import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import play.api.Logging
 import play.api.libs.json.Format
 
