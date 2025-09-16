@@ -45,7 +45,7 @@ class MdtpEventHandler @Inject()(
   override protected def processMessage(message: Message): Future[MessageAction] =
     logger.info(s"Starting processing MDTP Event message with ID '${message.messageId()}'")
     val eitherTResult: EitherT[Future, String, MessageAction] =
-      for 
+      for
         payload <- EitherT.fromEither[Future](
                      Json
                        .parse(message.body)
@@ -56,18 +56,17 @@ class MdtpEventHandler @Inject()(
         action  <- (payload.`type`, payload.subtype) match
                      case ("jenkins-build", Some("finished")) =>
                        for
-                         event <- EitherT.fromEither[Future](
+                         event <- EitherT.fromEither[Future]:
                                     payload
                                       .json
                                       .validate(MdtpEventHandler.JenkinsBuildEvent.reads)
                                       .asEither.left.map(error => s"Could not parse $id. Reason: $error")
-                                  )
-                         _     <- EitherT(
+                         _     <- EitherT:
                                     jenkinsReloadService
-                                      .updateJob(event)
+                                      .updateJob(event.copy(jobUrl = event.jobUrl + (if event.jobUrl.endsWith("/") then "" else "/" ))) // Build and deploy remove the last slash which causes a miss match when reading from jenkins
+                                                                                                                                        // https://github.com/hmrc/build-and-deploy/blob/main/products/api/src/use_case/update_build_status_metrics_for_job.py#L172-L174
                                       .map(Right.apply)
                                       .recover { case e => logger.error(s"Could not process $id", e); Left(s"Could not process $id ${e.getMessage}")}
-                                  )
                        yield
                          logger.info(s"Successfully processed $id")
                          MessageAction.Delete(message)
