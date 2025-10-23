@@ -1,3 +1,10 @@
+# Migration to 11.188.0
+
+```javascript
+const names = db["deleted-repositories"].find({}, { name: 1, _id: 0 }).toArray().map(d => d.name);
+db["testRepoRelationships"].deleteMany({$or: [{ serviceRepo: { $in: names } },{ testRepo: { $in: names } }]});
+```
+
 # Migration to 11.177.0
 
 ```javascript
