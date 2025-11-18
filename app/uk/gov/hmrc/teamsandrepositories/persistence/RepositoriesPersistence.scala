@@ -82,7 +82,7 @@ class RepositoriesPersistence @Inject()(
 
     collection
       .find(if filters.isEmpty then Filters.empty() else Filters.and(filters: _*))
-      .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
+      .collation(caseInsensitive)
       .toFuture()
 
   def findRepo(repoName: String): Future[Option[GitRepository]] =
