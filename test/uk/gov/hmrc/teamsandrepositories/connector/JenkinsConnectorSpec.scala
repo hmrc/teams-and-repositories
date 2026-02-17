@@ -17,6 +17,7 @@
 package uk.gov.hmrc.teamsandrepositories.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -24,6 +25,7 @@ import play.api.Configuration
 import play.api.libs.json.{JsSuccess, JsValue, Json}
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector.LatestBuild.JenkinsFailureException
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -209,6 +211,64 @@ class JenkinsConnectorSpec
           testJobBuilder              = Some("UITestJobBuilder"),
           rawJson                     = Some(testResultJson)
         ))
+
+  "JenkinsConnector.triggerBuildJob" should :
+    "throw JenkinsFailureException when Jenkins responds with non-2xx" in :
+      val buildUrl = s"$wireMockUrl/buildjobs/test-build"
+
+      stubFor(
+        post("/buildjobs/test-build/buildWithParameters")
+          .willReturn(
+            aResponse()
+              .withStatus(500)
+              .withBody("Internal Server Error")
+          )
+      )
+
+      val ex = connector.triggerBuildJob(buildUrl).failed.futureValue
+      ex match
+        case e: JenkinsFailureException =>
+          e.url should include("/buildjobs/test-build/buildWithParameters")
+          e.status shouldBe Some(500)
+          e.body.value should include("Internal Server Error")
+        case other =>
+          fail(s"Expected JenkinsFailureException but got ${other.getClass.getName}: ${other.getMessage}")
+
+
+    "throw JenkinsFailureException when response is 200 but no Location header" in :
+      val buildUrl = s"$wireMockUrl/buildjobs/test-build"
+
+      stubFor(
+        post("/buildjobs/test-build/buildWithParameters")
+          .willReturn(aResponse().withStatus(200))
+      )
+
+      val ex = connector.triggerBuildJob(buildUrl).failed.futureValue
+      ex match
+        case e: JenkinsFailureException =>
+          e.url should include("/buildjobs/test-build/buildWithParameters")
+          e.status shouldBe Some(200)
+          e.body.value should include("No location header")
+        case other =>
+          fail(s"Expected JenkinsFailureException but got ${other.getClass.getName}: ${other.getMessage}")
+
+
+  "JenkinsConnector.getLatestBuildData" should :
+    "wrap unexpected errors in JenkinsFailureException" in :
+      val jobUrl = s"$wireMockUrl/buildjobs/job1"
+
+      stubFor(
+        post(urlPathEqualTo("/buildjobs/job1/lastBuild/api/json"))
+          .willReturn(aResponse().withStatus(500).withBody("error"))
+      )
+
+      val ex = connector.getLatestBuildData(jobUrl).failed.futureValue
+      ex match
+        case e: JenkinsFailureException =>
+          e.url should include("/buildjobs/job1/lastBuild/api/json")
+          e.body.value should include("error")
+        case other =>
+          fail(s"Expected JenkinsFailureException but got ${other.getClass.getName}: ${other.getMessage}")
 
   private lazy val connector: JenkinsConnector =
     JenkinsConnector(config, httpClientV2)

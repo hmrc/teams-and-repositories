@@ -20,9 +20,11 @@ import play.api.Logging
 import play.api.http.Status
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
 import uk.gov.hmrc.teamsandrepositories.config.JenkinsConfig
+import uk.gov.hmrc.teamsandrepositories.connector.JenkinsConnector.LatestBuild.JenkinsFailureException
 
 import java.net.URL
 import javax.inject.Inject
@@ -51,13 +53,14 @@ class JenkinsConnector @Inject()(
     httpClientV2
       .post(url)
       .setHeader("Authorization" -> config.BuildJobs.rebuilderAuthorizationHeader)
+      .withBody("None") // required to prevent 5xx response from Jenkins
       .execute[HttpResponse]
       .flatMap: res =>
         if Status.isSuccessful(res.status) then
           res.header("Location") match
             case Some(location) => Future.successful(location.replace("http:", "https:"))
-            case None           => Future.failed(sys.error(s"No location header found in response from $url"))
-        else Future.failed(sys.error(s"Call to $url failed with status: ${res.status}, body: ${res.body}"))
+            case None           => Future.failed(JenkinsFailureException(url.toString, Some(res.status), Some(s"No location header found in response from $url")))
+        else Future.failed(JenkinsFailureException(url.toString, Some(res.status), Some(s"Call to $url failed with status: ${res.status}, body: ${res.body}")))
       .recoverWithLogging(url)
 
   def getLatestBuildData(jobUrl: String)(using ExecutionContext): Future[Option[LatestBuild]] =
@@ -77,6 +80,9 @@ class JenkinsConnector @Inject()(
       .post(url)
       .setHeader("Authorization" -> authHeader)
       .execute[Option[LatestBuild]]
+      .recoverWith:
+        case NonFatal(ex) =>
+          Future.failed(JenkinsFailureException(url.toString, body = Some(ex.getMessage), cause = Some(ex)))
       .recoverWithLogging(url)
 
   private def extractFreeStyleProjectFromTree(jenkinsObject: JenkinsObject): Seq[JenkinsObject.FreeStyleProject] =
@@ -154,6 +160,10 @@ class JenkinsConnector @Inject()(
   extension [T](future: Future[T])
     private def recoverWithLogging(url: URL)(using ExecutionContext): Future[T] =
       future.recoverWith:
+        case ex: JenkinsFailureException =>
+          logger.error(s"JenkinsFailureException occurred when connecting to $url: ${ex.getMessage}", ex)
+          Future.failed(ex)
+
         case NonFatal(ex) =>
           logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
           Future.failed(ex)
@@ -267,6 +277,17 @@ object JenkinsConnector:
       val format: Format[BuildResult] =
         Format.of[String].inmap(parse, _.asString)
 
+    final case class JenkinsFailureException(
+      url   : String,
+      status: Option[Int] = None,
+      body  : Option[String] = None,
+      cause : Option[Throwable] = None
+    ) extends Exception(
+      s"Jenkins call failed for $url" +
+        status.map(s => s" (status: $s)").getOrElse("") +
+        body.map(b => s" Response body: $b").getOrElse(""),
+      cause.orNull
+    )
 
     case class SecurityAssessmentBreakdown(
       high         : Int,
