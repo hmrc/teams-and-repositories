@@ -86,11 +86,13 @@ class GithubConnectorSpec
                      "nodes": [
                        {
                          "name": "A",
-                         "createdAt": "2019-03-01T12:00:00Z"
+                         "createdAt": "2019-03-01T12:00:00Z",
+                         "slug": "a"
                        },
                        {
                          "name": "B",
-                         "createdAt": "2019-03-01T12:00:00Z"
+                         "createdAt": "2019-03-01T12:00:00Z",
+                         "slug": "b"
                        }
                      ]
                    }
@@ -118,7 +120,8 @@ class GithubConnectorSpec
                      "nodes": [
                        {
                          "name": "C",
-                         "createdAt": "2019-03-01T12:00:00Z"
+                         "createdAt": "2019-03-01T12:00:00Z",
+                         "slug": "c"
                        }
                      ]
                    }
@@ -130,9 +133,9 @@ class GithubConnectorSpec
       )
 
       connector.getTeams().futureValue shouldBe List(
-        GhTeam("A", createdAt),
-        GhTeam("B", createdAt),
-        GhTeam("C", createdAt)
+        GhTeam("A", createdAt, "a"),
+        GhTeam("B", createdAt, "b"),
+        GhTeam("C", createdAt, "c")
       )
 
       wireMockServer.verify(
@@ -715,11 +718,11 @@ class GithubConnectorSpec
   "GithubConnector.getReposForTeam" should:
     "return repos" in:
       val team =
-        GhTeam(name = "A Team", createdAt = createdAt)
+        GhTeam(name = "A Team", createdAt = createdAt, slug = "a-team")
 
       val query1 =
         getReposForTeamQuery
-          .withVariable("team", JsString(team.githubSlug))
+          .withVariable("team", JsString(team.slug))
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
@@ -751,11 +754,11 @@ class GithubConnectorSpec
 
     "return an empty list when a team does not exist" in:
       val team =
-        GhTeam(name = "A Team", createdAt = createdAt)
+        GhTeam(name = "A Team", createdAt = createdAt, slug = "a-team")
 
       val query =
         getReposForTeamQuery
-          .withVariable("team", JsString(team.githubSlug))
+          .withVariable("team", JsString(team.slug))
 
       stubFor(
         post(urlPathEqualTo("/graphql"))
