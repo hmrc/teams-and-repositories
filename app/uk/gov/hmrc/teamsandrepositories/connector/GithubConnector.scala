@@ -142,7 +142,7 @@ class GithubConnector @Inject()(
         (root \ "nodes").readWithDefault(Seq.empty[GhRepository])(Reads.seq(GhRepository.reads(githubConfig)))
 
       executePagedGqlQuery[Seq[GhRepository]](
-        query      = getReposForTeamQuery.withVariable("team", JsString(team.githubSlug)),
+        query      = getReposForTeamQuery.withVariable("team", JsString(team.slug)),
         cursorPath = root \ "pageInfo" \ "endCursor"
       ).map(_.flatten)
 
@@ -190,7 +190,7 @@ class GithubConnector @Inject()(
         .recoverWith:
           case ex @ UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY) =>
             val elapsed = java.time.Duration.between(startTime, Instant.now()).toMillis
-            logger.warn(s"Failed GitHub GraphQL call took ${elapsed}ms. Error: ${ex.getMessage}")
+            logger.warn(s"Failed GitHub GraphQL call with variables: ${query.variables} and took ${elapsed}ms. Error: ${ex.getMessage}")
             Future.failed(ex)
     }
 
@@ -369,6 +369,7 @@ object GithubConnector:
               nodes {
                 name
                 createdAt
+                slug
               }
             }
           }
@@ -431,16 +432,15 @@ object GithubConnector:
 
 case class GhTeam(
   name     : String,
-  createdAt: Instant
-):
-  def githubSlug: String =
-    name.replaceAll(" - | |\\.", "-").toLowerCase
+  createdAt: Instant,
+  slug     : String,
+)
 
 object GhTeam:
-
   val reads: Reads[GhTeam] =
     ( (__ \ "name"     ).read[String]
     ~ (__ \ "createdAt").read[Instant]
+    ~ (__ \ "slug"     ).read[String]
     )(apply _)
 
 case class GhRepository(

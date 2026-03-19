@@ -354,9 +354,9 @@ class PersistingServiceSpec
 
     val now: Instant = Instant.now()
 
-    val teamA: GhTeam = GhTeam("team-a",      now)
-    val teamB: GhTeam = GhTeam("team-b",      now)
-    val teamC: GhTeam = GhTeam("hidden-team", now)
+    val teamA: GhTeam = GhTeam("team-a",      now, "team-a"     )
+    val teamB: GhTeam = GhTeam("team-b",      now, "team-b"     )
+    val teamC: GhTeam = GhTeam("hidden-team", now, "hidden-team")
 
     val aHeuristics: RepoTypeHeuristics = RepoTypeHeuristics(
       prototypeInName     = false,
