@@ -177,7 +177,8 @@ class GithubConnector @Inject()(
     query: GraphqlQuery
   ): Future[A] =
     retryFor[A]("Github graphQL call") {
-      case UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY) => true
+      case UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY    ) => true
+      case UpstreamErrorResponse.WithStatusCode(Status.GATEWAY_TIMEOUT) => true
     }{
       val startTime = Instant.now()
       httpClientV2
@@ -188,10 +189,11 @@ class GithubConnector @Inject()(
         .withProxy
         .execute[A]
         .recoverWith:
-          case ex @ UpstreamErrorResponse.WithStatusCode(Status.BAD_GATEWAY) =>
-            val elapsed = java.time.Duration.between(startTime, Instant.now()).toMillis
-            logger.warn(s"Failed GitHub GraphQL call with variables: ${query.variables} and took ${elapsed}ms. Error: ${ex.getMessage}")
-            Future.failed(ex)
+          case ex @ UpstreamErrorResponse.WithStatusCode(status)
+            if status == Status.BAD_GATEWAY || status == Status.GATEWAY_TIMEOUT =>
+              val elapsed = java.time.Duration.between(startTime, Instant.now()).toMillis
+              logger.warn(s"Failed GitHub GraphQL call with variables: ${query.variables} and took ${elapsed}ms. Error: ${ex.getMessage}")
+              Future.failed(ex)
     }
 
   private def executePagedGqlQuery[A](
