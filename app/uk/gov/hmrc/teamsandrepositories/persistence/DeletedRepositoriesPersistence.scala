@@ -57,22 +57,26 @@ class DeletedRepositoriesPersistence @Inject()(
   , repoType          : Option[RepoType]     = None
   , serviceType       : Option[ServiceType]  = None
   ): Future[Seq[DeletedGitRepository]] =
-    collection
-      .find(
-        Seq(
-          name.map:
-            case Quoted(n) => Filters.equal("name", n)
-            case n         => Filters.regex("name", n),
-          organisation      .map(o  => Filters.equal("organisation"      , o.asString)),
-          team              .map(tm => Filters.equal("owningTeams"       , tm         )),
-          digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds         )),
-          repoType          .map(rt => Filters.equal("repoType"          , rt.asString)),
-          serviceType       .map(st => Filters.equal("serviceType"       , st.asString))
-        ).flatten
-         .foldLeft(Filters.empty())(Filters.and(_, _))
-      )
-      .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
-      .toFuture()
+    val query =
+      collection
+        .find(
+          Seq(
+            name.map:
+              case Quoted(n) => Filters.equal("name", n)
+              case n         => Filters.regex("name", n),
+            organisation      .map(o  => Filters.equal("organisation"      , o.asString)),
+            team              .map(tm => Filters.equal("owningTeams"       , tm         )),
+            digitalServiceName.map(ds => Filters.equal("digitalServiceName", ds         )),
+            repoType          .map(rt => Filters.equal("repoType"          , rt.asString)),
+            serviceType       .map(st => Filters.equal("serviceType"       , st.asString))
+          ).flatten
+            .foldLeft(Filters.empty())(Filters.and(_, _))
+        )
+        .collation(name.fold(Collations.default)(_ => Collations.caseInsensitive))
+
+    name match
+      case Some(_) => query.hintString("nameIdx").toFuture() // MongoDB 8 requires hint for regex + collation to avoid NoQueryExecutionPlans
+      case None    => query.toFuture()
 
   def putRepo(repo: DeletedGitRepository): Future[Unit] =
     collection
